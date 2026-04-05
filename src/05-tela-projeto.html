@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html class="bg-[#050505] scroll-smooth" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Tela do Projeto — Marmora</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Iconify -->
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #a1a1aa;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+        }
+
+        .scanline {
+            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%),
+                        linear-gradient(90deg, rgba(255,255,255,0.01), rgba(0,0,0,0.01), rgba(255,255,255,0.01));
+            background-size: 100% 2px, 3px 100%;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .sys-reveal {
+                opacity: 0;
+                transform: translateY(20px);
+                filter: blur(4px);
+                transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                            transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                            filter 1.2s ease-out;
+            }
+            .sys-active.sys-reveal { opacity: 1; transform: translate(0) scale(1); filter: blur(0); }
+            .sys-delay-100 { transition-delay: 100ms; }
+            .sys-delay-200 { transition-delay: 200ms; }
+            .sys-delay-300 { transition-delay: 300ms; }
+        }
+
+        button:focus-visible { outline: 2px solid #ffffff; outline-offset: 4px; }
+
+        /* Painel lateral */
+        #painel-medicao {
+            transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #painel-medicao.open { transform: translateX(0); }
+
+        /* Modais */
+        .modal-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal-box {
+            transform: translateY(12px) scale(0.98);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.open .modal-box {
+            transform: translateY(0) scale(1);
+        }
+
+        /* Select custom arrow */
+        select { -webkit-appearance: none; appearance: none; }
+
+        /* Tab active underline */
+        .tab-btn { border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom-color: #facc15; color: white; }
+
+        /* Status radio */
+        .status-radio { cursor: pointer; }
+        .status-radio input { display: none; }
+        .status-radio input:checked + .status-radio-inner { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.05); color: #a78bfa; }
+        .status-radio-produzindo input:checked + .status-radio-inner { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.05); color: #a78bfa; }
+        .status-radio-entregue input:checked + .status-radio-inner  { border-color: rgba(96,165,250,0.5);  background: rgba(96,165,250,0.05);  color: #60a5fa; }
+
+        .status-dot-produzindo { background: #a78bfa; }
+        .status-dot-entregue   { background: #60a5fa; }
+    </style>
+</head>
+<body class="selection:bg-white selection:text-black antialiased relative min-h-screen">
+
+    <!-- Backgrounds -->
+    <div class="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
+    <div class="fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
+    <div class="fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
+
+    <main class="relative z-10 max-w-[1200px] mx-auto p-4 md:p-8 pt-12">
+
+        <!-- Breadcrumb -->
+        <div class="sys-reveal flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-6">
+            <a href="/projetos" class="hover:text-yellow-400 transition-colors">Projetos</a>
+            <iconify-icon icon="solar:alt-arrow-right-linear" width="10" class="text-zinc-700"></iconify-icon>
+            <span class="text-zinc-400">Bancada Cozinha Silestone</span>
+        </div>
+
+        <!-- ── Header do Projeto ──────────────────────────────────── -->
+        <section class="sys-reveal mb-8">
+            <div class="bg-[#0a0a0a] border border-zinc-800 p-6">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+
+                    <!-- Info -->
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h1 class="text-2xl font-bold text-white tracking-tighter">Bancada Cozinha Silestone</h1>
+                            <!-- StatusPill: aprovado -->
+                            <span class="px-2 py-0.5 border border-green-500/30 text-[9px] font-mono uppercase text-green-400 bg-green-400/5 flex items-center gap-1.5 w-max">
+                                <span class="w-1 h-1 bg-green-400 rounded-full"></span>
+                                Aprovado
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-zinc-500">
+                            <span class="flex items-center gap-1.5">
+                                <iconify-icon icon="solar:user-linear" width="13" class="text-zinc-600"></iconify-icon>
+                                <a href="/clientes/c1" class="hover:text-yellow-400 transition-colors">Arch &amp; Co. Arquitetura</a>
+                            </span>
+                            <span class="text-zinc-700">·</span>
+                            <span class="flex items-center gap-1.5">
+                                <iconify-icon icon="solar:calendar-linear" width="13" class="text-zinc-600"></iconify-icon>
+                                14 mar 2026
+                            </span>
+                            <span class="text-zinc-700">·</span>
+                            <span class="flex items-center gap-1.5">
+                                <iconify-icon icon="solar:user-id-linear" width="13" class="text-zinc-600"></iconify-icon>
+                                Ana Souza
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Ações -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="openModal('modal-status')"
+                            class="flex items-center gap-2 border border-zinc-700 bg-zinc-900 text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-white transition-colors">
+                            <iconify-icon icon="solar:refresh-linear" width="13"></iconify-icon>
+                            Atualizar status
+                        </button>
+                        <button onclick="openModal('modal-perda')"
+                            class="flex items-center gap-2 border border-red-500/30 bg-red-400/5 text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-red-400 transition-colors">
+                            <iconify-icon icon="solar:close-circle-linear" width="13"></iconify-icon>
+                            Marcar como perdido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Tabs ────────────────────────────────────────────────── -->
+        <div class="sys-reveal sys-delay-100 flex border-b border-zinc-800 mb-6">
+            <button id="tab-medicoes" onclick="switchTab('medicoes')"
+                class="tab-btn active flex items-center gap-2 px-5 py-3 text-[11px] font-mono uppercase tracking-widest transition-colors text-white">
+                <iconify-icon icon="solar:ruler-pen-linear" width="13"></iconify-icon>
+                Medições
+            </button>
+            <button id="tab-ambientes" onclick="switchTab('ambientes')"
+                class="tab-btn flex items-center gap-2 px-5 py-3 text-[11px] font-mono uppercase tracking-widest transition-colors text-zinc-600 hover:text-zinc-400">
+                <iconify-icon icon="solar:layers-linear" width="13"></iconify-icon>
+                Ambientes e Orçamentos
+            </button>
+        </div>
+
+        <!-- ══ ABA: MEDIÇÕES ════════════════════════════════════════ -->
+        <div id="pane-medicoes" class="sys-reveal sys-delay-200">
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+                    01 // Medições
+                </div>
+                <button onclick="openModal('modal-agendar')"
+                    class="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all">
+                    <iconify-icon icon="solar:calendar-add-linear" width="14"></iconify-icon>
+                    Agendar medição
+                </button>
+            </div>
+
+            <div class="bg-[#0a0a0a] border border-zinc-800">
+                <!-- Cabeçalho tabela -->
+                <div class="grid grid-cols-12 px-4 py-2.5 border-b border-zinc-800">
+                    <span class="col-span-4 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Data</span>
+                    <span class="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Medidor</span>
+                    <span class="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Status</span>
+                    <span class="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-right">Ação</span>
+                </div>
+
+                <!-- Linha 1: processada -->
+                <div class="grid grid-cols-12 items-center px-4 py-3.5 border-b border-zinc-900 hover:bg-white/[0.01] transition-colors">
+                    <div class="col-span-4 flex items-center gap-2">
+                        <iconify-icon icon="solar:calendar-linear" width="13" class="text-zinc-600"></iconify-icon>
+                        <span class="text-sm text-white font-medium">18 mar 2026 · 09:00</span>
+                    </div>
+                    <div class="col-span-3 font-mono text-[11px] text-zinc-500">Carlos Medidor</div>
+                    <div class="col-span-2">
+                        <span class="px-2 py-0.5 border border-green-500/30 text-[9px] font-mono uppercase text-green-400 bg-green-400/5 flex items-center gap-1.5 w-max">
+                            <span class="w-1 h-1 bg-green-400 rounded-full"></span>
+                            Processada
+                        </span>
+                    </div>
+                    <div class="col-span-3 flex justify-end">
+                        <button onclick="openPainel()"
+                            class="flex items-center gap-1.5 border border-zinc-700 text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 hover:border-white hover:text-white transition-colors">
+                            <iconify-icon icon="solar:eye-linear" width="12"></iconify-icon>
+                            Ver dados
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Linha 2: agendada -->
+                <div class="grid grid-cols-12 items-center px-4 py-3.5 hover:bg-white/[0.01] transition-colors">
+                    <div class="col-span-4 flex items-center gap-2">
+                        <iconify-icon icon="solar:calendar-linear" width="13" class="text-zinc-600"></iconify-icon>
+                        <span class="text-sm text-white font-medium">22 mar 2026 · 14:00</span>
+                    </div>
+                    <div class="col-span-3 font-mono text-[11px] text-zinc-500">Carlos Medidor</div>
+                    <div class="col-span-2">
+                        <span class="px-2 py-0.5 border border-zinc-700 text-[9px] font-mono uppercase text-zinc-400 bg-zinc-900 flex items-center gap-1.5 w-max">
+                            <span class="w-1 h-1 bg-zinc-500 rounded-full"></span>
+                            Agendada
+                        </span>
+                    </div>
+                    <div class="col-span-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ ABA: AMBIENTES E ORÇAMENTOS ══════════════════════════ -->
+        <div id="pane-ambientes" class="sys-reveal sys-delay-200 hidden">
+            <div class="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-3">
+                02 // Ambientes e Orçamentos
+            </div>
+
+            <div class="flex flex-col gap-4 pb-24">
+
+                <!-- Ambiente 1: Cozinha -->
+                <div class="bg-[#0a0a0a] border border-zinc-800">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="solar:layers-minimalistic-linear" width="14" class="text-zinc-600"></iconify-icon>
+                            <span class="text-white font-semibold text-sm tracking-tight">Cozinha</span>
+                            <span class="px-2 py-0.5 border border-green-500/30 text-[9px] font-mono uppercase text-green-400 bg-green-400/5">Completo</span>
+                        </div>
+                        <button class="flex items-center gap-1.5 border border-zinc-700 text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-2 hover:border-white hover:text-white transition-colors">
+                            <iconify-icon icon="solar:document-add-linear" width="12"></iconify-icon>
+                            Nova versão
+                        </button>
+                    </div>
+
+                    <!-- Versão A -->
+                    <div class="flex flex-col border-b border-zinc-900 group transition-colors">
+                        <div onclick="toggleVersao('v1', event)" class="flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.01] cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <iconify-icon icon="solar:document-text-linear" width="13" class="text-zinc-700 group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                                <div>
+                                    <div class="text-sm text-white font-medium group-hover:text-yellow-400 transition-colors">Versão A — Blanco Zeus / Preto</div>
+                                    <div class="font-mono text-[10px] text-zinc-600">20 mar 2026</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="font-mono text-sm text-white font-semibold">R$ 4.280,00</span>
+                                <iconify-icon id="icon-v1" icon="solar:alt-arrow-down-linear" width="13" class="text-zinc-700 group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                            </div>
+                        </div>
+                        <div id="panel-v1" class="hidden px-5 pb-4 flex flex-col gap-2 bg-[#0a0a0a]">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between p-3 border border-zinc-800 bg-black gap-3 transition-colors hover:border-zinc-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-1 h-5 bg-zinc-800"></div>
+                                    <div>
+                                        <div class="text-xs text-white font-medium">Bancada principal</div>
+                                        <div class="font-mono text-[10px] text-zinc-500 mt-0.5">Silestone Blanco Zeus</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
+                                    <span class="font-mono text-xs text-zinc-400">R$ 2.500,00</span>
+                                    <div class="flex items-center gap-1.5 border-l border-zinc-800 pl-4">
+                                        <button title="Editar peça" class="p-1.5 text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
+                                        </button>
+                                        <button title="Remover peça" class="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col md:flex-row md:items-center justify-between p-3 border border-zinc-800 bg-black gap-3 transition-colors hover:border-zinc-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-1 h-5 bg-zinc-800"></div>
+                                    <div>
+                                        <div class="text-xs text-white font-medium">Ilha</div>
+                                        <div class="font-mono text-[10px] text-zinc-500 mt-0.5">Quartzo Preto</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
+                                    <span class="font-mono text-xs text-zinc-400">R$ 1.780,00</span>
+                                    <div class="flex items-center gap-1.5 border-l border-zinc-800 pl-4">
+                                        <button title="Editar peça" class="p-1.5 text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
+                                        </button>
+                                        <button title="Remover peça" class="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Versão B -->
+                    <div class="flex flex-col group transition-colors">
+                        <div onclick="toggleVersao('v2', event)" class="flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.01] cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <iconify-icon icon="solar:document-text-linear" width="13" class="text-zinc-700 group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                                <div>
+                                    <div class="text-sm text-white font-medium group-hover:text-yellow-400 transition-colors">Versão B — Verde / Preto</div>
+                                    <div class="font-mono text-[10px] text-zinc-600">20 mar 2026</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="font-mono text-sm text-white font-semibold">R$ 3.960,00</span>
+                                <iconify-icon id="icon-v2" icon="solar:alt-arrow-down-linear" width="13" class="text-zinc-700 group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                            </div>
+                        </div>
+                        <div id="panel-v2" class="hidden px-5 pb-4 flex flex-col gap-2 bg-[#0a0a0a]">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between p-3 border border-zinc-800 bg-black gap-3 transition-colors hover:border-zinc-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-1 h-5 bg-zinc-800"></div>
+                                    <div>
+                                        <div class="text-xs text-white font-medium">Bancada principal</div>
+                                        <div class="font-mono text-[10px] text-zinc-500 mt-0.5">Quartzo Verde</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
+                                    <span class="font-mono text-xs text-zinc-400">R$ 2.180,00</span>
+                                    <div class="flex items-center gap-1.5 border-l border-zinc-800 pl-4">
+                                        <button title="Editar peça" class="p-1.5 text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
+                                        </button>
+                                        <button title="Remover peça" class="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col md:flex-row md:items-center justify-between p-3 border border-zinc-800 bg-black gap-3 transition-colors hover:border-zinc-700">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-1 h-5 bg-zinc-800"></div>
+                                    <div>
+                                        <div class="text-xs text-white font-medium">Ilha</div>
+                                        <div class="font-mono text-[10px] text-zinc-500 mt-0.5">Quartzo Preto</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
+                                    <span class="font-mono text-xs text-zinc-400">R$ 1.780,00</span>
+                                    <div class="flex items-center gap-1.5 border-l border-zinc-800 pl-4">
+                                        <button title="Editar peça" class="p-1.5 text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
+                                        </button>
+                                        <button title="Remover peça" class="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors flex items-center justify-center">
+                                            <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ambiente 2: Banheiro Social -->
+                <div class="bg-[#0a0a0a] border border-zinc-800">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="solar:layers-minimalistic-linear" width="14" class="text-zinc-600"></iconify-icon>
+                            <span class="text-white font-semibold text-sm tracking-tight">Banheiro Social</span>
+                            <span class="px-2 py-0.5 border border-zinc-800 text-[9px] font-mono uppercase text-zinc-600">Sem orçamento</span>
+                        </div>
+                        <button class="flex items-center gap-1.5 bg-yellow-400 text-black text-[10px] font-bold uppercase tracking-widest px-3 py-2 hover:shadow-[0_0_10px_rgba(250,204,21,0.3)] transition-all">
+                            <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>
+                            Criar orçamento
+                        </button>
+                    </div>
+                    <div class="px-5 py-6 text-center">
+                        <p class="font-mono text-[10px] uppercase tracking-widest text-zinc-700">Nenhum orçamento para este ambiente</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rodapé fixo -->
+            <div class="fixed bottom-0 left-0 right-0 z-20 bg-[#050505]/90 backdrop-blur border-t border-zinc-800 py-4 px-6 flex justify-end">
+                <button class="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-5 py-3 hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all">
+                    <iconify-icon icon="solar:document-linear" width="14"></iconify-icon>
+                    Gerar PDF / WhatsApp
+                    <iconify-icon icon="solar:arrow-right-linear" width="14"></iconify-icon>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ══ PAINEL LATERAL — Dados da Medição ══════════════════════ -->
+    <div id="overlay-painel" onclick="closePainel()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden"></div>
+    <div id="painel-medicao" class="fixed right-0 top-0 h-full w-full max-w-[480px] bg-[#0a0a0a] border-l border-zinc-800 z-50 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+            <div>
+                <div class="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">Dados da medição</div>
+                <div class="text-white font-semibold text-sm">18 mar 2026 · 09:00</div>
+            </div>
+            <button onclick="closePainel()" class="text-zinc-600 hover:text-white transition-colors p-1">
+                <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
+            </button>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+            <div class="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-1">
+                Resumo por peça
+            </div>
+
+            <!-- Peça 1 -->
+            <div class="bg-black border border-zinc-900 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-white font-semibold text-sm">Bancada principal</span>
+                    <span class="font-mono text-sm text-yellow-400 font-bold">1,08 m²</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex items-start gap-2">
+                        <iconify-icon icon="solar:ruler-cross-pen-linear" width="12" class="text-zinc-600 mt-0.5 flex-shrink-0"></iconify-icon>
+                        <span class="font-mono text-[10px] text-zinc-500">Meia-esquadria 1,80 m · Reto simples 0,60 m</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <iconify-icon icon="solar:scissors-linear" width="12" class="text-zinc-600 flex-shrink-0"></iconify-icon>
+                        <span class="font-mono text-[10px] text-zinc-500">2 recortes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Peça 2 -->
+            <div class="bg-black border border-zinc-900 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-white font-semibold text-sm">Bancada diagonal</span>
+                    <span class="font-mono text-sm text-yellow-400 font-bold">0,90 m²</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex items-start gap-2">
+                        <iconify-icon icon="solar:ruler-cross-pen-linear" width="12" class="text-zinc-600 mt-0.5 flex-shrink-0"></iconify-icon>
+                        <span class="font-mono text-[10px] text-zinc-500">Meia-esquadria 1,00 m · Reto simples 0,72 m</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <iconify-icon icon="solar:scissors-linear" width="12" class="text-zinc-600 flex-shrink-0"></iconify-icon>
+                        <span class="font-mono text-[10px] text-zinc-500">1 recorte</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Peça 3 -->
+            <div class="bg-black border border-zinc-900 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-white font-semibold text-sm">Rodapé</span>
+                    <span class="font-mono text-sm text-yellow-400 font-bold">0,34 m²</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex items-start gap-2">
+                        <iconify-icon icon="solar:ruler-cross-pen-linear" width="12" class="text-zinc-600 mt-0.5 flex-shrink-0"></iconify-icon>
+                        <span class="font-mono text-[10px] text-zinc-500">Reto simples 3,40 m</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <iconify-icon icon="solar:scissors-linear" width="12" class="text-zinc-600 flex-shrink-0"></iconify-icon>
+                        <span class="font-mono text-[10px] text-zinc-500">Sem recortes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer painel -->
+        <div class="px-6 py-4 border-t border-zinc-800">
+            <button onclick="closePainel()" class="w-full flex items-center justify-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all">
+                <iconify-icon icon="solar:add-circle-linear" width="14"></iconify-icon>
+                Criar orçamento com estes dados
+            </button>
+        </div>
+    </div>
+
+    <!-- ══ MODAL — Agendar Medição ════════════════════════════════ -->
+    <div id="modal-agendar" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="modal-box bg-[#0a0a0a] border border-zinc-800 w-full max-w-[480px]">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+                <div>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">[ AGENDAR_MEDIÇÃO ]</div>
+                    <div class="text-white font-semibold">Nova medição</div>
+                </div>
+                <button onclick="closeModal('modal-agendar')" class="text-zinc-600 hover:text-white transition-colors p-1">
+                    <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
+                </button>
+            </div>
+            <div class="p-6 flex flex-col gap-5">
+                <!-- Medidor -->
+                <div>
+                    <label class="text-[10px] uppercase font-mono text-zinc-500 block mb-2">Medidor</label>
+                    <div class="relative">
+                        <iconify-icon icon="solar:user-check-rounded-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" width="16"></iconify-icon>
+                        <select class="w-full bg-black border border-zinc-800 text-zinc-400 text-sm pl-9 pr-8 py-3 rounded-none focus:outline-none focus:border-yellow-400 focus:shadow-[0_0_10px_rgba(250,204,21,0.15)] transition-colors">
+                            <option value="">Selecionar medidor</option>
+                            <option>Carlos Medidor</option>
+                            <option>Pedro Pereira</option>
+                        </select>
+                        <iconify-icon icon="solar:alt-arrow-down-linear" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" width="14"></iconify-icon>
+                    </div>
+                </div>
+                <!-- Data e hora -->
+                <div>
+                    <label class="text-[10px] uppercase font-mono text-zinc-500 block mb-2">Data e hora</label>
+                    <div class="relative">
+                        <iconify-icon icon="solar:calendar-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" width="16"></iconify-icon>
+                        <input type="datetime-local" class="w-full bg-black border border-zinc-800 text-zinc-400 text-sm pl-9 pr-4 py-3 rounded-none focus:outline-none focus:border-yellow-400 focus:shadow-[0_0_10px_rgba(250,204,21,0.15)] transition-colors font-mono" style="color-scheme:dark"/>
+                    </div>
+                </div>
+                <!-- Endereço -->
+                <div>
+                    <label class="text-[10px] uppercase font-mono text-zinc-500 block mb-2">Endereço</label>
+                    <div class="relative">
+                        <iconify-icon icon="solar:map-point-linear" class="absolute left-3 top-3.5 text-zinc-600" width="16"></iconify-icon>
+                        <input type="text" value="Av. Paulista, 1000 — São Paulo/SP" class="w-full bg-black border border-zinc-800 text-white text-sm pl-9 pr-4 py-3 rounded-none focus:outline-none focus:border-yellow-400 focus:shadow-[0_0_10px_rgba(250,204,21,0.15)] transition-colors placeholder:text-zinc-700"/>
+                    </div>
+                </div>
+                <!-- Botões -->
+                <div class="flex gap-3 pt-2">
+                    <button onclick="closeModal('modal-agendar')" class="flex-1 border border-zinc-700 text-zinc-400 text-[11px] font-mono uppercase tracking-widest py-3 hover:border-zinc-500 hover:text-white transition-colors">
+                        Cancelar
+                    </button>
+                    <button onclick="closeModal('modal-agendar')" class="flex-1 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-2 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all">
+                        <iconify-icon icon="solar:check-circle-linear" width="14"></iconify-icon>
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ MODAL — Atualizar Status ═══════════════════════════════ -->
+    <div id="modal-status" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="modal-box bg-[#0a0a0a] border border-zinc-800 w-full max-w-[400px]">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+                <div>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">[ ATUALIZAR_STATUS ]</div>
+                    <div class="text-white font-semibold">Novo status do projeto</div>
+                </div>
+                <button onclick="closeModal('modal-status')" class="text-zinc-600 hover:text-white transition-colors p-1">
+                    <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
+                </button>
+            </div>
+            <div class="p-6 flex flex-col gap-5">
+                <div class="flex flex-col gap-2">
+                    <!-- Produzindo -->
+                    <label class="status-radio status-radio-produzindo cursor-pointer">
+                        <input type="radio" name="status" value="produzindo" checked/>
+                        <div class="status-radio-inner flex items-center gap-3 px-4 py-3.5 border border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 transition-colors">
+                            <span class="w-1.5 h-1.5 rounded-full status-dot-produzindo"></span>
+                            <span class="font-mono text-[11px] uppercase tracking-widest">Produzindo</span>
+                        </div>
+                    </label>
+                    <!-- Entregue -->
+                    <label class="status-radio status-radio-entregue cursor-pointer">
+                        <input type="radio" name="status" value="entregue"/>
+                        <div class="status-radio-inner flex items-center gap-3 px-4 py-3.5 border border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 transition-colors">
+                            <span class="w-1.5 h-1.5 rounded-full status-dot-entregue"></span>
+                            <span class="font-mono text-[11px] uppercase tracking-widest">Entregue</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModal('modal-status')" class="flex-1 border border-zinc-700 text-zinc-400 text-[11px] font-mono uppercase tracking-widest py-3 hover:border-zinc-500 hover:text-white transition-colors">
+                        Cancelar
+                    </button>
+                    <button onclick="closeModal('modal-status')" class="flex-1 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-2 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all">
+                        <iconify-icon icon="solar:check-circle-linear" width="14"></iconify-icon>
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ MODAL — Marcar como Perdido ════════════════════════════ -->
+    <div id="modal-perda" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="modal-box bg-[#0a0a0a] border border-red-500/30 w-full max-w-[440px]">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+                <div>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-400/70 mb-0.5">[ MARCAR_COMO_PERDIDO ]</div>
+                    <div class="text-white font-semibold">Confirmar perda do projeto</div>
+                </div>
+                <button onclick="closeModal('modal-perda')" class="text-zinc-600 hover:text-white transition-colors p-1">
+                    <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
+                </button>
+            </div>
+            <div class="p-6 flex flex-col gap-5">
+                <p class="font-mono text-xs text-zinc-500">
+                    Ao confirmar, o projeto <span class="text-white">Bancada Cozinha Silestone</span> será marcado como perdido. Esta ação notificará o admin.
+                </p>
+                <div>
+                    <label class="text-[10px] uppercase font-mono text-zinc-500 block mb-2">Motivo (opcional)</label>
+                    <textarea rows="3" placeholder="Ex: cliente escolheu outro fornecedor..."
+                        class="w-full bg-black border border-zinc-800 text-white text-sm px-4 py-3 rounded-none focus:outline-none focus:border-red-400/50 transition-colors placeholder:text-zinc-700 resize-none font-mono text-xs"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModal('modal-perda')" class="flex-1 border border-zinc-700 text-zinc-400 text-[11px] font-mono uppercase tracking-widest py-3 hover:border-zinc-500 hover:text-white transition-colors">
+                        Cancelar
+                    </button>
+                    <button onclick="closeModal('modal-perda')" class="flex-1 border border-red-500/50 bg-red-400/5 text-red-400 text-[11px] font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-2 hover:bg-red-400/10 transition-all">
+                        <iconify-icon icon="solar:close-circle-linear" width="14"></iconify-icon>
+                        Confirmar perda
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── Reveal ────────────────────────────────────────────────
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('sys-active'); });
+        }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+        document.querySelectorAll('.sys-reveal').forEach(el => observer.observe(el));
+
+        // ── Tabs ──────────────────────────────────────────────────
+        function switchTab(tab) {
+            const tabs = ['medicoes', 'ambientes'];
+            tabs.forEach(t => {
+                document.getElementById('pane-' + t).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById('tab-' + t);
+                btn.classList.toggle('active', t === tab);
+                btn.classList.toggle('text-white', t === tab);
+                btn.classList.toggle('text-zinc-600', t !== tab);
+            });
+        }
+
+        // ── Modais ────────────────────────────────────────────────
+        function toggleVersao(id, event) {
+            if (event) event.stopPropagation();
+            const panel = document.getElementById('panel-' + id);
+            const icon = document.getElementById('icon-' + id);
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                icon.setAttribute('icon', 'solar:alt-arrow-up-linear');
+            } else {
+                panel.classList.add('hidden');
+                icon.setAttribute('icon', 'solar:alt-arrow-down-linear');
+            }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+        // Fechar ao clicar fora
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('open');
+            });
+        });
+
+        // ── Painel lateral ────────────────────────────────────────
+        function openPainel() {
+            document.getElementById('overlay-painel').classList.remove('hidden');
+            setTimeout(() => document.getElementById('painel-medicao').classList.add('open'), 10);
+        }
+        function closePainel() {
+            document.getElementById('painel-medicao').classList.remove('open');
+            setTimeout(() => document.getElementById('overlay-painel').classList.add('hidden'), 350);
+        }
+
+        // ── Radio status visual ───────────────────────────────────
+        document.querySelectorAll('input[name="status"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.querySelectorAll('input[name="status"]').forEach(r => {
+                    const inner = r.closest('label').querySelector('.status-radio-inner');
+                    if (r.checked) {
+                        if (r.value === 'produzindo') {
+                            inner.style.borderColor = 'rgba(167,139,250,0.5)';
+                            inner.style.background  = 'rgba(167,139,250,0.05)';
+                            inner.style.color       = '#a78bfa';
+                        } else {
+                            inner.style.borderColor = 'rgba(96,165,250,0.5)';
+                            inner.style.background  = 'rgba(96,165,250,0.05)';
+                            inner.style.color       = '#60a5fa';
+                        }
+                    } else {
+                        inner.style.borderColor = '';
+                        inner.style.background  = '';
+                        inner.style.color       = '';
+                    }
+                });
+            });
+        });
+        // Aplicar estado inicial do radio
+        document.querySelector('input[name="status"]:checked').dispatchEvent(new Event('change'));
+    </script>
+</body>
+</html>
