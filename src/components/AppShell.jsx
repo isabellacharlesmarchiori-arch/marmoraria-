@@ -3,13 +3,70 @@ import { useLocation, Link, useNavigate, Outlet } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-const AppShell = ({ notifCount = 0 }) => {
+const AppShell = ({ notifCount: notifCountProp = 0 }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const auth = useAuth();
   const profile = auth?.profile ?? null;
-  const perfil = profile?.perfil || 'vendedor';
+  const session = auth?.session ?? null;
+  // Suporta tanto o campo 'role' quanto 'perfil' na tabela profiles
+  const perfil = profile?.role || profile?.perfil || 'vendedor';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(notifCountProp);
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = (toast) => {
+    const id = Math.random();
+    setToasts(prev => [...prev, { id, ...toast }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+  };
+
+  const dismissToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
+
+  // Busca contagem de notificações não lidas para o usuário logado
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    async function fetchCount() {
+      const { count } = await supabase
+        .from('notificacoes')
+        .select('id', { count: 'exact', head: true })
+        .eq('usuario_id', userId)
+        .eq('lida', false);
+      setNotifCount(count ?? 0);
+    }
+
+    fetchCount();
+
+    // Realtime: atualiza badge + mostra toast quando chega nova notificação
+    const channel = supabase
+      .channel('notif-badge')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notificacoes',
+        filter: `usuario_id=eq.${userId}`,
+      }, (payload) => {
+        fetchCount();
+        const n = payload.new;
+        addToast({
+          tipo: n?.tipo ?? '',
+          titulo: n?.titulo ?? 'Nova notificação',
+          descricao: n?.descricao ?? '',
+          projeto_id: n?.projeto_id ?? null,
+        });
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notificacoes',
+        filter: `usuario_id=eq.${userId}`,
+      }, () => { fetchCount(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user?.id]);
   
   // Menus por perfil
   const menuVendedor = [
@@ -27,8 +84,18 @@ const AppShell = ({ notifCount = 0 }) => {
     { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear', subtitle: 'Ajustes do sistema' }
   ];
 
-  const currentMenu = perfil === 'admin' ? menuAdmin : menuVendedor;
-  const activeItem = currentMenu.find(item => location.pathname === item.path) || currentMenu[0];
+  const menuMedidor = [
+    { path: '/medidor/agenda',        label: 'Agenda',        icon: 'solar:calendar-linear', subtitle: 'Medições agendadas'  },
+    { path: '/medidor/notificacoes',  label: 'Notificações',  icon: 'solar:bell-linear',     subtitle: 'Meus avisos', badge: true },
+    { path: '/medidor/historico',     label: 'Histórico',     icon: 'solar:history-linear',  subtitle: 'Medições concluídas' },
+  ];
+
+  const currentMenu = perfil === 'admin' ? menuAdmin
+                    : perfil === 'medidor' ? menuMedidor
+                    : menuVendedor;
+
+  // Suporta tanto rotas exatas quanto aninhadas (/medidor/agenda, etc.)
+  const activeItem = currentMenu.find(item => location.pathname.startsWith(item.path)) || currentMenu[0];
 
   // Fechar drawer no mobile ao mudar de rota
   useEffect(() => {
@@ -87,7 +154,7 @@ const AppShell = ({ notifCount = 0 }) => {
         {/* 3. Navegação */}
         <nav className="flex-1 overflow-y-auto py-2">
           {currentMenu.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
             
             return (
               <Link
@@ -183,6 +250,47 @@ const AppShell = ({ notifCount = 0 }) => {
           <Outlet />
         </div>
       </main>
+
+      {/* ── Toast Stack ── */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none" style={{ maxWidth: '360px' }}>
+          {toasts.map(t => {
+            const isMedicao = t.tipo === 'medicao_concluida';
+            return (
+              <div
+                key={t.id}
+                className={`flex items-start gap-3 p-4 border shadow-2xl pointer-events-auto backdrop-blur-sm animate-[slideIn_0.3s_ease] ${
+                  isMedicao
+                    ? 'bg-[#0a0a0a] border-green-500/40 border-l-2 border-l-green-400'
+                    : 'bg-[#0a0a0a] border-zinc-700'
+                }`}
+                style={{ animation: 'slideIn 0.3s ease' }}
+              >
+                <div className={`w-8 h-8 flex items-center justify-center shrink-0 ${isMedicao ? 'bg-green-400/10 text-green-400' : 'bg-yellow-400/10 text-yellow-400'}`}>
+                  <iconify-icon icon={isMedicao ? 'solar:check-square-linear' : 'solar:bell-linear'} width="16"></iconify-icon>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white text-xs font-semibold mb-0.5">{t.titulo}</div>
+                  {t.descricao && <div className="text-zinc-500 text-[10px] font-mono leading-snug">{t.descricao}</div>}
+                  {t.projeto_id && (
+                    <button
+                      onClick={() => { navigate(`/projetos/${t.projeto_id}`); dismissToast(t.id); }}
+                      className="mt-1.5 text-[10px] font-mono uppercase tracking-widest text-yellow-400 hover:underline"
+                    >
+                      Ver projeto →
+                    </button>
+                  )}
+                </div>
+                <button onClick={() => dismissToast(t.id)} className="text-zinc-600 hover:text-white transition-colors shrink-0 mt-0.5">
+                  <iconify-icon icon="solar:close-linear" width="13"></iconify-icon>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{__html: `@keyframes slideIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }`}} />
 
       <style dangerouslySetInnerHTML={{__html: `
         ::-webkit-scrollbar { width: 4px; }

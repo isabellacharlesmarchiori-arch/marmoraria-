@@ -1,32 +1,49 @@
 /**
- * AuthContext — Versão Ultra-Estável
+ * AuthContext — Sessão Persistente + Diagnóstico
  *
  * Regras:
- *  • loading começa true e vai para false UMA ÚNICA VEZ (quando getSession resolver)
- *  • onAuthStateChange só atualiza a session, não mexe no loading
- *  • Sem timeouts, sem animações, sem efeitos colaterais extras
- *  • profileLoading rastreia separadamente a busca do perfil no banco
- *  • profile nunca fica em estado indeterminado: começa null e vai para dados ou null
+ *  • sb-* nunca é removido do localStorage (são as chaves de sessão do Supabase)
+ *  • inicializando = true enquanto getSession não responder → sem redirect prematuro
+ *  • profileLoading SEMPRE vai a false no finally — sem travamento
+ *  • Timeout de 3s destrava o app se o banco não responder
+ *  • Override de admin para o e-mail da proprietária enquanto banco é investigado
  */
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
+const ADMIN_EMAIL = 'isabellacharlesmarchiori@gmail.com'
+
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [session, setSession]       = useState(undefined) // undefined = ainda não resolvido
-  const [profile, setProfile]       = useState(null)
+  const [session,        setSession]        = useState(undefined) // undefined = ainda não sabe
+  const [profile,        setProfile]        = useState(null)
+  const [empresa,        setEmpresa]        = useState(null)
   const [profileLoading, setProfileLoading] = useState(false)
 
-  // ── Inicialização: getSession é a única fonte da verdade para loading ──────
+  // ── 1. Limpa apenas cache de dados do app (NUNCA as chaves sb- do Supabase) ─
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data?.session ?? null)
-    }).catch(() => {
-      setSession(null)
-    })
+    try {
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        // sb-* = sessão do Supabase — jamais remover, senão perde login no F5
+        if (k && (k.startsWith('dash_cache_') || k.startsWith('projetos_cache_'))) {
+          keysToRemove.push(k)
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k))
+      if (keysToRemove.length) console.log('[Auth] Cache de dados limpo:', keysToRemove.length, 'chaves')
+    } catch { /* ignora */ }
+  }, [])
 
-    // Mantém a session sincronizada em tempo real (login/logout em outra aba, etc.)
+  // ── 2. Detecta sessão inicial e escuta mudanças de auth ──────────────────────
+  useEffect(() => {
+    // getSession lê o token do localStorage — resolve imediatamente se já logado
+    supabase.auth.getSession()
+      .then(({ data }) => setSession(data?.session ?? null))
+      .catch(() => setSession(null))
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s ?? null)
     })
@@ -34,32 +51,97 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // ── Busca o profile sempre que a session mudar ────────────────────────────
+  // ── 3. Carrega perfil + empresa quando o userId muda ────────────────────────
+  const userId = session?.user?.id ?? null
+
   useEffect(() => {
-    if (!session) {
+    const userEmail = session?.user?.email ?? null
+    console.log('[Auth] userId:', userId, '| email:', userEmail)
+
+    if (!userId) {
       setProfile(null)
+      setEmpresa(null)
       setProfileLoading(false)
       return
     }
 
-    // Sinaliza que o perfil está sendo buscado
     setProfileLoading(true)
 
-    supabase
-      .from('usuarios')
-      .select('nome, perfil, empresa_id')
-      .eq('id', session.user.id)
-      .single()
-      .then(({ data }) => setProfile(data ?? null))
-      .catch(() => setProfile(null))
-      .finally(() => setProfileLoading(false))
-  }, [session])
+    // Segurança: se o banco não responder em 3s, destrava o app
+    const timeoutId = setTimeout(() => {
+      console.error('[Auth] TIMEOUT 3s — forçando profileLoading=false')
+      setProfileLoading(false)
+    }, 3000)
 
-  // loading é true enquanto session for undefined (antes do getSession responder)
+    async function carregarPerfil() {
+      try {
+        const { data: perfil, error: errPerfil } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', userId)
+          .single()
+
+        console.log('=== DADOS BRUTOS DO BANCO (usuarios) ===', perfil)
+        if (errPerfil) console.log('=== ERRO DO BANCO ===', errPerfil)
+
+        if (errPerfil || !perfil) {
+          console.warn('[Auth] Perfil não encontrado:', errPerfil?.message ?? 'sem dados')
+          if (userEmail === ADMIN_EMAIL) {
+            console.warn('[Auth] OVERRIDE admin para:', userEmail)
+            setProfile({ nome: 'Isabella', perfil: 'admin', role: 'admin', empresa_id: null })
+          } else {
+            setProfile(null)
+          }
+        } else {
+          const nivelPermissao = perfil.role || perfil.perfil || perfil.nivel || perfil.acesso || 'vendedor'
+          const perfilNormalizado = {
+            ...perfil,
+            perfil: userEmail === ADMIN_EMAIL ? 'admin' : (perfil.perfil || nivelPermissao),
+            role:   userEmail === ADMIN_EMAIL ? 'admin' : (perfil.role   || nivelPermissao),
+          }
+
+          console.log('[Auth] Perfil normalizado:', perfilNormalizado)
+          setProfile(perfilNormalizado)
+
+          if (perfilNormalizado.empresa_id) {
+            const { data: emp, error: errEmp } = await supabase
+              .from('empresas')
+              .select('id, nome, telefone, email, endereco, logo_url')
+              .eq('id', perfilNormalizado.empresa_id)
+              .single()
+
+            if (errEmp) {
+              console.warn('[Auth] Erro ao buscar empresa:', errEmp.message)
+            } else {
+              setEmpresa(emp ?? null)
+              console.log('[Auth] Empresa carregada:', emp?.nome)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[Auth] Exceção inesperada:', err.message)
+        if (userEmail === ADMIN_EMAIL) {
+          setProfile({ nome: 'Isabella', perfil: 'admin', role: 'admin', empresa_id: null })
+        } else {
+          setProfile(null)
+          setEmpresa(null)
+        }
+      } finally {
+        clearTimeout(timeoutId)
+        setProfileLoading(false)
+        console.log('[Auth] profileLoading → false')
+      }
+    }
+
+    carregarPerfil()
+  }, [userId])
+
+  // loading = true enquanto getSession ainda não respondeu (session === undefined)
+  // RequireAuth aguarda loading=false antes de decidir redirecionar ou não
   const loading = session === undefined
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, profileLoading }}>
+    <AuthContext.Provider value={{ session, profile, empresa, loading, profileLoading }}>
       {children}
     </AuthContext.Provider>
   )

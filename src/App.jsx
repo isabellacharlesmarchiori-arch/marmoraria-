@@ -1,34 +1,59 @@
-/**
- * App.jsx — Versão Estável
- *
- * Regras:
- *  • Imports diretos (sem React.lazy)
- *  • AppShell mantido mas isolado: se quebrar, apenas as rotas protegidas falham
- *  • RequireAuth simples: loading → spinner inline, sem session → /login
- *  • Sem animações no nível do router
- */
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './lib/AuthContext'
 
 // Layout
 import AppShell from './components/AppShell'
 
-// Páginas públicas
+// Páginas públicas — carregadas imediatamente (rota de entrada)
 import Login           from './pages/Login'
 import CadastroEmpresa from './pages/CadastroEmpresa'
 import AceiteConvite   from './pages/AceiteConvite'
 
-// Páginas protegidas
-import Dashboard    from './pages/Dashboard'
-import Projetos     from './pages/Projetos'
-import TelaProjeto  from './pages/TelaProjeto'
-import Clientes     from './pages/Clientes'
-import Agenda       from './pages/Agenda'
-import CriarOrcamento from './pages/CriarOrcamento'
-import Carrinho     from './pages/Carrinho'
-import Financeiro   from './pages/Financeiro'
-import Configuracoes from './pages/Configuracoes'
-import Admin        from './pages/Admin'
+// Páginas protegidas — carregadas sob demanda (code splitting)
+const Dashboard            = lazy(() => import('./pages/Dashboard'))
+const ProjetosAdminV2      = lazy(() => import('./pages/ProjetosAdminV2'))
+const TelaProjeto          = lazy(() => import('./pages/TelaProjeto'))        // carrega jsPDF só ao abrir projeto
+const Clientes             = lazy(() => import('./pages/Clientes'))
+const Agenda               = lazy(() => import('./pages/Agenda'))
+const CriarOrcamento       = lazy(() => import('./pages/CriarOrcamento'))
+const Carrinho             = lazy(() => import('./pages/Carrinho'))
+const Financeiro             = lazy(() => import('./pages/Financeiro'))
+const FinanceiroVisaoGeral   = lazy(() => import('./pages/financeiro/FinanceiroVisaoGeral'))
+const FinanceiroDashboard    = lazy(() => import('./pages/financeiro/FinanceiroDashboard'))
+const FinanceiroLancamentos  = lazy(() => import('./pages/financeiro/FinanceiroLancamentos'))
+const FinanceiroContas       = lazy(() => import('./pages/financeiro/FinanceiroContas'))
+const FinanceiroCheques      = lazy(() => import('./pages/financeiro/FinanceiroCheques'))
+const FinanceiroRelatorios   = lazy(() => import('./pages/financeiro/FinanceiroRelatorios'))
+const Configuracoes        = lazy(() => import('./pages/Configuracoes'))
+const Admin                = lazy(() => import('./pages/Admin'))
+const Notificacoes         = lazy(() => import('./pages/Notificacoes'))
+const PainelMedidor        = lazy(() => import('./pages/PainelMedidor'))
+const MedidorAgenda        = lazy(() => import('./pages/MedidorAgenda'))
+const MedidorHistorico     = lazy(() => import('./pages/MedidorHistorico'))
+const MedidorNotificacoes  = lazy(() => import('./pages/MedidorNotificacoes'))
+
+// Fallback de Suspense — fundo escuro sem piscar
+function PageLoader() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#050505',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <div style={{
+        width: 24, height: 24,
+        border: '2px solid #27272a',
+        borderTopColor: '#facc15',
+        borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite',
+      }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  )
+}
 
 // ── Guard de autenticação ───────────────────────────────────────────────────
 
@@ -73,19 +98,36 @@ export default function App() {
         <Route path="/cadastro" element={<CadastroEmpresa />} />
         <Route path="/convite"  element={<AceiteConvite />} />
 
-        {/* ── Rotas protegidas (auth + shell) ── */}
+        {/* ── Rotas protegidas (auth + shell + code splitting) ── */}
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            <Route path="/dashboard"                   element={<Dashboard />} />
-            <Route path="/projetos"                    element={<Projetos />} />
-            <Route path="/projetos/:id"                element={<TelaProjeto />} />
-            <Route path="/clientes"                    element={<Clientes />} />
-            <Route path="/projetos/:id/orcamento/novo" element={<CriarOrcamento />} />
-            <Route path="/projetos/:id/carrinho"       element={<Carrinho />} />
-            <Route path="/admin"                       element={<Admin />} />
-            <Route path="/admin/financeiro"            element={<Financeiro />} />
-            <Route path="/admin/configuracoes"         element={<Configuracoes />} />
-            <Route path="/agenda"                      element={<Agenda />} />
+            <Route element={<Suspense fallback={<PageLoader />}><Outlet /></Suspense>}>
+              <Route path="/dashboard"                   element={<Dashboard />} />
+              <Route path="/projetos"                    element={<ProjetosAdminV2 />} />
+              <Route path="/projetos/:id"                element={<TelaProjeto />} />
+              <Route path="/clientes"                    element={<Clientes />} />
+              <Route path="/notificacoes"                element={<Notificacoes />} />
+              <Route path="/projetos/:id/orcamento/novo" element={<CriarOrcamento />} />
+              <Route path="/projetos/:id/carrinho"       element={<Carrinho />} />
+              <Route path="/admin"                       element={<Admin />} />
+              <Route path="/admin/projetos"              element={<ProjetosAdminV2 />} />
+              <Route path="/admin/clientes"              element={<Clientes />} />
+              <Route path="/admin/financeiro" element={<Financeiro />}>
+                <Route index                    element={<FinanceiroVisaoGeral />} />
+                <Route path="dashboard"         element={<FinanceiroDashboard />} />
+                <Route path="lancamentos"       element={<FinanceiroLancamentos />} />
+                <Route path="contas"            element={<FinanceiroContas />} />
+                <Route path="cheques"           element={<FinanceiroCheques />} />
+                <Route path="relatorios"        element={<FinanceiroRelatorios />} />
+              </Route>
+              <Route path="/admin/configuracoes"         element={<Configuracoes />} />
+              <Route path="/agenda"                      element={<Agenda />} />
+              {/* ── Rotas do Medidor ── */}
+              <Route path="/medidor"                     element={<PainelMedidor />} />
+              <Route path="/medidor/agenda"              element={<MedidorAgenda />} />
+              <Route path="/medidor/historico"           element={<MedidorHistorico />} />
+              <Route path="/medidor/notificacoes"        element={<MedidorNotificacoes />} />
+            </Route>
           </Route>
         </Route>
 
