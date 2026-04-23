@@ -10,7 +10,7 @@ const TH = 'px-4 py-3.5 font-mono text-[9px] uppercase tracking-widest text-zinc
 
 const SKELETON_WIDTHS = ['48px', '160px', '96px', '80px', '80px', '56px', '24px'];
 
-export default function TabelaLancamentos({ lancamentos, lookups, loading, erro, onRecarregar, campoData }) {
+export default function TabelaLancamentos({ lancamentos, lookups, loading, erro, onRecarregar, campoData, onLinhaClicada, acoes }) {
   const labelData = LABEL_CAMPO_DATA[campoData] ?? 'Data';
 
   if (erro) {
@@ -77,6 +77,8 @@ export default function TabelaLancamentos({ lancamentos, lookups, loading, erro,
                 lancamento={l}
                 lookups={lookups}
                 campoData={campoData}
+                onLinhaClicada={onLinhaClicada}
+                {...(acoes ?? {})}
               />
             ))
           )}

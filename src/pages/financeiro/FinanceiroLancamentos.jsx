@@ -4,6 +4,10 @@ import { useAuth } from '../../lib/AuthContext';
 import { supabase } from '../../lib/supabase';
 import FiltrosLancamentos from './lancamentos/FiltrosLancamentos';
 import TabelaLancamentos from './lancamentos/TabelaLancamentos';
+import ModalLancamentoForm from './lancamentos/ModalLancamentoForm';
+import ModalMarcarPago from './lancamentos/ModalMarcarPago';
+import ModalGerenciarGrupo from './lancamentos/ModalGerenciarGrupo';
+import ModalConfirmacao from './contas/ModalConfirmacao';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -57,6 +61,11 @@ const OPCOES_VAZIO = {
   clientes:   [], contas:            [], projetos:   [],
 };
 
+const CONF_VAZIO = {
+  aberto: false, titulo: '', mensagem: '', onConfirmar: null,
+  textoConfirmar: 'Confirmar', textoCancelar: 'Cancelar', variante: 'neutra',
+};
+
 // ─── componente ─────────────────────────────────────────────────────────────
 
 export default function FinanceiroLancamentos() {
@@ -71,6 +80,10 @@ export default function FinanceiroLancamentos() {
   const [limit,          setLimit]         = useState(50);
   const [totalCount,     setTotalCount]    = useState(null);
   const [temMais,        setTemMais]       = useState(false);
+  const [modalLanc,      setModalLanc]     = useState({ aberto: false, lancamento: null });
+  const [modalMarcarPago, setModalMarcarPago] = useState({ aberto: false, lancamento: null });
+  const [modalGrupo,      setModalGrupo]      = useState({ aberto: false, grupoId: null });
+  const [modalConf,       setModalConf]       = useState(CONF_VAZIO);
 
   // Ref pra leitura de lookups em efeitos sem incluí-lo nas dependências
   const lookupsRef = useRef(lookups);
@@ -81,6 +94,63 @@ export default function FinanceiroLancamentos() {
     setFiltros(novosFiltros);
     setLimit(50);
   }
+
+  // ── ações de lançamento ──────────────────────────────────────────────────
+  function fecharConf() { setModalConf(CONF_VAZIO); }
+
+  function abrirCancelar(lancamento) {
+    setModalConf({
+      aberto:         true,
+      titulo:         'Cancelar lançamento',
+      mensagem:       "Cancelar este lançamento? O status vira 'cancelado'. Se estava pago, o saldo da conta será restituído automaticamente.",
+      textoConfirmar: 'Cancelar lançamento',
+      textoCancelar:  'Voltar',
+      variante:       'destrutiva',
+      onConfirmar:    async () => {
+        fecharConf();
+        try {
+          const { error } = await supabase
+            .from('financeiro_lancamentos')
+            .update({ status: 'cancelado' })
+            .eq('id', lancamento.id);
+          if (error) throw error;
+          toast.success('Lançamento cancelado.');
+          carregarLancamentos();
+        } catch (err) { toast.error(err.message); }
+      },
+    });
+  }
+
+  function abrirEstornar(lancamento) {
+    setModalConf({
+      aberto:         true,
+      titulo:         'Estornar pagamento',
+      mensagem:       "Estornar este pagamento? O lançamento volta para 'pendente' e o saldo da conta é devolvido automaticamente.",
+      textoConfirmar: 'Estornar',
+      textoCancelar:  'Voltar',
+      variante:       'destrutiva',
+      onConfirmar:    async () => {
+        fecharConf();
+        try {
+          const { error } = await supabase
+            .from('financeiro_lancamentos')
+            .update({ status: 'pendente', valor_pago: 0, data_pagamento: null, conta_id: null })
+            .eq('id', lancamento.id);
+          if (error) throw error;
+          toast.success('Pagamento estornado.');
+          carregarLancamentos();
+        } catch (err) { toast.error(err.message); }
+      },
+    });
+  }
+
+  const acoes = {
+    onEditar:         l => setModalLanc({ aberto: true, lancamento: l }),
+    onMarcarPago:     l => setModalMarcarPago({ aberto: true, lancamento: l }),
+    onCancelar:       l => abrirCancelar(l),
+    onEstornar:       l => abrirEstornar(l),
+    onGerenciarGrupo: l => setModalGrupo({ aberto: true, grupoId: l.grupo_parcelamento_id }),
+  };
 
   // ── query principal ──────────────────────────────────────────────────────
   const carregarLancamentos = useCallback(async () => {
@@ -98,7 +168,9 @@ export default function FinanceiroLancamentos() {
         `id, tipo, status, descricao, valor_previsto, valor_pago, valor_liquido,
          data_emissao, data_vencimento, data_pagamento, competencia,
          categoria_id, parceiro_id, arquiteto_id, cliente_id,
-         conta_id, projeto_id, forma_pagamento, bloqueado_ate_pagamento_projeto, origem`,
+         conta_id, projeto_id, forma_pagamento, taxa_percentual,
+         bloqueado_ate_pagamento_projeto, origem,
+         grupo_parcelamento_id, parcela_num, parcela_total`,
         { count: 'exact' }
       )
       .eq('empresa_id', empresaId)
@@ -153,7 +225,7 @@ export default function FinanceiroLancamentos() {
     async function loadOpcoes() {
       const [catR, parR, arqR, cliR, contaR, projR] = await Promise.all([
         supabase.from('financeiro_plano_contas')
-          .select('id, nome').eq('empresa_id', empresaId)
+          .select('id, nome, tipo').eq('empresa_id', empresaId)
           .eq('aceita_lancamento', true).eq('ativo', true).order('nome'),
         supabase.from('parceiros_publicos')
           .select('id, nome, tipos').eq('ativo', true).order('nome'),
@@ -252,7 +324,7 @@ export default function FinanceiroLancamentos() {
         </span>
         <button
           type="button"
-          onClick={() => toast.info('Novo lançamento em breve')}
+          onClick={() => setModalLanc({ aberto: true, lancamento: null })}
           className="bg-yellow-400 text-black px-4 py-2 font-mono text-[10px] uppercase tracking-widest hover:bg-yellow-300 transition-colors"
         >
           + Novo lançamento
@@ -286,6 +358,57 @@ export default function FinanceiroLancamentos() {
         erro={erro}
         onRecarregar={carregarLancamentos}
         campoData={filtros.campoData}
+        onLinhaClicada={l => setModalLanc({ aberto: true, lancamento: l })}
+        acoes={acoes}
+      />
+
+      {/* Modal de criar / editar lançamento */}
+      <ModalLancamentoForm
+        aberto={modalLanc.aberto}
+        lancamentoEditando={modalLanc.lancamento}
+        onFechar={() => setModalLanc({ aberto: false, lancamento: null })}
+        onSalvar={() => {
+          setModalLanc({ aberto: false, lancamento: null });
+          carregarLancamentos();
+        }}
+        categorias={opcoesFiltro.categorias}
+        parceirosPublicos={opcoesFiltro.parceirosPublicos}
+        arquitetos={opcoesFiltro.arquitetos}
+        clientes={opcoesFiltro.clientes}
+        contas={opcoesFiltro.contas}
+        projetos={opcoesFiltro.projetos}
+      />
+
+      {/* Modal — marcar como pago */}
+      <ModalMarcarPago
+        aberto={modalMarcarPago.aberto}
+        lancamento={modalMarcarPago.lancamento}
+        contas={opcoesFiltro.contas}
+        onFechar={() => setModalMarcarPago({ aberto: false, lancamento: null })}
+        onSucesso={() => {
+          setModalMarcarPago({ aberto: false, lancamento: null });
+          carregarLancamentos();
+        }}
+      />
+
+      {/* Modal — gerenciar grupo de parcelamento */}
+      <ModalGerenciarGrupo
+        aberto={modalGrupo.aberto}
+        grupoParcelamentoId={modalGrupo.grupoId}
+        onFechar={() => setModalGrupo({ aberto: false, grupoId: null })}
+        onSucesso={carregarLancamentos}
+      />
+
+      {/* Modal — confirmação genérica (cancelar / estornar) */}
+      <ModalConfirmacao
+        aberto={modalConf.aberto}
+        titulo={modalConf.titulo}
+        mensagem={modalConf.mensagem}
+        textoConfirmar={modalConf.textoConfirmar}
+        textoCancelar={modalConf.textoCancelar}
+        variante={modalConf.variante}
+        onConfirmar={modalConf.onConfirmar ?? (() => {})}
+        onCancelar={fecharConf}
       />
 
       {/* Carregar mais */}

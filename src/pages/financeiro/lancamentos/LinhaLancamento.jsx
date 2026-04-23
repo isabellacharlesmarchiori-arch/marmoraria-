@@ -1,6 +1,6 @@
-import { toast } from 'sonner';
 import { formatBRL } from '../../../utils/format';
 import { corPorStatus, corPorTipo } from '../theme';
+import MenuAcoesLancamento from './MenuAcoesLancamento';
 
 const TIPO_PARCEIRO = {
   fornecedor:  'fornecedor',
@@ -26,7 +26,17 @@ function resolverParceiro(lancamento, lookups) {
   return null;
 }
 
-export default function LinhaLancamento({ lancamento, lookups, campoData = 'data_vencimento' }) {
+export default function LinhaLancamento({
+  lancamento,
+  lookups,
+  campoData = 'data_vencimento',
+  onLinhaClicada,
+  onEditar,
+  onMarcarPago,
+  onEstornar,
+  onCancelar,
+  onGerenciarGrupo,
+}) {
   const hoje = new Date().toISOString().slice(0, 10);
 
   const vencido =
@@ -55,7 +65,7 @@ export default function LinhaLancamento({ lancamento, lookups, campoData = 'data
   return (
     <tr
       className={`border-b border-zinc-900 cursor-pointer hover:bg-white/[0.015] transition-colors${destacar ? ' bg-red-950/20' : ''}`}
-      onClick={() => toast.info('Detalhe do lançamento em breve')}
+      onClick={() => onLinhaClicada?.(lancamento)}
     >
       {/* Data */}
       <td className="px-4 py-3.5 whitespace-nowrap">
@@ -110,14 +120,15 @@ export default function LinhaLancamento({ lancamento, lookups, campoData = 'data
       </td>
 
       {/* Ações */}
-      <td className="px-4 py-3.5">
-        <button
-          type="button"
-          onClick={e => { e.stopPropagation(); toast.info('Ações em breve'); }}
-          className="text-zinc-600 hover:text-yellow-400 transition-colors"
-        >
-          <iconify-icon icon="lucide:more-horizontal" width="16"></iconify-icon>
-        </button>
+      <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
+        <MenuAcoesLancamento
+          lancamento={lancamento}
+          onEditar={onEditar ?? (() => {})}
+          onMarcarPago={onMarcarPago ?? (() => {})}
+          onEstornar={onEstornar ?? (() => {})}
+          onCancelar={onCancelar ?? (() => {})}
+          onGerenciarGrupo={onGerenciarGrupo ?? (() => {})}
+        />
       </td>
     </tr>
   );
