@@ -47,7 +47,7 @@ function novaVariacao(espessuraDefault = '') {
 export default function ConfiguracoesPage() {
   const { profile, session, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('empresa');
-  const empresaId = profile?.empresa_id ?? 'a1b2c3d4-0000-0000-0000-000000000001';
+  const empresaId = profile?.empresa_id ?? null;
 
   // ── States ──
   const [empresa,           setEmpresa]           = useState({

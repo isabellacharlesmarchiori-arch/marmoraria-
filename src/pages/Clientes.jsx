@@ -57,6 +57,8 @@ function TabClientes({ empresaId, session, isAdmin }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selected, setSelected] = useState(null);
+  const PAGE_SIZE = 20;
+  const [currentPage, setCurrentPage] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
@@ -83,12 +85,17 @@ function TabClientes({ empresaId, session, isAdmin }) {
     document.querySelectorAll('.sys-reveal').forEach(el => el.classList.add('sys-active'));
   }, [clientes, selected, isModalOpen]);
 
+  useEffect(() => { setCurrentPage(0); }, [searchTerm]);
+
   const filtered = clientes.filter(c => {
     const t = searchTerm.toLowerCase();
     return c.nome.toLowerCase().includes(t) ||
       (c.telefone ?? '').toLowerCase().includes(t) ||
       (c.email ?? '').toLowerCase().includes(t);
   });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+  const filteredPage = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   const openModal = (cli = null) => { setEditing(cli); setIsModalOpen(true); };
   const closeModal = () => { setEditing(null); setIsModalOpen(false); };
@@ -189,7 +196,7 @@ function TabClientes({ empresaId, session, isAdmin }) {
             <div className="h-full flex items-center justify-center text-zinc-700 animate-pulse font-mono text-[10px] uppercase">Carregando...</div>
           ) : filtered.length === 0 ? (
             <div className="h-full flex items-center justify-center text-zinc-700 font-mono text-[10px] uppercase">Nenhum cliente encontrado</div>
-          ) : filtered.map(cli => (
+          ) : filteredPage.map(cli => (
             <div key={cli.id} onClick={() => setSelected(cli)}
               className={`sys-reveal p-4 border transition-all cursor-pointer group ${selected?.id === cli.id ? 'border-yellow-400 bg-zinc-900/40' : 'border-zinc-800 hover:border-zinc-600'}`}>
               <div className="flex justify-between items-start">
@@ -215,6 +222,31 @@ function TabClientes({ empresaId, session, isAdmin }) {
             </div>
           ))}
         </div>
+        {filtered.length > PAGE_SIZE && (
+          <div className="border-t border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
+            <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+              Página {currentPage + 1} de {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 0}
+                onClick={() => setCurrentPage(p => p - 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon>
+                Anterior
+              </button>
+              <button
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setCurrentPage(p => p + 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Próxima
+                <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Ficha */}
@@ -340,8 +372,10 @@ function TabClientes({ empresaId, session, isAdmin }) {
 // SUB-ABA ARQUITETOS
 // ═══════════════════════════════════════════════════════════════════════════════
 function TabArquitetos({ empresaId, session, isAdmin }) {
+  const PAGE_SIZE = 20;
   const [arquitetos, setArquitetos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selected, setSelected] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -367,12 +401,17 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
     document.querySelectorAll('.sys-reveal').forEach(el => el.classList.add('sys-active'));
   }, [arquitetos, selected, isModalOpen]);
 
+  useEffect(() => { setCurrentPage(0); }, [searchTerm]);
+
   const filtered = arquitetos.filter(a => {
     const t = searchTerm.toLowerCase();
     return a.nome.toLowerCase().includes(t) ||
       (a.telefone ?? '').toLowerCase().includes(t) ||
       (a.email ?? '').toLowerCase().includes(t);
   });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+  const filteredPage = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   const openModal = (arq = null) => { setEditing(arq); setIsModalOpen(true); };
   const closeModal = () => { setEditing(null); setIsModalOpen(false); };
@@ -439,7 +478,7 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
             <div className="h-full flex items-center justify-center text-zinc-700 animate-pulse font-mono text-[10px] uppercase">Carregando...</div>
           ) : filtered.length === 0 ? (
             <div className="h-full flex items-center justify-center text-zinc-700 font-mono text-[10px] uppercase">Nenhum arquiteto cadastrado</div>
-          ) : filtered.map(arq => (
+          ) : filteredPage.map(arq => (
             <div key={arq.id} onClick={() => setSelected(arq)}
               className={`sys-reveal p-4 border transition-all cursor-pointer group ${selected?.id === arq.id ? 'border-yellow-400 bg-zinc-900/40' : 'border-zinc-800 hover:border-zinc-600'}`}>
               <div className="flex justify-between items-start">
@@ -464,6 +503,31 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
             </div>
           ))}
         </div>
+        {filtered.length > PAGE_SIZE && (
+          <div className="border-t border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
+            <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+              Página {currentPage + 1} de {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 0}
+                onClick={() => setCurrentPage(p => p - 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon>
+                Anterior
+              </button>
+              <button
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setCurrentPage(p => p + 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Próxima
+                <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Ficha */}

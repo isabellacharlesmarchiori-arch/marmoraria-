@@ -1,17 +1,14 @@
 /**
- * AuthContext — Sessão Persistente + Diagnóstico
+ * AuthContext — Sessão Persistente
  *
  * Regras:
  *  • sb-* nunca é removido do localStorage (são as chaves de sessão do Supabase)
  *  • inicializando = true enquanto getSession não responder → sem redirect prematuro
  *  • profileLoading SEMPRE vai a false no finally — sem travamento
  *  • Timeout de 3s destrava o app se o banco não responder
- *  • Override de admin para o e-mail da proprietária enquanto banco é investigado
  */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
-
-const ADMIN_EMAIL = 'isabellacharlesmarchiori@gmail.com'
 
 const AuthContext = createContext(null)
 
@@ -55,9 +52,6 @@ export function AuthProvider({ children }) {
   const userId = session?.user?.id ?? null
 
   useEffect(() => {
-    const userEmail = session?.user?.email ?? null
-    console.log('[Auth] userId:', userId, '| email:', userEmail)
-
     if (!userId) {
       setProfile(null)
       setEmpresa(null)
@@ -81,27 +75,17 @@ export function AuthProvider({ children }) {
           .eq('id', userId)
           .single()
 
-        console.log('=== DADOS BRUTOS DO BANCO (usuarios) ===', perfil)
-        if (errPerfil) console.log('=== ERRO DO BANCO ===', errPerfil)
-
         if (errPerfil || !perfil) {
           console.warn('[Auth] Perfil não encontrado:', errPerfil?.message ?? 'sem dados')
-          if (userEmail === ADMIN_EMAIL) {
-            console.warn('[Auth] OVERRIDE admin para:', userEmail)
-            setProfile({ nome: 'Isabella', perfil: 'admin', role: 'admin', empresa_id: null })
-          } else {
-            setProfile(null)
-          }
+          setProfile(null)
         } else {
           const nivelPermissao = perfil.role || perfil.perfil || perfil.nivel || perfil.acesso || 'vendedor'
-          const perfilFinal = userEmail === ADMIN_EMAIL ? 'admin' : (perfil.perfil || nivelPermissao)
           const perfilNormalizado = {
             ...perfil,
-            perfil: perfilFinal,
-            role:   perfilFinal,
+            perfil: perfil.perfil || nivelPermissao,
+            role:   perfil.perfil || nivelPermissao,
           }
 
-          console.log('[Auth] Perfil normalizado:', perfilNormalizado)
           setProfile(perfilNormalizado)
 
           if (perfilNormalizado.empresa_id) {
@@ -115,22 +99,16 @@ export function AuthProvider({ children }) {
               console.warn('[Auth] Erro ao buscar empresa:', errEmp.message)
             } else {
               setEmpresa(emp ?? null)
-              console.log('[Auth] Empresa carregada:', emp?.nome)
             }
           }
         }
       } catch (err) {
-        console.error('[Auth] Exceção inesperada:', err.message)
-        if (userEmail === ADMIN_EMAIL) {
-          setProfile({ nome: 'Isabella', perfil: 'admin', role: 'admin', empresa_id: null })
-        } else {
-          setProfile(null)
-          setEmpresa(null)
-        }
+        console.error('[Auth] Exceção inesperada ao carregar perfil')
+        setProfile(null)
+        setEmpresa(null)
       } finally {
         clearTimeout(timeoutId)
         setProfileLoading(false)
-        console.log('[Auth] profileLoading → false')
       }
     }
 

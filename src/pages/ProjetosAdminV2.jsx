@@ -34,8 +34,9 @@ export default function Projetos() {
   const [projetos, setProjetos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [vendedores, setVendedores] = useState([]);
+  const PAGE_SIZE = 20;
   const [loadingProjetos, setLoadingProjetos] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(10); // renderização progressiva
+  const [currentPage, setCurrentPage] = useState(0);
   const [busca, setBusca] = useState('');
   const [buscaInput, setBuscaInput] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
@@ -52,7 +53,6 @@ export default function Projetos() {
   const [fetchError, setFetchError] = useState(false);
   const [erroModal, setErroModal] = useState('');
   const [projetoToDelete, setProjetoToDelete] = useState(null);
-  const observerRef = useRef(null);
   const debounceRef = useRef(null);
   const refreshingRef = useRef(false); // true quando está atualizando em background
 
@@ -189,12 +189,9 @@ export default function Projetos() {
     return () => { clearTimeout(t); observer.disconnect(); };
   }, [loadingProjetos]);
 
-  // Renderização progressiva: primeiros 10 instantâneos, restante após 500ms
   useEffect(() => {
-    setVisibleCount(10);
-    const t = setTimeout(() => setVisibleCount(Infinity), 500);
-    return () => clearTimeout(t);
-  }, []);
+    setCurrentPage(0);
+  }, [busca, filtroStatus, filtroResponsabilidade]);
 
   const projetosFiltrados = useMemo(() => projetos.filter(p => {
     const q = busca.toLowerCase();
@@ -213,6 +210,12 @@ export default function Projetos() {
 
     return matchBusca && matchStatus && matchResponsabilidade;
   }), [projetos, busca, filtroStatus, filtroResponsabilidade, session?.user?.id, isAdmin]);
+
+  const totalPages = Math.ceil(projetosFiltrados.length / PAGE_SIZE) || 1;
+  const projetosPaginados = projetosFiltrados.slice(
+    currentPage * PAGE_SIZE,
+    (currentPage + 1) * PAGE_SIZE
+  );
 
   // ── Handlers Tríade ────────────────────────────────────────────────────────
 
@@ -435,12 +438,12 @@ export default function Projetos() {
                 <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Nenhum projeto encontrado</span>
               </div>
             ) : (
-              projetosFiltrados.slice(0, visibleCount).map((p, i) => (
+              projetosPaginados.map((p, i) => (
                 <div
                   key={p.id}
                   onClick={() => navigate(`/projetos/${p.id}`)}
                   className={`card-interactive grid grid-cols-12 items-center px-4 py-3.5 cursor-pointer hover:bg-white/[0.02] group ${
-                    i < projetosFiltrados.length - 1 ? 'border-b border-zinc-900/50' : ''
+                    i < projetosPaginados.length - 1 ? 'border-b border-zinc-900/50' : ''
                   }`}
                 >
                   <div className="col-span-5 flex flex-col min-w-0 pr-4">
@@ -488,6 +491,33 @@ export default function Projetos() {
                   </div>
                 </div>
               ))
+            )}
+            {projetosFiltrados.length > PAGE_SIZE && (
+              <div className="px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+                <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+                  Página {currentPage + 1} de {totalPages}
+                  <span className="text-zinc-800 mx-2">·</span>
+                  {projetosFiltrados.length} projetos
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon>
+                    Anterior
+                  </button>
+                  <button
+                    disabled={currentPage >= totalPages - 1}
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Próxima
+                    <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}

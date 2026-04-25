@@ -155,7 +155,7 @@ function DashboardContent() {
                         .select('id, nome, status, created_at, clientes(nome)')
                         .eq('empresa_id', profile.empresa_id)
                         .order('created_at', { ascending: false })
-                        .limit(5),
+                        .limit(10),
                     supabase
                         .from('notificacoes')
                         .select('*')
