@@ -6,18 +6,38 @@ const TIPO_BRACKET = {
   terceiro:    'Terceiro',
 };
 
+const MESES_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+function mesAtualISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function mesOffsetISO(offset) {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMesLabel(mesISO) {
+  if (!mesISO) return '';
+  const [ano, mes] = mesISO.split('-');
+  return `${MESES_PT[Number(mes) - 1]}/${ano}`;
+}
+
 function getFiltroDefault() {
   const hoje  = new Date();
   const y     = hoje.getFullYear();
   const m     = hoje.getMonth();
-  const primeiro = `${y}-${String(m + 1).padStart(2, '0')}-01`;
-  const ultimo   = new Date(y, m + 1, 0).toISOString().split('T')[0];
   return {
     tipo:           'todos',
     status:         'todos',
     campoData:      'data_vencimento',
-    periodoInicio:  primeiro,
-    periodoFim:     ultimo,
+    modoPeriodo:    'mes',
+    mesFiltro:      mesAtualISO(),
+    periodoInicio:  `${y}-${String(m + 1).padStart(2, '0')}-01`,
+    periodoFim:     new Date(y, m + 1, 0).toISOString().split('T')[0],
     categoriaId:    null,
     parceiroId:     null,
     origemParceiro: null,
@@ -147,60 +167,123 @@ export default function FiltrosLancamentos({
           ))}
         </div>
 
-        {/* Período + botão filtros avançados */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Período</span>
+        {/* ── Período ───────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
 
-          <select
-            value={filtros.campoData}
-            onChange={e => setFiltros({ ...filtros, campoData: e.target.value })}
-            className="bg-[#0a0a0a] border border-zinc-800 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-zinc-500 outline-none focus:border-yellow-400 cursor-pointer transition-colors"
-          >
-            <option value="data_vencimento">Vencimento</option>
-            <option value="data_pagamento">Pagamento</option>
-            <option value="competencia">Competência</option>
-          </select>
+          {/* Linha 1: rótulo + campo DB + toggle modo + ações */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Período por</span>
 
-          <input
-            type="date"
-            value={filtros.periodoInicio}
-            onChange={e => setFiltros({ ...filtros, periodoInicio: e.target.value })}
-            className={INPUT_BASE + ' w-auto'}
-          />
-          <span className="font-mono text-[9px] text-zinc-600">até</span>
-          <input
-            type="date"
-            value={filtros.periodoFim}
-            onChange={e => setFiltros({ ...filtros, periodoFim: e.target.value })}
-            className={INPUT_BASE + ' w-auto'}
-          />
-
-          <div className="ml-auto flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setAvancadoAberto(a => !a)}
-              className={`flex items-center gap-1 ${CHIP_BASE} ${
-                avancadoAberto || temFiltroAvancado ? CHIP_ATIVO : CHIP_INATIVO
-              }`}
+            <select
+              value={filtros.campoData}
+              onChange={e => setFiltros({ ...filtros, campoData: e.target.value })}
+              className="bg-[#0a0a0a] border border-zinc-800 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-zinc-500 outline-none focus:border-yellow-400 cursor-pointer transition-colors"
             >
-              {temFiltroAvancado && !avancadoAberto && (
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />
-              )}
-              {avancadoAberto ? '− Menos filtros' : '+ Mais filtros'}
-              <iconify-icon
-                icon={avancadoAberto ? 'lucide:chevron-up' : 'lucide:chevron-down'}
-                width="10"
-              ></iconify-icon>
-            </button>
+              <option value="data_vencimento">Vencimento</option>
+              <option value="data_pagamento">Pagamento</option>
+              <option value="competencia">Competência</option>
+            </select>
 
-            <button
-              type="button"
-              onClick={limpar}
-              className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 hover:text-zinc-400 transition-colors"
-            >
-              Limpar
-            </button>
+            {/* Toggle Mês / Intervalo */}
+            <div className="flex items-center border border-zinc-800 overflow-hidden">
+              {[['mes','Mês único'],['intervalo','Intervalo']].map(([v, l]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setFiltros({ ...filtros, modoPeriodo: v })}
+                  className={`px-3 py-1 font-mono text-[9px] uppercase tracking-widest transition-colors ${
+                    filtros.modoPeriodo === v
+                      ? 'bg-yellow-400 text-black'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setAvancadoAberto(a => !a)}
+                className={`flex items-center gap-1 ${CHIP_BASE} ${
+                  avancadoAberto || temFiltroAvancado ? CHIP_ATIVO : CHIP_INATIVO
+                }`}
+              >
+                {temFiltroAvancado && !avancadoAberto && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />
+                )}
+                {avancadoAberto ? '− Menos filtros' : '+ Mais filtros'}
+                <iconify-icon
+                  icon={avancadoAberto ? 'lucide:chevron-up' : 'lucide:chevron-down'}
+                  width="10"
+                ></iconify-icon>
+              </button>
+
+              <button
+                type="button"
+                onClick={limpar}
+                className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 hover:text-zinc-400 transition-colors"
+              >
+                Limpar
+              </button>
+            </div>
           </div>
+
+          {/* Linha 2a: Filtro por mês único */}
+          <div className={`flex items-center gap-2 flex-wrap transition-opacity ${
+            filtros.modoPeriodo !== 'mes' ? 'opacity-30 pointer-events-none select-none' : ''
+          }`}>
+            <input
+              type="month"
+              value={filtros.mesFiltro}
+              onChange={e => setFiltros({ ...filtros, mesFiltro: e.target.value })}
+              className={INPUT_BASE + ' w-auto'}
+            />
+            {filtros.mesFiltro && (
+              <span className="font-mono text-[9px] text-zinc-500">
+                {formatMesLabel(filtros.mesFiltro)}
+              </span>
+            )}
+            {[
+              { offset: -1, label: 'Mês ant.' },
+              { offset:  0, label: 'Mês atual' },
+              { offset: +1, label: 'Próx. mês' },
+            ].map(({ offset, label }) => (
+              <button
+                key={offset}
+                type="button"
+                onClick={() => setFiltros({ ...filtros, modoPeriodo: 'mes', mesFiltro: mesOffsetISO(offset) })}
+                className={`${CHIP_BASE} ${
+                  filtros.modoPeriodo === 'mes' && filtros.mesFiltro === mesOffsetISO(offset)
+                    ? CHIP_ATIVO
+                    : CHIP_INATIVO
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Linha 2b: Filtro por intervalo de datas */}
+          <div className={`flex items-center gap-2 flex-wrap transition-opacity ${
+            filtros.modoPeriodo !== 'intervalo' ? 'opacity-30 pointer-events-none select-none' : ''
+          }`}>
+            <input
+              type="date"
+              value={filtros.periodoInicio}
+              onChange={e => setFiltros({ ...filtros, periodoInicio: e.target.value })}
+              className={INPUT_BASE + ' w-auto'}
+            />
+            <span className="font-mono text-[9px] text-zinc-600">até</span>
+            <input
+              type="date"
+              value={filtros.periodoFim}
+              onChange={e => setFiltros({ ...filtros, periodoFim: e.target.value })}
+              className={INPUT_BASE + ' w-auto'}
+            />
+          </div>
+
         </div>
       </div>
 

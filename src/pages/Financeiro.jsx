@@ -3,9 +3,11 @@ import FinanceiroNav from './financeiro/FinanceiroNav';
 
 export default function Financeiro() {
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-300">
+    <div className="flex flex-col flex-1 min-h-0 bg-[#050505] text-zinc-300">
       <FinanceiroNav />
-      <Outlet />
+      <div className="flex-1 overflow-y-auto p-7">
+        <Outlet />
+      </div>
     </div>
   );
 }

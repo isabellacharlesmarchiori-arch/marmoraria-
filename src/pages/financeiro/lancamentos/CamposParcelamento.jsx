@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { formatBRL } from '../../../utils/format';
+import TabelaParcelasEditavel from './TabelaParcelasEditavel';
 
 // ─── helpers de data ────────────────────────────────────────────────────────
 
@@ -40,10 +40,10 @@ function distribuirValores(n, valorTotal) {
 
 function gerarParcelas(n, valorTotal, dataPrimeira, intervalo) {
   const base = distribuirValores(n, valorTotal);
-  return base.map((p, i) => ({
-    ...p,
-    data_vencimento: calcularData(dataPrimeira, i, intervalo),
-  }));
+  return base.map((p, i) => {
+    const d = calcularData(dataPrimeira, i, intervalo);
+    return { ...p, data_vencimento: d, competencia: d.slice(0, 7) };
+  });
 }
 
 // ─── constantes visuais ─────────────────────────────────────────────────────
@@ -56,7 +56,6 @@ const INTERVALOS = [
 ];
 
 const INPUT = 'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400 transition-colors w-full';
-const TH    = 'px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-left';
 
 // ─── componente ─────────────────────────────────────────────────────────────
 
@@ -90,26 +89,12 @@ export default function CamposParcelamento({
 
   function handleAplicarIntervalo() {
     setParcelas(
-      parcelas.map((p, i) => ({
-        ...p,
-        data_vencimento: calcularData(dataPrimeiraParcela, i, intervalo),
-      }))
+      parcelas.map((p, i) => {
+        const d = calcularData(dataPrimeiraParcela, i, intervalo);
+        return { ...p, data_vencimento: d, competencia: d.slice(0, 7) };
+      })
     );
   }
-
-  function handleEditarParcela(index, campo, valor) {
-    setParcelas(
-      parcelas.map((p, i) =>
-        i !== index ? p : {
-          ...p,
-          [campo]: campo === 'valor' ? (parseFloat(valor) || 0) : valor,
-        }
-      )
-    );
-  }
-
-  const somaTotal = parcelas.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
-  const somaBate  = Math.abs(somaTotal - valorTotal) < 0.01;
 
   return (
     <div className="border border-zinc-800 flex flex-col gap-4 p-4">
@@ -172,62 +157,12 @@ export default function CamposParcelamento({
         </button>
       </div>
 
-      {/* Tabela de parcelas */}
       {parcelas.length > 0 && (
-        <div className="border border-zinc-800 overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-800">
-                <th className={TH + ' w-10'}>#</th>
-                <th className={TH}>Valor (R$)</th>
-                <th className={TH}>Vencimento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {parcelas.map((p, i) => (
-                <tr key={i} className="border-b border-zinc-900">
-                  <td className="px-3 py-2">
-                    <span className="font-mono text-[11px] text-zinc-500">{i + 1}</span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={p.valor}
-                      onChange={e => handleEditarParcela(i, 'valor', e.target.value)}
-                      className={INPUT}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="date"
-                      value={p.data_vencimento}
-                      onChange={e => handleEditarParcela(i, 'data_vencimento', e.target.value)}
-                      className={INPUT + ' [color-scheme:dark]'}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Rodapé — total vs valor */}
-      {parcelas.length > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-            Total das parcelas: {formatBRL(somaTotal)}
-          </span>
-          {somaBate ? (
-            <iconify-icon icon="lucide:check-circle" width="14" className="text-emerald-400"></iconify-icon>
-          ) : (
-            <span className="font-mono text-[9px] text-red-400">
-              — diverge do valor total ({formatBRL(valorTotal)})
-            </span>
-          )}
-        </div>
+        <TabelaParcelasEditavel
+          parcelas={parcelas}
+          onChange={setParcelas}
+          valorTotal={valorTotal}
+        />
       )}
     </div>
   );

@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import ModalOrcamentoManual from '../components/ModalOrcamentoManual';
+import PdfOptionsModal from '../components/PdfOptionsModal';
+import CamposParcelamento from './financeiro/lancamentos/CamposParcelamento';
+import { loadPdfOpts, savePdfOpts } from '../utils/pdfOptions';
 // gerarPdfOrcamento é importado dinamicamente no click handler para não bloquear o bundle inicial
 
 const STATUS_CONFIG = {
@@ -1059,8 +1062,10 @@ export default function TelaProjetoVendedor() {
     // }
     const [loadingFechar,      setLoadingFechar]      = useState(false);
     const [toastFechar,        setToastFechar]        = useState('');
+    const [fecharOpen,         setFecharOpen]         = useState({ cenarios: false, pagamento: true, prazo: false });
     const [pedidoFechado,      setPedidoFechado]      = useState(null);
-    const [loadingPdf,         setLoadingPdf]         = useState(null); // null | 'salvar' | 'enviar'
+    const [loadingPdf,         setLoadingPdf]         = useState(null);
+    const [pdfModal,           setPdfModal]           = useState(null); // null | { tipo, orc?, defaults }
 
     const cancelarFecharPedido = () => { setModoFecharPedido(false); setFecharIds([]); setModalFechar(null); };
     const toggleFecharId = (orcId) => setFecharIds(p => p.includes(orcId) ? p.filter(x => x !== orcId) : [...p, orcId]);
@@ -1099,7 +1104,7 @@ export default function TelaProjetoVendedor() {
     async function confirmarFechamento() {
         if (!modalFechar || fecharIds.length === 0) return;
         const {
-            forma_pagamento, parcelas, primeiro_vencimento,
+            forma_pagamento, parcelamento_tipo, parcelas_lista,
             prazo_tipo, prazo_data, prazo_dias,
         } = modalFechar;
 
@@ -1109,18 +1114,16 @@ export default function TelaProjetoVendedor() {
             : prazo_data;
         if (!forma_pagamento || !prazo_data_final) return;
 
-        // Formas que geram parcelas detalhadas
-        const formasParceladas = ['cartao', 'boleto_parcelado'];
-        const temParcelas = formasParceladas.includes(forma_pagamento);
+        const temParcelas = parcelamento_tipo === 'parcelado';
 
-        // Calcula total selecionado para preview de parcelas
+        // Calcula total selecionado
         const totalSel = fecharIds.reduce((s, oid) => {
             const orc = ambientes.flatMap(a => a.orcamentos ?? []).find(o => o.id === oid);
             return s + (orc?.valor_total ?? 0);
         }, 0);
 
-        const parcelas_detalhes = temParcelas && parcelas >= 2 && primeiro_vencimento
-            ? calcParcelas(totalSel, parcelas, primeiro_vencimento)
+        const parcelas_detalhes = temParcelas && parcelas_lista?.length > 0
+            ? parcelas_lista
             : null;
 
         setLoadingFechar(true);
@@ -1132,7 +1135,7 @@ export default function TelaProjetoVendedor() {
                     projeto_id:            id,
                     cenario_ids:           fecharIds,
                     forma_pagamento,
-                    parcelas:              temParcelas ? (parcelas ?? null) : null,
+                    parcelas:              temParcelas ? (parcelas_lista?.length ?? null) : null,
                     parcelas_detalhes:     parcelas_detalhes ?? null,
                     prazo_entrega:         prazo_data_final,
                     prazo_entrega_tipo:    prazo_tipo,
@@ -1177,7 +1180,7 @@ export default function TelaProjetoVendedor() {
             }
 
             setPedidoFechado({
-                id: pedido.id, forma_pagamento, parcelas, parcelas_detalhes,
+                id: pedido.id, forma_pagamento, parcelas: temParcelas ? parcelas_lista?.length : null, parcelas_detalhes,
                 prazo_entrega: prazo_data_final, prazo_entrega_tipo: prazo_tipo,
                 prazo_entrega_valor: prazo_tipo === 'DIAS_UTEIS' ? prazo_dias : null,
                 created_at: new Date().toISOString(),
@@ -1194,22 +1197,123 @@ export default function TelaProjetoVendedor() {
         }
     }
 
-    async function gerarPdfs(modo) {
-        // modo: 'salvar' | 'enviar'
-        setLoadingPdf(modo);
+    async function gerarPdfs(opts, modo) {
+        if (!pedidoFechado?.id) return;
+        setLoadingPdf('pedido');
         try {
-            // TODO (Etapa 2): implementar geração real do PDF
-            // - gerarPdfPedidoFechado(pedidoFechado, projeto, ambientes)
-            // - gerarPdfContrato(pedidoFechado, projeto)
-            if (modo === 'salvar') {
-                console.log('[PDF] Salvar PDF — pedido:', pedidoFechado?.id);
-            } else {
-                console.log('[PDF] Enviar PDF para cliente — pedido:', pedidoFechado?.id);
+            const incluirContrato = modo === 'pedido_contrato';
+
+            // Busca peças frescas de todos os cenários do pedido
+            const cenarioIds = pedidoFechado.cenario_ids ?? [];
+            const todasPecas = [];
+            for (const orcId of cenarioIds) {
+                const pecas = await fetchPecasParaPdf(orcId);
+                todasPecas.push(...pecas);
             }
-            await new Promise(r => setTimeout(r, 800)); // simula delay
-            alert(modo === 'salvar' ? 'PDF salvo! (em breve)' : 'PDF enviado para o cliente! (em breve)');
+
+            // Monta o orc unificado para o PDF de pedido
+            const orcsSel = ambientes.flatMap(a => a.orcamentos ?? [])
+                .filter(o => cenarioIds.includes(o.id));
+
+            const orcUnificado = {
+                id:                     pedidoFechado.id,
+                nome:                   `Pedido #${pedidoFechado.id.slice(-8).toUpperCase()}`,
+                pecas:                  todasPecas,
+                itens_manuais:          orcsSel.flatMap(o => o.itens_manuais ?? []),
+                valor_frete:            orcsSel.reduce((s, o) => s + (o.valor_frete ?? 0), 0),
+                desconto_total:         orcsSel.reduce((s, o) => s + (o.desconto_total ?? 0), 0),
+                majoramento_percentual: orcsSel[0]?.majoramento_percentual ?? 0,
+                rt_percentual:          orcsSel[0]?.rt_percentual ?? 0,
+                forma_pagamento:        pedidoFechado.forma_pagamento,
+                parcelas:               pedidoFechado.parcelas,
+                numero_serie:           `#${pedidoFechado.id.slice(-8).toUpperCase()}`,
+                parcelas_detalhes:      pedidoFechado.parcelas_detalhes ?? null,
+                valor_fechado:          pedidoFechado.valor_fechado     ?? null,
+                data_fechamento:        pedidoFechado.created_at        ?? null,
+            };
+
+            const { gerarPdfPedidoFechado, gerarPdfContrato } = await import('../utils/gerarPdfOrcamento');
+
+            await gerarPdfPedidoFechado({
+                orc:          orcUnificado,
+                projeto,
+                ambientes,
+                catMateriais,
+                empresa:      empresaCtx ?? {},
+                vendedorNome: profile?.nome ?? null,
+                prazoEntrega: pedidoFechado.prazo_entrega ?? null,
+                template:     opts,
+            });
+
+            if (incluirContrato) {
+                // Contrato precisa do contrato_texto admin — busca do banco
+                const { data: tplContrato } = await supabase
+                    .from('pdf_templates').select('*')
+                    .eq('empresa_id', profile?.empresa_id)
+                    .eq('tipo', 'contrato').maybeSingle();
+                await gerarPdfContrato({
+                    pedido:   pedidoFechado,
+                    projeto,
+                    empresa:  empresaCtx ?? {},
+                    template: tplContrato ?? null,
+                });
+            }
+
+        } catch (err) {
+            console.error('[PDF]', err);
+            alert('Erro ao gerar PDF: ' + err.message);
         } finally {
             setLoadingPdf(null);
+        }
+    }
+
+    async function openPdfModal(tipo, orc = null) {
+        const { data: tpl } = await supabase
+            .from('pdf_templates').select('*')
+            .eq('empresa_id', profile?.empresa_id)
+            .eq('tipo', tipo).maybeSingle();
+        const defaults = loadPdfOpts(tipo, tpl ?? null);
+        setPdfModal({ tipo, orc, defaults });
+    }
+
+    async function handlePdfConfirm(opts, modo) {
+        savePdfOpts(pdfModal.tipo, opts);
+        const mTipo = pdfModal.tipo;
+        const mOrc  = pdfModal.orc ?? null;
+        setPdfModal(null);
+
+        if (mTipo === 'orcamento') {
+            setLoadingPdf('orcamento');
+            try {
+                const pecasFrescas = await fetchPecasParaPdf(mOrc.id);
+                if (pecasFrescas.length === 0) {
+                    alert('Este orçamento não possui peças cadastradas. Verifique se as peças foram salvas corretamente no banco de dados.');
+                    return;
+                }
+                const params = {
+                    orc:          { ...mOrc, pecas: pecasFrescas },
+                    projeto,
+                    ambientes,
+                    catMateriais,
+                    empresa:      empresaCtx ?? {},
+                    vendedorNome: profile?.nome ?? null,
+                    template:     opts,
+                };
+                if (modo === 'bw') {
+                    const { gerarPdfOrcamentoImpressao } = await import('../utils/gerarPdfOrcamento');
+                    await gerarPdfOrcamentoImpressao(params);
+                } else {
+                    const { gerarPdfOrcamento } = await import('../utils/gerarPdfOrcamento');
+                    await gerarPdfOrcamento(params);
+                }
+            } catch (e) {
+                console.error('[PDF]', e);
+                alert('Erro ao gerar PDF: ' + e.message);
+            } finally {
+                setLoadingPdf(null);
+            }
+        } else {
+            await gerarPdfs(opts, modo);
         }
     }
 
@@ -1967,6 +2071,7 @@ export default function TelaProjetoVendedor() {
 
                     const modoAtivo = modoMesclar || modoFecharPedido;
                     return (
+                        <>
                         <div className="sys-reveal sys-delay-200">
                             {/* Toasts */}
                             {toastMesclar && (
@@ -1999,31 +2104,14 @@ export default function TelaProjetoVendedor() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
-                                            {/* Enviar PDF para cliente */}
                                             <button
-                                                onClick={() => gerarPdfs('enviar')}
-                                                disabled={loadingPdf !== null}
-                                                className="flex items-center gap-1.5 bg-blue-600/20 border border-blue-500/40 text-blue-300 text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 hover:bg-blue-600/30 hover:border-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                onClick={() => openPdfModal('pedido')}
+                                                disabled={!!loadingPdf}
+                                                className="flex items-center gap-2 border border-yellow-400/40 text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-2 hover:bg-yellow-400/5 transition-colors disabled:opacity-40"
                                             >
-                                                {loadingPdf === 'enviar' ? (
-                                                    <iconify-icon icon="svg-spinners:ring-resize" width="11"></iconify-icon>
-                                                ) : (
-                                                    <iconify-icon icon="solar:letter-linear" width="11"></iconify-icon>
-                                                )}
-                                                Enviar PDF para Cliente
-                                            </button>
-                                            {/* Salvar PDF */}
-                                            <button
-                                                onClick={() => gerarPdfs('salvar')}
-                                                disabled={loadingPdf !== null}
-                                                className="flex items-center gap-1.5 border border-zinc-600/50 text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 hover:border-zinc-400 hover:bg-zinc-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {loadingPdf === 'salvar' ? (
-                                                    <iconify-icon icon="svg-spinners:ring-resize" width="11"></iconify-icon>
-                                                ) : (
-                                                    <iconify-icon icon="solar:download-linear" width="11"></iconify-icon>
-                                                )}
-                                                Salvar PDF
+                                                {loadingPdf === 'pedido'
+                                                    ? <><iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin"></iconify-icon> Gerando...</>
+                                                    : <><iconify-icon icon="solar:file-download-linear" width="13"></iconify-icon> Gerar PDF</>}
                                             </button>
                                         </div>
                                     </div>
@@ -2091,7 +2179,7 @@ export default function TelaProjetoVendedor() {
                                                 Cancelar
                                             </button>
                                             <button
-                                                onClick={() => setModalFechar({ forma_pagamento: 'a_vista', parcelas: 2, prazo_entrega: '' })}
+                                                onClick={() => setModalFechar({ forma_pagamento: 'a_vista', parcelamento_tipo: 'a_vista', parcelas_lista: [], parcelas: 2, prazo_entrega: '' })}
                                                 disabled={fecharIds.length < 1}
                                                 className="flex items-center gap-1.5 bg-green-600 text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 hover:bg-green-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
@@ -2300,48 +2388,14 @@ export default function TelaProjetoVendedor() {
                                                             <iconify-icon icon={isExp ? 'solar:alt-arrow-up-linear' : 'solar:eye-linear'} width="11"></iconify-icon>
                                                             {isExp ? 'Fechar' : 'Detalhes'}
                                                         </button>
-                                                        {/* PDF Colorido */}
+                                                        {/* PDF */}
                                                         <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    const pecasFrescas = await fetchPecasParaPdf(orc.id);
-                                                                    if (pecasFrescas.length === 0) {
-                                                                        alert('Este orçamento não possui peças cadastradas. Verifique se as peças foram salvas corretamente no banco de dados.');
-                                                                        return;
-                                                                    }
-                                                                    const { gerarPdfOrcamento } = await import('../utils/gerarPdfOrcamento');
-                                                                    await gerarPdfOrcamento({ orc: { ...orc, pecas: pecasFrescas }, projeto, ambientes, catMateriais, empresa: empresaCtx ?? {}, vendedorNome: profile?.nome ?? null });
-                                                                } catch (e) {
-                                                                    console.error('[PDF]', e);
-                                                                    alert('Erro ao gerar PDF: ' + e.message);
-                                                                }
-                                                            }}
-                                                            className="flex items-center gap-1 border border-zinc-800 text-zinc-500 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-zinc-600 hover:text-zinc-300 transition-colors"
+                                                            onClick={() => openPdfModal('orcamento', orc)}
+                                                            disabled={!!loadingPdf}
+                                                            className="flex items-center gap-1 border border-zinc-800 text-zinc-500 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-zinc-600 hover:text-zinc-300 transition-colors disabled:opacity-40"
                                                         >
                                                             <iconify-icon icon="solar:file-text-linear" width="11"></iconify-icon>
                                                             PDF
-                                                        </button>
-                                                        {/* PDF Impressão P&B */}
-                                                        <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    const pecasFrescas = await fetchPecasParaPdf(orc.id);
-                                                                    if (pecasFrescas.length === 0) {
-                                                                        alert('Este orçamento não possui peças cadastradas. Verifique se as peças foram salvas corretamente no banco de dados.');
-                                                                        return;
-                                                                    }
-                                                                    const { gerarPdfOrcamentoImpressao } = await import('../utils/gerarPdfOrcamento');
-                                                                    await gerarPdfOrcamentoImpressao({ orc: { ...orc, pecas: pecasFrescas }, projeto, ambientes, catMateriais, empresa: empresaCtx ?? {}, vendedorNome: profile?.nome ?? null });
-                                                                } catch (e) {
-                                                                    console.error('[PDF P&B]', e);
-                                                                    alert('Erro ao gerar PDF: ' + e.message);
-                                                                }
-                                                            }}
-                                                            className="flex items-center gap-1 border border-zinc-800 text-zinc-500 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-zinc-600 hover:text-zinc-300 transition-colors"
-                                                            title="PDF para impressão (preto e branco)"
-                                                        >
-                                                            <iconify-icon icon="solar:printer-linear" width="11"></iconify-icon>
-                                                            Impr.
                                                         </button>
                                                         {/* WhatsApp */}
                                                         <button
@@ -2808,8 +2862,9 @@ export default function TelaProjetoVendedor() {
                                 );
                             })()}
 
-                            {/* ══ Modal: Fechar Pedido ═════════════════════ */}
-                            {modalFechar && (() => {
+                        </div>
+                        {/* ══ Modal: Fechar Pedido ═════════════════════ */}
+                        {modalFechar && (() => {
                                 const orcsSel       = orcamentosCarrinho.filter(o => fecharIds.includes(o.id));
                                 const totalSel      = orcsSel.reduce((s, o) => s + (o.valor_total ?? 0), 0);
                                 const formasParc    = ['cartao', 'boleto_parcelado'];
@@ -2824,8 +2879,8 @@ export default function TelaProjetoVendedor() {
                                 const prazoValido = prazoTipo === 'DATA' ? !!modalFechar.prazo_data : (modalFechar.prazo_dias ?? 0) >= 1;
                                 return (
                                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                                        <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-                                            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 sticky top-0 bg-[#0d0d0d] z-10">
+                                        <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col overflow-hidden">
+                                            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 shrink-0">
                                                 <div className="flex items-center gap-3">
                                                     <iconify-icon icon="solar:lock-keyhole-minimalistic-linear" width="14" className="text-blue-400"></iconify-icon>
                                                     <span className="font-mono text-[10px] uppercase tracking-widest text-white font-bold">Fechar Pedido</span>
@@ -2834,150 +2889,153 @@ export default function TelaProjetoVendedor() {
                                                     <iconify-icon icon="solar:close-linear" width="16"></iconify-icon>
                                                 </button>
                                             </div>
-                                            <div className="p-5 space-y-4">
+                                            <div className="overflow-y-auto flex-1 min-h-0">
 
-                                                {/* ── Resumo cenários ── */}
-                                                <div className="bg-zinc-900/60 border border-zinc-800 p-3">
-                                                    <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-2">Cenários incluídos ({orcsSel.length})</p>
-                                                    <ul className="space-y-1 max-h-24 overflow-y-auto mb-2">
-                                                        {orcsSel.map(o => (
-                                                            <li key={o.id} className="flex items-center gap-2 font-mono text-[10px] text-zinc-300">
-                                                                <iconify-icon icon="solar:check-circle-linear" width="10" className="text-blue-400 shrink-0"></iconify-icon>
-                                                                <span className="text-zinc-500 shrink-0">{o.ambiente_nome}</span>
-                                                                <iconify-icon icon="solar:alt-arrow-right-linear" width="9" className="text-zinc-700 shrink-0"></iconify-icon>
-                                                                <span className="truncate">{o.nome ?? o.nome_versao ?? 'Orçamento'}</span>
-                                                                <span className="ml-auto text-zinc-500 shrink-0">{fmtBRL(o.valor_total)}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                    <div className="flex justify-between pt-2 border-t border-zinc-800">
-                                                        <span className="font-mono text-[9px] text-zinc-500 uppercase">Total</span>
-                                                        <span className="font-mono text-sm font-bold text-blue-400">{fmtBRL(totalSel)}</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* ── Forma de Pagamento ── */}
-                                                <div>
-                                                    <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 block mb-2">Forma de Pagamento</label>
-                                                    <select
-                                                        value={modalFechar.forma_pagamento}
-                                                        onChange={e => setModalFechar(p => ({ ...p, forma_pagamento: e.target.value, parcelas: 2, primeiro_vencimento: '' }))}
-                                                        className="w-full bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-2"
+                                                {/* ── Accordion: Cenários incluídos ── */}
+                                                <div className="border-b border-zinc-800">
+                                                    <button
+                                                        onClick={() => setFecharOpen(s => ({ ...s, cenarios: !s.cenarios }))}
+                                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-900/40 transition-colors text-left"
                                                     >
-                                                        <option value="a_vista">À Vista</option>
-                                                        <option value="pix">PIX</option>
-                                                        <option value="transferencia">Transferência Bancária</option>
-                                                        <option value="dinheiro">Dinheiro</option>
-                                                        <option value="cartao">Cartão de Crédito (parcelado)</option>
-                                                        <option value="boleto_parcelado">Boleto Parcelado</option>
-                                                        <option value="cheque">Cheque</option>
-                                                    </select>
-                                                </div>
-
-                                                {/* ── Parcelas (cartão / boleto parcelado) ── */}
-                                                {temParcelas && (
-                                                    <div className="space-y-3 border border-zinc-800 p-3 bg-zinc-900/40">
-                                                        <div className="flex gap-3">
-                                                            <div className="flex-1">
-                                                                <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 block mb-1.5">Nº de Parcelas</label>
-                                                                <input
-                                                                    type="number" min="2" max="12"
-                                                                    value={modalFechar.parcelas ?? 2}
-                                                                    onChange={e => setModalFechar(p => ({ ...p, parcelas: Math.min(12, Math.max(2, parseInt(e.target.value) || 2)) }))}
-                                                                    className="w-full bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-1.5"
-                                                                />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 block mb-1.5">1º Vencimento</label>
-                                                                <input
-                                                                    type="date"
-                                                                    value={modalFechar.primeiro_vencimento ?? ''}
-                                                                    onChange={e => setModalFechar(p => ({ ...p, primeiro_vencimento: e.target.value }))}
-                                                                    className="w-full bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-1.5"
-                                                                    style={{ colorScheme: 'dark' }}
-                                                                />
-                                                            </div>
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">Cenários incluídos</span>
+                                                            <span className="font-mono text-[9px] text-blue-400 shrink-0">({orcsSel.length}) · {fmtBRL(totalSel)}</span>
                                                         </div>
-                                                        {/* Preview das parcelas */}
-                                                        {previewParcelas.length > 0 && (
-                                                            <div>
-                                                                <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 mb-1.5">Preview</p>
-                                                                <div className="space-y-1 max-h-36 overflow-y-auto">
-                                                                    {previewParcelas.map(p => (
-                                                                        <div key={p.numero} className="flex items-center justify-between font-mono text-[10px] text-zinc-400 py-0.5 border-b border-zinc-800/50">
-                                                                            <span className="text-zinc-600">{p.numero}/{previewParcelas.length}</span>
-                                                                            <span>{fmtBRL(p.valor)}</span>
-                                                                            <span className="text-zinc-600">Venc: {new Date(p.vencimento + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* ── Prazo de Entrega dual ── */}
-                                                <div>
-                                                    <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 block mb-2">Prazo de Entrega</label>
-                                                    <div className="space-y-2">
-                                                        {/* Opção A: Data */}
-                                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                                            <input
-                                                                type="radio" name="prazo_tipo" value="DATA"
-                                                                checked={prazoTipo === 'DATA'}
-                                                                onChange={() => setModalFechar(p => ({ ...p, prazo_tipo: 'DATA' }))}
-                                                                className="accent-blue-500"
-                                                            />
-                                                            <span className="font-mono text-[10px] text-zinc-400 group-hover:text-white transition-colors">Selecionar Data</span>
-                                                        </label>
-                                                        {prazoTipo === 'DATA' && (
-                                                            <div className="ml-5">
-                                                                <input
-                                                                    type="date"
-                                                                    value={modalFechar.prazo_data ?? ''}
-                                                                    onChange={e => setModalFechar(p => ({ ...p, prazo_data: e.target.value }))}
-                                                                    className="w-full bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-1.5"
-                                                                    style={{ colorScheme: 'dark' }}
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                        {/* Opção B: Dias Úteis */}
-                                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                                            <input
-                                                                type="radio" name="prazo_tipo" value="DIAS_UTEIS"
-                                                                checked={prazoTipo === 'DIAS_UTEIS'}
-                                                                onChange={() => setModalFechar(p => ({ ...p, prazo_tipo: 'DIAS_UTEIS', prazo_dias: p.prazo_dias ?? 15 }))}
-                                                                className="accent-blue-500"
-                                                            />
-                                                            <span className="font-mono text-[10px] text-zinc-400 group-hover:text-white transition-colors">Dias Úteis</span>
-                                                        </label>
-                                                        {prazoTipo === 'DIAS_UTEIS' && (
-                                                            <div className="ml-5 space-y-1.5">
-                                                                <div className="flex items-center gap-2">
-                                                                    <input
-                                                                        type="number" min="1" max="365"
-                                                                        value={modalFechar.prazo_dias ?? 15}
-                                                                        onChange={e => setModalFechar(p => ({ ...p, prazo_dias: Math.max(1, parseInt(e.target.value) || 1) }))}
-                                                                        className="w-24 bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-1.5"
-                                                                    />
-                                                                    <span className="font-mono text-[10px] text-zinc-500">dias úteis</span>
-                                                                </div>
-                                                                {dataFinalCalc && (
-                                                                    <p className="font-mono text-[10px] text-blue-400">
-                                                                        → Entrega prevista: {new Date(dataFinalCalc + 'T12:00:00').toLocaleDateString('pt-BR')}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                        <iconify-icon icon={fecharOpen.cenarios ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-zinc-600 shrink-0 ml-2"></iconify-icon>
+                                                    </button>
+                                                    {fecharOpen.cenarios && (
+                                                        <div className="px-5 pb-3 border-t border-zinc-800/50">
+                                                            <ul className="space-y-1 max-h-28 overflow-y-auto mt-2">
+                                                                {orcsSel.map(o => (
+                                                                    <li key={o.id} className="flex items-center gap-2 font-mono text-[10px] text-zinc-300">
+                                                                        <iconify-icon icon="solar:check-circle-linear" width="10" className="text-blue-400 shrink-0"></iconify-icon>
+                                                                        <span className="text-zinc-500 shrink-0">{o.ambiente_nome}</span>
+                                                                        <iconify-icon icon="solar:alt-arrow-right-linear" width="9" className="text-zinc-700 shrink-0"></iconify-icon>
+                                                                        <span className="truncate">{o.nome ?? o.nome_versao ?? 'Orçamento'}</span>
+                                                                        <span className="ml-auto text-zinc-500 shrink-0">{fmtBRL(o.valor_total)}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                <p className="font-mono text-[9px] text-zinc-600 leading-relaxed">
+                                                {/* ── Accordion: Forma de Pagamento ── */}
+                                                <div className="border-b border-zinc-800">
+                                                    <button
+                                                        onClick={() => setFecharOpen(s => ({ ...s, pagamento: !s.pagamento }))}
+                                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-900/40 transition-colors text-left"
+                                                    >
+                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">Forma de Pagamento</span>
+                                                        <iconify-icon icon={fecharOpen.pagamento ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-zinc-600 shrink-0"></iconify-icon>
+                                                    </button>
+                                                    {fecharOpen.pagamento && (
+                                                        <div className="px-5 pb-4 border-t border-zinc-800/50 pt-3 space-y-3">
+                                                            <select
+                                                                value={modalFechar.forma_pagamento}
+                                                                onChange={e => setModalFechar(p => ({ ...p, forma_pagamento: e.target.value }))}
+                                                                className="w-full bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-2"
+                                                            >
+                                                                <option value="pix">PIX</option>
+                                                                <option value="transferencia">Transferência Bancária</option>
+                                                                <option value="dinheiro">Dinheiro</option>
+                                                                <option value="cartao">Cartão de Crédito</option>
+                                                                <option value="cheque">Cheque</option>
+                                                            </select>
+                                                            <div className="flex gap-px mt-2 w-max">
+                                                                {['a_vista', 'parcelado'].map(tipo => (
+                                                                    <button key={tipo} type="button"
+                                                                        onClick={() => setModalFechar(p => ({ ...p, parcelamento_tipo: tipo, parcelas_lista: [] }))}
+                                                                        className={`flex-1 py-1.5 font-mono text-[9px] uppercase tracking-widest transition-colors ${
+                                                                            modalFechar.parcelamento_tipo === tipo
+                                                                                ? 'bg-yellow-400 text-black'
+                                                                                : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white'
+                                                                        }`}>
+                                                                        {tipo === 'a_vista' ? 'À Vista' : 'Parcelado'}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                            {modalFechar.parcelamento_tipo === 'parcelado' && (
+                                                                <CamposParcelamento
+                                                                    parcelas={modalFechar.parcelas_lista ?? []}
+                                                                    setParcelas={lista => setModalFechar(p => ({ ...p, parcelas_lista: lista }))}
+                                                                    valorTotal={totalSel}
+                                                                    dataPrimeiraParcela={modalFechar.prazo_data ?? new Date().toISOString().slice(0, 10)}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* ── Accordion: Prazo de Entrega ── */}
+                                                <div className="border-b border-zinc-800">
+                                                    <button
+                                                        onClick={() => setFecharOpen(s => ({ ...s, prazo: !s.prazo }))}
+                                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-900/40 transition-colors text-left"
+                                                    >
+                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">Prazo de Entrega</span>
+                                                        <iconify-icon icon={fecharOpen.prazo ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-zinc-600 shrink-0"></iconify-icon>
+                                                    </button>
+                                                    {fecharOpen.prazo && (
+                                                        <div className="px-5 pb-4 border-t border-zinc-800/50 pt-3 space-y-2">
+                                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                                <input
+                                                                    type="radio" name="prazo_tipo" value="DATA"
+                                                                    checked={prazoTipo === 'DATA'}
+                                                                    onChange={() => setModalFechar(p => ({ ...p, prazo_tipo: 'DATA' }))}
+                                                                    className="accent-blue-500"
+                                                                />
+                                                                <span className="font-mono text-[10px] text-zinc-400 group-hover:text-white transition-colors">Selecionar Data</span>
+                                                            </label>
+                                                            {prazoTipo === 'DATA' && (
+                                                                <div className="ml-5">
+                                                                    <input
+                                                                        type="date"
+                                                                        value={modalFechar.prazo_data ?? ''}
+                                                                        onChange={e => setModalFechar(p => ({ ...p, prazo_data: e.target.value }))}
+                                                                        className="w-full bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-1.5"
+                                                                        style={{ colorScheme: 'dark' }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                                <input
+                                                                    type="radio" name="prazo_tipo" value="DIAS_UTEIS"
+                                                                    checked={prazoTipo === 'DIAS_UTEIS'}
+                                                                    onChange={() => setModalFechar(p => ({ ...p, prazo_tipo: 'DIAS_UTEIS', prazo_dias: p.prazo_dias ?? 15 }))}
+                                                                    className="accent-blue-500"
+                                                                />
+                                                                <span className="font-mono text-[10px] text-zinc-400 group-hover:text-white transition-colors">Dias Úteis</span>
+                                                            </label>
+                                                            {prazoTipo === 'DIAS_UTEIS' && (
+                                                                <div className="ml-5 space-y-1.5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <input
+                                                                            type="number" min="1" max="365"
+                                                                            value={modalFechar.prazo_dias ?? 15}
+                                                                            onChange={e => setModalFechar(p => ({ ...p, prazo_dias: Math.max(1, parseInt(e.target.value) || 1) }))}
+                                                                            className="w-24 bg-black border border-zinc-800 focus:border-blue-400 outline-none text-white text-sm font-mono px-3 py-1.5"
+                                                                        />
+                                                                        <span className="font-mono text-[10px] text-zinc-500">dias úteis</span>
+                                                                    </div>
+                                                                    {dataFinalCalc && (
+                                                                        <p className="font-mono text-[10px] text-blue-400">
+                                                                            → Entrega prevista: {new Date(dataFinalCalc + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <p className="px-5 py-3 font-mono text-[9px] text-zinc-600 leading-relaxed">
                                                     Os cenários não selecionados serão descartados (mantidos por 7 dias). O projeto será marcado como FECHADO.
                                                 </p>
+                                            </div>
 
-                                                <div className="flex gap-2 pt-1">
+                                            {/* ── Footer fixo com botões ── */}
+                                            <div className="flex gap-2 px-5 py-4 border-t border-zinc-800 shrink-0">
                                                     <button onClick={cancelarFecharPedido} className="flex-1 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">
                                                         Cancelar
                                                     </button>
@@ -2991,13 +3049,12 @@ export default function TelaProjetoVendedor() {
                                                             : <><iconify-icon icon="solar:lock-keyhole-minimalistic-linear" width="12"></iconify-icon> Confirmar Fechamento</>
                                                         }
                                                     </button>
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 );
-                            })()}
-                        </div>
+                        })()}
+                        </>
                     );
                 })()}
             </main>
@@ -3978,6 +4035,16 @@ export default function TelaProjetoVendedor() {
                     </div>
                 </>
             )}
+
+        {/* ══ MODAL — Opções de PDF ═════════════════════════════════════ */}
+        {pdfModal && (
+            <PdfOptionsModal
+                tipo={pdfModal.tipo}
+                defaults={pdfModal.defaults}
+                onConfirm={handlePdfConfirm}
+                onClose={() => setPdfModal(null)}
+            />
+        )}
 
         {/* ══ MODAL — Orçamento Manual ══════════════════════════════════ */}
         {modalOrcManual && (

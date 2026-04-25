@@ -3,6 +3,7 @@ import { useAuth } from '../../lib/AuthContext';
 import TabsRelatorios from './relatorios/TabsRelatorios';
 import DRE from './relatorios/DRE';
 import FluxoDeCaixa from './relatorios/FluxoDeCaixa';
+import AnaliseTrimestral from './relatorios/AnaliseTrimestral';
 import ExtratoRT from './relatorios/ExtratoRT';
 
 export default function FinanceiroRelatorios() {
@@ -30,9 +31,10 @@ export default function FinanceiroRelatorios() {
 
       <TabsRelatorios abaAtiva={abaAtiva} setAbaAtiva={setAbaAtiva} />
 
-      {abaAtiva === 'dre'   && <DRE />}
-      {abaAtiva === 'fluxo' && <FluxoDeCaixa />}
-      {abaAtiva === 'rt'    && <ExtratoRT />}
+      {abaAtiva === 'dre'        && <DRE />}
+      {abaAtiva === 'fluxo'      && <FluxoDeCaixa />}
+      {abaAtiva === 'trimestral' && <AnaliseTrimestral />}
+      {abaAtiva === 'rt'         && <ExtratoRT />}
     </div>
   );
 }

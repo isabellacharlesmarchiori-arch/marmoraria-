@@ -36,6 +36,8 @@ export default function LinhaLancamento({
   onEstornar,
   onCancelar,
   onGerenciarGrupo,
+  selecionado = false,
+  onToggleSelecionado,
 }) {
   const hoje = new Date().toISOString().slice(0, 10);
 
@@ -62,13 +64,29 @@ export default function LinhaLancamento({
   const corValor     = lancamento.tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400';
   const valorStr     = sinal + formatBRL(Number(lancamento.valor_liquido));
 
+  const elegivel = ['pendente', 'atrasado', 'parcial'].includes(lancamento.status);
+
   return (
     <tr
-      className={`border-b border-zinc-900 cursor-pointer hover:bg-white/[0.015] transition-colors${destacar ? ' bg-red-950/20' : ''}`}
+      className={`border-b border-zinc-900 hover:bg-white/[0.015] transition-colors${destacar ? ' bg-red-950/20' : ''}${selecionado ? ' bg-yellow-400/5' : ''}`}
       onClick={() => onLinhaClicada?.(lancamento)}
     >
+      {/* Checkbox */}
+      <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
+        {elegivel && onToggleSelecionado ? (
+          <input
+            type="checkbox"
+            checked={selecionado}
+            onChange={() => onToggleSelecionado(lancamento.id)}
+            className="w-3.5 h-3.5 accent-yellow-400 cursor-pointer"
+          />
+        ) : (
+          <span className="block w-3.5" />
+        )}
+      </td>
+
       {/* Data */}
-      <td className="px-4 py-3.5 whitespace-nowrap">
+      <td className="px-4 py-3.5 whitespace-nowrap cursor-pointer">
         <span className="font-mono text-[11px] text-zinc-500">{dataDisplay}</span>
       </td>
 

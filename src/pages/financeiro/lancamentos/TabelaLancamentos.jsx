@@ -8,10 +8,18 @@ const LABEL_CAMPO_DATA = {
 
 const TH = 'px-4 py-3.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-left';
 
-const SKELETON_WIDTHS = ['48px', '160px', '96px', '80px', '80px', '56px', '24px'];
+const SKELETON_WIDTHS = ['24px', '48px', '160px', '96px', '80px', '80px', '56px', '24px'];
 
-export default function TabelaLancamentos({ lancamentos, lookups, loading, erro, onRecarregar, campoData, onLinhaClicada, acoes }) {
+export default function TabelaLancamentos({
+  lancamentos, lookups, loading, erro, onRecarregar, campoData, onLinhaClicada, acoes,
+  selecionados, onToggleSelecionado, onToggleTodos,
+}) {
   const labelData = LABEL_CAMPO_DATA[campoData] ?? 'Data';
+
+  const elegiveis = (lancamentos ?? []).filter(l =>
+    ['pendente', 'atrasado', 'parcial'].includes(l.status)
+  );
+  const todosSelecionados = elegiveis.length > 0 && elegiveis.every(l => selecionados?.has(l.id));
 
   if (erro) {
     return (
@@ -36,6 +44,17 @@ export default function TabelaLancamentos({ lancamentos, lookups, loading, erro,
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-zinc-800">
+            <th className="px-3 py-3.5 w-8">
+              {onToggleTodos && (
+                <input
+                  type="checkbox"
+                  checked={todosSelecionados}
+                  onChange={onToggleTodos}
+                  className="w-3.5 h-3.5 accent-yellow-400 cursor-pointer"
+                  title="Selecionar todos os pendentes"
+                />
+              )}
+            </th>
             <th className={TH}>{labelData}</th>
             <th className={TH}>Descrição</th>
             <th className={TH}>Categoria</th>
@@ -61,7 +80,7 @@ export default function TabelaLancamentos({ lancamentos, lookups, loading, erro,
             ))
           ) : lancamentos.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-12 text-center">
+              <td colSpan={8} className="px-4 py-12 text-center">
                 <div className="flex flex-col items-center gap-3">
                   <iconify-icon icon="lucide:receipt" width="28" className="text-zinc-700"></iconify-icon>
                   <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
@@ -78,6 +97,8 @@ export default function TabelaLancamentos({ lancamentos, lookups, loading, erro,
                 lookups={lookups}
                 campoData={campoData}
                 onLinhaClicada={onLinhaClicada}
+                selecionado={selecionados?.has(l.id) ?? false}
+                onToggleSelecionado={onToggleSelecionado}
                 {...(acoes ?? {})}
               />
             ))

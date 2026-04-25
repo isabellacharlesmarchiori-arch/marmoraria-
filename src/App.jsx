@@ -19,7 +19,6 @@ const Agenda               = lazy(() => import('./pages/Agenda'))
 const CriarOrcamento       = lazy(() => import('./pages/CriarOrcamento'))
 const Carrinho             = lazy(() => import('./pages/Carrinho'))
 const Financeiro             = lazy(() => import('./pages/Financeiro'))
-const FinanceiroVisaoGeral   = lazy(() => import('./pages/financeiro/FinanceiroVisaoGeral'))
 const FinanceiroDashboard    = lazy(() => import('./pages/financeiro/FinanceiroDashboard'))
 const FinanceiroLancamentos  = lazy(() => import('./pages/financeiro/FinanceiroLancamentos'))
 const FinanceiroContas       = lazy(() => import('./pages/financeiro/FinanceiroContas'))
@@ -28,6 +27,7 @@ const FinanceiroRelatorios   = lazy(() => import('./pages/financeiro/FinanceiroR
 const Configuracoes        = lazy(() => import('./pages/Configuracoes'))
 const Admin                = lazy(() => import('./pages/Admin'))
 const Notificacoes         = lazy(() => import('./pages/Notificacoes'))
+const AdminNotificacoes    = lazy(() => import('./pages/AdminNotificacoes'))
 const PainelMedidor        = lazy(() => import('./pages/PainelMedidor'))
 const MedidorAgenda        = lazy(() => import('./pages/MedidorAgenda'))
 const MedidorHistorico     = lazy(() => import('./pages/MedidorHistorico'))
@@ -113,7 +113,7 @@ export default function App() {
               <Route path="/admin/projetos"              element={<ProjetosAdminV2 />} />
               <Route path="/admin/clientes"              element={<Clientes />} />
               <Route path="/admin/financeiro" element={<Financeiro />}>
-                <Route index                    element={<FinanceiroVisaoGeral />} />
+                <Route index                    element={<FinanceiroDashboard />} />
                 <Route path="dashboard"         element={<FinanceiroDashboard />} />
                 <Route path="lancamentos"       element={<FinanceiroLancamentos />} />
                 <Route path="contas"            element={<FinanceiroContas />} />
@@ -121,6 +121,7 @@ export default function App() {
                 <Route path="relatorios"        element={<FinanceiroRelatorios />} />
               </Route>
               <Route path="/admin/configuracoes"         element={<Configuracoes />} />
+              <Route path="/admin/notificacoes"         element={<AdminNotificacoes />} />
               <Route path="/agenda"                      element={<Agenda />} />
               {/* ── Rotas do Medidor ── */}
               <Route path="/medidor"                     element={<PainelMedidor />} />

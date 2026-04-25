@@ -159,7 +159,11 @@ export default function FinanceiroContas() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-zinc-800 border border-zinc-800">
+        <div className={`grid gap-px bg-zinc-800 border border-zinc-800 ${
+          contasVisiveis.length === 1 ? 'grid-cols-1' :
+          contasVisiveis.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
+          'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        }`}>
           {contasVisiveis.map(conta => (
             <ContaCard
               key={conta.id}

@@ -11,6 +11,14 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
   const session = auth?.session ?? null;
   // Suporta tanto o campo 'role' quanto 'perfil' na tabela profiles
   const perfil = profile?.role || profile?.perfil || 'vendedor';
+
+  // Perfil base para menu principal (ignora sufixo _medidor)
+  const perfilBase = perfil === 'admin_medidor'    ? 'admin'
+                   : perfil === 'vendedor_medidor' ? 'vendedor'
+                   : perfil;
+
+  // Se tem acesso de medidor além do perfil principal
+  const temMedidor = perfil === 'medidor' || perfil === 'admin_medidor' || perfil === 'vendedor_medidor';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(notifCountProp);
   const [toasts, setToasts] = useState([]);
@@ -81,7 +89,8 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: '/admin/projetos', label: 'Projetos', icon: 'solar:layers-linear', subtitle: 'Visão global de projetos' },
     { path: '/admin/clientes', label: 'Clientes', icon: 'solar:users-group-two-rounded-linear', subtitle: 'Base de clientes geral' },
     { path: '/admin/financeiro', label: 'Financeiro', icon: 'solar:wallet-money-linear', subtitle: 'Controle financeiro' },
-    { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear', subtitle: 'Ajustes do sistema' }
+    { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear', subtitle: 'Ajustes do sistema' },
+    { path: '/admin/notificacoes', label: 'Notificações',  icon: 'solar:bell-linear',     subtitle: 'Avisos do sistema', badge: true }
   ];
 
   const menuMedidor = [
@@ -90,12 +99,26 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: '/medidor/historico',     label: 'Histórico',     icon: 'solar:history-linear',  subtitle: 'Medições concluídas' },
   ];
 
-  const currentMenu = perfil === 'admin' ? menuAdmin
-                    : perfil === 'medidor' ? menuMedidor
-                    : menuVendedor;
+  const menuBase = perfilBase === 'admin'   ? menuAdmin
+                 : perfilBase === 'medidor' ? menuMedidor
+                 : menuVendedor;
+
+  const itensMedidor = [
+    { path: '/medidor/agenda',       label: 'Minha Agenda', icon: 'solar:calendar-linear', subtitle: 'Medições agendadas'  },
+    { path: '/medidor/historico',    label: 'Histórico',    icon: 'solar:history-linear',  subtitle: 'Medições concluídas' },
+    { path: '/medidor/notificacoes', label: 'Avisos',       icon: 'solar:bell-linear',     subtitle: 'Notificações', badge: true },
+  ];
+
+  const currentMenu = (temMedidor && perfilBase !== 'medidor')
+    ? [...menuBase, { path: '__divider__', label: 'Medidor', icon: '', subtitle: '', divider: true }, ...itensMedidor]
+    : menuBase;
 
   // Suporta tanto rotas exatas quanto aninhadas (/medidor/agenda, etc.)
-  const activeItem = currentMenu.find(item => location.pathname.startsWith(item.path)) || currentMenu[0];
+  const activeItem = currentMenu.filter(i => !i.divider).find(item =>
+    item.path === '/admin' || item.path === '/dashboard' || item.path === '/medidor/agenda'
+      ? location.pathname === item.path
+      : location.pathname.startsWith(item.path)
+  ) || currentMenu.filter(i => !i.divider)[0];
 
   // Fechar drawer no mobile ao mudar de rota
   useEffect(() => {
@@ -107,11 +130,16 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     navigate('/login');
   };
 
-  const badgeColor = perfil === 'vendedor' ? 'bg-yellow-400 text-black' : 
-                     perfil === 'admin' ? 'bg-white text-black' : 'bg-zinc-700 text-white';
-  
-  const perfilLabel = perfil === 'vendedor' ? 'Vendedor' :
-                      perfil === 'admin' ? 'Administrador' : 'Medidor';
+  const badgeColor = perfilBase === 'vendedor' ? 'bg-yellow-400 text-black'
+                 : perfilBase === 'admin'    ? 'bg-white text-black'
+                 : 'bg-zinc-700 text-white';
+
+  const perfilLabel = perfil === 'admin'           ? 'Administrador'
+                    : perfil === 'vendedor'         ? 'Vendedor'
+                    : perfil === 'medidor'          ? 'Medidor'
+                    : perfil === 'admin_medidor'    ? 'Admin + Medidor'
+                    : perfil === 'vendedor_medidor' ? 'Vendedor + Medidor'
+                    : 'Usuário';
   const userName = profile?.nome ?? 'Usuário';
   const userInitials = userName.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -139,7 +167,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
         {/* 1. Logo */}
         <div className="flex items-center gap-3 px-4 h-12 border-b border-zinc-800 shrink-0">
           <div className="w-2 h-2 bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.5)]"></div>
-          <span className="font-mono font-bold uppercase tracking-widest text-[11px] text-white">Marmoraria</span>
+          <span className="font-mono font-bold uppercase tracking-widest text-[11px] text-white">SmartStone</span>
           <span className="ml-auto font-mono text-[8px] text-zinc-600 uppercase">v1.0</span>
         </div>
 
@@ -154,15 +182,23 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
         {/* 3. Navegação */}
         <nav className="flex-1 overflow-y-auto py-2">
           {currentMenu.map((item) => {
-            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-            
+            if (item.divider) return (
+              <div key={item.path} className="px-4 py-2 font-mono text-[8px] uppercase tracking-widest text-zinc-700 border-t border-zinc-800 mt-1 pt-3">
+                Medidor
+              </div>
+            );
+
+            const isActive = item.path === '/admin' || item.path === '/dashboard' || item.path === '/medidor/agenda'
+              ? location.pathname === item.path
+              : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-[10px] px-4 py-[10px] font-mono text-[12px] uppercase tracking-[0.08em] cursor-pointer border-l-2 transition-all group ${
-                  isActive 
-                    ? 'border-yellow-400 text-yellow-400 bg-yellow-400/5' 
+                  isActive
+                    ? 'border-yellow-400 text-yellow-400 bg-yellow-400/5'
                     : 'border-transparent text-zinc-600 hover:text-zinc-200 hover:bg-white/5 hover:border-zinc-700'
                 }`}
               >
@@ -214,7 +250,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
             </span>
             <span className="text-zinc-800 text-[10px]">—</span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 truncate max-w-[120px] sm:max-w-none">
-              {activeItem?.subtitle || 'Marmoraria App'}
+              {activeItem?.subtitle || 'SmartStone App'}
             </span>
           </div>
 
@@ -246,7 +282,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
         </header>
 
         {/* Content Slot */}
-        <div className="flex-1 overflow-y-auto p-7">
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
           <Outlet />
         </div>
       </main>

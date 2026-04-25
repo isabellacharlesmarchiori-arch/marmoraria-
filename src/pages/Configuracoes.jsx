@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-
+import { maskCNPJ, maskTelefone } from '../utils/masks';
+import { CONTRATO_PADRAO } from '../utils/contratoPadrao';
+import { TEMPLATE_DEFAULTS } from '../utils/pdfOptions';
 
 // ── Constantes de materiais ───────────────────────────────────────────────────
 const CATEGORIAS = [
@@ -43,18 +45,25 @@ function novaVariacao(espessuraDefault = '') {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function ConfiguracoesPage() {
-  const { profile, session } = useAuth();
+  const { profile, session, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('empresa');
   const empresaId = profile?.empresa_id ?? 'a1b2c3d4-0000-0000-0000-000000000001';
 
   // ── States ──
-  const [empresa,           setEmpresa]           = useState({ nome: '', email: '', logo_url: null });
+  const [empresa,           setEmpresa]           = useState({
+    nome: '', email_contato: '', logo_url: null, cnpj: '',
+    inscricao_estadual: '', telefone: '', whatsapp: '',
+    endereco: '', website: '',
+    dados_bancarios: { banco: '', agencia: '', conta: '', titular: '', pix_chave: '', pix_tipo: 'CNPJ' },
+  });
   const [usuarios,          setUsuarios]          = useState([]);
   const [materiaisArea,     setMateriaisArea]     = useState([]);
   const [materiaisLineares, setMateriaisLineares] = useState([]);
   const [loadingMateriais,  setLoadingMateriais]  = useState(false);
   const [produtos,          setProdutos]          = useState([]);
   const [pagamentos,        setPagamentos]        = useState([]);
+  const [templates,         setTemplates]         = useState({ orcamento: null, pedido: null, contrato: null });
+  const [contratoSaving,    setContratoSaving]    = useState(false);
 
   // ── Logo upload ──
   const fileInputRef       = useRef(null);
@@ -73,6 +82,11 @@ export default function ConfiguracoesPage() {
   const [matCategoria, setMatCategoria] = useState('Granito');
   const [matVariacoes, setMatVariacoes] = useState([novaVariacao('2cm')]);
   const [matSalvando, setMatSalvando] = useState(false);
+  const [matBusca,           setMatBusca]           = useState('');
+  const [matOrdem,           setMatOrdem]           = useState('az');
+  const [matFiltroCategoria, setMatFiltroCategoria] = useState('');
+  const [acabamentosUnitarios, setAcabamentosUnitarios] = useState([]);
+  const [acabamentoSubAba,     setAcabamentoSubAba]     = useState('lineares');
 
   // ── Fetch materiais ──
   const fetchMateriais = useCallback(async () => {
@@ -92,6 +106,12 @@ export default function ConfiguracoesPage() {
     if (errLinear) console.error('Erro materiais lineares:', errLinear);
     if (area)   setMateriaisArea(area);
     if (linear) setMateriaisLineares(linear);
+    const { data: unitarios } = await supabase
+      .from('acabamentos_unitarios')
+      .select('*')
+      .eq('empresa_id', empresaId)
+      .order('nome');
+    if (unitarios) setAcabamentosUnitarios(unitarios);
     setLoadingMateriais(false);
   }, [session, empresaId]);
 
@@ -102,16 +122,87 @@ export default function ConfiguracoesPage() {
     if (!empresaId) return;
     const { data } = await supabase
       .from('empresas')
-      .select('nome, email, logo_url')
+      .select('nome, email_contato, logo_url, cnpj, inscricao_estadual, telefone, whatsapp, endereco, website, dados_bancarios')
       .eq('id', empresaId)
       .single();
     if (data) {
-      setEmpresa({ nome: data.nome ?? '', email: data.email ?? '', logo_url: data.logo_url ?? null });
+      setEmpresa({
+        nome:               data.nome               ?? '',
+        email_contato:      data.email_contato       ?? '',
+        logo_url:           data.logo_url            ?? null,
+        cnpj:               data.cnpj                ?? '',
+        inscricao_estadual: data.inscricao_estadual  ?? '',
+        telefone:           data.telefone            ?? '',
+        whatsapp:           data.whatsapp            ?? '',
+        endereco:           data.endereco            ?? '',
+        website:            data.website             ?? '',
+        dados_bancarios: {
+          banco:     data.dados_bancarios?.banco     ?? '',
+          agencia:   data.dados_bancarios?.agencia   ?? '',
+          conta:     data.dados_bancarios?.conta     ?? '',
+          titular:   data.dados_bancarios?.titular   ?? '',
+          pix_chave: data.dados_bancarios?.pix_chave ?? '',
+          pix_tipo:  data.dados_bancarios?.pix_tipo  ?? 'CNPJ',
+        },
+      });
       if (data.logo_url) setLogoPreview(data.logo_url);
     }
   }, [empresaId]);
 
   useEffect(() => { fetchEmpresa(); }, [fetchEmpresa]);
+
+  // ── Fetch usuários ──────────────────────────────────────────────────────
+  const fetchUsuarios = useCallback(async () => {
+    if (!empresaId) return;
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nome, email, perfil, ativo')
+      .eq('empresa_id', empresaId)
+      .order('nome');
+    if (error) console.error(error);
+    if (data) setUsuarios(data);
+  }, [empresaId]);
+
+  useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
+
+  // ── Fetch templates de PDF ───────────────────────────────────────────────
+
+  const fetchTemplates = useCallback(async () => {
+    if (!empresaId) return;
+    const { data } = await supabase
+      .from('pdf_templates')
+      .select('*')
+      .eq('empresa_id', empresaId);
+
+    const merged = { ...TEMPLATE_DEFAULTS };
+    for (const row of data ?? []) {
+      merged[row.tipo] = { ...TEMPLATE_DEFAULTS[row.tipo], ...row };
+    }
+    setTemplates(merged);
+  }, [empresaId]);
+
+  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+
+  // ── Handler: salvar contrato ─────────────────────────────────────────────
+  const handleSalvarContrato = async () => {
+    if (!empresaId) return;
+    setContratoSaving(true);
+    try {
+      const payload = { ...templates.contrato, empresa_id: empresaId, updated_at: new Date().toISOString() };
+      const { error } = await supabase
+        .from('pdf_templates')
+        .upsert(payload, { onConflict: 'empresa_id,tipo' });
+      if (error) throw error;
+      alert('Contrato salvo!');
+    } catch (err) {
+      alert('Erro ao salvar: ' + err.message);
+    } finally {
+      setContratoSaving(false);
+    }
+  };
+
+  const updateContrato = (field, value) =>
+    setTemplates(prev => ({ ...prev, contrato: { ...prev.contrato, [field]: value } }));
 
   // ── Handler: seleção de arquivo (preview imediato) ──────────────────────────
   const handleLogoSelect = (e) => {
@@ -153,10 +244,26 @@ export default function ConfiguracoesPage() {
         setFileToUpload(null);
       }
 
-      // Salva nome, email e logo_url na tabela empresas
+      if (empresa.cnpj && empresa.cnpj.replace(/\D/g, '').length !== 14) {
+        alert('CNPJ deve ter 14 dígitos.');
+        setEmpresaSalvando(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('empresas')
-        .update({ nome: empresa.nome, email: empresa.email, logo_url: logoUrl })
+        .update({
+          nome:               empresa.nome,
+          email_contato:      empresa.email_contato,
+          logo_url:           logoUrl,
+          cnpj:               empresa.cnpj,
+          inscricao_estadual: empresa.inscricao_estadual,
+          telefone:           empresa.telefone,
+          whatsapp:           empresa.whatsapp,
+          endereco:           empresa.endereco,
+          website:            empresa.website,
+          dados_bancarios:    empresa.dados_bancarios,
+        })
         .eq('id', empresaId);
 
       if (error) throw error;
@@ -194,6 +301,15 @@ export default function ConfiguracoesPage() {
   const handleToggle = (setter, list, id) =>
     setter(list.map(item => item.id === id ? { ...item, ativo: !item.ativo } : item));
 
+  const handleToggleUsuario = async (id, ativoAtual) => {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ ativo: !ativoAtual })
+      .eq('id', id);
+    if (error) { alert(error.message); return; }
+    setUsuarios(prev => prev.map(u => u.id === id ? { ...u, ativo: !ativoAtual } : u));
+  };
+
   const handleSaveModal = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -212,9 +328,33 @@ export default function ConfiguracoesPage() {
         setMateriaisLineares(prev => [...prev, inserted]);
       }
     } else if (type === 'usuario') {
-      const isNew = !item;
-      const novoId = isNew ? (usuarios.length > 0 ? Math.max(...usuarios.map(u => u.id)) + 1 : 1) : item.id;
-      setUsuarios(isNew ? [...usuarios, { id: novoId, ...data, ativo: true }] : usuarios.map(u => u.id === item.id ? { ...u, ...data } : u));
+      const { nome, email, perfil } = data;
+      if (item) {
+        const { error } = await supabase
+          .from('usuarios')
+          .update({ nome, perfil })
+          .eq('id', item.id);
+        if (error) { alert('Erro ao atualizar: ' + error.message); return; }
+        setUsuarios(prev => prev.map(u => u.id === item.id ? { ...u, nome, perfil } : u));
+        if (item.id === session?.user?.id) await refreshProfile();
+        alert('Usuário atualizado com sucesso!');
+      } else {
+        const { data: novoUser, error: errInsert } = await supabase
+          .from('usuarios')
+          .insert({ nome, email, perfil, empresa_id: profile.empresa_id, ativo: true })
+          .select()
+          .single();
+        if (errInsert) { alert('Erro ao cadastrar: ' + errInsert.message); return; }
+        const { error: errEmail } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/convite`,
+        });
+        if (errEmail) {
+          alert('Usuário cadastrado, mas erro ao enviar email: ' + errEmail.message);
+        } else {
+          alert(`Convite enviado para ${email}! O usuário receberá um email para definir sua senha.`);
+        }
+        setUsuarios(prev => [...prev, novoUser]);
+      }
     } else if (type === 'produto') {
       const isNew = !item;
       const novoId = isNew ? (produtos.length > 0 ? Math.max(...produtos.map(p => p.id)) + 1 : 1) : item.id;
@@ -225,15 +365,29 @@ export default function ConfiguracoesPage() {
       const novoId = isNew ? (pagamentos.length > 0 ? Math.max(...pagamentos.map(p => p.id)) + 1 : 1) : item.id;
       const nd = { id: novoId, ...data, campos: data.campos.split(',').map(c => c.trim()), ativo: isNew ? true : item.ativo };
       setPagamentos(isNew ? [...pagamentos, nd] : pagamentos.map(p => p.id === item.id ? nd : p));
+    } else if (type === 'acabamento_unitario') {
+      const payload = { nome: data.nome, unidade: data.unidade, preco: Number(data.preco), empresa_id: profile.empresa_id };
+      if (item) {
+        const { data: updated, error } = await supabase.from('acabamentos_unitarios').update(payload).eq('id', item.id).select().single();
+        if (error) { alert(error.message); return; }
+        setAcabamentosUnitarios(prev => prev.map(a => a.id === item.id ? updated : a));
+      } else {
+        const { data: inserted, error } = await supabase.from('acabamentos_unitarios').insert({ ...payload, ativo: true }).select().single();
+        if (error) { alert(error.message); return; }
+        setAcabamentosUnitarios(prev => [...prev, inserted]);
+      }
     }
     closeModal();
   };
 
   // ── Handlers material área ──
   function abrirMatModal(item = null) {
-    const categoria = item?.categoria ?? 'Granito';
+    const rawCategoria = item?.categoria ?? 'Granito';
+    const categoria = rawCategoria in ESPESSURAS_POR_CATEGORIA ? rawCategoria : 'Granito';
     const espessuras = ESPESSURAS_POR_CATEGORIA[categoria];
     const defaultEsp = Array.isArray(espessuras) ? espessuras[0] : '';
+
+    console.log('abrirMatModal →', { id: item?.id, nome: item?.nome, categoria, variacoes: item?.variacoes_precos?.length });
 
     setMatItem(item);
     setMatNome(item?.nome ?? '');
@@ -242,10 +396,10 @@ export default function ConfiguracoesPage() {
       item?.variacoes_precos?.length
         ? item.variacoes_precos.map(v => ({
             _id:        Math.random(),
-            acabamento: v.acabamento,
-            espessura:  v.espessura ?? '',
+            acabamento: v.acabamento ?? 'Polido',
+            espessura:  v.espessura  ?? '',
             precoCusto: v.preco_custo ?? '',
-            frete:      v.frete ?? '',
+            frete:      v.frete       ?? '',
             precoVenda: v.preco_venda ?? '',
           }))
         : [novaVariacao(defaultEsp)]
@@ -283,7 +437,7 @@ export default function ConfiguracoesPage() {
         materialId = data.id;
       }
 
-      const variacoesValidas = matVariacoes.filter(v => v.acabamento.trim());
+      const variacoesValidas = matVariacoes.filter(v => v.acabamento?.trim());
       if (variacoesValidas.length > 0) {
         const { error } = await supabase.from('variacoes_precos').insert(
           variacoesValidas.map(v => ({
@@ -335,24 +489,41 @@ export default function ConfiguracoesPage() {
 
   const removeVariacao = (idx) => setMatVariacoes(prev => prev.filter((_, i) => i !== idx));
 
-  const espessurasDisponiveis = ESPESSURAS_POR_CATEGORIA[matCategoria];
-  // null  = Nanoglass (sem espessura)
-  // false = Outros (campo livre)
-  // array = lista fixa
+  // null = Nanoglass (sem espessura), false = Outros/campo livre, array = opções fixas
+  // Categorias desconhecidas do banco caem em false (campo livre) via normalização em abrirMatModal
+  const espessurasDisponiveis = matCategoria in ESPESSURAS_POR_CATEGORIA
+    ? ESPESSURAS_POR_CATEGORIA[matCategoria]
+    : false;
+
+  const materiaisAreaFiltrados = materiaisArea
+    .filter(m => {
+      const buscaOk = matBusca === '' || m.nome.toLowerCase().includes(matBusca.toLowerCase());
+      const catOk = matFiltroCategoria === '' ||
+        m.categoria?.toLowerCase().trim() === matFiltroCategoria?.toLowerCase().trim();
+      return buscaOk && catOk;
+    })
+    .sort((a, b) => {
+      if (matOrdem === 'az')        return a.nome.localeCompare(b.nome);
+      if (matOrdem === 'za')        return b.nome.localeCompare(a.nome);
+      if (matOrdem === 'recente')   return new Date(b.created_at) - new Date(a.created_at);
+      if (matOrdem === 'antigo')    return new Date(a.created_at) - new Date(b.created_at);
+      if (matOrdem === 'mais_var')  return (b.variacoes_precos?.length ?? 0) - (a.variacoes_precos?.length ?? 0);
+      if (matOrdem === 'menos_var') return (a.variacoes_precos?.length ?? 0) - (b.variacoes_precos?.length ?? 0);
+      return 0;
+    });
 
   // ── Tabs ──
   const tabs = [
     { id: 'empresa',           label: 'Dados da Empresa',    icon: 'solar:buildings-linear' },
     { id: 'usuarios',          label: 'Usuários',            icon: 'solar:users-group-rounded-linear' },
-    { id: 'materiais_area',    label: 'Materiais de Área',   icon: 'solar:slider-minimalistic-horizontal-linear' },
-    { id: 'materiais_lineares',label: 'Materiais Lineares',  icon: 'solar:sort-from-bottom-to-top-linear' },
-    { id: 'produtos',          label: 'Produtos Avulsos',    icon: 'solar:box-linear' },
-    { id: 'pagamentos',        label: 'Formas de Pag.',      icon: 'solar:wallet-money-linear' },
+    { id: 'materiais_area',    label: 'Matéria Prima',       icon: 'solar:slider-minimalistic-horizontal-linear' },
+    { id: 'materiais_lineares',label: 'Acabamentos',         icon: 'solar:sort-from-bottom-to-top-linear' },
+    { id: 'produtos',          label: 'Produtos de Revenda', icon: 'solar:box-linear' },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-400 font-sans selection:bg-white selection:text-black flex">
+    <div className="flex-1 min-h-0 bg-[#050505] text-zinc-400 font-sans selection:bg-white selection:text-black flex">
       {/* Background Grid */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
 
@@ -381,71 +552,47 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 md:p-12 h-screen overflow-y-auto relative z-10 custom-scrollbar">
-        <div className="max-w-5xl mx-auto sys-reveal">
+      <main className="flex-1 p-8 md:p-12 overflow-y-auto relative z-10 custom-scrollbar min-h-0">
+        <div className="sys-reveal">
 
           {/* ── Dados da Empresa ── */}
           {activeTab === 'empresa' && (
-            <div className="bg-[#020202] border border-zinc-800 p-8 space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <iconify-icon icon="solar:buildings-linear" width="120"></iconify-icon>
-              </div>
-              <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
-                <iconify-icon icon="solar:buildings-linear" class="text-yellow-400"></iconify-icon> Dados da Empresa
-              </h2>
-              {/* Input de arquivo oculto */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp"
-                className="hidden"
-                onChange={handleLogoSelect}
-              />
+            <div className="space-y-6">
+              <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleLogoSelect} />
 
-              <form className="space-y-6 max-w-xl" onSubmit={e => e.preventDefault()}>
+              {/* Card 1 — Identidade */}
+              <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                  <iconify-icon icon="solar:buildings-linear" width="120"></iconify-icon>
+                </div>
+                <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Identidade</h3>
+
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-mono text-zinc-500">Logo da Empresa</label>
                   <div className="flex flex-col sm:flex-row items-center gap-4">
-                    {/* Preview / placeholder */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
                       className="w-24 h-24 border border-zinc-800 bg-black flex items-center justify-center relative overflow-hidden group hover:border-yellow-400/50 transition-colors shrink-0"
-                      title="Clique para selecionar logo"
-                    >
-                      {logoPreview ? (
-                        <img
-                          src={logoPreview}
-                          alt="Logo da empresa"
-                          loading="lazy"
-                          className="w-full h-full object-contain p-1"
-                        />
-                      ) : (
-                        <iconify-icon icon="solar:camera-add-linear" class="text-zinc-600 text-2xl group-hover:text-yellow-400 transition-colors"></iconify-icon>
-                      )}
-                      {/* Overlay de troca ao hover */}
+                      title="Clique para selecionar logo">
+                      {logoPreview
+                        ? <img src={logoPreview} alt="Logo da empresa" loading="lazy" className="w-full h-full object-contain p-1" />
+                        : <iconify-icon icon="solar:camera-add-linear" class="text-zinc-600 text-2xl group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                      }
                       {logoPreview && (
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <iconify-icon icon="solar:camera-add-linear" class="text-yellow-400 text-xl"></iconify-icon>
                         </div>
                       )}
                     </button>
-
                     <div className="flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-xs font-mono uppercase bg-transparent border border-zinc-700 hover:border-yellow-400 hover:text-yellow-400 text-white px-4 py-2 transition-colors flex items-center gap-2"
-                      >
+                      <button type="button" onClick={() => fileInputRef.current?.click()}
+                        className="text-xs font-mono uppercase bg-transparent border border-zinc-700 hover:border-yellow-400 hover:text-yellow-400 text-white px-4 py-2 transition-colors flex items-center gap-2">
                         <iconify-icon icon="solar:upload-linear" width="13"></iconify-icon>
                         {logoPreview ? 'Trocar Imagem' : 'Selecionar Imagem'}
                       </button>
                       {logoPreview && (
-                        <button
-                          type="button"
+                        <button type="button"
                           onClick={() => { setLogoPreview(null); setFileToUpload(null); setEmpresa(prev => ({ ...prev, logo_url: null })); }}
-                          className="text-xs font-mono uppercase text-red-500/60 hover:text-red-400 transition-colors flex items-center gap-1.5"
-                        >
+                          className="text-xs font-mono uppercase text-red-500/60 hover:text-red-400 transition-colors flex items-center gap-1.5">
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon>
                           Remover
                         </button>
@@ -461,34 +608,201 @@ export default function ConfiguracoesPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-mono text-zinc-500">Razão Social / Nome</label>
-                  <input type="text" value={empresa.nome} onChange={e => setEmpresa({...empresa, nome: e.target.value})} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Razão Social / Nome</label>
+                    <input type="text" value={empresa.nome}
+                      onChange={e => setEmpresa({ ...empresa, nome: e.target.value })}
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">CNPJ</label>
+                    <input type="text" value={empresa.cnpj}
+                      onChange={e => setEmpresa({ ...empresa, cnpj: maskCNPJ(e.target.value) })}
+                      placeholder="00.000.000/0000-00"
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Inscrição Estadual</label>
+                    <input type="text" value={empresa.inscricao_estadual}
+                      onChange={e => setEmpresa({ ...empresa, inscricao_estadual: e.target.value })}
+                      placeholder="Isento ou número"
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail de Contato</label>
-                  <input type="email" value={empresa.email} onChange={e => setEmpresa({...empresa, email: e.target.value})} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
-                </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={handleSalvarEmpresa}
-                  disabled={empresaSalvando}
-                  className="bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-6 py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow w-max flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {empresaSalvando ? (
-                    <>
-                      <iconify-icon icon="solar:spinner-linear" class="animate-spin"></iconify-icon>
-                      {logoUploading ? 'Enviando logo...' : 'Salvando...'}
-                    </>
-                  ) : (
-                    <>
-                      <iconify-icon icon="solar:diskette-linear"></iconify-icon>
-                      Salvar Alterações
-                    </>
-                  )}
-                </button>
-              </form>
+              {/* Card 2 — Contato */}
+              <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6">
+                <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Contato</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail de Contato</label>
+                    <input type="email" value={empresa.email_contato}
+                      onChange={e => setEmpresa({ ...empresa, email_contato: e.target.value })}
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Telefone Fixo</label>
+                    <input type="text" value={empresa.telefone}
+                      onChange={e => setEmpresa({ ...empresa, telefone: maskTelefone(e.target.value) })}
+                      placeholder="(00) 0000-0000"
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">WhatsApp</label>
+                    <input type="text" value={empresa.whatsapp}
+                      onChange={e => setEmpresa({ ...empresa, whatsapp: maskTelefone(e.target.value) })}
+                      placeholder="(00) 00000-0000"
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Website</label>
+                    <input type="url" value={empresa.website}
+                      onChange={e => setEmpresa({ ...empresa, website: e.target.value })}
+                      placeholder="https://"
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Endereço Completo</label>
+                    <textarea value={empresa.endereco}
+                      onChange={e => setEmpresa({ ...empresa, endereco: e.target.value })}
+                      rows={2}
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm resize-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3 — Dados Bancários (admin only) */}
+              {profile?.perfil === 'admin' && (
+                <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6">
+                  <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono uppercase">
+                    <iconify-icon icon="solar:lock-password-linear" class="text-yellow-400/70" width="14"></iconify-icon>
+                    Visível apenas para perfil admin · Aparece no PDF de Pedido Fechado
+                  </div>
+                  <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Dados Bancários</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-zinc-500">Banco</label>
+                        <input type="text" value={empresa.dados_bancarios.banco}
+                          onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, banco: e.target.value } }))}
+                          placeholder="Ex: Banco do Brasil — 001"
+                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-zinc-500">Agência</label>
+                        <input type="text" value={empresa.dados_bancarios.agencia}
+                          onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, agencia: e.target.value } }))}
+                          placeholder="0000-0"
+                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-zinc-500">Conta</label>
+                        <input type="text" value={empresa.dados_bancarios.conta}
+                          onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, conta: e.target.value } }))}
+                          placeholder="00000-0"
+                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-zinc-500">Titular</label>
+                        <input type="text" value={empresa.dados_bancarios.titular}
+                          onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, titular: e.target.value } }))}
+                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo de Chave Pix</label>
+                        <select value={empresa.dados_bancarios.pix_tipo}
+                          onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, pix_tipo: e.target.value } }))}
+                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm">
+                          <option value="CNPJ">CNPJ</option>
+                          <option value="CPF">CPF</option>
+                          <option value="EMAIL">E-mail</option>
+                          <option value="TELEFONE">Telefone</option>
+                          <option value="ALEATORIA">Aleatória</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-zinc-500">Chave Pix</label>
+                        <input type="text" value={empresa.dados_bancarios.pix_chave}
+                          onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, pix_chave: e.target.value } }))}
+                          placeholder={
+                            empresa.dados_bancarios.pix_tipo === 'CPF'      ? '000.000.000-00'     :
+                            empresa.dados_bancarios.pix_tipo === 'CNPJ'     ? '00.000.000/0000-00' :
+                            empresa.dados_bancarios.pix_tipo === 'EMAIL'    ? 'exemplo@email.com'  :
+                            empresa.dados_bancarios.pix_tipo === 'TELEFONE' ? '+55 11 00000-0000'  :
+                            'chave aleatória'
+                          }
+                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Card 4 — Contrato Padrão (admin only) */}
+              {profile?.perfil === 'admin' && (
+                <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6">
+                  <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono uppercase">
+                    <iconify-icon icon="solar:lock-password-linear" class="text-yellow-400/70" width="14"></iconify-icon>
+                    Visível apenas para perfil admin · Usado no PDF de Contrato
+                  </div>
+                  <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Contrato Padrão</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-mono text-zinc-500">Texto das cláusulas</label>
+                      <button
+                        type="button"
+                        onClick={() => updateContrato('contrato_texto', CONTRATO_PADRAO)}
+                        className="text-[10px] font-mono text-zinc-500 hover:text-yellow-400 transition-colors"
+                      >↻ Restaurar texto padrão</button>
+                    </div>
+                    <textarea
+                      value={templates.contrato?.contrato_texto || CONTRATO_PADRAO}
+                      onChange={e => updateContrato('contrato_texto', e.target.value)}
+                      rows={12}
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-yellow-400 resize-none"
+                    />
+                    <p className="text-[10px] font-mono text-zinc-700">
+                      {'Placeholders: {{numero_pedido}} · {{valor_total}} · {{prazo_entrega}} · {{forma_pagamento}} · {{cidade_empresa}} · {{estado_empresa}}'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSalvarContrato}
+                    disabled={contratoSaving}
+                    className="bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-6 py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {contratoSaving ? (
+                      <><iconify-icon icon="solar:spinner-linear" class="animate-spin"></iconify-icon> Salvando...</>
+                    ) : (
+                      <><iconify-icon icon="solar:diskette-linear"></iconify-icon> Salvar Contrato</>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Botão único para os 3 cards */}
+              <button
+                type="button"
+                onClick={handleSalvarEmpresa}
+                disabled={empresaSalvando}
+                className="bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-6 py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {empresaSalvando ? (
+                  <>
+                    <iconify-icon icon="solar:spinner-linear" class="animate-spin"></iconify-icon>
+                    {logoUploading ? 'Enviando logo...' : 'Salvando...'}
+                  </>
+                ) : (
+                  <>
+                    <iconify-icon icon="solar:diskette-linear"></iconify-icon>
+                    Salvar Alterações
+                  </>
+                )}
+              </button>
             </div>
           )}
 
@@ -521,7 +835,7 @@ export default function ConfiguracoesPage() {
                     </div>
                     <div><span className="text-[10px] border border-zinc-700 bg-zinc-900 px-2 py-1 uppercase font-mono">{u.perfil}</span></div>
                     <div>
-                      <button onClick={() => handleToggle(setUsuarios, usuarios, u.id)} className={`flex items-center gap-2 text-xs font-mono uppercase ${u.ativo ? 'text-green-400' : 'text-zinc-600'}`}>
+                      <button onClick={() => handleToggleUsuario(u.id, u.ativo)} className={`flex items-center gap-2 text-xs font-mono uppercase ${u.ativo ? 'text-green-400' : 'text-zinc-600'}`}>
                         <iconify-icon icon={u.ativo ? 'solar:toggle-on-bold' : 'solar:toggle-off-linear'} width="24"></iconify-icon>
                         {u.ativo ? 'Ativo' : 'Inativo'}
                       </button>
@@ -543,7 +857,7 @@ export default function ConfiguracoesPage() {
               <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
                 <div>
                   <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
-                    <iconify-icon icon="solar:slider-minimalistic-horizontal-linear" class="text-yellow-400"></iconify-icon> Materiais de Área
+                    <iconify-icon icon="solar:slider-minimalistic-horizontal-linear" class="text-yellow-400"></iconify-icon> Matéria Prima
                   </h2>
                   <p className="text-[10px] font-mono text-zinc-600 mt-1 uppercase tracking-widest">
                     Matriz de preços por acabamento e espessura
@@ -555,6 +869,59 @@ export default function ConfiguracoesPage() {
                 >
                   <iconify-icon icon="solar:add-square-linear"></iconify-icon> Novo Material
                 </button>
+              </div>
+
+              {/* ── Busca e Ordenação ── */}
+              <div className="flex flex-wrap gap-3">
+                <div className="relative flex-1 min-w-[180px]">
+                  <iconify-icon icon="solar:magnifer-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" width="14"></iconify-icon>
+                  <input
+                    type="text"
+                    value={matBusca}
+                    onChange={e => setMatBusca(e.target.value)}
+                    placeholder="Buscar por nome..."
+                    className="w-full bg-black border border-zinc-800 text-white pl-9 pr-4 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400 transition-colors placeholder:text-zinc-700"
+                  />
+                </div>
+                <select
+                  value={matOrdem}
+                  onChange={e => setMatOrdem(e.target.value)}
+                  className="bg-black border border-zinc-800 text-zinc-400 px-3 py-2 text-[10px] font-mono uppercase focus:outline-none focus:border-yellow-400 transition-colors"
+                >
+                  <option value="az">A → Z</option>
+                  <option value="za">Z → A</option>
+                  <option value="recente">Mais recente</option>
+                  <option value="antigo">Mais antigo</option>
+                  <option value="mais_var">Mais variações</option>
+                  <option value="menos_var">Menos variações</option>
+                </select>
+              </div>
+
+              {/* ── Filtro por categoria ── */}
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setMatFiltroCategoria('')}
+                  className={`text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 border transition-colors ${
+                    matFiltroCategoria === ''
+                      ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
+                      : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+                  }`}
+                >
+                  Todas
+                </button>
+                {CATEGORIAS.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setMatFiltroCategoria(cat === matFiltroCategoria ? '' : cat)}
+                    className={`text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 border transition-colors ${
+                      matFiltroCategoria === cat
+                        ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
+                        : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
 
               <div className="bg-[#020202] border border-zinc-800 overflow-x-auto">
@@ -569,11 +936,11 @@ export default function ConfiguracoesPage() {
 
                 {loadingMateriais ? (
                   <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-700 animate-pulse">Carregando...</div>
-                ) : materiaisArea.length === 0 ? (
+                ) : materiaisAreaFiltrados.length === 0 ? (
                   <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-700">
-                    Nenhum material cadastrado
+                    {materiaisArea.length === 0 ? 'Nenhum material cadastrado' : 'Nenhum material encontrado'}
                   </div>
-                ) : materiaisArea.map(m => {
+                ) : materiaisAreaFiltrados.map(m => {
                   const nVar = m.variacoes_precos?.length ?? 0;
                   return (
                     <div key={m.id} className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 px-4 py-3 border-b border-zinc-800/50 items-center hover:bg-zinc-900/20 transition-colors min-w-[640px]">
@@ -586,7 +953,7 @@ export default function ConfiguracoesPage() {
                       <div>
                         {nVar > 0 ? (
                           <span className="text-[10px] font-mono text-yellow-400">
-                            {nVar} variação{nVar > 1 ? 'ões' : ''}
+                            {nVar} {nVar !== 1 ? 'variações' : 'variação'}
                           </span>
                         ) : (
                           <span className="text-[10px] font-mono text-zinc-600">Sem preços</span>
@@ -616,45 +983,120 @@ export default function ConfiguracoesPage() {
             </div>
           )}
 
-          {/* ── Materiais Lineares ── */}
+          {/* ── Acabamentos ── */}
           {activeTab === 'materiais_lineares' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
-                <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
-                  <iconify-icon icon="solar:sort-from-bottom-to-top-linear" class="text-yellow-400"></iconify-icon> Materiais Lineares & Acabamentos
-                </h2>
-                <button onClick={() => openModal('material_linear')} className="bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-shadow flex items-center gap-2">
-                  <iconify-icon icon="solar:add-square-linear"></iconify-icon> Adicionar
-                </button>
-              </div>
-              <div className="bg-[#020202] border border-zinc-800">
-                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500">
-                  <div>Descrição</div><div>Tipo</div><div>Preço por ml</div><div>Status</div><div className="text-right">Ações</div>
-                </div>
-                {loadingMateriais ? (
-                  <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-700 animate-pulse">Carregando...</div>
-                ) : materiaisLineares.map(m => (
-                  <div key={m.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800/50 items-center hover:bg-zinc-900/30 transition-colors text-sm">
-                    <div className="text-white uppercase font-medium">{m.nome}</div>
-                    <div><span className="text-[10px] font-mono border border-zinc-700 bg-black px-2 py-1 uppercase text-zinc-400">{m.tipo?.replace('_', ' ')}</span></div>
-                    <div className="font-mono text-zinc-300">R$ {Number(m.precoml).toFixed(2)}</div>
-                    <div>
-                      <button onClick={() => handleToggle(setMateriaisLineares, materiaisLineares, m.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                        <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
-                        {m.ativo ? 'Ativo' : 'Oculto'}
-                      </button>
-                    </div>
-                    <div className="text-right flex items-center justify-end gap-2">
-                      <button onClick={() => openModal('material_linear', m)} className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
-                        <iconify-icon icon="solar:pen-linear"></iconify-icon>
-                      </button>
-                      <button onClick={e => handleDeleteMaterialLinear(e, m.id)} className="text-zinc-500 hover:text-red-400 bg-black border border-zinc-800 px-3 py-1">
-                        <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
-                      </button>
-                    </div>
-                  </div>
+              {/* Sub-abas */}
+              <div className="flex gap-px bg-zinc-800 border border-zinc-800 w-max mb-6">
+                {[
+                  { id: 'lineares',  label: 'Acabamentos Lineares'  },
+                  { id: 'unitarios', label: 'Acabamentos Unitários' },
+                ].map(s => (
+                  <button key={s.id} onClick={() => setAcabamentoSubAba(s.id)}
+                    className={`px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${
+                      acabamentoSubAba === s.id
+                        ? 'bg-yellow-400 text-black'
+                        : 'bg-[#020202] text-zinc-500 hover:text-white'
+                    }`}>
+                    {s.label}
+                  </button>
                 ))}
               </div>
+
+              {acabamentoSubAba === 'lineares' && (
+                <>
+                  <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
+                    <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
+                      <iconify-icon icon="solar:sort-from-bottom-to-top-linear" class="text-yellow-400"></iconify-icon> Acabamentos Lineares
+                    </h2>
+                    <button onClick={() => openModal('material_linear')} className="bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-shadow flex items-center gap-2">
+                      <iconify-icon icon="solar:add-square-linear"></iconify-icon> Adicionar
+                    </button>
+                  </div>
+                  <div className="bg-[#020202] border border-zinc-800">
+                    <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500">
+                      <div>Descrição</div><div>Tipo</div><div>Preço por ml</div><div>Status</div><div className="text-right">Ações</div>
+                    </div>
+                    {loadingMateriais ? (
+                      <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-700 animate-pulse">Carregando...</div>
+                    ) : materiaisLineares.map(m => (
+                      <div key={m.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800/50 items-center hover:bg-zinc-900/30 transition-colors text-sm">
+                        <div className="text-white uppercase font-medium">{m.nome}</div>
+                        <div><span className="text-[10px] font-mono border border-zinc-700 bg-black px-2 py-1 uppercase text-zinc-400">{m.tipo?.replace('_', ' ')}</span></div>
+                        <div className="font-mono text-zinc-300">R$ {Number(m.precoml).toFixed(2)}</div>
+                        <div>
+                          <button onClick={() => handleToggle(setMateriaisLineares, materiaisLineares, m.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                            <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
+                            {m.ativo ? 'Ativo' : 'Oculto'}
+                          </button>
+                        </div>
+                        <div className="text-right flex items-center justify-end gap-2">
+                          <button onClick={() => openModal('material_linear', m)} className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
+                            <iconify-icon icon="solar:pen-linear"></iconify-icon>
+                          </button>
+                          <button onClick={e => handleDeleteMaterialLinear(e, m.id)} className="text-zinc-500 hover:text-red-400 bg-black border border-zinc-800 px-3 py-1">
+                            <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {acabamentoSubAba === 'unitarios' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
+                    <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
+                      <iconify-icon icon="solar:box-linear" class="text-yellow-400"></iconify-icon>
+                      Acabamentos Unitários
+                    </h2>
+                    <button onClick={() => openModal('acabamento_unitario')}
+                      className="bg-white text-black text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-shadow flex items-center gap-2">
+                      <iconify-icon icon="solar:add-square-linear"></iconify-icon> Adicionar
+                    </button>
+                  </div>
+                  <div className="bg-[#020202] border border-zinc-800">
+                    <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500">
+                      <div>Nome</div><div>Unidade</div><div>Preço</div><div>Status</div><div className="text-right">Ações</div>
+                    </div>
+                    {acabamentosUnitarios.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <iconify-icon icon="solar:box-linear" width="28" className="text-zinc-800 block mx-auto mb-2"></iconify-icon>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Nenhum acabamento cadastrado</p>
+                      </div>
+                    ) : acabamentosUnitarios.map(a => (
+                      <div key={a.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800/50 items-center hover:bg-zinc-900/30 transition-colors text-sm">
+                        <div className="text-white uppercase font-medium">{a.nome}</div>
+                        <div><span className="text-[10px] font-mono border border-zinc-700 bg-black px-2 py-1 uppercase text-zinc-400">{a.unidade}</span></div>
+                        <div className="font-mono text-zinc-300">R$ {Number(a.preco).toFixed(2)}</div>
+                        <div>
+                          <button onClick={() => handleToggle(setAcabamentosUnitarios, acabamentosUnitarios, a.id)}
+                            className={`flex items-center gap-2 text-[10px] font-mono uppercase ${a.ativo ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                            <iconify-icon icon={a.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
+                            {a.ativo ? 'Ativo' : 'Oculto'}
+                          </button>
+                        </div>
+                        <div className="text-right flex items-center justify-end gap-2">
+                          <button onClick={() => openModal('acabamento_unitario', a)}
+                            className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
+                            <iconify-icon icon="solar:pen-linear"></iconify-icon>
+                          </button>
+                          <button onClick={async e => {
+                            e.stopPropagation();
+                            if (!window.confirm('Excluir este acabamento?')) return;
+                            const { error } = await supabase.from('acabamentos_unitarios').delete().eq('id', a.id);
+                            if (error) { alert(error.message); return; }
+                            setAcabamentosUnitarios(prev => prev.filter(x => x.id !== a.id));
+                          }} className="text-zinc-500 hover:text-red-400 bg-black border border-zinc-800 px-3 py-1">
+                            <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -708,56 +1150,180 @@ export default function ConfiguracoesPage() {
             </div>
           )}
 
-          {/* ── Formas de Pagamento ── */}
-          {activeTab === 'pagamentos' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
-                <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
-                  <iconify-icon icon="solar:wallet-money-linear" class="text-yellow-400"></iconify-icon> Formas de Pagamento
-                </h2>
-                <button onClick={() => openModal('pagamento')} className="bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-shadow flex items-center gap-2">
-                  <iconify-icon icon="solar:add-square-linear"></iconify-icon> Adicionar
-                </button>
-              </div>
-              {pagamentos.length === 0 && (
-                <div className="p-8 text-center border border-zinc-800 bg-[#020202]">
-                  <iconify-icon icon="solar:wallet-money-linear" width="28" className="text-zinc-800 block mx-auto mb-2"></iconify-icon>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Nenhuma forma de pagamento cadastrada</p>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {pagamentos.map(p => (
-                  <div key={p.id} className="bg-[#020202] border border-zinc-800 p-5 flex flex-col hover:border-zinc-500 transition-colors">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="text-white font-medium uppercase text-lg">{p.nome}</div>
-                        <div className="text-[10px] font-mono border border-zinc-700 bg-black text-zinc-400 px-2 py-0.5 w-max mt-2">Tipo: {p.tipo}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleToggle(setPagamentos, pagamentos, p.id)} className={`text-xl ${p.ativo ? 'text-green-400' : 'text-zinc-600'}`}>
-                          <iconify-icon icon={p.ativo ? 'solar:toggle-on-bold' : 'solar:toggle-off-linear'}></iconify-icon>
-                        </button>
-                        <button onClick={() => openModal('pagamento', p)} className="text-zinc-500 hover:text-white border border-zinc-800 bg-black px-2 py-1 flex items-center">
-                          <iconify-icon icon="solar:pen-linear"></iconify-icon>
-                        </button>
-                      </div>
+
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL GENÉRICO — Usuário, Linear, Produto, Pagamento
+      ════════════════════════════════════════════════════════════════════════ */}
+      {modalState.isOpen && (
+        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal}></div>
+          <div className="bg-[#050505] border border-zinc-800 border-t-yellow-400 border-t-2 w-full max-w-lg relative z-10 shadow-2xl sys-reveal sys-active flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-zinc-800">
+              <h3 className="text-xl font-bold text-white uppercase tracking-tighter">
+                {modalState.item ? 'Editar ' : 'Novo '}
+                {modalState.type === 'usuario'             && 'Usuário'}
+                {modalState.type === 'material_linear'     && 'Material/Acabamento Linear'}
+                {modalState.type === 'produto'             && 'Produto Avulso'}
+                {modalState.type === 'pagamento'           && 'Método de Pagamento'}
+                {modalState.type === 'acabamento_unitario' && 'Acabamento Unitário'}
+              </h3>
+              <button onClick={closeModal} className="text-zinc-500 hover:text-white transition-colors">
+                <iconify-icon icon="solar:close-square-linear" width="24"></iconify-icon>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveModal} className="flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
+
+              {modalState.type === 'usuario' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                  </div>
+                  {!modalState.item && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail (Login)</label>
+                      <input type="email" name="email" required className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                     </div>
-                    <div className="mt-auto pt-4 border-t border-zinc-800">
-                      <div className="text-[10px] uppercase font-mono text-zinc-600 mb-2">Campos Dinâmicos Requeridos:</div>
-                      <div className="flex flex-wrap gap-2">
-                        {p.campos.map(c => (
-                          <span key={c} className="text-[10px] font-mono text-zinc-400 bg-black border border-zinc-800 px-2 py-1">{c}</span>
-                        ))}
-                      </div>
+                  )}
+                  {modalState.item && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail</label>
+                      <div className="w-full bg-zinc-950 border border-zinc-800 text-zinc-500 px-4 py-3 text-sm font-mono">{modalState.item.email}</div>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Perfil de Acesso</label>
+                    <select name="perfil" defaultValue={modalState.item?.perfil || 'vendedor'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono uppercase">
+                      <option value="vendedor">Vendedor(a)</option>
+                      <option value="medidor">Medidor(a)</option>
+                      <option value="admin">Administrador</option>
+                      <option value="admin_medidor">Admin + Medidor</option>
+                      <option value="vendedor_medidor">Vendedor + Medidor</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {modalState.type === 'material_linear' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Descrição</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo da Cobrança</label>
+                      <select name="tipo" defaultValue={modalState.item?.tipo || 'acabamento_aresta'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                        <option value="acabamento_aresta">Acabamento de Aresta</option>
+                        <option value="material_linear">Material Linear Físico</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço / metro linear</label>
+                      <input type="number" step="0.01" name="precoml" required defaultValue={modalState.item?.precoml || ''} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
                     </div>
                   </div>
-                ))}
+                </>
+              )}
+
+              {modalState.type === 'produto' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome do Produto</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-zinc-500">Subcategoria</label>
+                      <input type="text" name="subcategoria" required defaultValue={modalState.item?.subcategoria} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço Unitário (UN)</label>
+                      <input type="number" step="0.01" name="precoUnitario" required defaultValue={modalState.item?.precoUnitario || ''} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {modalState.type === 'acabamento_unitario' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome do Acabamento</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome}
+                      placeholder="Ex: Rodameio, Soleira, Cuba"
+                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-zinc-500">Unidade</label>
+                      <select name="unidade" defaultValue={modalState.item?.unidade || 'un'}
+                        className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                        <option value="un">Unidade (un)</option>
+                        <option value="m²">Metro quadrado (m²)</option>
+                        <option value="ml">Metro linear (ml)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço</label>
+                      <input type="number" step="0.01" name="preco" required defaultValue={modalState.item?.preco || ''}
+                        className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {modalState.type === 'pagamento' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Identificação Comercial</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} placeholder="Ex: Cartão de Crédito - Stone" className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo Base</label>
+                    <select name="tipo" defaultValue={modalState.item?.tipo || 'Pix'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                      <option value="Pix">Pix / Transferência</option>
+                      <option value="Crédito">Cartão de Crédito</option>
+                      <option value="Débito">Cartão de Débito</option>
+                      <option value="Boleto">Boleto Bancário</option>
+                      <option value="Dinheiro">Dinheiro Físico</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500">Campos Dinâmicos (Separar por vírgula)</label>
+                    <input type="text" name="campos" required defaultValue={modalState.item?.campos?.join(', ')} placeholder="bandeira, maquininha, n_parcelas" className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                    <div className="text-[10px] text-zinc-600 font-mono">Campos que o vendedor precisa preencher no fechamento.</div>
+                  </div>
+                </>
+              )}
+
+              <div className="flex items-center gap-4 pt-4 border-t border-zinc-800 mt-auto">
+                <button type="button" onClick={closeModal} className="flex-1 bg-transparent border border-zinc-800 text-white text-xs font-bold uppercase tracking-widest py-4 hover:bg-zinc-900 transition-colors">
+                  Cancelar
+                </button>
+                <button type="submit" className="flex-1 bg-white text-black text-xs font-bold uppercase tracking-widest py-4 border border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all flex items-center justify-center gap-2">
+                  <iconify-icon icon="solar:diskette-linear"></iconify-icon> Salvar
+                </button>
               </div>
-            </div>
-          )}
+            </form>
+          </div>
+        </div>
+      )}
 
         </div>
       </main>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #020202; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        @media (prefers-reduced-motion: no-preference) {
+          .sys-reveal { opacity: 0; transition: opacity 0.5s ease; }
+          .sys-active.sys-reveal { opacity: 1; }
+        }
+      `}} />
 
       {/* ══════════════════════════════════════════════════════════════════════
           MODAL — Material de Área (controlado, com matriz de preços)
@@ -857,7 +1423,7 @@ export default function ConfiguracoesPage() {
                   </div>
 
                   {/* Linhas de variação */}
-                  {matVariacoes.map((v, idx) => (
+                  {(matVariacoes ?? []).map((v, idx) => (
                     <div
                       key={v._id}
                       className="grid gap-3 items-center px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/60 last:border-b-0 hover:bg-zinc-900/40 transition-colors"
@@ -965,138 +1531,6 @@ export default function ConfiguracoesPage() {
           </div>
         </div>
       )}
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          MODAL GENÉRICO — Usuário, Linear, Produto, Pagamento
-      ════════════════════════════════════════════════════════════════════════ */}
-      {modalState.isOpen && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal}></div>
-          <div className="bg-[#050505] border border-zinc-800 border-t-yellow-400 border-t-2 w-full max-w-lg relative z-10 shadow-2xl sys-reveal sys-active flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-zinc-800">
-              <h3 className="text-xl font-bold text-white uppercase tracking-tighter">
-                {modalState.item ? 'Editar ' : 'Novo '}
-                {modalState.type === 'usuario'          && 'Usuário'}
-                {modalState.type === 'material_linear'  && 'Material/Acabamento Linear'}
-                {modalState.type === 'produto'          && 'Produto Avulso'}
-                {modalState.type === 'pagamento'        && 'Método de Pagamento'}
-              </h3>
-              <button onClick={closeModal} className="text-zinc-500 hover:text-white transition-colors">
-                <iconify-icon icon="solar:close-square-linear" width="24"></iconify-icon>
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveModal} className="flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
-
-              {modalState.type === 'usuario' && (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail (Login)</label>
-                    <input type="email" name="email" required defaultValue={modalState.item?.email} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Perfil de Acesso</label>
-                    <select name="perfil" defaultValue={modalState.item?.perfil || 'vendedor'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono uppercase">
-                      <option value="vendedor">Vendedor(a)</option>
-                      <option value="medidor">Medidor(a)</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {modalState.type === 'material_linear' && (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Descrição</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo da Cobrança</label>
-                      <select name="tipo" defaultValue={modalState.item?.tipo || 'acabamento_aresta'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
-                        <option value="acabamento_aresta">Acabamento de Aresta</option>
-                        <option value="material_linear">Material Linear Físico</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço / metro linear</label>
-                      <input type="number" step="0.01" name="precoml" required defaultValue={modalState.item?.precoml || ''} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {modalState.type === 'produto' && (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome do Produto</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">Subcategoria</label>
-                      <input type="text" name="subcategoria" required defaultValue={modalState.item?.subcategoria} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço Unitário (UN)</label>
-                      <input type="number" step="0.01" name="precoUnitario" required defaultValue={modalState.item?.precoUnitario || ''} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {modalState.type === 'pagamento' && (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Identificação Comercial</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} placeholder="Ex: Cartão de Crédito - Stone" className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo Base</label>
-                    <select name="tipo" defaultValue={modalState.item?.tipo || 'Pix'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
-                      <option value="Pix">Pix / Transferência</option>
-                      <option value="Crédito">Cartão de Crédito</option>
-                      <option value="Débito">Cartão de Débito</option>
-                      <option value="Boleto">Boleto Bancário</option>
-                      <option value="Dinheiro">Dinheiro Físico</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Campos Dinâmicos (Separar por vírgula)</label>
-                    <input type="text" name="campos" required defaultValue={modalState.item?.campos?.join(', ')} placeholder="bandeira, maquininha, n_parcelas" className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
-                    <div className="text-[10px] text-zinc-600 font-mono">Campos que o vendedor precisa preencher no fechamento.</div>
-                  </div>
-                </>
-              )}
-
-              <div className="flex items-center gap-4 pt-4 border-t border-zinc-800 mt-auto">
-                <button type="button" onClick={closeModal} className="flex-1 bg-transparent border border-zinc-800 text-white text-xs font-bold uppercase tracking-widest py-4 hover:bg-zinc-900 transition-colors">
-                  Cancelar
-                </button>
-                <button type="submit" className="flex-1 bg-white text-black text-xs font-bold uppercase tracking-widest py-4 border border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all flex items-center justify-center gap-2">
-                  <iconify-icon icon="solar:diskette-linear"></iconify-icon> Salvar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #020202; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-        @media (prefers-reduced-motion: no-preference) {
-          .sys-reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.8s ease, transform 0.8s ease; }
-          .sys-active.sys-reveal { opacity: 1; transform: translateY(0); }
-        }
-      `}} />
     </div>
   );
 }

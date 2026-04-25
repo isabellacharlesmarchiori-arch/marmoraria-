@@ -8,7 +8,7 @@
  *  • Timeout de 3s destrava o app se o banco não responder
  *  • Override de admin para o e-mail da proprietária enquanto banco é investigado
  */
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
 const ADMIN_EMAIL = 'isabellacharlesmarchiori@gmail.com'
@@ -94,10 +94,11 @@ export function AuthProvider({ children }) {
           }
         } else {
           const nivelPermissao = perfil.role || perfil.perfil || perfil.nivel || perfil.acesso || 'vendedor'
+          const perfilFinal = userEmail === ADMIN_EMAIL ? 'admin' : (perfil.perfil || nivelPermissao)
           const perfilNormalizado = {
             ...perfil,
-            perfil: userEmail === ADMIN_EMAIL ? 'admin' : (perfil.perfil || nivelPermissao),
-            role:   userEmail === ADMIN_EMAIL ? 'admin' : (perfil.role   || nivelPermissao),
+            perfil: perfilFinal,
+            role:   perfilFinal,
           }
 
           console.log('[Auth] Perfil normalizado:', perfilNormalizado)
@@ -106,7 +107,7 @@ export function AuthProvider({ children }) {
           if (perfilNormalizado.empresa_id) {
             const { data: emp, error: errEmp } = await supabase
               .from('empresas')
-              .select('id, nome, telefone, email, endereco, logo_url')
+              .select('id, nome, cnpj, inscricao_estadual, telefone, whatsapp, email, email_contato, endereco, website, logo_url, dados_bancarios')
               .eq('id', perfilNormalizado.empresa_id)
               .single()
 
@@ -136,12 +137,23 @@ export function AuthProvider({ children }) {
     carregarPerfil()
   }, [userId])
 
+  const refreshProfile = useCallback(async () => {
+    const uid = session?.user?.id
+    if (!uid) return
+    const { data } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', uid)
+      .single()
+    if (data) setProfile(prev => ({ ...prev, ...data, perfil: data.perfil, role: data.perfil }))
+  }, [session?.user?.id])
+
   // loading = true enquanto getSession ainda não respondeu (session === undefined)
   // RequireAuth aguarda loading=false antes de decidir redirecionar ou não
   const loading = session === undefined
 
   return (
-    <AuthContext.Provider value={{ session, profile, empresa, loading, profileLoading }}>
+    <AuthContext.Provider value={{ session, profile, empresa, loading, profileLoading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )

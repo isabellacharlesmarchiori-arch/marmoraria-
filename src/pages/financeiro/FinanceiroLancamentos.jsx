@@ -6,8 +6,10 @@ import FiltrosLancamentos from './lancamentos/FiltrosLancamentos';
 import TabelaLancamentos from './lancamentos/TabelaLancamentos';
 import ModalLancamentoForm from './lancamentos/ModalLancamentoForm';
 import ModalMarcarPago from './lancamentos/ModalMarcarPago';
+import ModalBaixaLote from './lancamentos/ModalBaixaLote';
 import ModalGerenciarGrupo from './lancamentos/ModalGerenciarGrupo';
 import ModalConfirmacao from './contas/ModalConfirmacao';
+import PainelBaixaPedidos from './lancamentos/PainelBaixaPedidos';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -30,17 +32,22 @@ function filtroPeriodoDefault() {
   const y     = hoje.getFullYear();
   const m     = hoje.getMonth();
   return {
-    primeiro: `${y}-${String(m + 1).padStart(2, '0')}-01`,
-    ultimo:   new Date(y, m + 1, 0).toISOString().split('T')[0],
+    primeiro:  `${y}-${String(m + 1).padStart(2, '0')}-01`,
+    ultimo:    new Date(y, m + 1, 0).toISOString().split('T')[0],
+    mesAtual:  `${y}-${String(m + 1).padStart(2, '0')}`,
   };
 }
 
-const { primeiro, ultimo } = filtroPeriodoDefault();
+const { primeiro, ultimo, mesAtual } = filtroPeriodoDefault();
 
 const FILTROS_DEFAULT = {
   tipo:           'todos',
   status:         'todos',
   campoData:      'data_vencimento',
+  // Modo mês: filtro rápido por mês/ano (modoPeriodo = 'mes')
+  modoPeriodo:    'mes',
+  mesFiltro:      mesAtual,
+  // Modo intervalo: datas livre (modoPeriodo = 'intervalo')
   periodoInicio:  primeiro,
   periodoFim:     ultimo,
   categoriaId:    null,
@@ -80,10 +87,13 @@ export default function FinanceiroLancamentos() {
   const [limit,          setLimit]         = useState(50);
   const [totalCount,     setTotalCount]    = useState(null);
   const [temMais,        setTemMais]       = useState(false);
-  const [modalLanc,      setModalLanc]     = useState({ aberto: false, lancamento: null });
+  const [mostrarBaixa,   setMostrarBaixa]  = useState(true);
+  const [modalLanc,       setModalLanc]      = useState({ aberto: false, lancamento: null });
   const [modalMarcarPago, setModalMarcarPago] = useState({ aberto: false, lancamento: null });
-  const [modalGrupo,      setModalGrupo]      = useState({ aberto: false, grupoId: null });
-  const [modalConf,       setModalConf]       = useState(CONF_VAZIO);
+  const [modalBaixaLote,  setModalBaixaLote] = useState(false);
+  const [modalGrupo,      setModalGrupo]     = useState({ aberto: false, grupoId: null });
+  const [modalConf,       setModalConf]      = useState(CONF_VAZIO);
+  const [selecionados,    setSelecionados]   = useState(new Set());
 
   // Ref pra leitura de lookups em efeitos sem incluí-lo nas dependências
   const lookupsRef = useRef(lookups);
@@ -134,7 +144,11 @@ export default function FinanceiroLancamentos() {
         try {
           const { error } = await supabase
             .from('financeiro_lancamentos')
-            .update({ status: 'pendente', valor_pago: 0, data_pagamento: null, conta_id: null })
+            .update({
+              status: 'pendente', valor_pago: 0,
+              data_pagamento: null, conta_id: null,
+              forma_pagamento: null, taxa_percentual: 0,
+            })
             .eq('id', lancamento.id);
           if (error) throw error;
           toast.success('Pagamento estornado.');
@@ -151,6 +165,26 @@ export default function FinanceiroLancamentos() {
     onEstornar:       l => abrirEstornar(l),
     onGerenciarGrupo: l => setModalGrupo({ aberto: true, grupoId: l.grupo_parcelamento_id }),
   };
+
+  // ── seleção para baixa em lote ───────────────────────────────────────────
+
+  function toggleSelecionado(id) {
+    setSelecionados(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleTodos() {
+    const elegiveis = lancamentos.filter(l =>
+      ['pendente', 'atrasado', 'parcial'].includes(l.status)
+    );
+    const todosMarcados = elegiveis.every(l => selecionados.has(l.id));
+    setSelecionados(todosMarcados ? new Set() : new Set(elegiveis.map(l => l.id)));
+  }
+
+  const lancamentosSelecionados = lancamentos.filter(l => selecionados.has(l.id));
 
   // ── query principal ──────────────────────────────────────────────────────
   const carregarLancamentos = useCallback(async () => {
@@ -175,8 +209,20 @@ export default function FinanceiroLancamentos() {
       )
       .eq('empresa_id', empresaId)
       .neq('status', 'cancelado')
-      .gte(filtros.campoData, filtros.periodoInicio)
-      .lte(filtros.campoData, filtros.periodoFim);
+      .gte(filtros.campoData, (() => {
+        if (filtros.modoPeriodo === 'mes') {
+          const [a, m] = (filtros.mesFiltro || mesAtual).split('-').map(Number);
+          return `${a}-${String(m).padStart(2, '0')}-01`;
+        }
+        return filtros.periodoInicio;
+      })())
+      .lte(filtros.campoData, (() => {
+        if (filtros.modoPeriodo === 'mes') {
+          const [a, m] = (filtros.mesFiltro || mesAtual).split('-').map(Number);
+          return new Date(a, m, 0).toISOString().slice(0, 10);
+        }
+        return filtros.periodoFim;
+      })());
 
     if (filtros.tipo !== 'todos')      q = q.eq('tipo', filtros.tipo);
     if (filtros.status === 'pendente') q = q.eq('status', 'pendente');
@@ -225,8 +271,8 @@ export default function FinanceiroLancamentos() {
     async function loadOpcoes() {
       const [catR, parR, arqR, cliR, contaR, projR] = await Promise.all([
         supabase.from('financeiro_plano_contas')
-          .select('id, nome, tipo').eq('empresa_id', empresaId)
-          .eq('aceita_lancamento', true).eq('ativo', true).order('nome'),
+          .select('id, nome, tipo, pai_id, codigo, subtipo').eq('empresa_id', empresaId)
+          .eq('aceita_lancamento', true).eq('ativo', true).order('ordem').order('codigo'),
         supabase.from('parceiros_publicos')
           .select('id, nome, tipos').eq('ativo', true).order('nome'),
         supabase.from('arquitetos')
@@ -343,11 +389,51 @@ export default function FinanceiroLancamentos() {
         projetos={opcoesFiltro.projetos}
       />
 
+      {/* Painel de baixa de pedidos */}
+      <div className="mb-6">
+        <button
+          onClick={() => setMostrarBaixa(v => !v)}
+          className="flex items-center gap-2 w-full text-left mb-2"
+        >
+          <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 px-2 py-1 flex items-center gap-2 hover:border-zinc-600 transition-colors">
+            <iconify-icon icon="solar:arrow-down-linear" width="11" className={mostrarBaixa ? 'rotate-180 transition-transform' : 'transition-transform'}></iconify-icon>
+            Recebimentos a confirmar
+          </div>
+        </button>
+        {mostrarBaixa && (
+          <PainelBaixaPedidos onBaixaRealizada={carregarLancamentos} />
+        )}
+      </div>
+
       {/* Contador */}
       {!loading && totalCount !== null && (
         <p className="font-mono text-xs text-zinc-500">
           {totalCount} {totalCount === 1 ? 'lançamento' : 'lançamentos'} no período
         </p>
+      )}
+
+      {/* Barra de baixa em lote */}
+      {selecionados.size > 0 && (
+        <div className="border border-yellow-400/30 bg-yellow-400/5 px-4 py-2.5 flex items-center gap-4 flex-wrap">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-yellow-400">
+            {selecionados.size} selecionado{selecionados.size !== 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setModalBaixaLote(true)}
+            className="font-mono text-[9px] uppercase tracking-widest text-black bg-yellow-400 hover:bg-yellow-300 px-3 py-1 transition-colors"
+          >
+            <iconify-icon icon="lucide:check-circle" width="11" className="mr-1"></iconify-icon>
+            Baixar selecionados
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelecionados(new Set())}
+            className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors ml-auto"
+          >
+            Limpar seleção
+          </button>
+        </div>
       )}
 
       {/* Tabela */}
@@ -360,6 +446,9 @@ export default function FinanceiroLancamentos() {
         campoData={filtros.campoData}
         onLinhaClicada={l => setModalLanc({ aberto: true, lancamento: l })}
         acoes={acoes}
+        selecionados={selecionados}
+        onToggleSelecionado={toggleSelecionado}
+        onToggleTodos={toggleTodos}
       />
 
       {/* Modal de criar / editar lançamento */}
@@ -379,7 +468,7 @@ export default function FinanceiroLancamentos() {
         projetos={opcoesFiltro.projetos}
       />
 
-      {/* Modal — marcar como pago */}
+      {/* Modal — marcar como pago (individual) */}
       <ModalMarcarPago
         aberto={modalMarcarPago.aberto}
         lancamento={modalMarcarPago.lancamento}
@@ -387,6 +476,19 @@ export default function FinanceiroLancamentos() {
         onFechar={() => setModalMarcarPago({ aberto: false, lancamento: null })}
         onSucesso={() => {
           setModalMarcarPago({ aberto: false, lancamento: null });
+          carregarLancamentos();
+        }}
+      />
+
+      {/* Modal — baixa em lote */}
+      <ModalBaixaLote
+        aberto={modalBaixaLote}
+        lancamentos={lancamentosSelecionados}
+        contas={opcoesFiltro.contas}
+        onFechar={() => setModalBaixaLote(false)}
+        onSucesso={() => {
+          setModalBaixaLote(false);
+          setSelecionados(new Set());
           carregarLancamentos();
         }}
       />
