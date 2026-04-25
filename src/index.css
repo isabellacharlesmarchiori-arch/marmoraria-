@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ── Scrollbar ────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
@@ -117,6 +118,32 @@ button:not(:disabled):active {
 .sys-active.sys-flicker-anim { animation: sys-flicker 2s linear forwards; opacity: 0; }
 
 body { margin: 0; }
+
+/* ══════════════════════════════════════════════════════
+   LIGHT MODE OVERRIDES
+   ══════════════════════════════════════════════════════ */
+
+/* Skeletons */
+:root:not(.dark) .sk      { background: #e4e4e7; }
+:root:not(.dark) .sk-dark { background: #d4d4d8; }
+
+/* Scrollbar */
+:root:not(.dark) ::-webkit-scrollbar-track { background: #f4f4f5; }
+:root:not(.dark) ::-webkit-scrollbar-thumb { background: #a1a1aa; }
+:root:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #71717a; }
+
+/* bg-grid — linhas mais sutis no fundo claro */
+:root:not(.dark) .bg-grid {
+  background-image:
+    linear-gradient(to right,  rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
+}
+
+/* Scanline — não faz sentido no modo claro */
+:root:not(.dark) .scanline { display: none; }
+
+/* custom-scrollbar usado em Clientes.jsx */
+:root:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d8; }
 
 /* ══════════════════════════════════════════════════════
    UI SCALE — denso, legível, profissional

@@ -4,17 +4,17 @@ import { supabase } from '../../../lib/supabase';
 import { formatBRL } from '../../../utils/format';
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full [color-scheme:dark]';
 
 const SELECT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full cursor-pointer';
 
 function Campo({ label, children, required }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
         {label}{required && ' *'}
       </span>
       {children}
@@ -70,14 +70,14 @@ export default function ModalDepositarCheque({ aberto, cheque, contas, onFechar,
       onClick={onFechar}
     >
       <div
-        className="bg-[#0a0a0a] border border-zinc-800 w-full max-w-sm mx-4"
+        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-sm mx-4"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 dark:border-zinc-800">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-400">
             Depositar cheque
           </span>
-          <button type="button" onClick={onFechar} className="text-zinc-600 hover:text-white transition-colors">
+          <button type="button" onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors">
             <iconify-icon icon="lucide:x" width="16"></iconify-icon>
           </button>
         </div>
@@ -85,10 +85,10 @@ export default function ModalDepositarCheque({ aberto, cheque, contas, onFechar,
         <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
 
           {/* Resumo do cheque */}
-          <div className="border border-zinc-800 px-4 py-3 flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Cheque nº {cheque.numero_cheque}</span>
-            <span className="text-white text-sm">{cheque.titular}</span>
-            <span className="font-mono text-sm tabular-nums text-white">{formatBRL(cheque.valor)}</span>
+          <div className="border border-gray-300 dark:border-zinc-800 px-4 py-3 flex flex-col gap-1">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Cheque nº {cheque.numero_cheque}</span>
+            <span className="text-gray-900 dark:text-white text-sm">{cheque.titular}</span>
+            <span className="font-mono text-sm tabular-nums text-gray-900 dark:text-white">{formatBRL(cheque.valor)}</span>
           </div>
 
           <Campo label="Conta de depósito" required>
@@ -118,7 +118,7 @@ export default function ModalDepositarCheque({ aberto, cheque, contas, onFechar,
               type="button"
               onClick={onFechar}
               disabled={salvando}
-              className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors border border-zinc-800 px-4 py-2"
+              className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors border border-gray-300 dark:border-zinc-800 px-4 py-2"
             >
               Cancelar
             </button>

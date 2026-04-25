@@ -9,11 +9,11 @@ const STATUS_COR = {
   pago:     { text: 'text-emerald-400', border: 'border-emerald-800', label: 'Pago'      },
   atrasado: { text: 'text-red-400',     border: 'border-red-800',     label: 'Atrasado'  },
   parcial:  { text: 'text-blue-400',    border: 'border-blue-800',    label: 'Parcial'   },
-  cancelado:{ text: 'text-zinc-500',    border: 'border-zinc-800',    label: 'Cancelado' },
+  cancelado:{ text: 'text-gray-500 dark:text-zinc-500',    border: 'border-gray-300 dark:border-zinc-800',    label: 'Cancelado' },
 };
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full';
 
 // ─── Card de arquiteto ───────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ function CardArquiteto({ item, expandido, onToggle }) {
   const corPendente = totalPendente > 0 ? 'text-amber-400' : 'text-emerald-400';
 
   return (
-    <div className="border border-zinc-800 bg-[#0a0a0a]">
+    <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a]">
 
       {/* Cabeçalho clicável */}
       <div
@@ -33,12 +33,12 @@ function CardArquiteto({ item, expandido, onToggle }) {
         <iconify-icon
           icon={expandido ? 'lucide:chevron-down' : 'lucide:chevron-right'}
           width="14"
-          className="text-zinc-500 mt-0.5 shrink-0"
+          className="text-gray-500 dark:text-zinc-500 mt-0.5 shrink-0"
         ></iconify-icon>
 
         <div className="flex-1 min-w-0">
-          <p className="text-white text-base leading-tight">{arquiteto.nome}</p>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 mt-1">
+          <p className="text-gray-900 dark:text-white text-base leading-tight">{arquiteto.nome}</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mt-1">
             {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''}
             {lancsBloqueados > 0 && ` • ${lancsBloqueados} bloqueado${lancsBloqueados > 1 ? 's' : ''}`}
           </p>
@@ -46,11 +46,11 @@ function CardArquiteto({ item, expandido, onToggle }) {
 
         <div className="flex items-center gap-5 shrink-0">
           <div className="text-right">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Pago</p>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Pago</p>
             <p className="font-mono text-sm tabular-nums text-emerald-400">{formatBRL(totalPago)}</p>
           </div>
           <div className="text-right">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Pendente</p>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Pendente</p>
             <p className={`font-mono text-sm tabular-nums ${corPendente}`}>{formatBRL(totalPendente)}</p>
           </div>
         </div>
@@ -58,14 +58,14 @@ function CardArquiteto({ item, expandido, onToggle }) {
 
       {/* Lançamentos expandidos */}
       {expandido && (
-        <div className="border-t border-zinc-800">
+        <div className="border-t border-gray-300 dark:border-zinc-800">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-zinc-800">
-                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-left">Data</th>
-                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-left">Descrição</th>
-                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-right">Valor</th>
-                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-left">Status</th>
+              <tr className="border-b border-gray-300 dark:border-zinc-800">
+                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-left">Data</th>
+                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-left">Descrição</th>
+                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-right">Valor</th>
+                <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -75,27 +75,27 @@ function CardArquiteto({ item, expandido, onToggle }) {
                 const dataRef = l.data_pagamento ?? l.data_vencimento;
 
                 return (
-                  <tr key={l.id} className="border-b border-zinc-900 hover:bg-white/[0.015]">
+                  <tr key={l.id} className="border-b border-gray-200 dark:border-zinc-900 hover:bg-white/[0.015]">
                     <td className="px-5 py-2.5 whitespace-nowrap">
-                      <span className="font-mono text-[11px] text-zinc-500">
+                      <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">
                         {dataRef ? formatDate(dataRef) : '—'}
                       </span>
                     </td>
                     <td className="px-5 py-2.5 max-w-xs">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-white truncate">{l.descricao}</span>
+                        <span className="text-sm text-gray-900 dark:text-white truncate">{l.descricao}</span>
                         {bloq && (
                           <iconify-icon
                             icon="lucide:lock"
                             width="11"
-                            className="text-zinc-600 shrink-0"
+                            className="text-gray-500 dark:text-zinc-600 shrink-0"
                             title="Aguarda quitação do projeto"
                           ></iconify-icon>
                         )}
                       </div>
                     </td>
                     <td className="px-5 py-2.5 text-right whitespace-nowrap">
-                      <span className="font-mono text-sm tabular-nums text-white">
+                      <span className="font-mono text-sm tabular-nums text-gray-900 dark:text-white">
                         {formatBRL(l.valor_previsto)}
                       </span>
                     </td>
@@ -197,10 +197,10 @@ export default function ExtratoRT() {
     return (
       <div className="flex flex-col gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="border border-zinc-800 bg-[#0a0a0a] p-5 flex flex-col gap-2">
-            <div className="h-4 w-40 bg-zinc-800 animate-pulse rounded" />
-            <div className="h-3 w-24 bg-zinc-800 animate-pulse rounded" />
-            <div className="h-6 w-32 bg-zinc-800 animate-pulse rounded mt-1" />
+          <div key={i} className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] p-5 flex flex-col gap-2">
+            <div className="h-4 w-40 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
+            <div className="h-3 w-24 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
+            <div className="h-6 w-32 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
           </div>
         ))}
       </div>
@@ -209,13 +209,13 @@ export default function ExtratoRT() {
 
   if (erro) {
     return (
-      <div className="border border-zinc-800 p-10 flex flex-col items-center gap-3">
-        <iconify-icon icon="lucide:alert-triangle" width="28" className="text-zinc-700"></iconify-icon>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-center">{erro}</p>
+      <div className="border border-gray-300 dark:border-zinc-800 p-10 flex flex-col items-center gap-3">
+        <iconify-icon icon="lucide:alert-triangle" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-center">{erro}</p>
         <button
           type="button"
           onClick={carregar}
-          className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 hover:text-yellow-300 border border-zinc-800 px-3 py-1.5 transition-colors"
+          className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 hover:text-yellow-300 border border-gray-300 dark:border-zinc-800 px-3 py-1.5 transition-colors"
         >
           Tentar novamente
         </button>
@@ -225,9 +225,9 @@ export default function ExtratoRT() {
 
   if (itens.length === 0) {
     return (
-      <div className="border border-zinc-800 p-10 flex flex-col items-center gap-3">
-        <iconify-icon icon="lucide:users" width="28" className="text-zinc-700"></iconify-icon>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-700 text-center">
+      <div className="border border-gray-300 dark:border-zinc-800 p-10 flex flex-col items-center gap-3">
+        <iconify-icon icon="lucide:users" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 text-center">
           Nenhum pagamento de RT registrado ainda.
         </p>
       </div>
@@ -248,7 +248,7 @@ export default function ExtratoRT() {
 
       {/* Lista */}
       {itensFiltrados.length === 0 ? (
-        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-center py-6">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-center py-6">
           Nenhum arquiteto encontrado para "{busca}".
         </p>
       ) : (

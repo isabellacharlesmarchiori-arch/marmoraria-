@@ -144,12 +144,12 @@ function precoPeca(peca, materialId, todosM) {
 function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, todosM }) {
   const temMaterial = peca.materiais.length > 0;
   return (
-    <div className={`grid grid-cols-12 items-center px-4 py-3.5 border-b border-zinc-900 last:border-b-0 group transition-colors ${peca.incluida ? '' : 'opacity-40'}`}>
+    <div className={`grid grid-cols-12 items-center px-4 py-3.5 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 group transition-colors ${peca.incluida ? '' : 'opacity-40'}`}>
       {/* Toggle */}
       <div className="col-span-1 flex items-center">
         <button
           onClick={() => onToggle(peca.id)}
-          className={`w-4 h-4 border flex items-center justify-center transition-colors ${peca.incluida ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-zinc-700 text-zinc-700 hover:border-zinc-500'}`}
+          className={`w-4 h-4 border flex items-center justify-center transition-colors ${peca.incluida ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
           title={peca.incluida ? 'Excluir peça' : 'Incluir peça'}
         >
           {peca.incluida && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
@@ -158,31 +158,31 @@ function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, todosM }) {
 
       {/* Nome */}
       <div className="col-span-3 min-w-0 pr-2">
-        <span className="text-sm text-white font-medium truncate block">{peca.nome}</span>
+        <span className="text-sm text-gray-900 dark:text-white font-medium truncate block">{peca.nome}</span>
         {peca.meia_esquadria_ml > 0 && (
-          <span className="font-mono text-[9px] text-zinc-600 block">Meia-Esquadria · {peca.meia_esquadria_ml.toFixed(2)}ml</span>
+          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Meia-Esquadria · {peca.meia_esquadria_ml.toFixed(2)}ml</span>
         )}
         {peca.reto_simples_ml > 0 && (
-          <span className="font-mono text-[9px] text-zinc-600 block">Reto Simples · {peca.reto_simples_ml.toFixed(2)}ml</span>
+          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Reto Simples · {peca.reto_simples_ml.toFixed(2)}ml</span>
         )}
       </div>
 
       {/* Área / espessura */}
       <div className="col-span-2 pr-2">
-        <span className="font-mono text-[11px] text-zinc-300">{peca.area_liq.toFixed(2)} m²</span>
-        <div className="font-mono text-[9px] text-zinc-600">{peca.espessura}cm · {peca.cortes} corte{peca.cortes !== 1 ? 's' : ''}</div>
+        <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{peca.area_liq.toFixed(2)} m²</span>
+        <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{peca.espessura}cm · {peca.cortes} corte{peca.cortes !== 1 ? 's' : ''}</div>
       </div>
 
       {/* Material(is) selecionado(s) */}
       <div className="col-span-4 pr-2">
         {peca.materiais.length === 0 ? (
-          <span className="font-mono text-[10px] text-zinc-700 italic">Nenhum material</span>
+          <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-700 italic">Nenhum material</span>
         ) : (
           <div className="flex flex-col gap-0.5">
             {peca.materiais.map(mid => {
               const m = todosM.find(x => x.id === mid);
               return m ? (
-                <span key={mid} className="font-mono text-[10px] text-zinc-300 truncate">{m.nome}</span>
+                <span key={mid} className="font-mono text-[10px] text-gray-600 dark:text-zinc-300 truncate">{m.nome}</span>
               ) : null;
             })}
           </div>
@@ -195,7 +195,7 @@ function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, todosM }) {
           <button
             onClick={() => onDuplicar(peca.id)}
             title="Duplicar peça na medição"
-            className="font-mono text-[9px] uppercase tracking-widest px-2 py-1.5 border border-zinc-700 text-zinc-500 hover:border-yellow-400 hover:text-yellow-400 transition-colors flex items-center justify-center shrink-0"
+            className="font-mono text-[9px] uppercase tracking-widest px-2 py-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400 hover:text-yellow-400 transition-colors flex items-center justify-center shrink-0"
           >
             <iconify-icon icon="solar:copy-linear" width="12"></iconify-icon>
           </button>
@@ -206,7 +206,7 @@ function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, todosM }) {
             className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 border transition-colors flex items-center gap-1.5 ${
               temMaterial
                 ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                : 'border-zinc-700 text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
             }`}
           >
             <iconify-icon icon="solar:layers-linear" width="11"></iconify-icon>
@@ -243,27 +243,27 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
       <div className="flex-1 bg-black/60" onClick={onFechar}></div>
 
       {/* Painel lateral direito */}
-      <div className="w-full max-w-sm bg-[#0a0a0a] border-l border-zinc-800 flex flex-col h-full">
+      <div className="w-full max-w-sm bg-gray-50 dark:bg-[#0a0a0a] border-l border-gray-300 dark:border-zinc-800 flex flex-col h-full">
         {/* Header */}
-        <div className="px-5 pt-5 pb-4 border-b border-zinc-800 flex items-start justify-between gap-3">
+        <div className="px-5 pt-5 pb-4 border-b border-gray-300 dark:border-zinc-800 flex items-start justify-between gap-3">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-600 mb-1">[ SELECIONAR_MATERIAL ]</div>
-            <h3 className="text-base font-semibold text-white leading-tight">{pecaNome}</h3>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-1">[ SELECIONAR_MATERIAL ]</div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white leading-tight">{pecaNome}</h3>
           </div>
-          <button onClick={onFechar} className="text-zinc-600 hover:text-white transition-colors mt-0.5 shrink-0">
+          <button onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors mt-0.5 shrink-0">
             <iconify-icon icon="solar:close-circle-linear" width="18"></iconify-icon>
           </button>
         </div>
 
         {/* Busca */}
-        <div className="px-5 pt-4 pb-3 border-b border-zinc-900">
+        <div className="px-5 pt-4 pb-3 border-b border-gray-200 dark:border-zinc-900">
           <div className="relative flex items-center mb-3">
-            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-zinc-600 text-xs pointer-events-none"></iconify-icon>
+            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-gray-500 dark:text-zinc-600 text-xs pointer-events-none"></iconify-icon>
             <input
               value={busca}
               onChange={e => setBusca(e.target.value)}
               placeholder="Buscar material..."
-              className="w-full bg-black border border-zinc-800 text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-zinc-700 transition-colors"
+              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-gray-400 dark:text-zinc-700 transition-colors"
             />
           </div>
           {/* Categorias */}
@@ -275,7 +275,7 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
                 className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border transition-colors ${
                   categoria === c.key
                     ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5'
-                    : 'border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:text-zinc-400'
+                    : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400'
                 }`}
               >
                 {c.label}
@@ -288,7 +288,7 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
         <div className="flex-1 overflow-y-auto">
           {filtrados.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-700">Nenhum material</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum material</p>
             </div>
           ) : (
             filtrados.map(m => {
@@ -297,28 +297,28 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
                 <div
                   key={m.id}
                   onClick={() => toggle(m.id)}
-                  className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-zinc-900 transition-colors hover:bg-white/[0.02] ${ativo ? 'bg-yellow-400/[0.03]' : ''}`}
+                  className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-gray-200 dark:border-zinc-900 transition-colors hover:bg-white/[0.02] ${ativo ? 'bg-yellow-400/[0.03]' : ''}`}
                 >
                   {/* Checkbox / Radio */}
                   {single ? (
-                    <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400' : 'border-zinc-700'}`}>
+                    <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400' : 'border-gray-300 dark:border-zinc-700'}`}>
                       {ativo && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>}
                     </div>
                   ) : (
-                    <div className={`w-4 h-4 border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400 bg-yellow-400' : 'border-zinc-700'}`}>
+                    <div className={`w-4 h-4 border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400 bg-yellow-400' : 'border-gray-300 dark:border-zinc-700'}`}>
                       {ativo && <iconify-icon icon="solar:check-read-linear" width="8" className="text-black"></iconify-icon>}
                     </div>
                   )}
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-white font-medium truncate">{m.nome}</div>
-                    <div className="font-mono text-[9px] text-zinc-600">{m.cor} · {m.categoria}</div>
+                    <div className="text-xs text-gray-900 dark:text-white font-medium truncate">{m.nome}</div>
+                    <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{m.cor} · {m.categoria}</div>
                   </div>
                   {/* Preço */}
                   <div className="text-right shrink-0">
-                    <div className="font-mono text-[10px] text-zinc-300">{fmt(m.preco_2cm)}<span className="text-zinc-600">/m²·2cm</span></div>
+                    <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(m.preco_2cm)}<span className="text-gray-500 dark:text-zinc-600">/m²·2cm</span></div>
                     {m.preco_3cm && (
-                      <div className="font-mono text-[9px] text-zinc-600">{fmt(m.preco_3cm)}<span className="text-zinc-700">/3cm</span></div>
+                      <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{fmt(m.preco_3cm)}<span className="text-gray-400 dark:text-zinc-700">/3cm</span></div>
                     )}
                   </div>
                 </div>
@@ -328,15 +328,15 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-zinc-800 flex items-center gap-3">
-          <span className="font-mono text-[10px] text-zinc-600 flex-1">
+        <div className="px-5 py-4 border-t border-gray-300 dark:border-zinc-800 flex items-center gap-3">
+          <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 flex-1">
             {single
               ? (sel.length === 0 ? 'Nenhum selecionado' : '1 selecionado')
               : `${sel.length} selecionado${sel.length !== 1 ? 's' : ''}`}
           </span>
           <button
             onClick={onFechar}
-            className="border border-zinc-800 text-zinc-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:border-zinc-600 hover:text-white transition-colors"
+            className="border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             Cancelar
           </button>
@@ -364,57 +364,57 @@ function PainelMaterialLinear({ label, selecionado, onConfirmar, onFechar, matLi
   return (
     <div className="fixed inset-0 z-[60] flex">
       <div className="flex-1 bg-black/60" onClick={onFechar}></div>
-      <div className="w-full max-w-xs bg-[#0a0a0a] border-l border-zinc-800 flex flex-col h-full">
-        <div className="px-5 pt-5 pb-4 border-b border-zinc-800 flex items-start justify-between gap-3">
+      <div className="w-full max-w-xs bg-gray-50 dark:bg-[#0a0a0a] border-l border-gray-300 dark:border-zinc-800 flex flex-col h-full">
+        <div className="px-5 pt-5 pb-4 border-b border-gray-300 dark:border-zinc-800 flex items-start justify-between gap-3">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-600 mb-1">[ MATERIAL_LINEAR ]</div>
-            <h3 className="text-sm font-semibold text-white leading-tight">{label}</h3>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-1">[ MATERIAL_LINEAR ]</div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{label}</h3>
           </div>
-          <button onClick={onFechar} className="text-zinc-600 hover:text-white transition-colors mt-0.5 shrink-0">
+          <button onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors mt-0.5 shrink-0">
             <iconify-icon icon="solar:close-circle-linear" width="18"></iconify-icon>
           </button>
         </div>
-        <div className="px-5 pt-4 pb-3 border-b border-zinc-900">
+        <div className="px-5 pt-4 pb-3 border-b border-gray-200 dark:border-zinc-900">
           <div className="relative flex items-center">
-            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-zinc-600 text-xs pointer-events-none"></iconify-icon>
+            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-gray-500 dark:text-zinc-600 text-xs pointer-events-none"></iconify-icon>
             <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar acabamento..."
-              className="w-full bg-black border border-zinc-800 text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-zinc-700 transition-colors" />
+              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-gray-400 dark:text-zinc-700 transition-colors" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {/* Opção para remover seleção */}
           <div onClick={() => setSel(null)}
-            className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-zinc-900 transition-colors hover:bg-white/[0.02] ${!sel ? 'bg-yellow-400/[0.03]' : ''}`}>
-            <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${!sel ? 'border-yellow-400' : 'border-zinc-700'}`}>
+            className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-gray-200 dark:border-zinc-900 transition-colors hover:bg-white/[0.02] ${!sel ? 'bg-yellow-400/[0.03]' : ''}`}>
+            <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${!sel ? 'border-yellow-400' : 'border-gray-300 dark:border-zinc-700'}`}>
               {!sel && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>}
             </div>
-            <span className="text-xs text-zinc-500 italic">Nenhum (sem precificação)</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-500 italic">Nenhum (sem precificação)</span>
           </div>
           {filtrados.length === 0 && (
             <div className="py-12 text-center">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-700">Nenhum acabamento</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum acabamento</p>
             </div>
           )}
           {filtrados.map(m => {
             const ativo = sel === m.id;
             return (
               <div key={m.id} onClick={() => setSel(ativo ? null : m.id)}
-                className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-zinc-900 transition-colors hover:bg-white/[0.02] ${ativo ? 'bg-yellow-400/[0.03]' : ''}`}>
-                <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400' : 'border-zinc-700'}`}>
+                className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-gray-200 dark:border-zinc-900 transition-colors hover:bg-white/[0.02] ${ativo ? 'bg-yellow-400/[0.03]' : ''}`}>
+                <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400' : 'border-gray-300 dark:border-zinc-700'}`}>
                   {ativo && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs text-white font-medium truncate">{m.nome}</div>
-                  <div className="font-mono text-[9px] text-zinc-600">{m.tipo?.replace('_', ' ')}</div>
+                  <div className="text-xs text-gray-900 dark:text-white font-medium truncate">{m.nome}</div>
+                  <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{m.tipo?.replace('_', ' ')}</div>
                 </div>
-                <div className="font-mono text-[10px] text-zinc-300 shrink-0">{fmt(m.precoml)}<span className="text-zinc-600">/ml</span></div>
+                <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300 shrink-0">{fmt(m.precoml)}<span className="text-gray-500 dark:text-zinc-600">/ml</span></div>
               </div>
             );
           })}
         </div>
-        <div className="px-5 py-4 border-t border-zinc-800 flex items-center gap-3">
-          <span className="font-mono text-[10px] text-zinc-600 flex-1">{sel ? '1 selecionado' : 'Nenhum selecionado'}</span>
-          <button onClick={onFechar} className="border border-zinc-800 text-zinc-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:border-zinc-600 hover:text-white transition-colors">
+        <div className="px-5 py-4 border-t border-gray-300 dark:border-zinc-800 flex items-center gap-3">
+          <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 flex-1">{sel ? '1 selecionado' : 'Nenhum selecionado'}</span>
+          <button onClick={onFechar} className="border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors">
             Cancelar
           </button>
           <button onClick={() => onConfirmar(sel)} className="bg-yellow-400 text-black font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:bg-yellow-300 transition-colors font-bold">
@@ -455,14 +455,14 @@ function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCatalogo = [] }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onFechar}></div>
-      <div className="relative bg-[#0a0a0a] border border-zinc-800 w-full max-w-md z-10">
+      <div className="relative bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-md z-10">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-300 dark:border-zinc-800">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">[ PRODUTO_AVULSO ]</div>
-            <h3 className="text-base font-semibold text-white">Adicionar produto</h3>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-0.5">[ PRODUTO_AVULSO ]</div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">Adicionar produto</h3>
           </div>
-          <button onClick={onFechar} className="text-zinc-600 hover:text-white transition-colors p-1">
+          <button onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors p-1">
             <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
           </button>
         </div>
@@ -470,28 +470,28 @@ function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCatalogo = [] }) {
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
           {/* Busca */}
           <div>
-            <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 block mb-1.5">Produto</label>
+            <label className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-500 block mb-1.5">Produto</label>
             <div className="relative flex items-center mb-2">
-              <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-zinc-600 text-xs pointer-events-none"></iconify-icon>
+              <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-gray-500 dark:text-zinc-600 text-xs pointer-events-none"></iconify-icon>
               <input
                 value={busca}
                 onChange={e => setBusca(e.target.value)}
                 placeholder="Buscar produto ou categoria..."
-                className="w-full bg-black border border-zinc-800 text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-zinc-700 transition-colors"
+                className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-gray-400 dark:text-zinc-700 transition-colors"
               />
             </div>
-            <div className="bg-black border border-zinc-800 max-h-36 overflow-y-auto">
+            <div className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 max-h-36 overflow-y-auto">
               {filtrados.map(p => (
                 <div
                   key={p.id}
                   onClick={() => handleSelecionar(p)}
-                  className={`flex items-center justify-between px-3 py-2 cursor-pointer border-b border-zinc-900 last:border-b-0 hover:bg-white/[0.02] transition-colors ${prodSel?.id === p.id ? 'bg-yellow-400/[0.04]' : ''}`}
+                  className={`flex items-center justify-between px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-white/[0.02] transition-colors ${prodSel?.id === p.id ? 'bg-yellow-400/[0.04]' : ''}`}
                 >
                   <div>
-                    <div className="text-xs text-white">{p.nome}</div>
-                    <div className="font-mono text-[9px] text-zinc-600">{p.subcategoria}</div>
+                    <div className="text-xs text-gray-900 dark:text-white">{p.nome}</div>
+                    <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{p.subcategoria}</div>
                   </div>
-                  <span className="font-mono text-[10px] text-zinc-400">{fmt(p.preco)}</span>
+                  <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmt(p.preco)}</span>
                 </div>
               ))}
             </div>
@@ -500,35 +500,35 @@ function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCatalogo = [] }) {
           {prodSel && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 block mb-1.5">Qtd.</label>
+                <label className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-500 block mb-1.5">Qtd.</label>
                 <input
                   type="number"
                   min="1"
                   value={qty}
                   onChange={e => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm font-mono px-3 py-2.5 rounded-none outline-none focus:border-yellow-400 transition-colors"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-none outline-none focus:border-yellow-400 transition-colors"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 block mb-1.5">Valor unit. (R$)</label>
+                <label className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-500 block mb-1.5">Valor unit. (R$)</label>
                 <input
                   value={precoCustom}
                   onChange={e => setPrecoCustom(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm font-mono px-3 py-2.5 rounded-none outline-none focus:border-yellow-400 transition-colors"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-none outline-none focus:border-yellow-400 transition-colors"
                 />
               </div>
             </div>
           )}
 
           {prodSel && (
-            <div className="border border-zinc-800 bg-zinc-950/50 px-3 py-2 flex items-center justify-between">
-              <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">Subtotal</span>
-              <span className="font-mono text-sm text-white">{fmt(preco * qty)}</span>
+            <div className="border border-gray-300 dark:border-zinc-800 bg-gray-200/50 dark:bg-zinc-950/50 px-3 py-2 flex items-center justify-between">
+              <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 uppercase tracking-widest">Subtotal</span>
+              <span className="font-mono text-sm text-gray-900 dark:text-white">{fmt(preco * qty)}</span>
             </div>
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onFechar} className="flex-1 border border-zinc-800 text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-2.5 hover:border-zinc-600 hover:text-white transition-colors">
+            <button type="button" onClick={onFechar} className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-2.5 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors">
               Cancelar
             </button>
             <button
@@ -617,14 +617,14 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onFechar}></div>
-      <div className="relative bg-[#0a0a0a] border border-zinc-800 w-full max-w-lg z-10 overflow-y-auto max-h-[90vh]">
+      <div className="relative bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-lg z-10 overflow-y-auto max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-300 dark:border-zinc-800">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">[ CRIAR_VERSOES ]</div>
-            <h3 className="text-base font-semibold text-white">Criar versões de orçamento</h3>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-0.5">[ CRIAR_VERSOES ]</div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">Criar versões de orçamento</h3>
           </div>
-          <button onClick={onFechar} className="text-zinc-600 hover:text-white transition-colors p-1">
+          <button onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors p-1">
             <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
           </button>
         </div>
@@ -640,16 +640,16 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
               <div
                 key={opt.key}
                 onClick={() => setModo(opt.key)}
-                className={`flex items-start gap-1.5 p-3 border cursor-pointer transition-colors ${modo === opt.key ? 'border-yellow-400/40 bg-yellow-400/[0.03]' : 'border-zinc-800 hover:border-zinc-700'}`}
+                className={`flex items-start gap-1.5 p-3 border cursor-pointer transition-colors ${modo === opt.key ? 'border-yellow-400/40 bg-yellow-400/[0.03]' : 'border-gray-300 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700'}`}
               >
-                <div className={`w-4 h-4 border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${modo === opt.key ? 'border-yellow-400 bg-yellow-400' : 'border-zinc-700'}`}>
+                <div className={`w-4 h-4 border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${modo === opt.key ? 'border-yellow-400 bg-yellow-400' : 'border-gray-300 dark:border-zinc-700'}`}>
                   {modo === opt.key && <iconify-icon icon="solar:check-read-linear" width="8" className="text-black"></iconify-icon>}
                 </div>
                 <div className="flex items-start gap-2 flex-1">
-                  <iconify-icon icon={opt.icon} width="14" className={`mt-0.5 shrink-0 ${modo === opt.key ? 'text-yellow-400' : 'text-zinc-600'}`}></iconify-icon>
+                  <iconify-icon icon={opt.icon} width="14" className={`mt-0.5 shrink-0 ${modo === opt.key ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}></iconify-icon>
                   <div>
-                    <div className={`text-xs font-medium transition-colors ${modo === opt.key ? 'text-white' : 'text-zinc-300'}`}>{opt.titulo}</div>
-                    <div className="font-mono text-[9px] text-zinc-600 mt-0.5 leading-relaxed">{opt.desc}</div>
+                    <div className={`text-xs font-medium transition-colors ${modo === opt.key ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-zinc-300'}`}>{opt.titulo}</div>
+                    <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 mt-0.5 leading-relaxed">{opt.desc}</div>
                   </div>
                 </div>
               </div>
@@ -659,20 +659,20 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
           {/* Manual: configuração */}
           {modo === 'manual' && (
             <div className="flex flex-col gap-3">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Versões</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-500">Versões</div>
               {versoesManual.map((v, vIdx) => (
-                <div key={vIdx} className="border border-zinc-800 p-3 flex flex-col gap-2 relative">
+                <div key={vIdx} className="border border-gray-300 dark:border-zinc-800 p-3 flex flex-col gap-2 relative">
                   <div className="flex gap-2 items-center">
                     <input
                       value={v.nome}
                       onChange={e => setVersaoManualNome(vIdx, e.target.value)}
-                      className="flex-1 bg-black border border-zinc-800 text-white text-sm font-mono px-3 py-2 rounded-none outline-none focus:border-yellow-400 transition-colors"
+                      className="flex-1 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm font-mono px-3 py-2 rounded-none outline-none focus:border-yellow-400 transition-colors"
                       placeholder="Nome da versão"
                     />
                     <button
                       type="button"
                       onClick={() => duplicarVersaoManual(vIdx)}
-                      className="border border-zinc-800 text-zinc-500 hover:text-yellow-400 hover:border-yellow-400 px-3 py-2 transition-colors flex items-center justify-center"
+                      className="border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-yellow-400 hover:border-yellow-400 px-3 py-2 transition-colors flex items-center justify-center"
                       title="Duplicar versão"
                     >
                       <iconify-icon icon="solar:copy-linear" width="14"></iconify-icon>
@@ -681,7 +681,7 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
                       <button
                         type="button"
                         onClick={() => removerVersaoManual(vIdx)}
-                        className="border border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-400 px-3 py-2 transition-colors flex items-center justify-center"
+                        className="border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-red-400 hover:border-red-400 px-3 py-2 transition-colors flex items-center justify-center"
                         title="Remover versão"
                       >
                         <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
@@ -690,11 +690,11 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
                   </div>
                   {pecasIncluidas.map(p => (
                     <div key={p.id} className="flex items-center gap-2">
-                      <span className="font-mono text-[9px] text-zinc-500 w-28 shrink-0 truncate">{p.nome}</span>
+                      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500 w-28 shrink-0 truncate">{p.nome}</span>
                       <select
                         value={v.mats[p.id] ?? ''}
                         onChange={e => setVersaoManualMat(vIdx, p.id, e.target.value)}
-                        className="flex-1 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1.5 rounded-none outline-none focus:border-yellow-400 transition-colors"
+                        className="flex-1 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1.5 rounded-none outline-none focus:border-yellow-400 transition-colors"
                       >
                         <option value="">— Sem material —</option>
                         {p.materiais.map(mid => {
@@ -709,7 +709,7 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
               <button
                 type="button"
                 onClick={addVersaoManual}
-                className="border border-dashed border-zinc-800 text-zinc-600 font-mono text-[9px] uppercase tracking-widest py-2 hover:border-zinc-600 hover:text-zinc-400 transition-colors flex items-center justify-center gap-1.5"
+                className="border border-dashed border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 font-mono text-[9px] uppercase tracking-widest py-2 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400 transition-colors flex items-center justify-center gap-1.5"
               >
                 <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>
                 Adicionar versão
@@ -719,7 +719,7 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
 
           {/* Botões */}
           <div className="flex gap-3">
-            <button type="button" onClick={onFechar} className="flex-1 border border-zinc-800 text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-3 hover:border-zinc-600 hover:text-white transition-colors">
+            <button type="button" onClick={onFechar} className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-3 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors">
               Cancelar
             </button>
             <button
@@ -1313,34 +1313,34 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050505] text-[#a1a1aa] selection:bg-white selection:text-black antialiased relative overflow-x-hidden font-sans">
+    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-[#050505] text-[#a1a1aa] selection:bg-gray-200 dark:selection:bg-white selection:text-black antialiased relative overflow-x-hidden font-sans">
 
       {/* Backgrounds */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
+      <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
+      <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
 
       <main className="relative z-10 w-full flex-1 max-w-[1200px] mx-auto p-4 md:p-8 pt-12 pb-32">
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <section className="sys-reveal mb-8">
-          <div className="bg-[#0a0a0a] border border-zinc-800 p-6">
+          <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-6">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div>
-                <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-3">
+                <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-3">
                   10 // Versões do Orçamento
                 </div>
-                <h1 className="text-2xl font-bold text-white tracking-tighter">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tighter">
                   Versões por ambiente
                 </h1>
-                <p className="font-mono text-[10px] text-zinc-600 mt-1">
+                <p className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 mt-1">
                   Selecione uma versão por ambiente e adicione cenários combinados
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={onVoltar}
-                  className="flex items-center gap-2 border border-zinc-700 bg-zinc-900 text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-white transition-colors w-max"
+                  className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors w-max"
                 >
                   <iconify-icon icon="solar:arrow-left-linear" width="13"></iconify-icon>
                   Voltar
@@ -1363,13 +1363,13 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                 {/* Cabeçalho do ambiente */}
                 <div className="flex items-center gap-1.5 mb-3">
                   {/* Barra colorida */}
-                  <div className={`w-1 h-6 shrink-0 transition-colors ${isAtivo ? 'bg-yellow-400' : 'bg-zinc-700'}`}></div>
+                  <div className={`w-1 h-6 shrink-0 transition-colors ${isAtivo ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-zinc-700'}`}></div>
 
                   {/* Checkbox incluir no cenário */}
                   <button
                     onClick={() => toggleAmbienteAtivo(amb)}
                     title={isAtivo ? 'Excluir do cenário' : 'Incluir no cenário'}
-                    className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${isAtivo ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-zinc-700 text-zinc-700 hover:border-zinc-500'}`}
+                    className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${isAtivo ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
                   >
                     {isAtivo && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
                   </button>
@@ -1382,14 +1382,14 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                         value={editandoNomeAmb.novo}
                         onChange={e => setEditandoNomeAmb(prev => ({ ...prev, novo: e.target.value }))}
                         onKeyDown={e => { if (e.key === 'Enter') confirmarRenomearAmb(); if (e.key === 'Escape') setEditandoNomeAmb(null); }}
-                        className="flex-1 bg-black border-b border-yellow-400 text-white text-sm font-bold outline-none px-1 min-w-0"
+                        className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400 text-gray-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
                       />
                       <button onClick={confirmarRenomearAmb} className="text-yellow-400 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-yellow-400/40 hover:bg-yellow-400/10 transition-colors shrink-0">OK</button>
-                      <button onClick={() => setEditandoNomeAmb(null)} className="text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
+                      <button onClick={() => setEditandoNomeAmb(null)} className="text-gray-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
                     </div>
                   ) : (
                     <h2
-                      className="text-sm font-bold text-white tracking-tight uppercase cursor-pointer hover:text-yellow-400/80 transition-colors"
+                      className="text-sm font-bold text-gray-900 dark:text-white tracking-tight uppercase cursor-pointer hover:text-yellow-400/80 transition-colors"
                       onClick={() => setEditandoNomeAmb({ amb, novo: amb })}
                       title="Renomear ambiente"
                     >
@@ -1397,7 +1397,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                     </h2>
                   )}
 
-                  <div className="flex-1 h-px bg-zinc-800"></div>
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
 
                   {/* Botões de ação do ambiente */}
                   {!isEditandoAmb && (
@@ -1406,7 +1406,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                       <button
                         onClick={() => setEditandoNomeAmb({ amb, novo: amb })}
                         title="Renomear ambiente"
-                        className="p-1.5 rounded text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                        className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
                       >
                         <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                       </button>
@@ -1414,7 +1414,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                       <button
                         onClick={() => duplicarAmbiente(amb)}
                         title="Duplicar ambiente (com todas as versões)"
-                        className="p-1.5 rounded text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                        className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
                       >
                         <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                       </button>
@@ -1423,18 +1423,18 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                         <button
                           onClick={() => excluirAmbiente(amb)}
                           title="Excluir ambiente"
-                          className="p-1.5 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                          className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                         >
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                         </button>
                       )}
                       {/* Separador */}
-                      <div className="w-px h-4 bg-zinc-800 mx-0.5"></div>
+                      <div className="w-px h-4 bg-gray-200 dark:bg-zinc-800 mx-0.5"></div>
                       {/* Nova versão */}
                       <button
                         onClick={() => adicionarVersao(amb)}
                         title="Adicionar nova versão para este ambiente"
-                        className="flex items-center gap-1.5 border border-zinc-800 text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors"
+                        className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors"
                       >
                         <iconify-icon icon="solar:add-circle-linear" width="11"></iconify-icon>
                         Versão
@@ -1456,7 +1456,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                     return (
                       <div
                         key={v.id}
-                        className={`bg-[#0a0a0a] border transition-colors ${isSelected ? 'border-yellow-400/40' : 'border-zinc-800'}`}
+                        className={`bg-gray-50 dark:bg-[#0a0a0a] border transition-colors ${isSelected ? 'border-yellow-400/40' : 'border-gray-300 dark:border-zinc-800'}`}
                       >
                         {/* Cabeçalho do card */}
                         <div className="flex items-center gap-1.5 px-4 py-3">
@@ -1465,13 +1465,13 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                           <button
                             onClick={() => setSelecoes(prev => ({ ...prev, [amb]: v.id }))}
                             title="Selecionar esta versão"
-                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-yellow-400' : 'border-zinc-700 hover:border-zinc-500'}`}
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-yellow-400' : 'border-gray-300 dark:border-zinc-700 hover:border-zinc-500'}`}
                           >
                             {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>}
                           </button>
 
                           {/* Badge V */}
-                          <span className="font-mono text-[9px] text-zinc-600 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0">V{vIdx + 1}</span>
+                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 bg-gray-100 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 px-2 py-0.5 shrink-0">V{vIdx + 1}</span>
 
                           {/* Nome (clica para editar) */}
                           {isNomeEdit ? (
@@ -1481,13 +1481,13 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                               onChange={e => renomearVersao(amb, v.id, e.target.value)}
                               onBlur={() => setEditandoNomeVersao(null)}
                               onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditandoNomeVersao(null); }}
-                              className="flex-1 bg-black border-b border-yellow-400 text-white text-sm outline-none px-1 min-w-0"
+                              className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400 text-gray-900 dark:text-white text-sm outline-none px-1 min-w-0"
                             />
                           ) : (
                             <button
                               onClick={() => setEditandoNomeVersao({ amb, vId: v.id })}
                               title="Renomear versão"
-                              className={`flex-1 text-left text-sm font-medium transition-colors truncate min-w-0 ${isSelected ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
+                              className={`flex-1 text-left text-sm font-medium transition-colors truncate min-w-0 ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white'}`}
                             >
                               {v.nome}
                             </button>
@@ -1497,35 +1497,35 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                           {nomesMats.length > 0 && (
                             <div className="hidden sm:flex items-center gap-1 shrink-0 max-w-[180px] overflow-hidden">
                               {nomesMats.slice(0, 2).map(n => (
-                                <span key={n} className="font-mono text-[9px] text-zinc-400 border border-zinc-700 px-1.5 py-0.5 truncate max-w-[85px]">{n}</span>
+                                <span key={n} className="font-mono text-[9px] text-gray-500 dark:text-zinc-400 border border-gray-300 dark:border-zinc-700 px-1.5 py-0.5 truncate max-w-[85px]">{n}</span>
                               ))}
-                              {nomesMats.length > 2 && <span className="font-mono text-[9px] text-zinc-600">+{nomesMats.length - 2}</span>}
+                              {nomesMats.length > 2 && <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">+{nomesMats.length - 2}</span>}
                             </div>
                           )}
 
                           {/* Badge avulsos */}
                           {qtdAvulsos > 0 && (
-                            <span className="font-mono text-[9px] text-zinc-500 border border-zinc-800 px-1.5 py-0.5 shrink-0">
+                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500 border border-gray-300 dark:border-zinc-800 px-1.5 py-0.5 shrink-0">
                               +{qtdAvulsos} produto{qtdAvulsos !== 1 ? 's' : ''}
                             </span>
                           )}
 
                           {/* Subtotal */}
-                          <span className={`font-mono text-sm shrink-0 ${isSelected ? 'text-yellow-400' : 'text-zinc-400'}`}>{fmt(subtotal)}</span>
+                          <span className={`font-mono text-sm shrink-0 ${isSelected ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>{fmt(subtotal)}</span>
 
                           {/* Ações */}
-                          <div className="flex items-center gap-0.5 border-l border-zinc-800 pl-3 shrink-0">
+                          <div className="flex items-center gap-0.5 border-l border-gray-300 dark:border-zinc-800 pl-3 shrink-0">
                             <button
                               onClick={() => setExpandido(isExp ? null : { amb, vId: v.id })}
                               title={isExp ? 'Fechar' : 'Editar peças e produtos'}
-                              className={`p-1.5 rounded transition-colors ${isExp ? 'text-yellow-400 bg-yellow-400/10' : 'text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10'}`}
+                              className={`p-1.5 rounded transition-colors ${isExp ? 'text-yellow-400 bg-yellow-400/10' : 'text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10'}`}
                             >
                               <iconify-icon icon={isExp ? 'solar:close-circle-linear' : 'solar:pen-linear'} width="13"></iconify-icon>
                             </button>
                             <button
                               onClick={() => duplicarVersao(amb, v.id)}
                               title="Duplicar versão"
-                              className="p-1.5 rounded text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                              className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
                             >
                               <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                             </button>
@@ -1533,7 +1533,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                               <button
                                 onClick={() => removerVersao(amb, v.id)}
                                 title="Remover versão"
-                                className="p-1.5 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                                className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                               >
                                 <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                               </button>
@@ -1543,7 +1543,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
 
                         {/* Área expandida: peças agrupadas por item + avulsos */}
                         {isExp && (
-                          <div className="border-t border-zinc-800">
+                          <div className="border-t border-gray-300 dark:border-zinc-800">
                             {/* Peças — agrupadas por item_nome quando existir */}
                             {(() => {
                               // Helper: renderiza uma linha de acabamento linear
@@ -1563,7 +1563,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                         type="number" min="0" step="0.01"
                                         value={pw.ml}
                                         onChange={e => editarAcabamentoMl(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
-                                        className="w-14 bg-black border border-amber-900/40 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
+                                        className="w-14 bg-gray-50 dark:bg-black border border-amber-900/40 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
                                       />
                                       <span className="font-mono text-[10px] text-amber-700">ml</span>
                                     </div>
@@ -1581,7 +1581,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                     <span className="flex-1"></span>
                                     <span className="font-mono text-[11px] text-amber-400 shrink-0 w-20 text-right font-semibold">{subAc > 0 ? fmt(subAc) : '—'}</span>
                                     <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                      <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover acabamento" className="p-1 text-zinc-700 hover:text-red-400 transition-colors">
+                                      <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover acabamento" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
                                         <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                       </button>
                                     </div>
@@ -1599,8 +1599,8 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                   const sub = precoPeca(pOrig, pw.matId, todosM);
                                   const isNomePecaEdit = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
                                   return (
-                                    <div key={pw.uid} className="flex items-center gap-2 px-4 py-2 border-b border-zinc-900 last:border-b-0 hover:bg-zinc-900/20 transition-colors group">
-                                      <div className="w-1 h-4 bg-zinc-700 shrink-0"></div>
+                                    <div key={pw.uid} className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group">
+                                      <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
                                       {isNomePecaEdit ? (
                                         <input
                                           autoFocus
@@ -1608,32 +1608,32 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                           onChange={e => setEditandoNomePeca(prev => ({ ...prev, novo: e.target.value }))}
                                           onBlur={() => { editarNomePeca(amb, v.id, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }}
                                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarNomePeca(amb, v.id, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); } }}
-                                          className="flex-1 bg-black border-b border-yellow-400/40 text-white text-xs font-mono px-1 outline-none min-w-0"
+                                          className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
                                         />
                                       ) : (
-                                        <span className="text-xs text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
+                                        <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
                                       )}
-                                      <span className="font-mono text-[9px] text-zinc-600 shrink-0">{pOrig.area_liq.toFixed(2)} m²</span>
+                                      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{pOrig.area_liq.toFixed(2)} m²</span>
                                       <button
                                         onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
                                         className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
                                           pw.matId
                                             ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                                            : 'border-zinc-700 text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                                            : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
                                         }`}
                                       >
                                         <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
                                         {pw.matId ? (todosM.find(m => m.id === pw.matId)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
                                       </button>
-                                      <span className="font-mono text-[10px] text-zinc-400 shrink-0 w-16 text-right">{sub > 0 ? fmt(sub) : '—'}</span>
+                                      <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400 shrink-0 w-16 text-right">{sub > 0 ? fmt(sub) : '—'}</span>
                                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                        <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-zinc-600 hover:text-yellow-400 transition-colors">
+                                        <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                           <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                         </button>
-                                        <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-zinc-600 hover:text-yellow-400 transition-colors">
+                                        <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                           <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
                                         </button>
-                                        <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Excluir peça" className="p-1 text-zinc-600 hover:text-red-400 transition-colors">
+                                        <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Excluir peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
                                           <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                         </button>
                                       </div>
@@ -1665,7 +1665,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                   <div key={itemKey}>
                                     {/* Cabeçalho do item */}
                                     {nomeItem !== null && (
-                                      <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900/30 border-b border-zinc-800/50 group">
+                                      <div className="flex items-center gap-2 px-4 py-2 bg-gray-200/30 dark:bg-zinc-900/30 border-b border-gray-300 dark:border-zinc-800/50 group">
                                         <div className="w-0.5 h-4 bg-yellow-400/30 shrink-0"></div>
                                         {isNomeItemEdit ? (
                                           <input
@@ -1677,10 +1677,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                               if (e.key === 'Enter') { editarNomeItem(amb, v.id, itemKey, editandoNomeItem.novo); setEditandoNomeItem(null); }
                                               if (e.key === 'Escape') setEditandoNomeItem(null);
                                             }}
-                                            className="flex-1 bg-black border-b border-yellow-400/40 text-white text-xs font-mono px-1 outline-none min-w-0"
+                                            className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
                                           />
                                         ) : (
-                                          <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 flex-1 min-w-0 truncate">{nomeItem}</span>
+                                          <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-400 flex-1 min-w-0 truncate">{nomeItem}</span>
                                         )}
                                         {/* Material selecionado por item */}
                                         <button
@@ -1688,22 +1688,22 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                           className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 border transition-colors flex items-center gap-1.5 shrink-0 ${
                                             matIdItem
                                               ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                                              : 'border-zinc-700 text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                                              : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
                                           }`}
                                         >
                                           <iconify-icon icon="solar:layers-linear" width="11"></iconify-icon>
                                           {matIdItem ? (todosM.find(m => m.id === matIdItem)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
                                         </button>
-                                        <span className="font-mono text-[10px] text-zinc-400 shrink-0 w-20 text-right">{subtotalItem > 0 ? fmt(subtotalItem) : '—'}</span>
+                                        <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400 shrink-0 w-20 text-right">{subtotalItem > 0 ? fmt(subtotalItem) : '—'}</span>
                                         {/* Ações do item */}
                                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                          <button onClick={() => setEditandoNomeItem({ amb, vId: v.id, itemKey, novo: nomeItem })} title="Renomear item" className="p-1 text-zinc-600 hover:text-yellow-400 transition-colors">
+                                          <button onClick={() => setEditandoNomeItem({ amb, vId: v.id, itemKey, novo: nomeItem })} title="Renomear item" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                             <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                           </button>
-                                          <button onClick={() => duplicarItem(amb, v.id, itemKey)} title="Duplicar item" className="p-1 text-zinc-600 hover:text-yellow-400 transition-colors">
+                                          <button onClick={() => duplicarItem(amb, v.id, itemKey)} title="Duplicar item" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                             <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
                                           </button>
-                                          <button onClick={() => excluirItem(amb, v.id, itemKey)} title="Excluir item" className="p-1 text-zinc-600 hover:text-red-400 transition-colors">
+                                          <button onClick={() => excluirItem(amb, v.id, itemKey)} title="Excluir item" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
                                             <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                           </button>
                                         </div>
@@ -1717,8 +1717,8 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       const sub = precoPeca(pOrig, pw.matId, todosM);
                                       const isNomePecaEditItem = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
                                       return (
-                                        <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-zinc-900 last:border-b-0 hover:bg-zinc-900/20 transition-colors group ${nomeItem ? 'px-7' : 'px-4'}`}>
-                                          <div className="w-1 h-4 bg-zinc-700 shrink-0"></div>
+                                        <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group ${nomeItem ? 'px-7' : 'px-4'}`}>
+                                          <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
                                           {isNomePecaEditItem ? (
                                             <input
                                               autoFocus
@@ -1729,32 +1729,32 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                                 if (e.key === 'Enter') { editarNomePeca(amb, v.id, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }
                                                 if (e.key === 'Escape') setEditandoNomePeca(null);
                                               }}
-                                              className="flex-1 bg-black border-b border-yellow-400/40 text-white text-xs font-mono px-1 outline-none min-w-0"
+                                              className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
                                             />
                                           ) : (
-                                            <span className="text-xs text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
+                                            <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
                                           )}
-                                          <span className="font-mono text-[9px] text-zinc-600 shrink-0">{pOrig.area_liq.toFixed(2)} m²</span>
+                                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{pOrig.area_liq.toFixed(2)} m²</span>
                                           <button
                                             onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
                                             className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
                                               pw.matId
                                                 ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                                                : 'border-zinc-700 text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                                                : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
                                             }`}
                                           >
                                             <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
                                             {pw.matId ? (todosM.find(m => m.id === pw.matId)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
                                           </button>
-                                          <span className="font-mono text-[10px] text-zinc-400 shrink-0 w-16 text-right">{sub > 0 ? fmt(sub) : '—'}</span>
+                                          <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400 shrink-0 w-16 text-right">{sub > 0 ? fmt(sub) : '—'}</span>
                                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                            <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-zinc-600 hover:text-yellow-400 transition-colors">
+                                            <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                               <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                             </button>
-                                            <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-zinc-600 hover:text-yellow-400 transition-colors">
+                                            <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                               <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
                                             </button>
-                                            <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Excluir peça" className="p-1 text-zinc-600 hover:text-red-400 transition-colors">
+                                            <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Excluir peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
                                               <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                             </button>
                                           </div>
@@ -1767,12 +1767,12 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                             })()}
 
                             {/* Avulsos desta versão */}
-                            <div className="border-t border-zinc-800/50">
-                              <div className="flex items-center justify-between px-4 py-2 bg-zinc-950/40">
-                                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Produtos avulsos</span>
+                            <div className="border-t border-gray-300 dark:border-zinc-800/50">
+                              <div className="flex items-center justify-between px-4 py-2 bg-gray-200/40 dark:bg-zinc-950/40">
+                                <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Produtos avulsos</span>
                                 <button
                                   onClick={() => setModalAvulsoKey({ amb, vId: v.id })}
-                                  className="flex items-center gap-1 text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-yellow-400 transition-colors"
+                                  className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-yellow-400 transition-colors"
                                 >
                                   <iconify-icon icon="solar:add-circle-linear" width="10"></iconify-icon>
                                   Adicionar
@@ -1784,27 +1784,27 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 </div>
                               ) : (
                                 (v.avulsos ?? []).map(a => (
-                                  <div key={a.uid} className="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-900/60 last:border-b-0 group bg-zinc-950/20">
-                                    <div className="w-1 h-3 bg-zinc-800 shrink-0"></div>
+                                  <div key={a.uid} className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200 dark:border-zinc-900/60 last:border-b-0 group bg-gray-200/20 dark:bg-zinc-950/20">
+                                    <div className="w-1 h-3 bg-gray-200 dark:bg-zinc-800 shrink-0"></div>
                                     <div className="flex-1 min-w-0">
-                                      <div className="text-xs text-zinc-400 truncate">{a.nome}</div>
-                                      <div className="font-mono text-[9px] text-zinc-600">{a.subcategoria}</div>
+                                      <div className="text-xs text-gray-500 dark:text-zinc-400 truncate">{a.nome}</div>
+                                      <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{a.subcategoria}</div>
                                     </div>
                                     {editandoAvulso?.amb === amb && editandoAvulso?.vId === v.id && editandoAvulso?.uid === a.uid ? (
                                       <div className="flex items-center gap-1.5">
-                                        <input type="number" min="1" value={a.qty} onChange={e => editarAvulsoQty(amb, v.id, a.uid, e.target.value)} className="w-12 bg-black border border-zinc-700 text-white text-xs font-mono px-2 py-1 outline-none focus:border-yellow-400 text-center" />
-                                        <input value={String(a.valorUnit).replace('.', ',')} onChange={e => editarAvulsoValor(amb, v.id, a.uid, e.target.value)} className="w-20 bg-black border border-zinc-700 text-white text-xs font-mono px-2 py-1 outline-none focus:border-yellow-400" />
+                                        <input type="number" min="1" value={a.qty} onChange={e => editarAvulsoQty(amb, v.id, a.uid, e.target.value)} className="w-12 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-yellow-400 text-center" />
+                                        <input value={String(a.valorUnit).replace('.', ',')} onChange={e => editarAvulsoValor(amb, v.id, a.uid, e.target.value)} className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-yellow-400" />
                                         <button onClick={() => setEditandoAvulso(null)} className="text-yellow-400 p-1 hover:bg-yellow-400/10 transition-colors">
                                           <iconify-icon icon="solar:check-circle-linear" width="13"></iconify-icon>
                                         </button>
                                       </div>
                                     ) : (
                                       <div className="flex items-center gap-2">
-                                        <span className="font-mono text-[10px] text-zinc-500">{a.qty}x {fmt(a.valorUnit)}</span>
-                                        <span className="font-mono text-[10px] text-zinc-300">{fmt(a.qty * a.valorUnit)}</span>
+                                        <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">{a.qty}x {fmt(a.valorUnit)}</span>
+                                        <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(a.qty * a.valorUnit)}</span>
                                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <button onClick={() => setEditandoAvulso({ amb, vId: v.id, uid: a.uid })} className="p-1 text-zinc-600 hover:text-yellow-400 transition-colors"><iconify-icon icon="solar:pen-linear" width="12"></iconify-icon></button>
-                                          <button onClick={() => removerAvulso(amb, v.id, a.uid)} className="p-1 text-zinc-600 hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon></button>
+                                          <button onClick={() => setEditandoAvulso({ amb, vId: v.id, uid: a.uid })} className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors"><iconify-icon icon="solar:pen-linear" width="12"></iconify-icon></button>
+                                          <button onClick={() => removerAvulso(amb, v.id, a.uid)} className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon></button>
                                         </div>
                                       </div>
                                     )}
@@ -1825,7 +1825,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
           {/* ── Botão: Adicionar Cenário ──────────────────────────── */}
           <button
             onClick={criarCenario}
-            className="w-full border border-dashed border-zinc-700 text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-4 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors flex items-center justify-center gap-2"
+            className="w-full border border-dashed border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-4 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors flex items-center justify-center gap-2"
           >
             <iconify-icon icon="solar:add-circle-linear" width="13"></iconify-icon>
             + Adicionar Cenário
@@ -1835,11 +1835,11 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
           {cenarios.length > 0 && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+                <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
                   Cenários criados
                 </div>
-                <div className="flex-1 h-px bg-zinc-900"></div>
-                <span className="font-mono text-[9px] text-zinc-600">
+                <div className="flex-1 h-px bg-gray-100 dark:bg-zinc-900"></div>
+                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">
                   {cenarios.length} cenário{cenarios.length !== 1 ? 's' : ''} — cada um vira um orçamento separado
                 </span>
               </div>
@@ -1858,10 +1858,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                   .join(' + ');
 
                 return (
-                  <div key={cen.id} className="bg-[#0a0a0a] border border-zinc-800">
+                  <div key={cen.id} className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
                     {/* Cabeçalho */}
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-900">
-                      <span className="font-mono text-[9px] text-zinc-600 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0">
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200 dark:border-zinc-900">
+                      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 bg-gray-100 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 px-2 py-0.5 shrink-0">
                         C{cIdx + 1}
                       </span>
 
@@ -1872,13 +1872,13 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                           onChange={e => renomearCenario(cen.id, e.target.value)}
                           onBlur={() => setEditandoNomeCenario(null)}
                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditandoNomeCenario(null); }}
-                          className="flex-1 bg-black border-b border-yellow-400 text-white text-sm font-bold outline-none px-1 min-w-0"
+                          className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400 text-gray-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
                         />
                       ) : (
                         <button
                           onClick={() => setEditandoNomeCenario(cen.id)}
                           title="Renomear cenário"
-                          className="flex-1 text-left text-sm font-bold text-white hover:text-yellow-400/80 transition-colors truncate min-w-0"
+                          className="flex-1 text-left text-sm font-bold text-gray-900 dark:text-white hover:text-yellow-400/80 transition-colors truncate min-w-0"
                         >
                           {cen.nome}
                         </button>
@@ -1886,14 +1886,14 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
 
                       <span className="font-mono text-sm text-yellow-400 font-bold shrink-0">{fmt(totalCen)}</span>
 
-                      <div className="flex items-center gap-1 border-l border-zinc-800 pl-3 shrink-0">
-                        <button onClick={() => setEditandoNomeCenario(cen.id)} title="Editar nome" className="p-1.5 rounded text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
+                      <div className="flex items-center gap-1 border-l border-gray-300 dark:border-zinc-800 pl-3 shrink-0">
+                        <button onClick={() => setEditandoNomeCenario(cen.id)} title="Editar nome" className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
                           <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                         </button>
-                        <button onClick={() => duplicarCenario(cen.id)} title="Duplicar cenário" className="p-1.5 rounded text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
+                        <button onClick={() => duplicarCenario(cen.id)} title="Duplicar cenário" className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
                           <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                         </button>
-                        <button onClick={() => removerCenario(cen.id)} title="Excluir cenário" className="p-1.5 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                        <button onClick={() => removerCenario(cen.id)} title="Excluir cenário" className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                         </button>
                       </div>
@@ -1901,16 +1901,16 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
 
                     {/* Resumo de ambientes */}
                     <div className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-                      <span className="font-mono text-[10px] text-zinc-500 truncate">{resumo || '—'}</span>
-                      <div className="divide-x divide-zinc-900 flex shrink-0 flex-wrap">
+                      <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 truncate">{resumo || '—'}</span>
+                      <div className="divide-x divide-gray-200 dark:divide-zinc-900 flex shrink-0 flex-wrap">
                         {Object.entries(cen.selecoes).map(([amb, vId]) => {
                           const sub = vId ? totalAmbiVersao(amb, vId) : 0;
                           const v   = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
                           return (
                             <div key={amb} className="flex items-center gap-2 px-3 first:pl-0">
-                              <span className="text-[10px] text-zinc-600 uppercase tracking-wide">{amb || 'Amb'}</span>
-                              <span className="text-[10px] text-zinc-400">{v?.nome ?? '—'}</span>
-                              <span className="font-mono text-[10px] text-zinc-300">{fmt(sub)}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-zinc-600 uppercase tracking-wide">{amb || 'Amb'}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-zinc-400">{v?.nome ?? '—'}</span>
+                              <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(sub)}</span>
                             </div>
                           );
                         })}
@@ -1918,26 +1918,26 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                     </div>
 
                     {/* Desconto */}
-                    <div className="px-5 py-3 border-t border-zinc-900/60 flex items-center gap-3 flex-wrap">
-                      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 shrink-0">Desconto</span>
+                    <div className="px-5 py-3 border-t border-gray-200 dark:border-zinc-900/60 flex items-center gap-3 flex-wrap">
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 shrink-0">Desconto</span>
                       <div className="flex items-center gap-1.5">
                         <input
                           type="number" min="0" step="0.01"
                           value={cen.descontoValor ?? ''}
                           onChange={e => atualizarDescontoCenario(cen.id, 'descontoValor', e.target.value)}
                           placeholder="0"
-                          className="w-20 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                          className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                         />
                         <button
                           onClick={() => atualizarDescontoCenario(cen.id, 'descontoTipo', (cen.descontoTipo ?? '%') === '%' ? 'R$' : '%')}
-                          className="font-mono text-[10px] border border-zinc-700 px-2 py-1 hover:border-yellow-400 hover:text-yellow-400 text-zinc-400 transition-colors shrink-0 w-8 text-center"
+                          className="font-mono text-[10px] border border-gray-300 dark:border-zinc-700 px-2 py-1 hover:border-yellow-400 hover:text-yellow-400 text-gray-500 dark:text-zinc-400 transition-colors shrink-0 w-8 text-center"
                         >
                           {cen.descontoTipo ?? '%'}
                         </button>
                       </div>
                       {descontoCenario(cen) > 0 && (
                         <div className="flex items-center gap-2 ml-auto">
-                          <span className="font-mono text-[9px] text-zinc-600">Subtotal: {fmt(subtotalCenario(cen))}</span>
+                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">Subtotal: {fmt(subtotalCenario(cen))}</span>
                           <span className="font-mono text-[9px] text-red-400/70">− {fmt(descontoCenario(cen))}</span>
                           <span className="font-mono text-[10px] font-bold text-yellow-400">{fmt(totalCenario(cen))}</span>
                         </div>
@@ -1953,15 +1953,15 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
       </main>
 
       {/* Footer fixo */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-zinc-800 px-6 py-4 flex items-center justify-between z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-[#0a0a0a] border-t border-gray-300 dark:border-zinc-800 px-6 py-4 flex items-center justify-between z-20">
         <div>
-          <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+          <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
             {cenarios.length > 0
               ? `${cenarios.length} cenário${cenarios.length !== 1 ? 's' : ''} — ${fmt(cenarios.reduce((s, c) => s + totalCenario(c), 0))}`
               : `${totalVersoes} versão${totalVersoes !== 1 ? 'ões' : ''} — ${fmt(totalSelecaoAtual)}`
             }
           </div>
-          <div className="text-xs text-zinc-400">
+          <div className="text-xs text-gray-500 dark:text-zinc-400">
             {cenarios.length > 0 ? 'Cada cenário vira um orçamento separado' : 'Adicione cenários ou salve a seleção atual'}
           </div>
         </div>
@@ -2942,34 +2942,34 @@ export default function CriarOrcamento() {
     const totalAvulsos = ambientesManual.reduce((s, a) => s + a.avulsosManual.length, 0);
 
     return (
-      <div className="flex flex-col min-h-screen bg-[#050505] text-[#a1a1aa] selection:bg-white selection:text-black antialiased relative overflow-x-hidden font-sans">
+      <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-[#050505] text-[#a1a1aa] selection:bg-gray-200 dark:selection:bg-white selection:text-black antialiased relative overflow-x-hidden font-sans">
         <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
-        <div className="fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
-        <div className="fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
+        <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
+        <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
 
         <main className="relative z-10 w-full flex-1 max-w-[1200px] mx-auto p-4 md:p-8 pt-12 pb-32">
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-6">
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-6">
             <a href="/projetos" className="hover:text-yellow-400 transition-colors">Projetos</a>
-            <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-zinc-700"></iconify-icon>
+            <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
             <a href={`/projetos/${projetoId}`} className="hover:text-yellow-400 transition-colors">Projeto</a>
-            <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-zinc-700"></iconify-icon>
-            <span className="text-zinc-400">Orçamento manual</span>
+            <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+            <span className="text-gray-500 dark:text-zinc-400">Orçamento manual</span>
           </div>
 
           {/* Header */}
           <section className="mb-8">
-            <div className="bg-[#0a0a0a] border border-zinc-800 p-6">
+            <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-6">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-1">[ ORCAMENTO_MANUAL ]</div>
-                  <h1 className="text-2xl font-bold text-white tracking-tighter">Orçamento manual</h1>
-                  <p className="font-mono text-[10px] text-zinc-600 mt-1">Adicione ambientes e peças manualmente, sem medição do app</p>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-1">[ ORCAMENTO_MANUAL ]</div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tighter">Orçamento manual</h1>
+                  <p className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 mt-1">Adicione ambientes e peças manualmente, sem medição do app</p>
                 </div>
                 <button
                   onClick={() => navigate(`/projetos/${projetoId}`)}
-                  className="flex items-center gap-2 border border-zinc-700 bg-zinc-900 text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-white transition-colors w-max"
+                  className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors w-max"
                 >
                   <iconify-icon icon="solar:arrow-left-linear" width="13"></iconify-icon>
                   Voltar
@@ -2981,21 +2981,21 @@ export default function CriarOrcamento() {
           {/* Ambientes */}
           <div className="flex flex-col gap-6">
             {ambientesManual.map((amb) => (
-              <div key={amb.id} className="bg-[#0a0a0a] border border-zinc-800">
+              <div key={amb.id} className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
 
                 {/* Header do ambiente */}
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-800">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-300 dark:border-zinc-800">
                   <div className="w-1 h-5 bg-yellow-400/60 shrink-0"></div>
                   <input
                     value={amb.nome}
                     onChange={e => updateAmbNome(amb.id, e.target.value)}
                     placeholder="Nome do ambiente"
-                    className="flex-1 bg-transparent text-white text-sm font-semibold outline-none border-b border-transparent focus:border-yellow-400/50 transition-colors min-w-0 pb-0.5"
+                    className="flex-1 bg-transparent text-gray-900 dark:text-white text-sm font-semibold outline-none border-b border-transparent focus:border-yellow-400/50 transition-colors min-w-0 pb-0.5"
                   />
                   <button
                     onClick={() => duplicarAmbienteManual(amb.id)}
                     title="Duplicar ambiente"
-                    className="p-1.5 rounded text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors shrink-0"
+                    className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors shrink-0"
                   >
                     <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                   </button>
@@ -3003,7 +3003,7 @@ export default function CriarOrcamento() {
                     <button
                       onClick={() => removeAmbienteManual(amb.id)}
                       title="Remover ambiente"
-                      className="p-1.5 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
+                      className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
                     >
                       <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                     </button>
@@ -3011,7 +3011,7 @@ export default function CriarOrcamento() {
                 </div>
 
                 {/* ── Peças ─────────────────────────────────────────────── */}
-                <div className="divide-y divide-zinc-900/60">
+                <div className="divide-y divide-gray-200 dark:divide-zinc-900/60">
                   {amb.pecasManual.map((pm) => (
                     <div key={pm.id} className="px-5 py-3">
                       {/* Row 1: Nome + Tipo + Actions */}
@@ -3020,12 +3020,12 @@ export default function CriarOrcamento() {
                           value={pm.nome}
                           onChange={e => updatePecaManual(amb.id, pm.id, 'nome', e.target.value)}
                           placeholder="Tampo, Saia, Peitoril..."
-                          className="flex-1 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1.5 outline-none focus:border-yellow-400/50 transition-colors min-w-0"
+                          className="flex-1 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1.5 outline-none focus:border-yellow-400/50 transition-colors min-w-0"
                         />
                         <select
                           value={pm.tipo}
                           onChange={e => updatePecaManual(amb.id, pm.id, 'tipo', e.target.value)}
-                          className="bg-black border border-zinc-800 text-zinc-400 text-[10px] font-mono px-2 py-1.5 outline-none focus:border-zinc-600 shrink-0 w-28"
+                          className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 text-[10px] font-mono px-2 py-1.5 outline-none focus:border-gray-400 dark:border-zinc-600 shrink-0 w-28"
                         >
                           <option value="retangulo">Retângulo</option>
                           <option value="faixa">Faixa</option>
@@ -3034,14 +3034,14 @@ export default function CriarOrcamento() {
                         <button
                           onClick={() => duplicarPecaManual(amb.id, pm.id)}
                           title="Duplicar peça"
-                          className="p-1.5 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 rounded transition-colors shrink-0"
+                          className="p-1.5 text-gray-500 dark:text-zinc-600 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
                         >
                           <iconify-icon icon="solar:copy-linear" width="12"></iconify-icon>
                         </button>
                         <button
                           onClick={() => removePecaManual(amb.id, pm.id)}
                           title="Remover peça"
-                          className="p-1.5 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors shrink-0"
+                          className="p-1.5 text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors shrink-0"
                         >
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon>
                         </button>
@@ -3051,26 +3051,26 @@ export default function CriarOrcamento() {
                       {pm.tipo === 'retangulo' && (
                         <div className="flex items-center gap-3 flex-wrap">
                           <label className="flex items-center gap-1.5">
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Larg.</span>
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Larg.</span>
                             <input
                               type="number" step="0.01" min="0"
                               value={pm.largura}
                               onChange={e => updatePecaManual(amb.id, pm.id, 'largura', e.target.value)}
                               placeholder="0.00"
-                              className="w-20 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                              className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                             />
-                            <span className="font-mono text-[9px] text-zinc-600">m</span>
+                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">m</span>
                           </label>
                           <label className="flex items-center gap-1.5">
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Comp.</span>
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Comp.</span>
                             <input
                               type="number" step="0.01" min="0"
                               value={pm.comprimento}
                               onChange={e => updatePecaManual(amb.id, pm.id, 'comprimento', e.target.value)}
                               placeholder="0.00"
-                              className="w-20 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                              className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                             />
-                            <span className="font-mono text-[9px] text-zinc-600">m</span>
+                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">m</span>
                           </label>
                           {parseFloat(pm.largura) > 0 && parseFloat(pm.comprimento) > 0 && (
                             <span className="font-mono text-[9px] text-yellow-400/60">
@@ -3083,33 +3083,33 @@ export default function CriarOrcamento() {
                       {pm.tipo === 'faixa' && (
                         <div className="flex items-center gap-3 flex-wrap">
                           <label className="flex items-center gap-1.5">
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Larg.</span>
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Larg.</span>
                             <input
                               type="number" step="0.01" min="0"
                               value={pm.largura}
                               onChange={e => updatePecaManual(amb.id, pm.id, 'largura', e.target.value)}
                               placeholder="0.00"
-                              className="w-20 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                              className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                             />
-                            <span className="font-mono text-[9px] text-zinc-600">m</span>
+                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">m</span>
                           </label>
                           <label className="flex items-center gap-1.5">
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Comp.</span>
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Comp.</span>
                             <input
                               type="number" step="0.01" min="0"
                               value={pm.comprimento}
                               onChange={e => updatePecaManual(amb.id, pm.id, 'comprimento', e.target.value)}
                               placeholder="0.00"
-                              className="w-20 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                              className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                             />
-                            <span className="font-mono text-[9px] text-zinc-600">m</span>
+                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">m</span>
                           </label>
                           <label className="flex items-center gap-1.5">
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Esp.</span>
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Esp.</span>
                             <select
                               value={pm.espessura}
                               onChange={e => updatePecaManual(amb.id, pm.id, 'espessura', e.target.value)}
-                              className="bg-black border border-zinc-800 text-zinc-400 text-[10px] font-mono px-1 py-1 outline-none focus:border-zinc-600"
+                              className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 text-[10px] font-mono px-1 py-1 outline-none focus:border-gray-400 dark:border-zinc-600"
                             >
                               <option value="1">1cm</option>
                               <option value="2">2cm</option>
@@ -3129,19 +3129,19 @@ export default function CriarOrcamento() {
                           <div className="flex flex-col gap-1.5">
                             {pm.lados?.map((lado, lIdx) => (
                               <div key={lado.id} className="flex items-center gap-2">
-                                <span className="font-mono text-[9px] text-zinc-600 w-12 shrink-0">Lado {lIdx + 1}</span>
+                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 w-12 shrink-0">Lado {lIdx + 1}</span>
                                 <input
                                   type="number" step="0.1" min="0"
                                   value={lado.comprimento}
                                   onChange={e => updateLadoManual(amb.id, pm.id, lado.id, e.target.value)}
                                   placeholder="0"
-                                  className="w-24 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                                  className="w-24 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                                 />
-                                <span className="font-mono text-[9px] text-zinc-600">cm</span>
+                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">cm</span>
                                 {pm.lados.length > 1 && (
                                   <button
                                     onClick={() => removeLadoManual(amb.id, pm.id, lado.id)}
-                                    className="p-1 text-zinc-700 hover:text-red-400 transition-colors"
+                                    className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors"
                                   >
                                     <iconify-icon icon="solar:close-circle-linear" width="12"></iconify-icon>
                                   </button>
@@ -3151,21 +3151,21 @@ export default function CriarOrcamento() {
                           </div>
                           <button
                             onClick={() => addLadoManual(amb.id, pm.id)}
-                            className="flex items-center gap-1 text-zinc-600 hover:text-yellow-400 font-mono text-[9px] uppercase tracking-widest transition-colors w-max"
+                            className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 font-mono text-[9px] uppercase tracking-widest transition-colors w-max"
                           >
                             <iconify-icon icon="solar:add-circle-linear" width="11"></iconify-icon>
                             + Adicionar lado
                           </button>
                           <label className="flex items-center gap-1.5 mt-1">
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Área total</span>
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Área total</span>
                             <input
                               type="number" step="0.0001" min="0"
                               value={pm.area_manual}
                               onChange={e => updatePecaManual(amb.id, pm.id, 'area_manual', e.target.value)}
                               placeholder="0.0000"
-                              className="w-28 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                              className="w-28 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                             />
-                            <span className="font-mono text-[9px] text-zinc-600">m²</span>
+                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">m²</span>
                           </label>
                         </div>
                       )}
@@ -3176,7 +3176,7 @@ export default function CriarOrcamento() {
                 {/* Botão + Peça */}
                 <button
                   onClick={() => addPecaManual(amb.id)}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3 text-zinc-600 font-mono text-[9px] uppercase tracking-widest hover:text-yellow-400 hover:bg-yellow-400/5 border-t border-zinc-900 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 text-gray-500 dark:text-zinc-600 font-mono text-[9px] uppercase tracking-widest hover:text-yellow-400 hover:bg-yellow-400/5 border-t border-gray-200 dark:border-zinc-900 transition-colors"
                 >
                   <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>
                   + Peça
@@ -3184,26 +3184,26 @@ export default function CriarOrcamento() {
 
                 {/* ── Produtos Avulsos ──────────────────────────────────── */}
                 {amb.avulsosManual.length > 0 && (
-                  <div className="border-t border-zinc-800 px-5 py-3">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-2">Produtos Avulsos</div>
+                  <div className="border-t border-gray-300 dark:border-zinc-800 px-5 py-3">
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-2">Produtos Avulsos</div>
                     <div className="flex flex-col gap-1.5">
                       {amb.avulsosManual.map(av => (
                         <div key={av.id} className="flex items-center gap-2">
-                          <span className="flex-1 text-[11px] text-zinc-300 font-mono min-w-0 truncate">{av.nome}</span>
-                          <span className="font-mono text-[9px] text-zinc-600 shrink-0">{av.subcategoria}</span>
+                          <span className="flex-1 text-[11px] text-gray-600 dark:text-zinc-300 font-mono min-w-0 truncate">{av.nome}</span>
+                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{av.subcategoria}</span>
                           <input
                             type="number" min="1"
                             value={av.quantidade}
                             onChange={e => updateAvulsoQtd(amb.id, av.id, e.target.value)}
-                            className="w-14 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-0.5 outline-none focus:border-yellow-400/50 text-right"
+                            className="w-14 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-0.5 outline-none focus:border-yellow-400/50 text-right"
                           />
-                          <span className="font-mono text-[9px] text-zinc-600 shrink-0">un</span>
-                          <span className="font-mono text-[10px] text-zinc-400 w-20 text-right shrink-0">
+                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">un</span>
+                          <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400 w-20 text-right shrink-0">
                             {(av.preco * av.quantidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </span>
                           <button
                             onClick={() => removeAvulsoManual(amb.id, av.id)}
-                            className="p-1 text-zinc-700 hover:text-red-400 transition-colors shrink-0"
+                            className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors shrink-0"
                           >
                             <iconify-icon icon="solar:close-circle-linear" width="12"></iconify-icon>
                           </button>
@@ -3215,13 +3215,13 @@ export default function CriarOrcamento() {
 
                 {/* Seletor inline de produto avulso */}
                 {avulsoSelectorAmbId === amb.id ? (
-                  <div className="border-t border-zinc-800 px-5 py-3 bg-zinc-950">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-2">Selecionar produto</div>
+                  <div className="border-t border-gray-300 dark:border-zinc-800 px-5 py-3 bg-gray-50 dark:bg-zinc-950">
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-2">Selecionar produto</div>
                     <input
                       value={buscaAvulso}
                       onChange={e => setBuscaAvulso(e.target.value)}
                       placeholder="Buscar produto..."
-                      className="w-full bg-black border border-zinc-700 text-white text-[11px] font-mono px-2 py-1.5 outline-none focus:border-yellow-400/50 mb-2"
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1.5 outline-none focus:border-yellow-400/50 mb-2"
                       autoFocus
                     />
                     <div className="max-h-48 overflow-y-auto flex flex-col gap-0.5">
@@ -3231,22 +3231,22 @@ export default function CriarOrcamento() {
                           <button
                             key={p.id}
                             onClick={() => addAvulsoManual(amb.id, p)}
-                            className="flex items-center justify-between px-2 py-1.5 hover:bg-zinc-800 text-left transition-colors"
+                            className="flex items-center justify-between px-2 py-1.5 hover:bg-gray-200 dark:hover:bg-zinc-800 text-left transition-colors"
                           >
-                            <span className="font-mono text-[10px] text-zinc-300">{p.nome}</span>
-                            <span className="font-mono text-[9px] text-zinc-600 ml-2 shrink-0">
+                            <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{p.nome}</span>
+                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 ml-2 shrink-0">
                               {p.subcategoria} · {(p.preco ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </span>
                           </button>
                         ))
                       }
                       {produtosCatalogo.filter(p => !buscaAvulso || p.nome.toLowerCase().includes(buscaAvulso.toLowerCase())).length === 0 && (
-                        <div className="font-mono text-[9px] text-zinc-600 py-2 text-center">Nenhum produto encontrado</div>
+                        <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 py-2 text-center">Nenhum produto encontrado</div>
                       )}
                     </div>
                     <button
                       onClick={() => { setAvulsoSelectorAmbId(null); setBuscaAvulso(''); }}
-                      className="mt-2 font-mono text-[9px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                      className="mt-2 font-mono text-[9px] text-gray-500 dark:text-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400 transition-colors"
                     >
                       Cancelar
                     </button>
@@ -3254,7 +3254,7 @@ export default function CriarOrcamento() {
                 ) : (
                   <button
                     onClick={() => { setAvulsoSelectorAmbId(amb.id); setBuscaAvulso(''); }}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-zinc-600 font-mono text-[9px] uppercase tracking-widest hover:text-zinc-400 hover:bg-zinc-900/30 border-t border-zinc-900 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-gray-500 dark:text-zinc-600 font-mono text-[9px] uppercase tracking-widest hover:text-gray-500 dark:hover:text-zinc-400 hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 border-t border-gray-200 dark:border-zinc-900 transition-colors"
                   >
                     <iconify-icon icon="solar:bag-plus-linear" width="12"></iconify-icon>
                     + Produto Avulso
@@ -3262,8 +3262,8 @@ export default function CriarOrcamento() {
                 )}
 
                 {/* ── Acabamentos ───────────────────────────────────────── */}
-                <div className="border-t border-zinc-800 px-5 py-3">
-                  <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-2">Acabamentos</div>
+                <div className="border-t border-gray-300 dark:border-zinc-800 px-5 py-3">
+                  <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-2">Acabamentos</div>
                   {amb.acabamentosManual.length > 0 && (
                     <div className="flex flex-col gap-1.5 mb-2">
                       {amb.acabamentosManual.map(ac => (
@@ -3271,7 +3271,7 @@ export default function CriarOrcamento() {
                           <select
                             value={ac.tipo}
                             onChange={e => updateAcabamentoManual(amb.id, ac.id, 'tipo', e.target.value)}
-                            className="bg-black border border-zinc-800 text-zinc-400 text-[10px] font-mono px-1 py-1 outline-none focus:border-zinc-600 w-36 shrink-0"
+                            className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 text-[10px] font-mono px-1 py-1 outline-none focus:border-gray-400 dark:border-zinc-600 w-36 shrink-0"
                           >
                             <option value="meia_esquadria">Meia-Esquadria</option>
                             <option value="reto_simples">Reto Simples</option>
@@ -3281,12 +3281,12 @@ export default function CriarOrcamento() {
                             value={ac.ml}
                             onChange={e => updateAcabamentoManual(amb.id, ac.id, 'ml', e.target.value)}
                             placeholder="0.00"
-                            className="w-24 bg-black border border-zinc-800 text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                            className="w-24 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
                           />
-                          <span className="font-mono text-[9px] text-zinc-600">ml</span>
+                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">ml</span>
                           <button
                             onClick={() => removeAcabamentoManual(amb.id, ac.id)}
-                            className="p-1 text-zinc-700 hover:text-red-400 transition-colors"
+                            className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors"
                           >
                             <iconify-icon icon="solar:close-circle-linear" width="12"></iconify-icon>
                           </button>
@@ -3296,7 +3296,7 @@ export default function CriarOrcamento() {
                   )}
                   <button
                     onClick={() => addAcabamentoManual(amb.id)}
-                    className="flex items-center gap-1 text-zinc-600 hover:text-yellow-400 font-mono text-[9px] uppercase tracking-widest transition-colors"
+                    className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 font-mono text-[9px] uppercase tracking-widest transition-colors"
                   >
                     <iconify-icon icon="solar:add-circle-linear" width="11"></iconify-icon>
                     + Acabamento
@@ -3308,7 +3308,7 @@ export default function CriarOrcamento() {
             {/* Botão + Ambiente */}
             <button
               onClick={addAmbienteManual}
-              className="w-full border border-dashed border-zinc-800 text-zinc-600 font-mono text-[10px] uppercase tracking-widest py-4 hover:border-zinc-600 hover:text-zinc-400 transition-colors flex items-center justify-center gap-2"
+              className="w-full border border-dashed border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 font-mono text-[10px] uppercase tracking-widest py-4 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400 transition-colors flex items-center justify-center gap-2"
             >
               <iconify-icon icon="solar:add-circle-linear" width="13"></iconify-icon>
               + Ambiente
@@ -3317,12 +3317,12 @@ export default function CriarOrcamento() {
         </main>
 
         {/* Footer fixo */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-zinc-800 px-6 py-4 flex items-center justify-between z-20">
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-[#0a0a0a] border-t border-gray-300 dark:border-zinc-800 px-6 py-4 flex items-center justify-between z-20">
           <div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+            <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
               {totalPecasValidas} peça(s) · {totalAvulsos} avulso(s)
             </div>
-            <div className="text-xs text-zinc-500">Defina materiais na próxima etapa</div>
+            <div className="text-xs text-gray-500 dark:text-zinc-500">Defina materiais na próxima etapa</div>
           </div>
           <button
             onClick={handleContinuarManual}
@@ -3339,35 +3339,35 @@ export default function CriarOrcamento() {
   const pecaPainel = pecas.find(p => p.id === painelMaterialPecaId);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050505] text-[#a1a1aa] selection:bg-white selection:text-black antialiased relative overflow-x-hidden font-sans">
+    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-[#050505] text-[#a1a1aa] selection:bg-gray-200 dark:selection:bg-white selection:text-black antialiased relative overflow-x-hidden font-sans">
 
       {/* Backgrounds */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
+      <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
+      <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
 
       <main className="relative z-10 w-full flex-1 max-w-[1200px] mx-auto p-4 md:p-8 pt-12">
 
         {/* ── Breadcrumb ─────────────────────────────────────────── */}
-        <div className="sys-reveal flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-6">
+        <div className="sys-reveal flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-6">
           <a href="/projetos" className="hover:text-yellow-400 transition-colors">Projetos</a>
-          <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-zinc-700"></iconify-icon>
+          <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
           <a href={`/projetos/${projetoId}`} className="hover:text-yellow-400 transition-colors">Projeto</a>
-          <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-zinc-700"></iconify-icon>
-          <span className="text-zinc-400">Novo orçamento</span>
+          <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+          <span className="text-gray-500 dark:text-zinc-400">Novo orçamento</span>
         </div>
 
         {/* ── Header ─────────────────────────────────────────────── */}
         <section className="sys-reveal mb-8">
-          <div className="bg-[#0a0a0a] border border-zinc-800 p-6">
+          <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-6">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-1">[ CRIAR_ORCAMENTO ]</div>
-                <h1 className="text-2xl font-bold text-white tracking-tighter">Criar orçamento</h1>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-1">[ CRIAR_ORCAMENTO ]</div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tighter">Criar orçamento</h1>
               </div>
               <button
                 onClick={() => navigate(`/projetos/${projetoId}`)}
-                className="flex items-center gap-2 border border-zinc-700 bg-zinc-900 text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-white transition-colors w-max"
+                className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors w-max"
               >
                 <iconify-icon icon="solar:arrow-left-linear" width="13"></iconify-icon>
                 Voltar
@@ -3379,34 +3379,34 @@ export default function CriarOrcamento() {
         {/* ══ Peças da medição ══════════════════════════════════════ */}
         <div className="sys-reveal sys-delay-100 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+            <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
               01 // Peças da medição
             </div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-700 border border-zinc-900 px-2 py-0.5">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 border border-gray-200 dark:border-zinc-900 px-2 py-0.5">
               {pecasComMaterial.length}/{pecasIncluidas.length} com material
             </span>
           </div>
 
-          <div className="bg-[#0a0a0a] border border-zinc-800">
+          <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
             {loadingPecas ? (
-              <div className="px-4 py-8 flex items-center justify-center gap-2 text-zinc-600">
+              <div className="px-4 py-8 flex items-center justify-center gap-2 text-gray-500 dark:text-zinc-600">
                 <iconify-icon icon="solar:spinner-linear" width="16" className="animate-spin"></iconify-icon>
                 <span className="font-mono text-[10px] uppercase tracking-widest">Carregando peças...</span>
               </div>
             ) : pecas.length === 0 ? (
-              <div className="px-4 py-12 text-center border-t border-zinc-800">
-                <iconify-icon icon="solar:document-text-linear" width="32" className="text-zinc-800 mb-3 block mx-auto"></iconify-icon>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Nenhuma peça encontrada nesta medição</p>
-                <p className="font-mono text-[9px] text-zinc-600 mt-1">Verifique se a medição foi enviada corretamente pelo app.</p>
+              <div className="px-4 py-12 text-center border-t border-gray-300 dark:border-zinc-800">
+                <iconify-icon icon="solar:document-text-linear" width="32" className="text-gray-400 dark:text-zinc-800 mb-3 block mx-auto"></iconify-icon>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">Nenhuma peça encontrada nesta medição</p>
+                <p className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 mt-1">Verifique se a medição foi enviada corretamente pelo app.</p>
               </div>
             ) : (
               <>
-              <div className="grid grid-cols-12 px-4 py-2.5 border-b border-zinc-800">
-                <span className="col-span-1 font-mono text-[9px] uppercase tracking-widest text-zinc-700"></span>
-                <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Peça</span>
-                <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Área / Esp.</span>
-                <span className="col-span-4 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Material selecionado</span>
-                <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-right"></span>
+              <div className="grid grid-cols-12 px-4 py-2.5 border-b border-gray-300 dark:border-zinc-800">
+                <span className="col-span-1 font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700"></span>
+                <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Peça</span>
+                <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Área / Esp.</span>
+                <span className="col-span-4 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Material selecionado</span>
+                <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-right"></span>
               </div>
               {(() => {
                 // Agrupa por ambiente; peças sem ambiente ficam num grupo sem nome
@@ -3424,7 +3424,7 @@ export default function CriarOrcamento() {
                     <div key={amb}>
                       {/* ── Cabeçalho do ambiente ── */}
                       {temAmbientes && amb && (
-                        <div className="border-b border-zinc-800 bg-zinc-900/40">
+                        <div className="border-b border-gray-300 dark:border-zinc-800 bg-gray-200/40 dark:bg-zinc-900/40">
                           {/* Linha principal: nome + botões */}
                           <div className="flex items-center gap-2 px-4 py-2.5">
                             {isEditandoEsteAmb ? (
@@ -3434,13 +3434,13 @@ export default function CriarOrcamento() {
                                   value={editandoAmbNome.novo}
                                   onChange={e => setEditandoAmbNome(prev => ({ ...prev, novo: e.target.value }))}
                                   onKeyDown={e => { if (e.key === 'Enter') confirmarRenomearAmbiente(); if (e.key === 'Escape') setEditandoAmbNome(null); }}
-                                  className="flex-1 bg-black border border-yellow-400/40 text-white text-xs font-mono px-2 py-1 outline-none min-w-0"
+                                  className="flex-1 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-2 py-1 outline-none min-w-0"
                                 />
                                 <button onClick={confirmarRenomearAmbiente} className="text-yellow-400 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-yellow-400/40 hover:bg-yellow-400/10 transition-colors shrink-0">OK</button>
-                                <button onClick={() => setEditandoAmbNome(null)} className="text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
+                                <button onClick={() => setEditandoAmbNome(null)} className="text-gray-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
                               </div>
                             ) : (
-                              <span className="font-semibold text-white text-sm tracking-tight flex-1 min-w-0 truncate">{amb}</span>
+                              <span className="font-semibold text-gray-900 dark:text-white text-sm tracking-tight flex-1 min-w-0 truncate">{amb}</span>
                             )}
                             {/* 4 botões de ação */}
                             {!isEditandoEsteAmb && (
@@ -3449,7 +3449,7 @@ export default function CriarOrcamento() {
                                 <button
                                   onClick={() => setPainelMaterialAmbNome(amb)}
                                   title="Aplicar material a todas as peças deste ambiente"
-                                  className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-zinc-700 text-zinc-500 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors"
+                                  className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors"
                                 >
                                   <iconify-icon icon="solar:layers-linear" width="11"></iconify-icon>
                                   Material
@@ -3458,7 +3458,7 @@ export default function CriarOrcamento() {
                                 <button
                                   onClick={() => duplicarAmbiente(amb)}
                                   title="Duplicar ambiente"
-                                  className="p-1.5 text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 border border-transparent hover:border-yellow-400/20 transition-colors"
+                                  className="p-1.5 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 border border-transparent hover:border-yellow-400/20 transition-colors"
                                 >
                                   <iconify-icon icon="solar:copy-linear" width="12"></iconify-icon>
                                 </button>
@@ -3466,7 +3466,7 @@ export default function CriarOrcamento() {
                                 <button
                                   onClick={() => setEditandoAmbNome({ amb, novo: amb })}
                                   title="Editar nome do ambiente"
-                                  className="p-1.5 text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 border border-transparent hover:border-yellow-400/20 transition-colors"
+                                  className="p-1.5 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 border border-transparent hover:border-yellow-400/20 transition-colors"
                                 >
                                   <iconify-icon icon="solar:pen-linear" width="12"></iconify-icon>
                                 </button>
@@ -3475,7 +3475,7 @@ export default function CriarOrcamento() {
                                   <button
                                     onClick={() => excluirAmbiente(amb)}
                                     title="Excluir ambiente"
-                                    className="p-1.5 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 border border-transparent hover:border-red-400/20 transition-colors"
+                                    className="p-1.5 text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 border border-transparent hover:border-red-400/20 transition-colors"
                                   >
                                     <iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon>
                                   </button>
@@ -3505,9 +3505,9 @@ export default function CriarOrcamento() {
                           const nomeItem = itemKey === '__sem_item__' ? null : itemKey;
                           return [
                             ...(nomeItem ? [
-                              <div key={`item-${itemKey}`} className="flex items-center gap-2 px-4 py-1.5 bg-zinc-900/20 border-b border-zinc-900/60">
-                                <iconify-icon icon="solar:folder-linear" width="10" className="text-zinc-700 shrink-0"></iconify-icon>
-                                <span className="font-mono text-[9px] text-zinc-600 uppercase tracking-widest">{nomeItem}</span>
+                              <div key={`item-${itemKey}`} className="flex items-center gap-2 px-4 py-1.5 bg-gray-200/20 dark:bg-zinc-900/20 border-b border-gray-200 dark:border-zinc-900/60">
+                                <iconify-icon icon="solar:folder-linear" width="10" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
+                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{nomeItem}</span>
                               </div>
                             ] : []),
                             ...itMap.get(itemKey).map(p => (
@@ -3528,49 +3528,49 @@ export default function CriarOrcamento() {
         {/* ══ Produtos avulsos ══════════════════════════════════════ */}
         <div className="sys-reveal sys-delay-200">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+            <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
               02 // Produtos avulsos
             </div>
             <button
               onClick={() => setModalProduto(true)}
-              className="flex items-center gap-1.5 border border-zinc-700 text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-2 hover:border-white hover:text-white transition-colors"
+              className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-2 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>
               Adicionar produto
             </button>
           </div>
 
-          <div className="bg-[#0a0a0a] border border-zinc-800">
+          <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
             {produtos.length === 0 ? (
               <div className="px-4 py-12 text-center">
-                <iconify-icon icon="solar:box-linear" width="32" className="text-zinc-800 mb-3 block mx-auto"></iconify-icon>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-700">Nenhum produto adicionado</p>
+                <iconify-icon icon="solar:box-linear" width="32" className="text-gray-400 dark:text-zinc-800 mb-3 block mx-auto"></iconify-icon>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum produto adicionado</p>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-12 px-4 py-2.5 border-b border-zinc-800">
-                  <span className="col-span-5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Produto</span>
-                  <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-center">Qtd.</span>
-                  <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-right">Valor unit.</span>
-                  <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-right">Subtotal</span>
+                <div className="grid grid-cols-12 px-4 py-2.5 border-b border-gray-300 dark:border-zinc-800">
+                  <span className="col-span-5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Produto</span>
+                  <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-center">Qtd.</span>
+                  <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-right">Valor unit.</span>
+                  <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-right">Subtotal</span>
                 </div>
                 {produtos.map((p, i) => (
-                  <div key={i} className="grid grid-cols-12 items-center px-4 py-3.5 border-b border-zinc-900 last:border-b-0 group hover:bg-white/[0.01] transition-colors">
+                  <div key={i} className="grid grid-cols-12 items-center px-4 py-3.5 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 group hover:bg-white/[0.01] transition-colors">
                     <div className="col-span-5 min-w-0 pr-2">
-                      <span className="text-sm text-white font-medium truncate block">{p.nome}</span>
-                      <span className="font-mono text-[9px] text-zinc-600">{p.subcategoria}</span>
+                      <span className="text-sm text-gray-900 dark:text-white font-medium truncate block">{p.nome}</span>
+                      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{p.subcategoria}</span>
                     </div>
                     <div className="col-span-2 text-center">
-                      <span className="font-mono text-[11px] text-zinc-300">{p.qty}</span>
+                      <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{p.qty}</span>
                     </div>
                     <div className="col-span-3 text-right">
-                      <span className="font-mono text-[11px] text-zinc-300">{fmt(p.preco)}</span>
+                      <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{fmt(p.preco)}</span>
                     </div>
                     <div className="col-span-2 text-right flex items-center justify-end gap-2">
-                      <span className="font-mono text-[11px] text-zinc-300">{fmt(p.preco * p.qty)}</span>
+                      <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{fmt(p.preco * p.qty)}</span>
                       <button
                         onClick={() => removerProduto(i)}
-                        className="text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0 p-1"
+                        className="text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0 p-1"
                       >
                         <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
                       </button>
@@ -3585,14 +3585,14 @@ export default function CriarOrcamento() {
       </main>
 
       {/* ── Footer fluxo normal ──────────────────────────────────── */}
-      <div className="mt-auto w-full bg-[#0a0a0a] border-t border-zinc-800 px-6 py-4 relative z-20">
+      <div className="mt-auto w-full bg-gray-50 dark:bg-[#0a0a0a] border-t border-gray-300 dark:border-zinc-800 px-6 py-4 relative z-20">
         <div className="max-w-[1200px] mx-auto flex items-center justify-between">
           <div>
-            <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Total estimado</div>
+            <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Total estimado</div>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-2xl font-bold text-white tracking-tighter">{fmt(total)}</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white tracking-tighter">{fmt(total)}</span>
               {precisaVersoes && (
-                <span className="font-mono text-[9px] text-zinc-600 border border-zinc-800 px-1.5 py-0.5">
+                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 border border-gray-300 dark:border-zinc-800 px-1.5 py-0.5">
                   {pecasComMaterial.length} mat. · múltiplas versões
                 </span>
               )}
@@ -3601,7 +3601,7 @@ export default function CriarOrcamento() {
 
           <div className="flex items-center gap-3">
             {pecasComMaterial.length < pecasIncluidas.length && (
-              <span className="font-mono text-[9px] text-zinc-600 hidden sm:block">
+              <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 hidden sm:block">
                 {pecasIncluidas.length - pecasComMaterial.length} peça{pecasIncluidas.length - pecasComMaterial.length !== 1 ? 's' : ''} sem material
               </span>
             )}

@@ -22,13 +22,13 @@ const VAZIO = {
 };
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full';
 
 function Campo({ label, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
         {label}
       </span>
       {children}
@@ -142,11 +142,11 @@ export default function ModalContaForm({ aberto, contaEditando, onFechar, onSalv
       onClick={onFechar}
     >
       <div
-        className="bg-[#0a0a0a] border border-zinc-800 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-zinc-800">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+        <div className="px-6 py-4 border-b border-gray-300 dark:border-zinc-800">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
             {editando ? 'Editar conta' : 'Nova conta'}
           </span>
         </div>
@@ -239,17 +239,17 @@ export default function ModalContaForm({ aberto, contaEditando, onFechar, onSalv
                 onChange={e => set('ativo', e.target.checked)}
                 className="w-4 h-4 accent-yellow-400"
               />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
                 Conta ativa
               </span>
             </label>
           )}
 
-          <div className="flex justify-end gap-6 pt-2 border-t border-zinc-800">
+          <div className="flex justify-end gap-6 pt-2 border-t border-gray-300 dark:border-zinc-800">
             <button
               type="button"
               onClick={onFechar}
-              className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+              className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Cancelar
             </button>

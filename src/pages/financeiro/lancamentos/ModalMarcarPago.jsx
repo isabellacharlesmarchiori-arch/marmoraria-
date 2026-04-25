@@ -15,13 +15,13 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full';
 
 function Campo({ label, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
         {label}
       </span>
       {children}
@@ -111,18 +111,18 @@ export default function ModalMarcarPago({ aberto, lancamento, contas, onFechar, 
       onClick={onFechar}
     >
       <div
-        className="bg-[#0a0a0a] border border-zinc-800 w-full max-w-md"
+        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+        <div className="px-6 py-4 border-b border-gray-300 dark:border-zinc-800 flex items-center justify-between">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
             Registrar pagamento
           </span>
           <button
             type="button"
             onClick={onFechar}
-            className="text-zinc-600 hover:text-white transition-colors"
+            className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <iconify-icon icon="lucide:x" width="16"></iconify-icon>
           </button>
@@ -130,8 +130,8 @@ export default function ModalMarcarPago({ aberto, lancamento, contas, onFechar, 
 
         {/* Contexto */}
         <div className="px-6 pt-5 pb-0">
-          <p className="text-white text-sm truncate">{lancamento.descricao}</p>
-          <p className="font-mono text-[9px] text-zinc-600 mt-1">
+          <p className="text-gray-900 dark:text-white text-sm truncate">{lancamento.descricao}</p>
+          <p className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 mt-1">
             Total: {formatBRL(lancamento.valor_previsto)}
             {lancamento.valor_pago > 0 && (
               <> · Já pago: {formatBRL(lancamento.valor_pago)} · Saldo: {formatBRL(saldoPendente)}</>
@@ -209,11 +209,11 @@ export default function ModalMarcarPago({ aberto, lancamento, contas, onFechar, 
           </div>
 
           {/* Ações */}
-          <div className="flex justify-end gap-6 pt-2 border-t border-zinc-800">
+          <div className="flex justify-end gap-6 pt-2 border-t border-gray-300 dark:border-zinc-800">
             <button
               type="button"
               onClick={onFechar}
-              className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+              className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Cancelar
             </button>

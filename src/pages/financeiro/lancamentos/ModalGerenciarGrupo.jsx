@@ -179,18 +179,18 @@ export default function ModalGerenciarGrupo({
       onClick={onFechar}
     >
       <div
-        className="bg-[#0a0a0a] border border-zinc-800 w-full max-w-xl max-h-full overflow-y-auto"
+        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-xl max-h-full overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between sticky top-0 bg-[#0a0a0a] z-10">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+        <div className="px-6 py-4 border-b border-gray-300 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-gray-50 dark:bg-[#0a0a0a] z-10">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
             Gerenciar parcelamento
           </span>
           <button
             type="button"
             onClick={onFechar}
-            className="text-zinc-600 hover:text-white transition-colors"
+            className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <iconify-icon icon="lucide:x" width="16"></iconify-icon>
           </button>
@@ -199,7 +199,7 @@ export default function ModalGerenciarGrupo({
         <div className="p-6 flex flex-col gap-4">
           {/* Resumo */}
           {!loading && parcelas.length > 0 && (
-            <p className="font-mono text-[9px] text-zinc-500">
+            <p className="font-mono text-[9px] text-gray-500 dark:text-zinc-500">
               {parcelas.length} parcelas
               {pagas    > 0 && ` · ${pagas} ${pagas === 1 ? 'paga' : 'pagas'}`}
               {pendentes > 0 && ` · ${pendentes} ${pendentes === 1 ? 'pendente' : 'pendentes'}`}
@@ -210,11 +210,11 @@ export default function ModalGerenciarGrupo({
           {loading ? (
             <div className="flex flex-col gap-1">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-11 bg-zinc-800 animate-pulse rounded" />
+                <div key={i} className="h-11 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
               ))}
             </div>
           ) : (
-            <div className="border border-zinc-800">
+            <div className="border border-gray-300 dark:border-zinc-800">
               {parcelas.map((p, i) => {
                 const cor       = corPorStatus(p.status);
                 const cancelada = p.status === 'cancelado';
@@ -222,7 +222,7 @@ export default function ModalGerenciarGrupo({
                   <label
                     key={p.id}
                     className={`flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-white/[0.015] transition-colors${
-                      i < parcelas.length - 1 ? ' border-b border-zinc-900' : ''
+                      i < parcelas.length - 1 ? ' border-b border-gray-200 dark:border-zinc-900' : ''
                     }${cancelada ? ' opacity-50' : ''}`}
                   >
                     <input
@@ -231,13 +231,13 @@ export default function ModalGerenciarGrupo({
                       onChange={() => toggleParcela(p.id)}
                       className="w-4 h-4 accent-yellow-400 shrink-0"
                     />
-                    <span className="font-mono text-[11px] text-zinc-500 w-8 shrink-0">
+                    <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500 w-8 shrink-0">
                       {p.parcela_num}/{p.parcela_total}
                     </span>
-                    <span className={`font-mono text-[11px] text-zinc-500 w-14 shrink-0${cancelada ? ' line-through' : ''}`}>
+                    <span className={`font-mono text-[11px] text-gray-500 dark:text-zinc-500 w-14 shrink-0${cancelada ? ' line-through' : ''}`}>
                       {dataDisplay(p.data_vencimento)}
                     </span>
-                    <span className={`font-mono text-sm tabular-nums text-white flex-1${cancelada ? ' line-through' : ''}`}>
+                    <span className={`font-mono text-sm tabular-nums text-gray-900 dark:text-white flex-1${cancelada ? ' line-through' : ''}`}>
                       {formatBRL(p.valor_previsto)}
                     </span>
                     <span className={`px-1.5 py-0.5 border font-mono text-[8px] uppercase tracking-widest shrink-0 ${cor.text} ${cor.border}`}>
@@ -251,14 +251,14 @@ export default function ModalGerenciarGrupo({
 
           {/* Rodapé de seleção */}
           {selecionadas.size > 0 && (
-            <p className="font-mono text-[9px] text-zinc-600">
+            <p className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">
               {selecionadas.size} {selecionadas.size === 1 ? 'selecionada' : 'selecionadas'}
               {' · '}total {formatBRL(totalSelecionado)}
             </p>
           )}
 
           {/* Botões de ação */}
-          <div className="flex gap-3 flex-wrap pt-2 border-t border-zinc-800">
+          <div className="flex gap-3 flex-wrap pt-2 border-t border-gray-300 dark:border-zinc-800">
             <button
               type="button"
               disabled={executando || selecionadas.size === 0}
@@ -266,7 +266,7 @@ export default function ModalGerenciarGrupo({
               className={`font-mono text-[9px] uppercase tracking-widest border px-3 py-1.5 transition-colors disabled:opacity-40 ${
                 confirmandoCancelar
                   ? 'border-red-700 text-red-400 hover:text-red-300'
-                  : 'border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-900'
+                  : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-red-400 hover:border-red-900'
               }`}
             >
               {confirmandoCancelar ? 'Clique de novo para confirmar' : 'Cancelar selecionadas'}
@@ -278,7 +278,7 @@ export default function ModalGerenciarGrupo({
               className={`font-mono text-[9px] uppercase tracking-widest border px-3 py-1.5 transition-colors disabled:opacity-40 ${
                 confirmandoEstornar
                   ? 'border-red-700 text-red-400 hover:text-red-300'
-                  : 'border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-900'
+                  : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-red-400 hover:border-red-900'
               }`}
             >
               {confirmandoEstornar ? 'Clique de novo para confirmar' : 'Estornar selecionadas'}

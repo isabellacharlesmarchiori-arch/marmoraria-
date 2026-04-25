@@ -148,35 +148,35 @@ export default function PainelBaixaPedidos({ onBaixaRealizada }) {
   }
 
   if (loading) return (
-    <div className="py-8 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-700 animate-pulse">
+    <div className="py-8 text-center font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 animate-pulse">
       Carregando pedidos...
     </div>
   );
 
   if (pedidos.length === 0) return (
-    <div className="bg-[#0a0a0a] border border-zinc-800 p-8 text-center">
-      <iconify-icon icon="solar:check-circle-linear" width="32" className="text-zinc-800 block mx-auto mb-3"></iconify-icon>
-      <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-700">Nenhum pedido aguardando baixa</p>
+    <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-8 text-center">
+      <iconify-icon icon="solar:check-circle-linear" width="32" className="text-gray-400 dark:text-zinc-800 block mx-auto mb-3"></iconify-icon>
+      <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum pedido aguardando baixa</p>
     </div>
   );
 
   return (
     <>
-      <div className="bg-[#0a0a0a] border border-zinc-800 divide-y divide-zinc-900">
+      <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 divide-y divide-gray-200 dark:divide-zinc-900">
         {pedidos.map(p => {
           const parcelado = (p.parcelas_detalhes?.length ?? 0) > 0;
           return (
             <div key={p.id} className="flex items-center gap-4 px-4 py-3.5 hover:bg-white/[0.015] transition-colors">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-white font-medium text-sm truncate">
+                  <span className="text-gray-900 dark:text-white font-medium text-sm truncate">
                     {p.projetos?.clientes?.nome ?? p.projetos?.nome ?? '—'}
                   </span>
-                  <span className="font-mono text-[9px] text-zinc-600">
+                  <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">
                     #{p.id.slice(-8).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 font-mono text-[10px] text-zinc-500">
+                <div className="flex items-center gap-3 font-mono text-[10px] text-gray-500 dark:text-zinc-500">
                   <span>{FORMAS_PAG[p.forma_pagamento] ?? p.forma_pagamento}</span>
                   {parcelado && <span className="text-yellow-400">{p.parcelas}x</span>}
                   <span>Fechado em {fmtData(p.created_at?.slice(0, 10))}</span>
@@ -198,20 +198,20 @@ export default function PainelBaixaPedidos({ onBaixaRealizada }) {
       {/* Modal de confirmação da baixa */}
       {modalBaixa && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 shrink-0">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white font-bold">Confirmar Baixa</span>
-              <button onClick={() => setModalBaixa(null)} className="text-zinc-500 hover:text-white">
+          <div className="bg-[#0d0d0d] border border-gray-300 dark:border-zinc-700 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-300 dark:border-zinc-800 shrink-0">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white font-bold">Confirmar Baixa</span>
+              <button onClick={() => setModalBaixa(null)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white">
                 <iconify-icon icon="solar:close-linear" width="16"></iconify-icon>
               </button>
             </div>
 
             <div className="p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
               {/* Resumo do pedido */}
-              <div className="bg-zinc-900/60 border border-zinc-800 p-3 space-y-1">
-                <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-2">Pedido</div>
-                <div className="text-white font-medium">{modalBaixa.pedido.projetos?.clientes?.nome ?? '—'}</div>
-                <div className="font-mono text-[10px] text-zinc-500">
+              <div className="bg-zinc-900/60 border border-gray-300 dark:border-zinc-800 p-3 space-y-1">
+                <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-2">Pedido</div>
+                <div className="text-gray-900 dark:text-white font-medium">{modalBaixa.pedido.projetos?.clientes?.nome ?? '—'}</div>
+                <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">
                   {FORMAS_PAG[modalBaixa.pedido.forma_pagamento]}
                   {modalBaixa.pedido.parcelas_detalhes?.length > 0 && ` — ${modalBaixa.pedido.parcelas}x`}
                 </div>
@@ -219,7 +219,7 @@ export default function PainelBaixaPedidos({ onBaixaRealizada }) {
                 {modalBaixa.pedido.parcelas_detalhes?.length > 0 && (
                   <div className="mt-2 space-y-1 max-h-28 overflow-y-auto">
                     {modalBaixa.pedido.parcelas_detalhes.map((p, i) => (
-                      <div key={i} className="flex justify-between font-mono text-[10px] text-zinc-400">
+                      <div key={i} className="flex justify-between font-mono text-[10px] text-gray-500 dark:text-zinc-400">
                         <span>{i + 1}/{modalBaixa.pedido.parcelas} — Venc: {fmtData(p.vencimento)}</span>
                         <span>{fmtBRL(p.valor)}</span>
                       </div>
@@ -230,11 +230,11 @@ export default function PainelBaixaPedidos({ onBaixaRealizada }) {
 
               {/* Conta */}
               <div className="space-y-1.5">
-                <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 block">Conta que recebeu</label>
+                <label className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 block">Conta que recebeu</label>
                 <select
                   value={modalBaixa.conta_id}
                   onChange={e => setModalBaixa(p => ({ ...p, conta_id: e.target.value }))}
-                  className="w-full bg-black border border-zinc-800 text-white font-mono text-sm px-3 py-2 focus:outline-none focus:border-yellow-400"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white font-mono text-sm px-3 py-2 focus:outline-none focus:border-yellow-400"
                 >
                   <option value="">Selecione...</option>
                   {contas.map(c => <option key={c.id} value={c.id}>{c.nome} — {fmtBRL(c.saldo_atual)}</option>)}
@@ -243,11 +243,11 @@ export default function PainelBaixaPedidos({ onBaixaRealizada }) {
 
               {/* Categoria */}
               <div className="space-y-1.5">
-                <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 block">Categoria do lançamento</label>
+                <label className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 block">Categoria do lançamento</label>
                 <select
                   value={modalBaixa.categoria_id}
                   onChange={e => setModalBaixa(p => ({ ...p, categoria_id: e.target.value }))}
-                  className="w-full bg-black border border-zinc-800 text-white font-mono text-sm px-3 py-2 focus:outline-none focus:border-yellow-400"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white font-mono text-sm px-3 py-2 focus:outline-none focus:border-yellow-400"
                 >
                   <option value="">Selecione...</option>
                   {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -256,20 +256,20 @@ export default function PainelBaixaPedidos({ onBaixaRealizada }) {
 
               {/* Observação */}
               <div className="space-y-1.5">
-                <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 block">Descrição do lançamento</label>
+                <label className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 block">Descrição do lançamento</label>
                 <input
                   type="text"
                   value={modalBaixa.observacao}
                   onChange={e => setModalBaixa(p => ({ ...p, observacao: e.target.value }))}
-                  className="w-full bg-black border border-zinc-800 text-white font-mono text-sm px-3 py-2 focus:outline-none focus:border-yellow-400"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white font-mono text-sm px-3 py-2 focus:outline-none focus:border-yellow-400"
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 px-5 py-4 border-t border-zinc-800 shrink-0">
+            <div className="flex gap-2 px-5 py-4 border-t border-gray-300 dark:border-zinc-800 shrink-0">
               <button
                 onClick={() => setModalBaixa(null)}
-                className="flex-1 border border-zinc-800 text-zinc-400 font-mono text-[10px] uppercase py-2.5 hover:text-white transition-colors"
+                className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase py-2.5 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Cancelar
               </button>

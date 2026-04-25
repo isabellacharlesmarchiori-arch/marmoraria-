@@ -523,16 +523,16 @@ export default function ConfiguracoesPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 min-h-0 bg-[#050505] text-zinc-400 font-sans selection:bg-white selection:text-black flex">
+    <div className="flex-1 min-h-0 bg-gray-100 dark:bg-[#050505] text-gray-600 dark:text-zinc-400 font-sans selection:bg-gray-200 dark:selection:bg-white selection:text-black flex">
       {/* Background Grid */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+      <div className="fixed inset-0 pointer-events-none z-0 bg-grid"></div>
 
       {/* Sidebar Nav */}
-      <div className="w-64 bg-[#020202] border-r border-zinc-800 p-6 flex flex-col relative z-10 h-screen sticky top-0 shrink-0">
-        <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-6">
+      <div className="w-64 bg-gray-50 dark:bg-[#020202] border-r border-gray-300 dark:border-zinc-800 p-6 flex flex-col relative z-10 h-screen sticky top-0 shrink-0">
+        <div className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-6">
           09 // System
         </div>
-        <h1 className="text-2xl font-medium text-white tracking-tighter uppercase mb-8">Configurações</h1>
+        <h1 className="text-2xl font-medium text-gray-900 dark:text-white tracking-tighter uppercase mb-8">Configurações</h1>
         <nav className="flex flex-col gap-2 flex-1">
           {tabs.map(tab => (
             <button
@@ -541,7 +541,7 @@ export default function ConfiguracoesPage() {
               className={`flex items-center gap-3 px-4 py-3 text-sm font-mono uppercase tracking-widest transition-all text-left ${
                 activeTab === tab.id
                   ? 'bg-yellow-400 text-black shadow-[0_0_15px_rgba(250,204,21,0.2)] font-bold'
-                  : 'text-zinc-500 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800'
+                  : 'text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900 border border-transparent hover:border-gray-300 dark:hover:border-zinc-800'
               }`}
             >
               <iconify-icon icon={tab.icon}></iconify-icon>
@@ -561,21 +561,21 @@ export default function ConfiguracoesPage() {
               <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleLogoSelect} />
 
               {/* Card 1 — Identidade */}
-              <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6 relative overflow-hidden">
+              <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                   <iconify-icon icon="solar:buildings-linear" width="120"></iconify-icon>
                 </div>
-                <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Identidade</h3>
+                <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Identidade</h3>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-mono text-zinc-500">Logo da Empresa</label>
+                  <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Logo da Empresa</label>
                   <div className="flex flex-col sm:flex-row items-center gap-4">
                     <button type="button" onClick={() => fileInputRef.current?.click()}
-                      className="w-24 h-24 border border-zinc-800 bg-black flex items-center justify-center relative overflow-hidden group hover:border-yellow-400/50 transition-colors shrink-0"
+                      className="w-24 h-24 border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black flex items-center justify-center relative overflow-hidden group hover:border-yellow-400/50 transition-colors shrink-0"
                       title="Clique para selecionar logo">
                       {logoPreview
                         ? <img src={logoPreview} alt="Logo da empresa" loading="lazy" className="w-full h-full object-contain p-1" />
-                        : <iconify-icon icon="solar:camera-add-linear" class="text-zinc-600 text-2xl group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                        : <iconify-icon icon="solar:camera-add-linear" class="text-gray-500 dark:text-zinc-600 text-2xl group-hover:text-yellow-400 transition-colors"></iconify-icon>
                       }
                       {logoPreview && (
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -585,7 +585,7 @@ export default function ConfiguracoesPage() {
                     </button>
                     <div className="flex flex-col gap-2">
                       <button type="button" onClick={() => fileInputRef.current?.click()}
-                        className="text-xs font-mono uppercase bg-transparent border border-zinc-700 hover:border-yellow-400 hover:text-yellow-400 text-white px-4 py-2 transition-colors flex items-center gap-2">
+                        className="text-xs font-mono uppercase bg-transparent border border-gray-300 dark:border-zinc-700 hover:border-yellow-400 hover:text-yellow-400 text-gray-900 dark:text-white px-4 py-2 transition-colors flex items-center gap-2">
                         <iconify-icon icon="solar:upload-linear" width="13"></iconify-icon>
                         {logoPreview ? 'Trocar Imagem' : 'Selecionar Imagem'}
                       </button>
@@ -597,7 +597,7 @@ export default function ConfiguracoesPage() {
                           Remover
                         </button>
                       )}
-                      <p className="text-[10px] font-mono text-zinc-700">JPG, PNG ou WEBP · Máx. 2 MB</p>
+                      <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-700">JPG, PNG ou WEBP · Máx. 2 MB</p>
                       {fileToUpload && (
                         <p className="text-[10px] font-mono text-yellow-400/70 flex items-center gap-1">
                           <iconify-icon icon="solar:info-circle-linear" width="11"></iconify-icon>
@@ -610,113 +610,113 @@ export default function ConfiguracoesPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Razão Social / Nome</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Razão Social / Nome</label>
                     <input type="text" value={empresa.nome}
                       onChange={e => setEmpresa({ ...empresa, nome: e.target.value })}
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">CNPJ</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">CNPJ</label>
                     <input type="text" value={empresa.cnpj}
                       onChange={e => setEmpresa({ ...empresa, cnpj: maskCNPJ(e.target.value) })}
                       placeholder="00.000.000/0000-00"
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Inscrição Estadual</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Inscrição Estadual</label>
                     <input type="text" value={empresa.inscricao_estadual}
                       onChange={e => setEmpresa({ ...empresa, inscricao_estadual: e.target.value })}
                       placeholder="Isento ou número"
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                   </div>
                 </div>
               </div>
 
               {/* Card 2 — Contato */}
-              <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6">
-                <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Contato</h3>
+              <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6">
+                <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Contato</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail de Contato</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail de Contato</label>
                     <input type="email" value={empresa.email_contato}
                       onChange={e => setEmpresa({ ...empresa, email_contato: e.target.value })}
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Telefone Fixo</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Telefone Fixo</label>
                     <input type="text" value={empresa.telefone}
                       onChange={e => setEmpresa({ ...empresa, telefone: maskTelefone(e.target.value) })}
                       placeholder="(00) 0000-0000"
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">WhatsApp</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">WhatsApp</label>
                     <input type="text" value={empresa.whatsapp}
                       onChange={e => setEmpresa({ ...empresa, whatsapp: maskTelefone(e.target.value) })}
                       placeholder="(00) 00000-0000"
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Website</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Website</label>
                     <input type="url" value={empresa.website}
                       onChange={e => setEmpresa({ ...empresa, website: e.target.value })}
                       placeholder="https://"
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Endereço Completo</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Endereço Completo</label>
                     <textarea value={empresa.endereco}
                       onChange={e => setEmpresa({ ...empresa, endereco: e.target.value })}
                       rows={2}
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm resize-none" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm resize-none" />
                   </div>
                 </div>
               </div>
 
               {/* Card 3 — Dados Bancários (admin only) */}
               {profile?.perfil === 'admin' && (
-                <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6">
-                  <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono uppercase">
+                <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6">
+                  <div className="flex items-center gap-2 text-gray-500 dark:text-zinc-500 text-[10px] font-mono uppercase">
                     <iconify-icon icon="solar:lock-password-linear" class="text-yellow-400/70" width="14"></iconify-icon>
                     Visível apenas para perfil admin · Aparece no PDF de Pedido Fechado
                   </div>
-                  <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Dados Bancários</h3>
+                  <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Dados Bancários</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-zinc-500">Banco</label>
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Banco</label>
                         <input type="text" value={empresa.dados_bancarios.banco}
                           onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, banco: e.target.value } }))}
                           placeholder="Ex: Banco do Brasil — 001"
-                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                          className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-zinc-500">Agência</label>
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Agência</label>
                         <input type="text" value={empresa.dados_bancarios.agencia}
                           onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, agencia: e.target.value } }))}
                           placeholder="0000-0"
-                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                          className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-zinc-500">Conta</label>
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Conta</label>
                         <input type="text" value={empresa.dados_bancarios.conta}
                           onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, conta: e.target.value } }))}
                           placeholder="00000-0"
-                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                          className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-zinc-500">Titular</label>
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Titular</label>
                         <input type="text" value={empresa.dados_bancarios.titular}
                           onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, titular: e.target.value } }))}
-                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                          className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                       </div>
                     </div>
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo de Chave Pix</label>
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Tipo de Chave Pix</label>
                         <select value={empresa.dados_bancarios.pix_tipo}
                           onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, pix_tipo: e.target.value } }))}
-                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm">
+                          className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm">
                           <option value="CNPJ">CNPJ</option>
                           <option value="CPF">CPF</option>
                           <option value="EMAIL">E-mail</option>
@@ -725,7 +725,7 @@ export default function ConfiguracoesPage() {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-zinc-500">Chave Pix</label>
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Chave Pix</label>
                         <input type="text" value={empresa.dados_bancarios.pix_chave}
                           onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, pix_chave: e.target.value } }))}
                           placeholder={
@@ -735,7 +735,7 @@ export default function ConfiguracoesPage() {
                             empresa.dados_bancarios.pix_tipo === 'TELEFONE' ? '+55 11 00000-0000'  :
                             'chave aleatória'
                           }
-                          className="w-full bg-black border border-zinc-800 text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                          className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
                       </div>
                     </div>
                   </div>
@@ -744,28 +744,28 @@ export default function ConfiguracoesPage() {
 
               {/* Card 4 — Contrato Padrão (admin only) */}
               {profile?.perfil === 'admin' && (
-                <div className="bg-[#020202] border border-zinc-800 p-8 space-y-6">
-                  <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono uppercase">
+                <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6">
+                  <div className="flex items-center gap-2 text-gray-500 dark:text-zinc-500 text-[10px] font-mono uppercase">
                     <iconify-icon icon="solar:lock-password-linear" class="text-yellow-400/70" width="14"></iconify-icon>
                     Visível apenas para perfil admin · Usado no PDF de Contrato
                   </div>
-                  <h3 className="text-[10px] uppercase font-mono text-zinc-500 tracking-widest">Contrato Padrão</h3>
+                  <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Contrato Padrão</h3>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">Texto das cláusulas</label>
+                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Texto das cláusulas</label>
                       <button
                         type="button"
                         onClick={() => updateContrato('contrato_texto', CONTRATO_PADRAO)}
-                        className="text-[10px] font-mono text-zinc-500 hover:text-yellow-400 transition-colors"
+                        className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 hover:text-yellow-400 transition-colors"
                       >↻ Restaurar texto padrão</button>
                     </div>
                     <textarea
                       value={templates.contrato?.contrato_texto || CONTRATO_PADRAO}
                       onChange={e => updateContrato('contrato_texto', e.target.value)}
                       rows={12}
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-yellow-400 resize-none"
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-yellow-400 resize-none"
                     />
-                    <p className="text-[10px] font-mono text-zinc-700">
+                    <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-700">
                       {'Placeholders: {{numero_pedido}} · {{valor_total}} · {{prazo_entrega}} · {{forma_pagamento}} · {{cidade_empresa}} · {{estado_empresa}}'}
                     </p>
                   </div>
@@ -809,39 +809,39 @@ export default function ConfiguracoesPage() {
           {/* ── Usuários ── */}
           {activeTab === 'usuarios' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
-                <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
+              <div className="flex justify-between items-end border-b border-gray-300 dark:border-zinc-800 pb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white uppercase flex items-center gap-2">
                   <iconify-icon icon="solar:users-group-rounded-linear" class="text-yellow-400"></iconify-icon> Controle de Usuários
                 </h2>
                 <button onClick={() => openModal('usuario')} className="bg-yellow-400 text-black text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2">
                   <iconify-icon icon="solar:user-plus-linear"></iconify-icon> Convidar
                 </button>
               </div>
-              <div className="bg-[#020202] border border-zinc-800">
-                <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500">
+              <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800">
+                <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">
                   <div>Nome / E-mail</div><div>Perfil</div><div>Status</div><div className="text-right">Ações</div>
                 </div>
                 {usuarios.length === 0 && (
                   <div className="p-8 text-center">
-                    <iconify-icon icon="solar:users-group-two-rounded-linear" width="28" className="text-zinc-800 block mx-auto mb-2"></iconify-icon>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Nenhum usuário cadastrado</p>
+                    <iconify-icon icon="solar:users-group-two-rounded-linear" width="28" className="text-gray-400 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Nenhum usuário cadastrado</p>
                   </div>
                 )}
                 {usuarios.map(u => (
-                  <div key={u.id} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800/50 items-center hover:bg-zinc-900/30 transition-colors">
+                  <div key={u.id} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors">
                     <div>
-                      <div className="text-white font-medium text-sm">{u.nome}</div>
-                      <div className="text-xs font-mono text-zinc-500">{u.email}</div>
+                      <div className="text-gray-900 dark:text-white font-medium text-sm">{u.nome}</div>
+                      <div className="text-xs font-mono text-gray-500 dark:text-zinc-500">{u.email}</div>
                     </div>
-                    <div><span className="text-[10px] border border-zinc-700 bg-zinc-900 px-2 py-1 uppercase font-mono">{u.perfil}</span></div>
+                    <div><span className="text-[10px] border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 px-2 py-1 uppercase font-mono">{u.perfil}</span></div>
                     <div>
-                      <button onClick={() => handleToggleUsuario(u.id, u.ativo)} className={`flex items-center gap-2 text-xs font-mono uppercase ${u.ativo ? 'text-green-400' : 'text-zinc-600'}`}>
+                      <button onClick={() => handleToggleUsuario(u.id, u.ativo)} className={`flex items-center gap-2 text-xs font-mono uppercase ${u.ativo ? 'text-green-400' : 'text-gray-500 dark:text-zinc-600'}`}>
                         <iconify-icon icon={u.ativo ? 'solar:toggle-on-bold' : 'solar:toggle-off-linear'} width="24"></iconify-icon>
                         {u.ativo ? 'Ativo' : 'Inativo'}
                       </button>
                     </div>
                     <div className="text-right">
-                      <button onClick={() => openModal('usuario', u)} className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
+                      <button onClick={() => openModal('usuario', u)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                         <iconify-icon icon="solar:pen-linear"></iconify-icon>
                       </button>
                     </div>
@@ -854,12 +854,12 @@ export default function ConfiguracoesPage() {
           {/* ── Materiais de Área ── */}
           {activeTab === 'materiais_area' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
+              <div className="flex justify-between items-end border-b border-gray-300 dark:border-zinc-800 pb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white uppercase flex items-center gap-2">
                     <iconify-icon icon="solar:slider-minimalistic-horizontal-linear" class="text-yellow-400"></iconify-icon> Matéria Prima
                   </h2>
-                  <p className="text-[10px] font-mono text-zinc-600 mt-1 uppercase tracking-widest">
+                  <p className="text-[10px] font-mono text-gray-500 dark:text-zinc-600 mt-1 uppercase tracking-widest">
                     Matriz de preços por acabamento e espessura
                   </p>
                 </div>
@@ -874,19 +874,19 @@ export default function ConfiguracoesPage() {
               {/* ── Busca e Ordenação ── */}
               <div className="flex flex-wrap gap-3">
                 <div className="relative flex-1 min-w-[180px]">
-                  <iconify-icon icon="solar:magnifer-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" width="14"></iconify-icon>
+                  <iconify-icon icon="solar:magnifer-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-500" width="14"></iconify-icon>
                   <input
                     type="text"
                     value={matBusca}
                     onChange={e => setMatBusca(e.target.value)}
                     placeholder="Buscar por nome..."
-                    className="w-full bg-black border border-zinc-800 text-white pl-9 pr-4 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400 transition-colors placeholder:text-zinc-700"
+                    className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white pl-9 pr-4 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400 transition-colors placeholder:text-gray-400 dark:text-zinc-700"
                   />
                 </div>
                 <select
                   value={matOrdem}
                   onChange={e => setMatOrdem(e.target.value)}
-                  className="bg-black border border-zinc-800 text-zinc-400 px-3 py-2 text-[10px] font-mono uppercase focus:outline-none focus:border-yellow-400 transition-colors"
+                  className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 px-3 py-2 text-[10px] font-mono uppercase focus:outline-none focus:border-yellow-400 transition-colors"
                 >
                   <option value="az">A → Z</option>
                   <option value="za">Z → A</option>
@@ -904,7 +904,7 @@ export default function ConfiguracoesPage() {
                   className={`text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 border transition-colors ${
                     matFiltroCategoria === ''
                       ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
-                      : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+                      : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-600 dark:hover:text-zinc-300'
                   }`}
                 >
                   Todas
@@ -916,7 +916,7 @@ export default function ConfiguracoesPage() {
                     className={`text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 border transition-colors ${
                       matFiltroCategoria === cat
                         ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
-                        : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+                        : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-600 dark:hover:text-zinc-300'
                     }`}
                   >
                     {cat}
@@ -924,9 +924,9 @@ export default function ConfiguracoesPage() {
                 ))}
               </div>
 
-              <div className="bg-[#020202] border border-zinc-800 overflow-x-auto">
+              <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 overflow-x-auto">
                 {/* Header */}
-                <div className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500 min-w-[640px]">
+                <div className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 p-4 border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 min-w-[640px]">
                   <div>Material</div>
                   <div>Categoria</div>
                   <div>Variações</div>
@@ -935,18 +935,18 @@ export default function ConfiguracoesPage() {
                 </div>
 
                 {loadingMateriais ? (
-                  <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-700 animate-pulse">Carregando...</div>
+                  <div className="p-8 text-center font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700 animate-pulse">Carregando...</div>
                 ) : materiaisAreaFiltrados.length === 0 ? (
-                  <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-700">
+                  <div className="p-8 text-center font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700">
                     {materiaisArea.length === 0 ? 'Nenhum material cadastrado' : 'Nenhum material encontrado'}
                   </div>
                 ) : materiaisAreaFiltrados.map(m => {
                   const nVar = m.variacoes_precos?.length ?? 0;
                   return (
-                    <div key={m.id} className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 px-4 py-3 border-b border-zinc-800/50 items-center hover:bg-zinc-900/20 transition-colors min-w-[640px]">
-                      <div className="text-white uppercase font-medium text-sm">{m.nome}</div>
+                    <div key={m.id} className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 px-4 py-3 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors min-w-[640px]">
+                      <div className="text-gray-900 dark:text-white uppercase font-medium text-sm">{m.nome}</div>
                       <div>
-                        <span className="text-[10px] font-mono border border-zinc-700 bg-black text-zinc-400 px-2 py-0.5">
+                        <span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black text-gray-500 dark:text-zinc-400 px-2 py-0.5">
                           {m.categoria}
                         </span>
                       </div>
@@ -956,23 +956,23 @@ export default function ConfiguracoesPage() {
                             {nVar} {nVar !== 1 ? 'variações' : 'variação'}
                           </span>
                         ) : (
-                          <span className="text-[10px] font-mono text-zinc-600">Sem preços</span>
+                          <span className="text-[10px] font-mono text-gray-500 dark:text-zinc-600">Sem preços</span>
                         )}
                       </div>
                       <div>
                         <button
                           onClick={() => handleToggle(setMateriaisArea, materiaisArea, m.id)}
-                          className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-zinc-600'}`}
+                          className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}
                         >
                           <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
                           {m.ativo ? 'Ativo' : 'Oculto'}
                         </button>
                       </div>
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => abrirMatModal(m)} className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
+                        <button onClick={() => abrirMatModal(m)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                           <iconify-icon icon="solar:pen-linear"></iconify-icon>
                         </button>
-                        <button onClick={e => handleDeleteMaterialArea(e, m.id)} className="text-zinc-500 hover:text-red-400 bg-black border border-zinc-800 px-3 py-1">
+                        <button onClick={e => handleDeleteMaterialArea(e, m.id)} className="text-gray-500 dark:text-zinc-500 hover:text-red-400 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                           <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
                         </button>
                       </div>
@@ -987,7 +987,7 @@ export default function ConfiguracoesPage() {
           {activeTab === 'materiais_lineares' && (
             <div className="space-y-6">
               {/* Sub-abas */}
-              <div className="flex gap-px bg-zinc-800 border border-zinc-800 w-max mb-6">
+              <div className="flex gap-px bg-zinc-800 border border-gray-300 dark:border-zinc-800 w-max mb-6">
                 {[
                   { id: 'lineares',  label: 'Acabamentos Lineares'  },
                   { id: 'unitarios', label: 'Acabamentos Unitários' },
@@ -996,7 +996,7 @@ export default function ConfiguracoesPage() {
                     className={`px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${
                       acabamentoSubAba === s.id
                         ? 'bg-yellow-400 text-black'
-                        : 'bg-[#020202] text-zinc-500 hover:text-white'
+                        : 'bg-gray-50 dark:bg-[#020202] text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white'
                     }`}>
                     {s.label}
                   </button>
@@ -1005,36 +1005,36 @@ export default function ConfiguracoesPage() {
 
               {acabamentoSubAba === 'lineares' && (
                 <>
-                  <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
-                    <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
+                  <div className="flex justify-between items-end border-b border-gray-300 dark:border-zinc-800 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white uppercase flex items-center gap-2">
                       <iconify-icon icon="solar:sort-from-bottom-to-top-linear" class="text-yellow-400"></iconify-icon> Acabamentos Lineares
                     </h2>
                     <button onClick={() => openModal('material_linear')} className="bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-shadow flex items-center gap-2">
                       <iconify-icon icon="solar:add-square-linear"></iconify-icon> Adicionar
                     </button>
                   </div>
-                  <div className="bg-[#020202] border border-zinc-800">
-                    <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500">
+                  <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800">
+                    <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">
                       <div>Descrição</div><div>Tipo</div><div>Preço por ml</div><div>Status</div><div className="text-right">Ações</div>
                     </div>
                     {loadingMateriais ? (
-                      <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-700 animate-pulse">Carregando...</div>
+                      <div className="p-8 text-center font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700 animate-pulse">Carregando...</div>
                     ) : materiaisLineares.map(m => (
-                      <div key={m.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800/50 items-center hover:bg-zinc-900/30 transition-colors text-sm">
-                        <div className="text-white uppercase font-medium">{m.nome}</div>
-                        <div><span className="text-[10px] font-mono border border-zinc-700 bg-black px-2 py-1 uppercase text-zinc-400">{m.tipo?.replace('_', ' ')}</span></div>
-                        <div className="font-mono text-zinc-300">R$ {Number(m.precoml).toFixed(2)}</div>
+                      <div key={m.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
+                        <div className="text-gray-900 dark:text-white uppercase font-medium">{m.nome}</div>
+                        <div><span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black px-2 py-1 uppercase text-gray-500 dark:text-zinc-400">{m.tipo?.replace('_', ' ')}</span></div>
+                        <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(m.precoml).toFixed(2)}</div>
                         <div>
-                          <button onClick={() => handleToggle(setMateriaisLineares, materiaisLineares, m.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                          <button onClick={() => handleToggle(setMateriaisLineares, materiaisLineares, m.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}>
                             <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
                             {m.ativo ? 'Ativo' : 'Oculto'}
                           </button>
                         </div>
                         <div className="text-right flex items-center justify-end gap-2">
-                          <button onClick={() => openModal('material_linear', m)} className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
+                          <button onClick={() => openModal('material_linear', m)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                             <iconify-icon icon="solar:pen-linear"></iconify-icon>
                           </button>
-                          <button onClick={e => handleDeleteMaterialLinear(e, m.id)} className="text-zinc-500 hover:text-red-400 bg-black border border-zinc-800 px-3 py-1">
+                          <button onClick={e => handleDeleteMaterialLinear(e, m.id)} className="text-gray-500 dark:text-zinc-500 hover:text-red-400 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                             <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
                           </button>
                         </div>
@@ -1046,8 +1046,8 @@ export default function ConfiguracoesPage() {
 
               {acabamentoSubAba === 'unitarios' && (
                 <div className="space-y-6">
-                  <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
-                    <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
+                  <div className="flex justify-between items-end border-b border-gray-300 dark:border-zinc-800 pb-4">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white uppercase flex items-center gap-2">
                       <iconify-icon icon="solar:box-linear" class="text-yellow-400"></iconify-icon>
                       Acabamentos Unitários
                     </h2>
@@ -1056,30 +1056,30 @@ export default function ConfiguracoesPage() {
                       <iconify-icon icon="solar:add-square-linear"></iconify-icon> Adicionar
                     </button>
                   </div>
-                  <div className="bg-[#020202] border border-zinc-800">
-                    <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500">
+                  <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800">
+                    <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">
                       <div>Nome</div><div>Unidade</div><div>Preço</div><div>Status</div><div className="text-right">Ações</div>
                     </div>
                     {acabamentosUnitarios.length === 0 ? (
                       <div className="p-8 text-center">
-                        <iconify-icon icon="solar:box-linear" width="28" className="text-zinc-800 block mx-auto mb-2"></iconify-icon>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Nenhum acabamento cadastrado</p>
+                        <iconify-icon icon="solar:box-linear" width="28" className="text-gray-400 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Nenhum acabamento cadastrado</p>
                       </div>
                     ) : acabamentosUnitarios.map(a => (
-                      <div key={a.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800/50 items-center hover:bg-zinc-900/30 transition-colors text-sm">
-                        <div className="text-white uppercase font-medium">{a.nome}</div>
-                        <div><span className="text-[10px] font-mono border border-zinc-700 bg-black px-2 py-1 uppercase text-zinc-400">{a.unidade}</span></div>
-                        <div className="font-mono text-zinc-300">R$ {Number(a.preco).toFixed(2)}</div>
+                      <div key={a.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
+                        <div className="text-gray-900 dark:text-white uppercase font-medium">{a.nome}</div>
+                        <div><span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black px-2 py-1 uppercase text-gray-500 dark:text-zinc-400">{a.unidade}</span></div>
+                        <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(a.preco).toFixed(2)}</div>
                         <div>
                           <button onClick={() => handleToggle(setAcabamentosUnitarios, acabamentosUnitarios, a.id)}
-                            className={`flex items-center gap-2 text-[10px] font-mono uppercase ${a.ativo ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                            className={`flex items-center gap-2 text-[10px] font-mono uppercase ${a.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}>
                             <iconify-icon icon={a.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
                             {a.ativo ? 'Ativo' : 'Oculto'}
                           </button>
                         </div>
                         <div className="text-right flex items-center justify-end gap-2">
                           <button onClick={() => openModal('acabamento_unitario', a)}
-                            className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
+                            className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                             <iconify-icon icon="solar:pen-linear"></iconify-icon>
                           </button>
                           <button onClick={async e => {
@@ -1088,7 +1088,7 @@ export default function ConfiguracoesPage() {
                             const { error } = await supabase.from('acabamentos_unitarios').delete().eq('id', a.id);
                             if (error) { alert(error.message); return; }
                             setAcabamentosUnitarios(prev => prev.filter(x => x.id !== a.id));
-                          }} className="text-zinc-500 hover:text-red-400 bg-black border border-zinc-800 px-3 py-1">
+                          }} className="text-gray-500 dark:text-zinc-500 hover:text-red-400 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                             <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
                           </button>
                         </div>
@@ -1103,44 +1103,44 @@ export default function ConfiguracoesPage() {
           {/* ── Produtos Avulsos ── */}
           {activeTab === 'produtos' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
-                <h2 className="text-xl font-bold text-white uppercase flex items-center gap-2">
+              <div className="flex justify-between items-end border-b border-gray-300 dark:border-zinc-800 pb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white uppercase flex items-center gap-2">
                   <iconify-icon icon="solar:box-linear" class="text-yellow-400"></iconify-icon> Produtos Avulsos / Insumos
                 </h2>
                 <button onClick={() => openModal('produto')} className="bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-shadow flex items-center gap-2">
                   <iconify-icon icon="solar:add-square-linear"></iconify-icon> Adicionar
                 </button>
               </div>
-              <div className="bg-[#020202] border border-zinc-800">
-                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800 bg-black text-[10px] uppercase font-mono text-zinc-500">
+              <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800">
+                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">
                   <div>Produto</div><div>Preço Unit.</div><div>Exclusões / Acresc.</div><div>Status</div><div className="text-right">Ações</div>
                 </div>
                 {produtos.length === 0 && (
                   <div className="p-8 text-center">
-                    <iconify-icon icon="solar:box-linear" width="28" className="text-zinc-800 block mx-auto mb-2"></iconify-icon>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Nenhum produto cadastrado</p>
+                    <iconify-icon icon="solar:box-linear" width="28" className="text-gray-400 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Nenhum produto cadastrado</p>
                   </div>
                 )}
                 {produtos.map(p => (
-                  <div key={p.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-zinc-800/50 items-center hover:bg-zinc-900/30 transition-colors text-sm">
+                  <div key={p.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
                     <div>
-                      <div className="text-white uppercase font-medium">{p.nome}</div>
-                      <div className="text-xs text-zinc-500 font-mono mt-1">{p.subcategoria}</div>
+                      <div className="text-gray-900 dark:text-white uppercase font-medium">{p.nome}</div>
+                      <div className="text-xs text-gray-500 dark:text-zinc-500 font-mono mt-1">{p.subcategoria}</div>
                     </div>
-                    <div className="font-mono text-zinc-300">R$ {p.precoUnitario.toFixed(2)}</div>
+                    <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {p.precoUnitario.toFixed(2)}</div>
                     <div>
                       {p.incluiMaterial
                         ? <span className="text-[10px] text-yellow-400 border border-yellow-400/30 bg-yellow-400/10 px-2 py-1 font-mono uppercase">Deduz Área</span>
-                        : <span className="text-zinc-600">—</span>}
+                        : <span className="text-gray-500 dark:text-zinc-600">—</span>}
                     </div>
                     <div>
-                      <button onClick={() => handleToggle(setProdutos, produtos, p.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${p.ativo ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                      <button onClick={() => handleToggle(setProdutos, produtos, p.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${p.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}>
                         <iconify-icon icon={p.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
                         {p.ativo ? 'Ativo' : 'Oculto'}
                       </button>
                     </div>
                     <div className="text-right">
-                      <button onClick={() => openModal('produto', p)} className="text-zinc-500 hover:text-white bg-black border border-zinc-800 px-3 py-1">
+                      <button onClick={() => openModal('produto', p)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
                         <iconify-icon icon="solar:pen-linear"></iconify-icon>
                       </button>
                     </div>
@@ -1158,9 +1158,9 @@ export default function ConfiguracoesPage() {
       {modalState.isOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal}></div>
-          <div className="bg-[#050505] border border-zinc-800 border-t-yellow-400 border-t-2 w-full max-w-lg relative z-10 shadow-2xl sys-reveal sys-active flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-zinc-800">
-              <h3 className="text-xl font-bold text-white uppercase tracking-tighter">
+          <div className="bg-gray-50 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 border-t-yellow-400 border-t-2 w-full max-w-lg relative z-10 shadow-2xl sys-reveal sys-active flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-gray-300 dark:border-zinc-800">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tighter">
                 {modalState.item ? 'Editar ' : 'Novo '}
                 {modalState.type === 'usuario'             && 'Usuário'}
                 {modalState.type === 'material_linear'     && 'Material/Acabamento Linear'}
@@ -1168,7 +1168,7 @@ export default function ConfiguracoesPage() {
                 {modalState.type === 'pagamento'           && 'Método de Pagamento'}
                 {modalState.type === 'acabamento_unitario' && 'Acabamento Unitário'}
               </h3>
-              <button onClick={closeModal} className="text-zinc-500 hover:text-white transition-colors">
+              <button onClick={closeModal} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <iconify-icon icon="solar:close-square-linear" width="24"></iconify-icon>
               </button>
             </div>
@@ -1178,24 +1178,24 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'usuario' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                   </div>
                   {!modalState.item && (
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail (Login)</label>
-                      <input type="email" name="email" required className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail (Login)</label>
+                      <input type="email" name="email" required className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                     </div>
                   )}
                   {modalState.item && (
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">E-mail</label>
-                      <div className="w-full bg-zinc-950 border border-zinc-800 text-zinc-500 px-4 py-3 text-sm font-mono">{modalState.item.email}</div>
+                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail</label>
+                      <div className="w-full bg-gray-50 dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 px-4 py-3 text-sm font-mono">{modalState.item.email}</div>
                     </div>
                   )}
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Perfil de Acesso</label>
-                    <select name="perfil" defaultValue={modalState.item?.perfil || 'vendedor'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono uppercase">
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Perfil de Acesso</label>
+                    <select name="perfil" defaultValue={modalState.item?.perfil || 'vendedor'} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono uppercase">
                       <option value="vendedor">Vendedor(a)</option>
                       <option value="medidor">Medidor(a)</option>
                       <option value="admin">Administrador</option>
@@ -1209,20 +1209,20 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'material_linear' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Descrição</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Descrição</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo da Cobrança</label>
-                      <select name="tipo" defaultValue={modalState.item?.tipo || 'acabamento_aresta'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Tipo da Cobrança</label>
+                      <select name="tipo" defaultValue={modalState.item?.tipo || 'acabamento_aresta'} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
                         <option value="acabamento_aresta">Acabamento de Aresta</option>
                         <option value="material_linear">Material Linear Físico</option>
                       </select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] uppercase font-mono text-yellow-400">Preço / metro linear</label>
-                      <input type="number" step="0.01" name="precoml" required defaultValue={modalState.item?.precoml || ''} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                      <input type="number" step="0.01" name="precoml" required defaultValue={modalState.item?.precoml || ''} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
                     </div>
                   </div>
                 </>
@@ -1231,17 +1231,17 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'produto' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome do Produto</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome do Produto</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">Subcategoria</label>
-                      <input type="text" name="subcategoria" required defaultValue={modalState.item?.subcategoria} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Subcategoria</label>
+                      <input type="text" name="subcategoria" required defaultValue={modalState.item?.subcategoria} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] uppercase font-mono text-yellow-400">Preço Unitário (UN)</label>
-                      <input type="number" step="0.01" name="precoUnitario" required defaultValue={modalState.item?.precoUnitario || ''} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                      <input type="number" step="0.01" name="precoUnitario" required defaultValue={modalState.item?.precoUnitario || ''} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
                     </div>
                   </div>
                 </>
@@ -1250,16 +1250,16 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'acabamento_unitario' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Nome do Acabamento</label>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome do Acabamento</label>
                     <input type="text" name="nome" required defaultValue={modalState.item?.nome}
                       placeholder="Ex: Rodameio, Soleira, Cuba"
-                      className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-zinc-500">Unidade</label>
+                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Unidade</label>
                       <select name="unidade" defaultValue={modalState.item?.unidade || 'un'}
-                        className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
                         <option value="un">Unidade (un)</option>
                         <option value="m²">Metro quadrado (m²)</option>
                         <option value="ml">Metro linear (ml)</option>
@@ -1268,7 +1268,7 @@ export default function ConfiguracoesPage() {
                     <div className="space-y-2">
                       <label className="text-[10px] uppercase font-mono text-yellow-400">Preço</label>
                       <input type="number" step="0.01" name="preco" required defaultValue={modalState.item?.preco || ''}
-                        className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
                     </div>
                   </div>
                 </>
@@ -1277,12 +1277,12 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'pagamento' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Identificação Comercial</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} placeholder="Ex: Cartão de Crédito - Stone" className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Identificação Comercial</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} placeholder="Ex: Cartão de Crédito - Stone" className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Tipo Base</label>
-                    <select name="tipo" defaultValue={modalState.item?.tipo || 'Pix'} className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Tipo Base</label>
+                    <select name="tipo" defaultValue={modalState.item?.tipo || 'Pix'} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
                       <option value="Pix">Pix / Transferência</option>
                       <option value="Crédito">Cartão de Crédito</option>
                       <option value="Débito">Cartão de Débito</option>
@@ -1291,15 +1291,15 @@ export default function ConfiguracoesPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-zinc-500">Campos Dinâmicos (Separar por vírgula)</label>
-                    <input type="text" name="campos" required defaultValue={modalState.item?.campos?.join(', ')} placeholder="bandeira, maquininha, n_parcelas" className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
-                    <div className="text-[10px] text-zinc-600 font-mono">Campos que o vendedor precisa preencher no fechamento.</div>
+                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Campos Dinâmicos (Separar por vírgula)</label>
+                    <input type="text" name="campos" required defaultValue={modalState.item?.campos?.join(', ')} placeholder="bandeira, maquininha, n_parcelas" className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                    <div className="text-[10px] text-gray-500 dark:text-zinc-600 font-mono">Campos que o vendedor precisa preencher no fechamento.</div>
                   </div>
                 </>
               )}
 
-              <div className="flex items-center gap-4 pt-4 border-t border-zinc-800 mt-auto">
-                <button type="button" onClick={closeModal} className="flex-1 bg-transparent border border-zinc-800 text-white text-xs font-bold uppercase tracking-widest py-4 hover:bg-zinc-900 transition-colors">
+              <div className="flex items-center gap-4 pt-4 border-t border-gray-300 dark:border-zinc-800 mt-auto">
+                <button type="button" onClick={closeModal} className="flex-1 bg-transparent border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-bold uppercase tracking-widest py-4 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors">
                   Cancelar
                 </button>
                 <button type="submit" className="flex-1 bg-white text-black text-xs font-bold uppercase tracking-widest py-4 border border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all flex items-center justify-center gap-2">
@@ -1331,19 +1331,19 @@ export default function ConfiguracoesPage() {
       {matModal && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={fecharMatModal}></div>
-          <div className="relative bg-[#050505] border border-zinc-800 border-t-2 border-t-yellow-400 w-full max-w-3xl z-10 shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="relative bg-gray-50 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 border-t-2 border-t-yellow-400 w-full max-w-3xl z-10 shadow-2xl flex flex-col max-h-[92vh]">
 
             {/* Header */}
-            <div className="flex items-start justify-between px-6 py-4 border-b border-zinc-800 shrink-0 gap-4">
+            <div className="flex items-start justify-between px-6 py-4 border-b border-gray-300 dark:border-zinc-800 shrink-0 gap-4">
               <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-0.5">
                   [ {matItem ? 'EDITAR' : 'NOVO'}_MATERIAL ]
                 </div>
-                <h3 className="text-lg font-bold text-white uppercase tracking-tight">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                   {matItem ? 'Editar Material' : 'Cadastrar Material'}
                 </h3>
               </div>
-              <button onClick={fecharMatModal} className="text-zinc-500 hover:text-white transition-colors p-1 shrink-0 mt-0.5">
+              <button onClick={fecharMatModal} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors p-1 shrink-0 mt-0.5">
                 <iconify-icon icon="solar:close-square-linear" width="22"></iconify-icon>
               </button>
             </div>
@@ -1354,21 +1354,21 @@ export default function ConfiguracoesPage() {
               {/* Nome + Categoria */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-mono text-zinc-500">Nome do Material</label>
+                  <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome do Material</label>
                   <input
                     type="text"
                     value={matNome}
                     onChange={e => setMatNome(e.target.value)}
                     placeholder="Ex: Preto Absoluto"
-                    className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
+                    className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-mono text-zinc-500">Categoria</label>
+                  <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Categoria</label>
                   <select
                     value={matCategoria}
                     onChange={e => setMatCategoria(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors font-mono"
+                    className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors font-mono"
                   >
                     {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -1376,11 +1376,11 @@ export default function ConfiguracoesPage() {
               </div>
 
               {/* Info espessuras disponíveis */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900/50 border border-zinc-800">
-                <iconify-icon icon="solar:info-circle-linear" class="text-zinc-500" width="13"></iconify-icon>
-                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-200/50 dark:bg-zinc-900/50 border border-gray-300 dark:border-zinc-800">
+                <iconify-icon icon="solar:info-circle-linear" class="text-gray-500 dark:text-zinc-500" width="13"></iconify-icon>
+                <span className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest">
                   Espessuras disponíveis para {matCategoria}:{' '}
-                  <span className="text-zinc-300">
+                  <span className="text-gray-600 dark:text-zinc-300">
                     {espessurasDisponiveis === null
                       ? 'Sem espessura (opção única)'
                       : espessurasDisponiveis === false
@@ -1393,7 +1393,7 @@ export default function ConfiguracoesPage() {
               {/* ── Matriz de variações ── */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] uppercase font-mono text-zinc-400 tracking-widest">
+                  <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-400 tracking-widest">
                     Variações de Acabamento & Preço
                   </label>
                   <button
@@ -1407,11 +1407,11 @@ export default function ConfiguracoesPage() {
                 </div>
 
                 {/* Tabela unificada: header + linhas no mesmo container */}
-                <div className="border border-zinc-800">
+                <div className="border border-gray-300 dark:border-zinc-800">
 
                   {/* Cabeçalho */}
                   <div
-                    className="grid gap-3 bg-black/70 px-4 py-2 text-[9px] font-mono uppercase tracking-widest text-zinc-600 border-b border-zinc-800"
+                    className="grid gap-3 bg-black/70 px-4 py-2 text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 border-b border-gray-300 dark:border-zinc-800"
                     style={{ gridTemplateColumns: espessurasDisponiveis === null ? '2fr 1fr 1fr 1fr 32px' : '2fr 1.2fr 1fr 1fr 1fr 32px' }}
                   >
                     <div>Acabamento</div>
@@ -1426,14 +1426,14 @@ export default function ConfiguracoesPage() {
                   {(matVariacoes ?? []).map((v, idx) => (
                     <div
                       key={v._id}
-                      className="grid gap-3 items-center px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/60 last:border-b-0 hover:bg-zinc-900/40 transition-colors"
+                      className="grid gap-3 items-center px-4 py-2.5 bg-gray-50 dark:bg-zinc-950 border-b border-gray-300 dark:border-zinc-800/60 last:border-b-0 hover:bg-gray-200/40 dark:hover:bg-zinc-900/40 transition-colors"
                       style={{ gridTemplateColumns: espessurasDisponiveis === null ? '2fr 1fr 1fr 1fr 32px' : '2fr 1.2fr 1fr 1fr 1fr 32px' }}
                     >
                       {/* Acabamento */}
                       <select
                         value={v.acabamento}
                         onChange={e => updateVariacao(idx, 'acabamento', e.target.value)}
-                        className="w-full bg-black border border-zinc-800 text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
+                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
                       >
                         {ACABAMENTOS.map(a => <option key={a} value={a}>{a}</option>)}
                       </select>
@@ -1446,13 +1446,13 @@ export default function ConfiguracoesPage() {
                            value={v.espessura}
                            onChange={e => updateVariacao(idx, 'espessura', e.target.value)}
                            placeholder="Ex: 2cm"
-                           className="w-full bg-black border border-zinc-800 text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
+                           className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
                          />
                        ) : (
                          <select
                            value={v.espessura}
                            onChange={e => updateVariacao(idx, 'espessura', e.target.value)}
-                           className="w-full bg-black border border-zinc-800 text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
+                           className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
                          >
                            {espessurasDisponiveis.map(esp => <option key={esp} value={esp}>{esp}</option>)}
                          </select>
@@ -1466,7 +1466,7 @@ export default function ConfiguracoesPage() {
                         value={v.precoCusto}
                         onChange={e => updateVariacao(idx, 'precoCusto', e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-black border border-zinc-800 text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
+                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
                       />
 
                       {/* Frete */}
@@ -1477,7 +1477,7 @@ export default function ConfiguracoesPage() {
                         value={v.frete}
                         onChange={e => updateVariacao(idx, 'frete', e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-black border border-zinc-800 text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
+                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
                       />
 
                       {/* Preço de Venda */}
@@ -1488,7 +1488,7 @@ export default function ConfiguracoesPage() {
                         value={v.precoVenda}
                         onChange={e => updateVariacao(idx, 'precoVenda', e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-black border border-zinc-800 text-yellow-400 text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
+                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-yellow-400 text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
                       />
 
                       {/* Remover */}
@@ -1496,7 +1496,7 @@ export default function ConfiguracoesPage() {
                         type="button"
                         onClick={() => removeVariacao(idx)}
                         disabled={matVariacoes.length === 1}
-                        className="w-8 h-8 flex items-center justify-center border border-zinc-800 text-zinc-600 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                       </button>
@@ -1509,11 +1509,11 @@ export default function ConfiguracoesPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center gap-4 px-6 py-4 border-t border-zinc-800 shrink-0">
+            <div className="flex items-center gap-4 px-6 py-4 border-t border-gray-300 dark:border-zinc-800 shrink-0">
               <button
                 type="button"
                 onClick={fecharMatModal}
-                className="flex-1 bg-transparent border border-zinc-800 text-white text-xs font-bold uppercase tracking-widest py-3 hover:bg-zinc-900 transition-colors"
+                className="flex-1 bg-transparent border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-bold uppercase tracking-widest py-3 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
               >
                 Cancelar
               </button>

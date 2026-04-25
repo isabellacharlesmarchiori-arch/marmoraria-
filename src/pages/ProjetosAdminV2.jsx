@@ -8,12 +8,12 @@ function isValidUUID(v) {
 }
 
 const STATUS_CONFIG = {
-  todos:      { label: 'Todos',      color: 'text-zinc-400',   border: 'border-zinc-700',     bg: 'bg-zinc-900',      dot: 'bg-zinc-500'   },
-  orcado:     { label: 'Orçado',     color: 'text-zinc-400',   border: 'border-zinc-700',     bg: 'bg-zinc-900',      dot: 'bg-zinc-500'   },
-  aprovado:   { label: 'Aprovado',   color: 'text-green-400',  border: 'border-green-500/30', bg: 'bg-green-400/5',   dot: 'bg-green-400'  },
-  produzindo: { label: 'Produzindo', color: 'text-violet-400', border: 'border-violet-500/30',bg: 'bg-violet-400/5',  dot: 'bg-violet-400' },
-  entregue:   { label: 'Entregue',   color: 'text-blue-400',   border: 'border-blue-500/30',  bg: 'bg-blue-400/5',    dot: 'bg-blue-400'   },
-  perdido:    { label: 'Perdido',    color: 'text-red-400',    border: 'border-red-500/30',   bg: 'bg-red-400/5',     dot: 'bg-red-400'    },
+  todos:      { label: 'Todos',      color: 'text-gray-600 dark:text-zinc-400',     border: 'border-gray-300 dark:border-zinc-700',        bg: 'bg-gray-100 dark:bg-zinc-900',       dot: 'bg-gray-400 dark:bg-zinc-500'    },
+  orcado:     { label: 'Orçado',     color: 'text-gray-600 dark:text-zinc-400',     border: 'border-gray-300 dark:border-zinc-700',        bg: 'bg-gray-100 dark:bg-zinc-900',       dot: 'bg-gray-400 dark:bg-zinc-500'    },
+  aprovado:   { label: 'Aprovado',   color: 'text-green-700 dark:text-green-400',   border: 'border-green-400/40 dark:border-green-500/30', bg: 'bg-green-50 dark:bg-green-400/5',    dot: 'bg-green-600 dark:bg-green-400'  },
+  produzindo: { label: 'Produzindo', color: 'text-violet-700 dark:text-violet-400', border: 'border-violet-400/40 dark:border-violet-500/30', bg: 'bg-violet-50 dark:bg-violet-400/5', dot: 'bg-violet-600 dark:bg-violet-400' },
+  entregue:   { label: 'Entregue',   color: 'text-blue-700 dark:text-blue-400',     border: 'border-blue-400/40 dark:border-blue-500/30',   bg: 'bg-blue-50 dark:bg-blue-400/5',      dot: 'bg-blue-600 dark:bg-blue-400'   },
+  perdido:    { label: 'Perdido',    color: 'text-red-700 dark:text-red-400',       border: 'border-red-400/40 dark:border-red-500/30',     bg: 'bg-red-50 dark:bg-red-400/5',        dot: 'bg-red-600 dark:bg-red-400'     },
 };
 
 function StatusPill({ status }) {
@@ -54,7 +54,7 @@ export default function Projetos() {
   const [erroModal, setErroModal] = useState('');
   const [projetoToDelete, setProjetoToDelete] = useState(null);
   const debounceRef = useRef(null);
-  const refreshingRef = useRef(false); // true quando está atualizando em background
+  const refreshingRef = useRef(false);
 
   // ── Debounce da busca (300ms) ──────────────────────────────────────────────
   const handleBuscaChange = useCallback((e) => {
@@ -92,7 +92,6 @@ export default function Projetos() {
     async function fetchData() {
       if (!isMounted) return;
       try {
-        // Só exibe spinner se não tiver dados em cache ainda
         if (!refreshingRef.current) setLoadingProjetos(true);
         refreshingRef.current = true;
         setFetchError(false);
@@ -106,7 +105,6 @@ export default function Projetos() {
 
         if (!isAdmin) projetosQuery = projetosQuery.eq('vendedor_id', session.user.id);
 
-        // Todas as queries em paralelo — sem espera sequencial
         const queries = [
           projetosQuery,
           supabase.from('clientes').select('id, nome').eq('empresa_id', empresaId).order('nome'),
@@ -153,7 +151,6 @@ export default function Projetos() {
         if (dataArquitetos)       setArquitetos(dataArquitetos);
         if (dataVendedores)       setVendedores(dataVendedores);
 
-        // ── Persiste no cache local para próxima visita ───────────────────
         try {
           localStorage.setItem(`projetos_cache_${empresaId}`, JSON.stringify({
             projetos:   projetosNormalizados ?? [],
@@ -173,11 +170,8 @@ export default function Projetos() {
 
     fallbackTimeout = setTimeout(fetchData, 150);
     return () => { isMounted = false; clearTimeout(fallbackTimeout); };
-  // session?.user?.id em vez de session: evita re-fetch quando o objeto session
-  // é recriado pelo Supabase mas o usuário não mudou
   }, [session?.user?.id, profile?.empresa_id]);
 
-  // Observer para animações — não depende dos dados para evitar re-fires
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('sys-active'); }),
@@ -217,7 +211,7 @@ export default function Projetos() {
     (currentPage + 1) * PAGE_SIZE
   );
 
-  // ── Handlers Tríade ────────────────────────────────────────────────────────
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleCloseModal = () => {
     setModalAberto(false);
@@ -242,7 +236,6 @@ export default function Projetos() {
   const handleDuplicateProjeto = async (e, proj) => {
     e.stopPropagation();
     if (!proj) return;
-    
     try {
       const payload = {
         nome: `${proj.nome} (Cópia)`,
@@ -251,10 +244,8 @@ export default function Projetos() {
         vendedor_id: session.user.id,
         status: proj.status,
       };
-
       const { data, error } = await supabase.from('projetos').insert(payload).select('id, nome, status, created_at, vendedor_id, clientes(id, nome)').single();
       if (error) throw error;
-      
       const cli = Array.isArray(data.clientes) ? data.clientes[0] : data.clientes;
       const novoProj = {
           id: data.id,
@@ -265,7 +256,6 @@ export default function Projetos() {
           vendedor_id: data.vendedor_id,
           data: data.created_at ? new Date(data.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
       };
-
       setProjetos(prev => [novoProj, ...prev]);
     } catch (err) {
       alert("Erro ao duplicar projeto: " + err.message);
@@ -275,12 +265,10 @@ export default function Projetos() {
   const confirmDeleteProjeto = async () => {
     if (!projetoToDelete) return;
     const idToDelete = projetoToDelete;
-    // Optimistic — remove da UI imediatamente
     setProjetos(prev => prev.filter(p => p.id !== idToDelete));
     setProjetoToDelete(null);
     const { error } = await supabase.from('projetos').delete().eq('id', idToDelete);
     if (error) {
-      // Rollback se falhou
       console.error('[delete] Erro:', error.message);
       alert('Erro ao excluir: ' + error.message);
     }
@@ -295,7 +283,6 @@ export default function Projetos() {
   async function handleSaveProjeto(e) {
     e.preventDefault();
     if (!novoNome.trim() || !novoClienteId) return setErroModal('Preencha os campos obrigatórios.');
-    
     setSalvando(true);
     try {
       const rtPadrao = parseFloat(String(novoRtPadrao).replace(',', '.')) || 0;
@@ -307,19 +294,14 @@ export default function Projetos() {
         empresa_id:           profile.empresa_id,
         vendedor_id:          session.user.id,
       };
-
       if (editingProjetoId) {
         const { error } = await supabase.from('projetos').update(payload).eq('id', editingProjetoId);
         if (error) throw error;
-        
         const cliNome = clientes.find(c => c.id === novoClienteId)?.nome || '—';
-        setProjetos(prev => prev.map(p => p.id === editingProjetoId ? { 
-           ...p, ...payload, cliente: cliNome 
-        } : p));
+        setProjetos(prev => prev.map(p => p.id === editingProjetoId ? { ...p, ...payload, cliente: cliNome } : p));
       } else {
         const { data, error } = await supabase.from('projetos').insert({ ...payload, status: 'orcado' }).select().single();
         if (error) throw error;
-        
         navigate(`/projetos/${data.id}`);
       }
       handleCloseModal();
@@ -331,32 +313,34 @@ export default function Projetos() {
   }
 
   return (
-    <div className="page-enter bg-[#050505] text-[#a1a1aa] min-h-screen font-sans">
-      <div className="sys-reveal px-6 pt-6 pb-4 border-b border-zinc-800">
-        <div className="text-[10px] font-mono text-white mb-1 uppercase tracking-widest border border-zinc-800 w-max px-2 py-0.5">04 // Projetos</div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Projetos</h1>
+    <div className="page-enter bg-gray-100 dark:bg-[#050505] text-gray-700 dark:text-[#a1a1aa] min-h-screen font-sans">
+
+      {/* Cabeçalho */}
+      <div className="sys-reveal px-6 pt-6 pb-4 border-b border-gray-300 dark:border-zinc-800">
+        <div className="text-[10px] font-mono text-gray-900 dark:text-white mb-1 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-0.5">04 // Projetos</div>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">Projetos</h1>
       </div>
 
       {/* Toolbar Principal */}
-      <div className="sys-reveal sys-delay-100 px-6 py-4 border-b border-zinc-800 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between relative z-50">
+      <div className="sys-reveal sys-delay-100 px-6 py-4 border-b border-gray-300 dark:border-zinc-800 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between relative z-50">
         <div className="flex items-center gap-4 flex-1">
           <div className="relative flex items-center w-full max-w-xs">
-            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-zinc-600 text-sm pointer-events-none"></iconify-icon>
+            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-gray-400 dark:text-zinc-600 text-sm pointer-events-none"></iconify-icon>
             <input
               value={buscaInput}
               onChange={handleBuscaChange}
               placeholder="Buscar projeto ou cliente..."
-              className="w-full bg-zinc-950 border border-zinc-800 text-white text-[12px] font-mono pl-8 pr-3 py-2.5 outline-none focus:border-yellow-400 transition-colors"
+              className="w-full bg-gray-50 dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono pl-8 pr-3 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 transition-colors placeholder:text-gray-400 dark:placeholder:text-zinc-600"
             />
           </div>
-          
+
           {isAdmin && (
-            <div className="flex items-center gap-2 border-l border-zinc-800 pl-4">
-              <span className="font-mono text-[9px] uppercase text-zinc-500">Exibir:</span>
+            <div className="flex items-center gap-2 border-l border-gray-300 dark:border-zinc-800 pl-4">
+              <span className="font-mono text-[9px] uppercase text-gray-500 dark:text-zinc-500">Exibir:</span>
               <select
                 value={filtroResponsabilidade}
                 onChange={(e) => setFiltroResponsabilidade(e.target.value)}
-                className="bg-[#050505] border border-zinc-800 text-white text-[10px] font-mono px-3 py-2 outline-none focus:border-yellow-400 uppercase tracking-widest cursor-pointer hover:bg-zinc-900 transition-colors"
+                className="bg-gray-50 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[10px] font-mono px-3 py-2 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 uppercase tracking-widest cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
               >
                 <option value="todos">Todos os Projetos</option>
                 <option value="meus">Meus Projetos</option>
@@ -381,16 +365,18 @@ export default function Projetos() {
         </button>
       </div>
 
-      {/* Barra de Status Inferior */}
-      <div className="sys-reveal sys-delay-100 px-6 py-2.5 border-b border-zinc-800 bg-[#0a0a0a]">
+      {/* Barra de Status */}
+      <div className="sys-reveal sys-delay-100 px-6 py-2.5 border-b border-gray-300 dark:border-zinc-800 bg-gray-100 dark:bg-[#0a0a0a]">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-mono text-[9px] uppercase text-zinc-600 mr-2">Filtro de Status:</span>
+          <span className="font-mono text-[9px] uppercase text-gray-500 dark:text-zinc-600 mr-2">Filtro de Status:</span>
           {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
             <button
               key={key}
               onClick={() => setFiltroStatus(key)}
               className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1 border transition-colors ${
-                filtroStatus === key ? `${cfg.border} ${cfg.color} ${cfg.bg}` : 'border-zinc-800 text-zinc-600 hover:text-white'
+                filtroStatus === key
+                  ? `${cfg.border} ${cfg.color} ${cfg.bg}`
+                  : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               {cfg.label}
@@ -399,17 +385,18 @@ export default function Projetos() {
         </div>
       </div>
 
+      {/* Tabela */}
       <div className="px-6 py-4">
         {loadingProjetos ? (
-          <div className="bg-[#0a0a0a] border border-zinc-800">
-            <div className="grid grid-cols-12 px-4 py-2.5 border-b border-zinc-800 bg-black/40">
-              <span className="col-span-5 font-mono text-[9px] uppercase tracking-widest text-zinc-700">Projeto / Cliente</span>
-              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-700">Status</span>
-              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-700">Data</span>
-              <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-700 text-right">Ações</span>
+          <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
+            <div className="grid grid-cols-12 px-4 py-2.5 border-b border-gray-300 dark:border-zinc-800 bg-gray-100/50 dark:bg-black/40">
+              <span className="col-span-5 font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Projeto / Cliente</span>
+              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Status</span>
+              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Data</span>
+              <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 text-right">Ações</span>
             </div>
             {[0,1,2,3,4,5,6].map(i => (
-              <div key={i} className={`grid grid-cols-12 items-center px-4 py-3.5 ${i < 6 ? 'border-b border-zinc-900/50' : ''}`}>
+              <div key={i} className={`grid grid-cols-12 items-center px-4 py-3.5 ${i < 6 ? 'border-b border-gray-100 dark:border-zinc-900/50' : ''}`}>
                 <div className="col-span-5 flex flex-col gap-1.5 pr-4">
                   <div className="sk h-3.5 rounded-sm" style={{ width: `${60 + (i % 4) * 10}%`, animationDelay: `${i * 60}ms` }}></div>
                   <div className="sk h-2.5 w-24 rounded-sm" style={{ animationDelay: `${i * 60 + 30}ms` }}></div>
@@ -424,56 +411,56 @@ export default function Projetos() {
             ))}
           </div>
         ) : (
-          <div className="bg-[#0a0a0a] border border-zinc-800 sys-reveal">
-            <div className="grid grid-cols-12 px-4 py-2.5 border-b border-zinc-800 bg-black/40">
-              <span className="col-span-5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Projeto / Cliente</span>
-              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Status</span>
-              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Data</span>
-              <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-right">Ações</span>
+          <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 sys-reveal">
+            <div className="grid grid-cols-12 px-4 py-2.5 border-b border-gray-300 dark:border-zinc-800 bg-gray-100/50 dark:bg-black/40">
+              <span className="col-span-5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Projeto / Cliente</span>
+              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Status</span>
+              <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Data</span>
+              <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-right">Ações</span>
             </div>
 
             {projetosFiltrados.length === 0 ? (
-              <div className="py-20 text-center flex flex-col items-center gap-3 border-b border-zinc-900">
-                <iconify-icon icon="solar:box-linear" width="32" className="text-zinc-800"></iconify-icon>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Nenhum projeto encontrado</span>
+              <div className="py-20 text-center flex flex-col items-center gap-3 border-b border-gray-100 dark:border-zinc-900">
+                <iconify-icon icon="solar:box-linear" width="32" className="text-gray-200 dark:text-zinc-800"></iconify-icon>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Nenhum projeto encontrado</span>
               </div>
             ) : (
               projetosPaginados.map((p, i) => (
                 <div
                   key={p.id}
                   onClick={() => navigate(`/projetos/${p.id}`)}
-                  className={`card-interactive grid grid-cols-12 items-center px-4 py-3.5 cursor-pointer hover:bg-white/[0.02] group ${
-                    i < projetosPaginados.length - 1 ? 'border-b border-zinc-900/50' : ''
+                  className={`card-interactive grid grid-cols-12 items-center px-4 py-3.5 cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] group ${
+                    i < projetosPaginados.length - 1 ? 'border-b border-gray-100 dark:border-zinc-900/50' : ''
                   }`}
                 >
                   <div className="col-span-5 flex flex-col min-w-0 pr-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-white font-medium truncate group-hover:text-yellow-400 transition-colors">{p.nome}</span>
+                      <span className="text-sm text-gray-900 dark:text-white font-medium truncate group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">{p.nome}</span>
                       {isAdmin && p.vendedor_id !== session?.user?.id && (
-                        <span className="px-1.5 py-0.5 border border-zinc-700 bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-400 shrink-0">
+                        <span className="px-1.5 py-0.5 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-400 shrink-0">
                           OP: {vendedores.find(v => v.id === p.vendedor_id)?.nome?.split(' ')[0] || 'Vendedor'}
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-[9px] text-zinc-600 mt-0.5 truncate uppercase tracking-tighter">{p.cliente}</span>
+                    <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 mt-0.5 truncate uppercase tracking-tighter">{p.cliente}</span>
                   </div>
                   <div className="col-span-2">
                     <StatusPill status={p.status} />
                   </div>
                   <div className="col-span-2">
-                    <span className="font-mono text-[10px] text-zinc-600">{p.data}</span>
+                    <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600">{p.data}</span>
                   </div>
                   <div className="col-span-3 flex items-center justify-end gap-1.5 sm:gap-3">
                     <button
                       onClick={(e) => handleEditProjeto(e, p)}
-                      className="w-8 h-8 flex items-center justify-center border border-zinc-800 text-zinc-600 hover:border-zinc-400 hover:text-white transition-colors"
+                      className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     >
                       <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
                     </button>
                     {isAdmin && (
                       <button
                         onClick={(e) => handleDuplicateProjeto(e, p)}
-                        className="w-8 h-8 flex items-center justify-center border border-zinc-800 text-zinc-600 hover:border-yellow-400/50 hover:text-yellow-400 transition-colors"
+                        className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-yellow-400/50 dark:hover:border-yellow-400/50 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
                       >
                         <iconify-icon icon="solar:copy-linear" width="14"></iconify-icon>
                       </button>
@@ -481,29 +468,30 @@ export default function Projetos() {
                     {isAdmin && (
                       <button
                         onClick={(e) => handleDeleteProjeto(e, p.id)}
-                        className="w-8 h-8 flex items-center justify-center border border-zinc-800 text-zinc-600 hover:border-red-400/50 hover:text-red-400 transition-colors"
+                        className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-red-400/50 dark:hover:border-red-400/50 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                       >
                         <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
                       </button>
                     )}
-                    <span className="w-px h-4 bg-zinc-800 mx-1"></span>
-                    <iconify-icon icon="solar:arrow-right-linear" width="14" className="text-zinc-800 group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                    <span className="w-px h-4 bg-gray-200 dark:bg-zinc-800 mx-1"></span>
+                    <iconify-icon icon="solar:arrow-right-linear" width="14" className="text-gray-300 dark:text-zinc-800 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
                   </div>
                 </div>
               ))
             )}
+
             {projetosFiltrados.length > PAGE_SIZE && (
-              <div className="px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
-                <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+              <div className="px-4 py-3 border-t border-gray-300 dark:border-zinc-800 flex items-center justify-between">
+                <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">
                   Página {currentPage + 1} de {totalPages}
-                  <span className="text-zinc-800 mx-2">·</span>
+                  <span className="text-gray-300 dark:text-zinc-800 mx-2">·</span>
                   {projetosFiltrados.length} projetos
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     disabled={currentPage === 0}
                     onClick={() => setCurrentPage(p => p - 1)}
-                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon>
                     Anterior
@@ -511,7 +499,7 @@ export default function Projetos() {
                   <button
                     disabled={currentPage >= totalPages - 1}
                     onClick={() => setCurrentPage(p => p + 1)}
-                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     Próxima
                     <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
@@ -526,47 +514,49 @@ export default function Projetos() {
       {/* Modal: Novo/Editar */}
       {modalAberto && (
         <div className="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="modal-content bg-[#0a0a0a] border border-zinc-800 w-full max-w-sm p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white mb-6 uppercase tracking-tight flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-yellow-400"></span>
+          <div className="modal-content bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-sm p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 uppercase tracking-tight flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-yellow-500 dark:bg-yellow-400"></span>
               {editingProjetoId ? 'Editar Projeto' : 'Novo Projeto'}
             </h2>
             <form onSubmit={handleSaveProjeto} className="flex flex-col gap-5">
               <div>
-                <label className="text-[9px] font-mono uppercase text-zinc-500 mb-1.5 block">Nome do Projeto</label>
+                <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500 mb-1.5 block">Nome do Projeto</label>
                 <input
                   required
                   value={novoNome}
                   onChange={e => setNovoNome(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-400"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400"
                 />
               </div>
               <div>
-                <label className="text-[9px] font-mono uppercase text-zinc-500 mb-1.5 block">Cliente</label>
+                <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500 mb-1.5 block">Cliente</label>
                 <select
                   required
                   value={novoClienteId}
                   onChange={e => setNovoClienteId(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-400"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400"
                 >
                   <option value="">Selecionar...</option>
                   {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] font-mono uppercase text-zinc-500 mb-1.5 block">Arquiteto Parceiro <span className="text-zinc-700">(opcional)</span></label>
+                <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500 mb-1.5 block">
+                  Arquiteto Parceiro <span className="text-gray-300 dark:text-zinc-700">(opcional)</span>
+                </label>
                 <select
                   value={novoArquitetoId}
                   onChange={e => setNovoArquitetoId(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-400"
+                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400"
                 >
                   <option value="">Nenhum</option>
                   {arquitetos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] font-mono uppercase text-zinc-500 mb-1.5 block">
-                  % RT Padrão <span className="text-zinc-700">(opcional — preenchido automaticamente no orçamento)</span>
+                <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500 mb-1.5 block">
+                  % RT Padrão <span className="text-gray-300 dark:text-zinc-700">(opcional — preenchido automaticamente no orçamento)</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -576,17 +566,17 @@ export default function Projetos() {
                     value={novoRtPadrao}
                     onChange={e => setNovoRtPadrao(e.target.value)}
                     placeholder="0"
-                    className="w-full bg-black border border-zinc-800 text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-400"
+                    className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400"
                   />
-                  <span className="text-zinc-500 font-mono text-sm shrink-0">%</span>
+                  <span className="text-gray-400 dark:text-zinc-500 font-mono text-sm shrink-0">%</span>
                 </div>
               </div>
 
-              {erroModal && <div className="text-[10px] font-mono text-red-400 uppercase tracking-widest">{erroModal}</div>}
+              {erroModal && <div className="text-[10px] font-mono text-red-600 dark:text-red-400 uppercase tracking-widest">{erroModal}</div>}
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={handleCloseModal} className="flex-1 font-mono text-[10px] uppercase border border-zinc-800 py-3 hover:text-white">Cancelar</button>
-                <button type="submit" disabled={salvando} className="flex-1 bg-yellow-400 text-black font-mono font-bold text-[10px] uppercase py-3 hover:bg-yellow-300 disabled:opacity-50">
+                <button type="button" onClick={handleCloseModal} className="flex-1 font-mono text-[10px] uppercase border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-[#a1a1aa] py-3 hover:text-gray-900 dark:hover:text-white transition-colors">Cancelar</button>
+                <button type="submit" disabled={salvando} className="flex-1 bg-yellow-400 text-black font-mono font-bold text-[10px] uppercase py-3 hover:bg-yellow-300 disabled:opacity-50 transition-colors">
                   {salvando ? 'Processando...' : 'Confirmar'}
                 </button>
               </div>
@@ -594,18 +584,19 @@ export default function Projetos() {
           </div>
         </div>
       )}
-      {/* Modal Confirmar Deleção */}
+
+      {/* Modal: Confirmar Deleção */}
       {projetoToDelete && (
         <div className="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="modal-content bg-[#0a0a0a] border border-zinc-800 w-full max-w-sm p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white mb-4 uppercase tracking-tight flex items-center gap-2">
+          <div className="modal-content bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-sm p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-tight flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-red-500"></span>
               Excluir Projeto
             </h2>
-            <p className="text-zinc-400 text-sm mb-6">Tem certeza que deseja excluir permanentemente este projeto? Esta ação não pode ser desfeita.</p>
+            <p className="text-gray-600 dark:text-zinc-400 text-sm mb-6">Tem certeza que deseja excluir permanentemente este projeto? Esta ação não pode ser desfeita.</p>
             <div className="flex gap-3">
-              <button onClick={() => setProjetoToDelete(null)} className="flex-1 font-mono text-[10px] uppercase border border-zinc-800 py-3 hover:text-white transition-colors">Cancelar</button>
-              <button onClick={confirmDeleteProjeto} className="flex-1 bg-red-500/10 text-red-500 font-mono font-bold text-[10px] uppercase py-3 border border-red-500/30 hover:bg-red-500 hover:text-white transition-all">Excluir</button>
+              <button onClick={() => setProjetoToDelete(null)} className="flex-1 font-mono text-[10px] uppercase border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-[#a1a1aa] py-3 hover:text-gray-900 dark:hover:text-white transition-colors">Cancelar</button>
+              <button onClick={confirmDeleteProjeto} className="flex-1 bg-red-500/10 text-red-600 dark:text-red-500 font-mono font-bold text-[10px] uppercase py-3 border border-red-400/30 dark:border-red-500/30 hover:bg-red-500 hover:text-white transition-all">Excluir</button>
             </div>
           </div>
         </div>

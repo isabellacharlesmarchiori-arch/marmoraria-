@@ -48,15 +48,15 @@ function getFiltroDefault() {
 }
 
 const CHIP_BASE    = 'border px-3 py-1 font-mono text-[10px] uppercase tracking-widest cursor-pointer transition-colors';
-const CHIP_INATIVO = 'border-zinc-800 text-zinc-500 hover:border-zinc-600';
+const CHIP_INATIVO = 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600';
 const CHIP_ATIVO   = 'border-yellow-400 text-yellow-400';
 
 const SELECT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full cursor-pointer';
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full [color-scheme:dark]';
 
 export default function FiltrosLancamentos({
@@ -124,13 +124,13 @@ export default function FiltrosLancamentos({
   }
 
   return (
-    <div className="border border-zinc-800 bg-[#0a0a0a]">
+    <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a]">
       {/* Faixa principal */}
       <div className="p-4 flex flex-col gap-3">
 
         {/* Chips de tipo */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 mr-1">Tipo</span>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mr-1">Tipo</span>
           {[
             { v: 'todos',   l: 'Todos'  },
             { v: 'entrada', l: 'Entrada' },
@@ -149,7 +149,7 @@ export default function FiltrosLancamentos({
 
         {/* Chips de status */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 mr-1">Status</span>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mr-1">Status</span>
           {[
             { v: 'todos',    l: 'Todos'     },
             { v: 'pendente', l: 'Pendentes' },
@@ -172,12 +172,12 @@ export default function FiltrosLancamentos({
 
           {/* Linha 1: rótulo + campo DB + toggle modo + ações */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Período por</span>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Período por</span>
 
             <select
               value={filtros.campoData}
               onChange={e => setFiltros({ ...filtros, campoData: e.target.value })}
-              className="bg-[#0a0a0a] border border-zinc-800 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-zinc-500 outline-none focus:border-yellow-400 cursor-pointer transition-colors"
+              className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 outline-none focus:border-yellow-400 cursor-pointer transition-colors"
             >
               <option value="data_vencimento">Vencimento</option>
               <option value="data_pagamento">Pagamento</option>
@@ -185,7 +185,7 @@ export default function FiltrosLancamentos({
             </select>
 
             {/* Toggle Mês / Intervalo */}
-            <div className="flex items-center border border-zinc-800 overflow-hidden">
+            <div className="flex items-center border border-gray-300 dark:border-zinc-800 overflow-hidden">
               {[['mes','Mês único'],['intervalo','Intervalo']].map(([v, l]) => (
                 <button
                   key={v}
@@ -194,7 +194,7 @@ export default function FiltrosLancamentos({
                   className={`px-3 py-1 font-mono text-[9px] uppercase tracking-widest transition-colors ${
                     filtros.modoPeriodo === v
                       ? 'bg-yellow-400 text-black'
-                      : 'text-zinc-500 hover:text-zinc-300'
+                      : 'text-gray-500 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300'
                   }`}
                 >
                   {l}
@@ -223,7 +223,7 @@ export default function FiltrosLancamentos({
               <button
                 type="button"
                 onClick={limpar}
-                className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 hover:text-zinc-400 transition-colors"
+                className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400 transition-colors"
               >
                 Limpar
               </button>
@@ -241,7 +241,7 @@ export default function FiltrosLancamentos({
               className={INPUT_BASE + ' w-auto'}
             />
             {filtros.mesFiltro && (
-              <span className="font-mono text-[9px] text-zinc-500">
+              <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500">
                 {formatMesLabel(filtros.mesFiltro)}
               </span>
             )}
@@ -275,7 +275,7 @@ export default function FiltrosLancamentos({
               onChange={e => setFiltros({ ...filtros, periodoInicio: e.target.value })}
               className={INPUT_BASE + ' w-auto'}
             />
-            <span className="font-mono text-[9px] text-zinc-600">até</span>
+            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">até</span>
             <input
               type="date"
               value={filtros.periodoFim}
@@ -289,11 +289,11 @@ export default function FiltrosLancamentos({
 
       {/* Painel avançado */}
       {avancadoAberto && (
-        <div className="border-t border-zinc-800 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="border-t border-gray-300 dark:border-zinc-800 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
           {/* Busca */}
           <div className="flex flex-col gap-1 lg:col-span-3">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Busca por descrição
             </span>
             <input
@@ -309,7 +309,7 @@ export default function FiltrosLancamentos({
 
           {/* Categoria */}
           <div className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Categoria
             </span>
             <select
@@ -326,7 +326,7 @@ export default function FiltrosLancamentos({
 
           {/* Parceiro unificado */}
           <div className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Parceiro / Arquiteto / Cliente
             </span>
             <select
@@ -343,7 +343,7 @@ export default function FiltrosLancamentos({
 
           {/* Conta */}
           <div className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Conta
             </span>
             <select
@@ -360,7 +360,7 @@ export default function FiltrosLancamentos({
 
           {/* Projeto */}
           <div className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Projeto
             </span>
             <select

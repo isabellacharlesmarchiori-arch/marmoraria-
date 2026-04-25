@@ -5,17 +5,17 @@ import { supabase } from '../../../lib/supabase';
 import { formatBRL } from '../../../utils/format';
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full [color-scheme:dark]';
 
 const SELECT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full cursor-pointer';
 
 function Campo({ label, children, required }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
         {label}{required && ' *'}
       </span>
       {children}
@@ -26,10 +26,10 @@ function Campo({ label, children, required }) {
 function Secao({ label }) {
   return (
     <div className="flex items-center gap-3 my-2">
-      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 border border-zinc-800 px-2 py-0.5">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 border border-gray-300 dark:border-zinc-800 px-2 py-0.5">
         {label}
       </span>
-      <div className="flex-1 border-t border-zinc-800" />
+      <div className="flex-1 border-t border-gray-300 dark:border-zinc-800" />
     </div>
   );
 }
@@ -186,15 +186,15 @@ export default function ModalCadastrarCheque({
       onClick={onFechar}
     >
       <div
-        className="bg-[#0a0a0a] border border-zinc-800 w-full max-w-lg mx-4"
+        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-lg mx-4"
         onClick={e => e.stopPropagation()}
       >
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 dark:border-zinc-800">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-400">
             Cadastrar cheque
           </span>
-          <button type="button" onClick={onFechar} className="text-zinc-600 hover:text-white transition-colors">
+          <button type="button" onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors">
             <iconify-icon icon="lucide:x" width="16"></iconify-icon>
           </button>
         </div>
@@ -217,7 +217,7 @@ export default function ModalCadastrarCheque({
                   onChange={() => set('vinculo', v)}
                   className="accent-yellow-400"
                 />
-                <span className="text-sm text-zinc-300">{l}</span>
+                <span className="text-sm text-gray-600 dark:text-zinc-300">{l}</span>
               </label>
             ))}
           </div>
@@ -240,7 +240,7 @@ export default function ModalCadastrarCheque({
                 })}
               </select>
               {saldoLanc !== null && (
-                <span className="font-mono text-[9px] text-zinc-600">
+                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">
                   Saldo pendente: {formatBRL(saldoLanc)}
                 </span>
               )}
@@ -312,7 +312,7 @@ export default function ModalCadastrarCheque({
 
           <Campo label="Valor" required>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-zinc-500">R$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-gray-500 dark:text-zinc-500">R$</span>
               <input
                 type="number"
                 min="0.01"
@@ -343,7 +343,7 @@ export default function ModalCadastrarCheque({
               type="button"
               onClick={onFechar}
               disabled={salvando}
-              className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors border border-zinc-800 px-4 py-2"
+              className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors border border-gray-300 dark:border-zinc-800 px-4 py-2"
             >
               Cancelar
             </button>

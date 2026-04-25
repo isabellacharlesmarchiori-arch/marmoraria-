@@ -6,7 +6,7 @@ const LABEL_CAMPO_DATA = {
   competencia:     'Competência',
 };
 
-const TH = 'px-4 py-3.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-left';
+const TH = 'px-4 py-3.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-left';
 
 const SKELETON_WIDTHS = ['24px', '48px', '160px', '96px', '80px', '80px', '56px', '24px'];
 
@@ -23,15 +23,15 @@ export default function TabelaLancamentos({
 
   if (erro) {
     return (
-      <div className="border border-zinc-800 p-10 flex flex-col items-center gap-3">
-        <iconify-icon icon="lucide:alert-triangle" width="28" className="text-zinc-700"></iconify-icon>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-center">
+      <div className="border border-gray-300 dark:border-zinc-800 p-10 flex flex-col items-center gap-3">
+        <iconify-icon icon="lucide:alert-triangle" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-center">
           {erro}
         </p>
         <button
           type="button"
           onClick={onRecarregar}
-          className="mt-1 font-mono text-[9px] uppercase tracking-widest text-yellow-400 hover:text-yellow-300 transition-colors border border-zinc-800 px-3 py-1.5"
+          className="mt-1 font-mono text-[9px] uppercase tracking-widest text-yellow-400 hover:text-yellow-300 transition-colors border border-gray-300 dark:border-zinc-800 px-3 py-1.5"
         >
           Tentar novamente
         </button>
@@ -40,10 +40,10 @@ export default function TabelaLancamentos({
   }
 
   return (
-    <div className="border border-zinc-800 overflow-x-auto">
+    <div className="border border-gray-300 dark:border-zinc-800 overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-zinc-800">
+          <tr className="border-b border-gray-300 dark:border-zinc-800">
             <th className="px-3 py-3.5 w-8">
               {onToggleTodos && (
                 <input
@@ -67,11 +67,11 @@ export default function TabelaLancamentos({
         <tbody>
           {loading ? (
             Array.from({ length: 8 }).map((_, i) => (
-              <tr key={i} className="border-b border-zinc-900">
+              <tr key={i} className="border-b border-gray-200 dark:border-zinc-900">
                 {SKELETON_WIDTHS.map((w, j) => (
                   <td key={j} className="px-4 py-3.5">
                     <div
-                      className="h-4 bg-zinc-800 animate-pulse rounded"
+                      className="h-4 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded"
                       style={{ width: w }}
                     />
                   </td>
@@ -82,8 +82,8 @@ export default function TabelaLancamentos({
             <tr>
               <td colSpan={8} className="px-4 py-12 text-center">
                 <div className="flex flex-col items-center gap-3">
-                  <iconify-icon icon="lucide:receipt" width="28" className="text-zinc-700"></iconify-icon>
-                  <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+                  <iconify-icon icon="lucide:receipt" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
                     Nenhum lançamento encontrado no período com os filtros atuais.
                   </p>
                 </div>

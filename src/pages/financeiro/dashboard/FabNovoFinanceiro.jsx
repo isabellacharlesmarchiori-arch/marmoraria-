@@ -39,7 +39,7 @@ export default function FabNovoFinanceiro() {
             <button
               key={op.label}
               onClick={() => { toast.info('Em breve'); setAberto(false); }}
-              className="flex items-center gap-2 bg-[#0a0a0a] border border-zinc-700 text-zinc-300 font-mono text-[11px] uppercase tracking-widest px-4 py-2 hover:bg-zinc-800 hover:text-white transition-colors"
+              className="flex items-center gap-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-300 font-mono text-[11px] uppercase tracking-widest px-4 py-2 hover:bg-gray-200 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
               style={{ animation: `fadeUp 0.12s ease ${i * 40}ms both` }}
             >
               <iconify-icon icon={op.icon} width="13"></iconify-icon>

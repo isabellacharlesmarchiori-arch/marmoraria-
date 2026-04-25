@@ -68,7 +68,7 @@ export default function LinhaLancamento({
 
   return (
     <tr
-      className={`border-b border-zinc-900 hover:bg-white/[0.015] transition-colors${destacar ? ' bg-red-950/20' : ''}${selecionado ? ' bg-yellow-400/5' : ''}`}
+      className={`border-b border-gray-200 dark:border-zinc-900 hover:bg-white/[0.015] transition-colors${destacar ? ' bg-red-950/20' : ''}${selecionado ? ' bg-yellow-400/5' : ''}`}
       onClick={() => onLinhaClicada?.(lancamento)}
     >
       {/* Checkbox */}
@@ -87,30 +87,30 @@ export default function LinhaLancamento({
 
       {/* Data */}
       <td className="px-4 py-3.5 whitespace-nowrap cursor-pointer">
-        <span className="font-mono text-[11px] text-zinc-500">{dataDisplay}</span>
+        <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">{dataDisplay}</span>
       </td>
 
       {/* Descrição + parceiro */}
       <td className="px-4 py-3.5 max-w-xs">
-        <p className="text-sm text-white truncate">{lancamento.descricao}</p>
+        <p className="text-sm text-gray-900 dark:text-white truncate">{lancamento.descricao}</p>
         {parceiro && (
-          <p className="font-mono text-[9px] text-zinc-600 mt-0.5 truncate">
+          <p className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 mt-0.5 truncate">
             {parceiro.nome}{' '}
-            <span className="text-zinc-700">({parceiro.tipo})</span>
+            <span className="text-gray-400 dark:text-zinc-700">({parceiro.tipo})</span>
           </p>
         )}
       </td>
 
       {/* Categoria */}
       <td className="px-4 py-3.5">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
           {categoriaNome}
         </span>
       </td>
 
       {/* Conta */}
       <td className="px-4 py-3.5">
-        <span className="font-mono text-[9px] text-zinc-500">{contaNome}</span>
+        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500">{contaNome}</span>
       </td>
 
       {/* Valor */}
@@ -121,7 +121,7 @@ export default function LinhaLancamento({
             <iconify-icon
               icon="lucide:lock"
               width="11"
-              className="text-zinc-600"
+              className="text-gray-500 dark:text-zinc-600"
               title="Aguarda quitação do projeto"
             ></iconify-icon>
           )}

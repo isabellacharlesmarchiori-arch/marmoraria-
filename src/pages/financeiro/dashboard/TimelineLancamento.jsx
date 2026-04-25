@@ -53,11 +53,11 @@ export default function TimelineLancamento({ lancamento, lookups }) {
       {/* Conteúdo central */}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="font-mono text-[9px] text-zinc-600 shrink-0">{dataDisplay}</span>
-          <span className="text-sm text-white truncate">{lancamento.descricao}</span>
+          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{dataDisplay}</span>
+          <span className="text-sm text-gray-900 dark:text-white truncate">{lancamento.descricao}</span>
         </div>
         {linhaSecundaria && (
-          <p className="font-mono text-[9px] text-zinc-600 mt-0.5 truncate">{linhaSecundaria}</p>
+          <p className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 mt-0.5 truncate">{linhaSecundaria}</p>
         )}
       </div>
 
@@ -71,7 +71,7 @@ export default function TimelineLancamento({ lancamento, lookups }) {
             <iconify-icon
               icon="lucide:lock"
               width="11"
-              className="text-zinc-600"
+              className="text-gray-500 dark:text-zinc-600"
               title="Aguarda quitação do projeto"
             ></iconify-icon>
           )}

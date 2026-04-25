@@ -7,7 +7,7 @@ function ItemMenu({ icon, label, onClick, destrutivo }) {
       type="button"
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 w-full text-left font-mono text-[10px] uppercase tracking-widest transition-colors hover:bg-white/[0.015] ${
-        destrutivo ? 'text-zinc-400 hover:text-red-400' : 'text-white hover:text-yellow-400'
+        destrutivo ? 'text-gray-500 dark:text-zinc-400 hover:text-red-400' : 'text-gray-900 dark:text-white hover:text-yellow-400'
       }`}
     >
       <iconify-icon icon={icon} width="12"></iconify-icon>
@@ -75,14 +75,14 @@ export default function MenuAcoesCheque({
         ref={btnRef}
         type="button"
         onClick={handleAbrirMenu}
-        className="text-zinc-600 hover:text-yellow-400 transition-colors"
+        className="text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors"
       >
         <iconify-icon icon="lucide:more-horizontal" width="16"></iconify-icon>
       </button>
 
       {aberto && createPortal(
         <div
-          className="fixed z-[200] bg-[#0a0a0a] border border-zinc-800 min-w-[180px] py-1"
+          className="fixed z-[200] bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 min-w-[180px] py-1"
           style={{ top: pos.top, right: pos.right }}
           onClick={e => e.stopPropagation()}
         >
@@ -118,7 +118,7 @@ export default function MenuAcoesCheque({
           {mostrarCancelar && (
             <>
               {(mostrarDepositar || mostrarCompensar || mostrarRepassar || mostrarDevolver) && (
-                <div className="border-t border-zinc-800 my-1" />
+                <div className="border-t border-gray-300 dark:border-zinc-800 my-1" />
               )}
               <ItemMenu
                 icon="lucide:x-circle"

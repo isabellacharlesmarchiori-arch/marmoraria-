@@ -22,11 +22,11 @@ export function filtroChequesDefault() {
 }
 
 const CHIP_BASE    = 'border px-3 py-1 font-mono text-[10px] uppercase tracking-widest cursor-pointer transition-colors';
-const CHIP_INATIVO = 'border-zinc-800 text-zinc-500 hover:border-zinc-600';
+const CHIP_INATIVO = 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600';
 const CHIP_ATIVO   = 'border-yellow-400 text-yellow-400';
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors [color-scheme:dark]';
 
 const STATUS_OPTIONS = [
@@ -61,11 +61,11 @@ export default function FiltrosCheques({ filtros, setFiltros }) {
   }
 
   return (
-    <div className="border border-zinc-800 bg-[#0a0a0a] p-4 flex flex-col gap-3">
+    <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] p-4 flex flex-col gap-3">
 
       {/* Chips de status */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 mr-1">Status</span>
+        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mr-1">Status</span>
         <button
           type="button"
           onClick={() => setFiltros({ ...filtros, statuses: [] })}
@@ -87,14 +87,14 @@ export default function FiltrosCheques({ filtros, setFiltros }) {
 
       {/* Período + busca + limpar */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Bom pra</span>
+        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Bom pra</span>
         <input
           type="date"
           value={filtros.periodoInicio}
           onChange={e => setFiltros({ ...filtros, periodoInicio: e.target.value })}
           className={INPUT_BASE + ' w-auto'}
         />
-        <span className="font-mono text-[9px] text-zinc-600">até</span>
+        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">até</span>
         <input
           type="date"
           value={filtros.periodoFim}
@@ -115,7 +115,7 @@ export default function FiltrosCheques({ filtros, setFiltros }) {
         <button
           type="button"
           onClick={limpar}
-          className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 hover:text-zinc-400 transition-colors ml-auto whitespace-nowrap"
+          className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400 transition-colors ml-auto whitespace-nowrap"
         >
           Limpar filtros
         </button>

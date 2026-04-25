@@ -84,13 +84,13 @@ const LINHAS = [
 const TRIMS = ['T1', 'T2', 'T3', 'T4'];
 
 function corVariacao(pct) {
-  if (pct === null) return 'text-zinc-600';
+  if (pct === null) return 'text-gray-500 dark:text-zinc-600';
   if (Math.abs(pct) > 10) return pct >= 0 ? 'text-emerald-400' : 'text-red-400';
   return pct >= 0 ? 'text-emerald-600' : 'text-red-600';
 }
 
 function CelVar({ pct }) {
-  if (pct === null) return <span className="text-zinc-700 font-mono text-[9px]">—</span>;
+  if (pct === null) return <span className="text-gray-400 dark:text-zinc-700 font-mono text-[9px]">—</span>;
   const cor = corVariacao(pct);
   const destaque = Math.abs(pct) > 10;
   return (
@@ -166,9 +166,9 @@ export default function AnaliseTrimestral() {
 
   if (loading) {
     return (
-      <div className="border border-zinc-800 bg-[#0a0a0a] p-8 flex flex-col gap-3">
+      <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] p-8 flex flex-col gap-3">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="h-4 bg-zinc-900 animate-pulse rounded" style={{ width: `${60 + (i % 4) * 10}%` }} />
+          <div key={i} className="h-4 bg-gray-100 dark:bg-zinc-900 animate-pulse rounded" style={{ width: `${60 + (i % 4) * 10}%` }} />
         ))}
       </div>
     );
@@ -176,10 +176,10 @@ export default function AnaliseTrimestral() {
 
   if (erro) {
     return (
-      <div className="border border-zinc-800 p-10 flex flex-col items-center gap-3">
-        <iconify-icon icon="lucide:alert-triangle" width="28" className="text-zinc-700"></iconify-icon>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{erro}</p>
-        <button type="button" onClick={carregar} className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-zinc-800 px-3 py-1.5 hover:bg-zinc-900 transition-colors">
+      <div className="border border-gray-300 dark:border-zinc-800 p-10 flex flex-col items-center gap-3">
+        <iconify-icon icon="lucide:alert-triangle" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">{erro}</p>
+        <button type="button" onClick={carregar} className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-gray-300 dark:border-zinc-800 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors">
           Tentar novamente
         </button>
       </div>
@@ -188,16 +188,16 @@ export default function AnaliseTrimestral() {
 
   const seletorAno = (
     <div className="flex items-center gap-3">
-      <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Ano</label>
+      <label className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Ano</label>
       <input
         type="number"
         min="2020"
         max="2099"
         value={ano}
         onChange={e => setAno(Number(e.target.value))}
-        className="bg-[#0a0a0a] border border-zinc-800 px-3 py-1.5 font-mono text-[10px] text-white outline-none focus:border-yellow-400 transition-colors w-24"
+        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-1.5 font-mono text-[10px] text-gray-900 dark:text-white outline-none focus:border-yellow-400 transition-colors w-24"
       />
-      <span className="font-mono text-[9px] text-zinc-600">
+      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">
         Regime de competência. Variações &gt;10% em negrito.
       </span>
     </div>
@@ -207,19 +207,19 @@ export default function AnaliseTrimestral() {
     return (
       <div className="flex flex-col gap-4">
         {seletorAno}
-        <div className="border border-zinc-800 bg-[#0a0a0a] p-12 flex flex-col items-center gap-3">
-          <iconify-icon icon="lucide:bar-chart-2" width="28" className="text-zinc-700"></iconify-icon>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-center">
+        <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] p-12 flex flex-col items-center gap-3">
+          <iconify-icon icon="lucide:bar-chart-2" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-center">
             Nenhum dado encontrado para {ano}.
           </p>
-          <p className="font-mono text-[8px] text-zinc-700 text-center max-w-xs">
+          <p className="font-mono text-[8px] text-gray-400 dark:text-zinc-700 text-center max-w-xs">
             Verifique se o plano de contas foi configurado e se há lançamentos com campo
             "competência" dentro do ano selecionado.
           </p>
           <button
             type="button"
             onClick={carregar}
-            className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-zinc-800 px-3 py-1.5 hover:bg-zinc-900 transition-colors mt-1"
+            className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-gray-300 dark:border-zinc-800 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors mt-1"
           >
             Tentar novamente
           </button>
@@ -235,25 +235,25 @@ export default function AnaliseTrimestral() {
       {seletorAno}
 
       {/* Tabela */}
-      <div className="border border-zinc-800 bg-[#0a0a0a] overflow-x-auto">
+      <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] overflow-x-auto">
 
         {/* Cabeçalho */}
-        <div className="px-4 py-3 border-b border-zinc-800">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-white">
+        <div className="px-4 py-3 border-b border-gray-300 dark:border-zinc-800">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white">
             Análise Trimestral — {ano}
           </span>
         </div>
 
         <table className="w-full border-collapse min-w-[640px]">
           <thead>
-            <tr className="border-b border-zinc-800">
-              <th className="text-left py-2 pl-4 font-mono text-[8px] uppercase tracking-widest text-zinc-600">Indicador</th>
+            <tr className="border-b border-gray-300 dark:border-zinc-800">
+              <th className="text-left py-2 pl-4 font-mono text-[8px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Indicador</th>
               {TRIMS.map(t => (
-                <th key={t} className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-zinc-600">{t}</th>
+                <th key={t} className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">{t}</th>
               ))}
-              <th className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-zinc-600">T1→T2</th>
-              <th className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-zinc-600">T2→T3</th>
-              <th className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-zinc-600">T3→T4</th>
+              <th className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">T1→T2</th>
+              <th className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">T2→T3</th>
+              <th className="text-right py-2 pr-3 font-mono text-[8px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">T3→T4</th>
             </tr>
           </thead>
           <tbody>
@@ -266,25 +266,25 @@ export default function AnaliseTrimestral() {
               const v34 = varPct(vals[3], vals[2]);
 
               const rowCls = isFinal
-                ? 'bg-zinc-950 border-t-2 border-zinc-600 border-b border-zinc-800'
+                ? 'bg-gray-50 dark:bg-zinc-950 border-t-2 border-gray-400 dark:border-zinc-600 border-b border-gray-300 dark:border-zinc-800'
                 : isSubtotal
-                ? 'bg-zinc-950/60 border-t border-zinc-800 border-b border-zinc-800'
-                : 'border-b border-zinc-900/50 hover:bg-zinc-900/20';
+                ? 'bg-gray-100/60 dark:bg-zinc-950/60 border-t border-gray-300 dark:border-zinc-800 border-b border-gray-300 dark:border-zinc-800'
+                : 'border-b border-zinc-900/50 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20';
 
               const labelCls = isFinal
-                ? 'font-mono text-[10px] font-bold text-white uppercase tracking-widest pl-4 py-3'
+                ? 'font-mono text-[10px] font-bold text-gray-900 dark:text-white uppercase tracking-widest pl-4 py-3'
                 : isSubtotal
-                ? 'font-mono text-[10px] font-semibold text-zinc-300 uppercase tracking-wide pl-4 py-2.5'
-                : 'text-sm text-zinc-400 pl-4 py-2';
+                ? 'font-mono text-[10px] font-semibold text-gray-600 dark:text-zinc-300 uppercase tracking-wide pl-4 py-2.5'
+                : 'text-sm text-gray-500 dark:text-zinc-400 pl-4 py-2';
 
               return (
                 <tr key={linha.key} className={rowCls}>
                   <td className={labelCls}>{linha.label}</td>
                   {vals.map((v, i) => {
-                    const corV = v < 0 ? 'text-red-400' : isFinal ? 'text-emerald-400' : isSubtotal ? 'text-blue-300' : 'text-zinc-300';
+                    const corV = v < 0 ? 'text-red-400' : isFinal ? 'text-emerald-400' : isSubtotal ? 'text-blue-600 dark:text-blue-300' : 'text-gray-600 dark:text-zinc-300';
                     return (
                       <td key={i} className={`text-right pr-3 tabular-nums font-mono whitespace-nowrap ${isFinal ? 'py-3 text-base font-bold' : isSubtotal ? 'py-2.5 text-sm font-semibold' : 'py-2 text-sm'} ${corV}`}>
-                        {v !== 0 ? formatBRL(Math.abs(v)) : <span className="text-zinc-700">—</span>}
+                        {v !== 0 ? formatBRL(Math.abs(v)) : <span className="text-gray-400 dark:text-zinc-700">—</span>}
                       </td>
                     );
                   })}
@@ -302,10 +302,10 @@ export default function AnaliseTrimestral() {
                 return rl ? (resultados[t].mc / rl * 100) : 0;
               });
               return (
-                <tr className="border-b border-zinc-900/30 bg-zinc-950/30">
-                  <td className="text-sm text-zinc-600 italic pl-4 py-2">% Margem de Contribuição</td>
+                <tr className="border-b border-gray-200/40 dark:border-zinc-900/30 bg-gray-100/30 dark:bg-zinc-950/30">
+                  <td className="text-sm text-gray-500 dark:text-zinc-600 italic pl-4 py-2">% Margem de Contribuição</td>
                   {pctsMC.map((p, i) => (
-                    <td key={i} className="text-right pr-3 font-mono text-[10px] tabular-nums text-zinc-500 py-2">
+                    <td key={i} className="text-right pr-3 font-mono text-[10px] tabular-nums text-gray-500 dark:text-zinc-500 py-2">
                       {p > 0 ? `${p.toFixed(1)}%` : '—'}
                     </td>
                   ))}
@@ -321,10 +321,10 @@ export default function AnaliseTrimestral() {
                 return rl ? (resultados[t].ebi / rl * 100) : 0;
               });
               return (
-                <tr className="border-b border-zinc-900/30 bg-zinc-950/30">
-                  <td className="text-sm text-zinc-600 italic pl-4 py-2">% EBITDA</td>
+                <tr className="border-b border-gray-200/40 dark:border-zinc-900/30 bg-gray-100/30 dark:bg-zinc-950/30">
+                  <td className="text-sm text-gray-500 dark:text-zinc-600 italic pl-4 py-2">% EBITDA</td>
                   {pctsEBI.map((p, i) => (
-                    <td key={i} className="text-right pr-3 font-mono text-[10px] tabular-nums text-zinc-500 py-2">
+                    <td key={i} className="text-right pr-3 font-mono text-[10px] tabular-nums text-gray-500 dark:text-zinc-500 py-2">
                       {p !== 0 ? `${p.toFixed(1)}%` : '—'}
                     </td>
                   ))}
@@ -336,7 +336,7 @@ export default function AnaliseTrimestral() {
         </table>
       </div>
 
-      <p className="font-mono text-[9px] text-zinc-700">
+      <p className="font-mono text-[9px] text-gray-400 dark:text-zinc-700">
         Regime de competência. Variações acima de 10% em negrito. Sinais negativos indicam queda.
       </p>
     </div>

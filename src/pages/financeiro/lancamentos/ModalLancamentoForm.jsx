@@ -40,12 +40,12 @@ const GRUPO_LABEL = {
 };
 
 const INPUT_BASE =
-  'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full';
 
 const CHIP_BASE = 'border px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors cursor-pointer';
 const CHIP_ON   = 'border-yellow-400 text-yellow-400';
-const CHIP_OFF  = 'border-zinc-800 text-zinc-500 hover:border-zinc-600';
+const CHIP_OFF  = 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,8 +53,8 @@ function Campo({ label, children, hint }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-baseline gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">{label}</span>
-        {hint && <span className="font-mono text-[8px] text-zinc-700">{hint}</span>}
+        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">{label}</span>
+        {hint && <span className="font-mono text-[8px] text-gray-400 dark:text-zinc-700">{hint}</span>}
       </div>
       {children}
     </div>
@@ -399,13 +399,13 @@ export default function ModalLancamentoForm({
       onClick={onFechar}
     >
       <div
-        className="bg-[#0a0a0a] border border-zinc-800 w-full max-w-2xl max-h-full overflow-y-auto"
+        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-2xl max-h-full overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between sticky top-0 bg-[#0a0a0a] z-10">
+        <div className="px-6 py-4 border-b border-gray-300 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-gray-50 dark:bg-[#0a0a0a] z-10">
           <div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
               {editando ? 'Editar lançamento' : 'Novo lançamento'}
             </span>
             {editando && ehGrupo && (
@@ -414,7 +414,7 @@ export default function ModalLancamentoForm({
               </span>
             )}
           </div>
-          <button type="button" onClick={onFechar} className="text-zinc-600 hover:text-white transition-colors">
+          <button type="button" onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors">
             <iconify-icon icon="lucide:x" width="16"></iconify-icon>
           </button>
         </div>
@@ -444,7 +444,7 @@ export default function ModalLancamentoForm({
                 ))}
               </div>
               {escopoEdicao !== 'esta' && (
-                <p className="font-mono text-[8px] text-zinc-600">
+                <p className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">
                   Datas individuais de cada parcela são preservadas. Apenas valor, categoria e parceiro são atualizados em lote.
                 </p>
               )}
@@ -453,7 +453,7 @@ export default function ModalLancamentoForm({
 
           {/* ── 1. Tipo ──────────────────────────────────────────────────── */}
           <div className="flex flex-col gap-2">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Tipo</span>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">Tipo</span>
             <div className="flex gap-2">
               {[{ v: 'entrada', l: 'Entrada' }, { v: 'saida', l: 'Saída' }].map(({ v, l }) => (
                 <button
@@ -534,8 +534,8 @@ export default function ModalLancamentoForm({
           </Campo>
 
           {/* ── 7. Bloco Valor e Parcelas ─────────────────────────────────── */}
-          <div className="border border-zinc-800 p-4 flex flex-col gap-4">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+          <div className="border border-gray-300 dark:border-zinc-800 p-4 flex flex-col gap-4">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Valor e Parcelas
             </span>
 
@@ -583,12 +583,12 @@ export default function ModalLancamentoForm({
             )}
 
             {/* Valor total em destaque */}
-            <div className="flex items-baseline justify-between pt-2 border-t border-zinc-800">
-              <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+            <div className="flex items-baseline justify-between pt-2 border-t border-gray-300 dark:border-zinc-800">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
                 {multiParcelas ? `Total (${qtd} × ${formatBRL(valorParcelaNum)})` : 'Valor total'}
               </span>
               <span className={`font-mono text-xl font-bold tabular-nums tracking-tight ${
-                valorTotal > 0 ? 'text-yellow-400' : 'text-zinc-700'
+                valorTotal > 0 ? 'text-yellow-400' : 'text-gray-400 dark:text-zinc-700'
               }`}>
                 {valorTotal > 0 ? formatBRL(valorTotal) : '—'}
               </span>
@@ -630,26 +630,26 @@ export default function ModalLancamentoForm({
             </select>
           </Campo>
 
-          <div className="border-t border-zinc-800" />
+          <div className="border-t border-gray-300 dark:border-zinc-800" />
 
           {/* Nota informativa sobre o fluxo de baixa */}
-          <p className="font-mono text-[8px] text-zinc-700 leading-relaxed">
-            Todo lançamento é criado como <span className="text-zinc-500">pendente</span>.
+          <p className="font-mono text-[8px] text-gray-400 dark:text-zinc-700 leading-relaxed">
+            Todo lançamento é criado como <span className="text-gray-500 dark:text-zinc-500">pendente</span>.
             Para registrar o pagamento, use o botão &quot;Marcar como pago&quot; na listagem.
           </p>
 
           {/* ── Ações ────────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+          <div className="flex items-center justify-between pt-2 border-t border-gray-300 dark:border-zinc-800">
             <button
               type="button"
               onClick={onFechar}
-              className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+              className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Cancelar
             </button>
             <div className="flex items-center gap-4">
               {multiParcelas && !editando && (
-                <span className="font-mono text-[8px] text-zinc-600">
+                <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">
                   {qtd} parcelas · {PERIODICIDADES.find(p => p.value === periodicidade)?.label}
                 </span>
               )}

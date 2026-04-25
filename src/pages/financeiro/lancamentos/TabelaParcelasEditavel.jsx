@@ -9,10 +9,10 @@ import { formatBRL } from '../../../utils/format';
 //   valorTotal?: número para validação do total (opcional)
 
 const INPUT =
-  'bg-[#0a0a0a] border border-zinc-800 px-2 py-1.5 text-sm text-white outline-none ' +
+  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-2 py-1.5 text-sm text-gray-900 dark:text-white outline-none ' +
   'focus:border-yellow-400 transition-colors w-full';
 
-const TH = 'px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-left';
+const TH = 'px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-left';
 
 export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal }) {
   function editar(i, campo, raw) {
@@ -32,10 +32,10 @@ export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal 
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="border border-zinc-800 overflow-x-auto">
+      <div className="border border-gray-300 dark:border-zinc-800 overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-zinc-800 bg-zinc-950">
+            <tr className="border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950">
               <th className={TH + ' w-12'}>#</th>
               <th className={TH}>Vencimento</th>
               <th className={TH}>Competência</th>
@@ -44,9 +44,9 @@ export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal 
           </thead>
           <tbody>
             {parcelas.map((p, i) => (
-              <tr key={i} className="border-b border-zinc-900 hover:bg-zinc-900/20">
+              <tr key={i} className="border-b border-gray-200 dark:border-zinc-900 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20">
                 <td className="px-3 py-1.5">
-                  <span className="font-mono text-[10px] text-zinc-500 tabular-nums">
+                  <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 tabular-nums">
                     {i + 1}/{parcelas.length}
                   </span>
                 </td>
@@ -81,10 +81,10 @@ export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal 
           </tbody>
           {parcelas.length > 0 && (
             <tfoot>
-              <tr className="border-t border-zinc-800 bg-zinc-950">
+              <tr className="border-t border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950">
                 <td colSpan={3} className="px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
                       Total
                     </span>
                     {temTotal && !bate && (
@@ -99,7 +99,7 @@ export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal 
                 </td>
                 <td className="px-3 py-2 text-right">
                   <span className={`font-mono text-sm font-bold tabular-nums ${
-                    temTotal && !bate ? 'text-amber-400' : 'text-white'
+                    temTotal && !bate ? 'text-amber-400' : 'text-gray-900 dark:text-white'
                   }`}>
                     {formatBRL(somaTotal)}
                   </span>

@@ -55,7 +55,7 @@ const INTERVALOS = [
   { v: '30dias',    l: '30 dias'   },
 ];
 
-const INPUT = 'bg-[#0a0a0a] border border-zinc-800 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400 transition-colors w-full';
+const INPUT = 'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-yellow-400 transition-colors w-full';
 
 // ─── componente ─────────────────────────────────────────────────────────────
 
@@ -97,12 +97,12 @@ export default function CamposParcelamento({
   }
 
   return (
-    <div className="border border-zinc-800 flex flex-col gap-4 p-4">
+    <div className="border border-gray-300 dark:border-zinc-800 flex flex-col gap-4 p-4">
 
       {/* Número de parcelas + intervalo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
             Número de parcelas
           </span>
           <input
@@ -116,7 +116,7 @@ export default function CamposParcelamento({
         </div>
 
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
             Intervalo
           </span>
           <div className="flex gap-4 flex-wrap pt-1.5">
@@ -130,7 +130,7 @@ export default function CamposParcelamento({
                   onChange={() => setIntervalo(v)}
                   className="accent-yellow-400"
                 />
-                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
                   {l}
                 </span>
               </label>
@@ -144,14 +144,14 @@ export default function CamposParcelamento({
         <button
           type="button"
           onClick={handleDistribuir}
-          className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-yellow-400 transition-colors border border-zinc-800 px-3 py-1.5"
+          className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-yellow-400 transition-colors border border-gray-300 dark:border-zinc-800 px-3 py-1.5"
         >
           Distribuir igualmente
         </button>
         <button
           type="button"
           onClick={handleAplicarIntervalo}
-          className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-yellow-400 transition-colors border border-zinc-800 px-3 py-1.5"
+          className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-yellow-400 transition-colors border border-gray-300 dark:border-zinc-800 px-3 py-1.5"
         >
           Aplicar intervalo
         </button>

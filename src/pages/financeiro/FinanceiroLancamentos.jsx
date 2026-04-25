@@ -355,7 +355,7 @@ export default function FinanceiroLancamentos() {
   if (profile?.perfil === 'medidor') {
     return (
       <div className="p-6">
-        <p className="text-zinc-500 font-mono text-sm">Acesso restrito.</p>
+        <p className="text-gray-500 dark:text-zinc-500 font-mono text-sm">Acesso restrito.</p>
       </div>
     );
   }
@@ -365,7 +365,7 @@ export default function FinanceiroLancamentos() {
     <div className="p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-white border border-zinc-800 w-max px-2 py-1">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
           Lançamentos
         </span>
         <button
@@ -395,7 +395,7 @@ export default function FinanceiroLancamentos() {
           onClick={() => setMostrarBaixa(v => !v)}
           className="flex items-center gap-2 w-full text-left mb-2"
         >
-          <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 px-2 py-1 flex items-center gap-2 hover:border-zinc-600 transition-colors">
+          <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 px-2 py-1 flex items-center gap-2 hover:border-gray-400 dark:hover:border-zinc-600 transition-colors">
             <iconify-icon icon="solar:arrow-down-linear" width="11" className={mostrarBaixa ? 'rotate-180 transition-transform' : 'transition-transform'}></iconify-icon>
             Recebimentos a confirmar
           </div>
@@ -407,7 +407,7 @@ export default function FinanceiroLancamentos() {
 
       {/* Contador */}
       {!loading && totalCount !== null && (
-        <p className="font-mono text-xs text-zinc-500">
+        <p className="font-mono text-xs text-gray-500 dark:text-zinc-500">
           {totalCount} {totalCount === 1 ? 'lançamento' : 'lançamentos'} no período
         </p>
       )}
@@ -429,7 +429,7 @@ export default function FinanceiroLancamentos() {
           <button
             type="button"
             onClick={() => setSelecionados(new Set())}
-            className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors ml-auto"
+            className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors ml-auto"
           >
             Limpar seleção
           </button>
@@ -519,11 +519,11 @@ export default function FinanceiroLancamentos() {
           <button
             type="button"
             onClick={() => setLimit(l => l + 50)}
-            className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 hover:text-yellow-400 transition-colors border border-zinc-800 px-4 py-2"
+            className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-yellow-400 transition-colors border border-gray-300 dark:border-zinc-800 px-4 py-2"
           >
             Carregar mais 50
             {totalCount !== null && (
-              <span className="ml-2 text-zinc-600">
+              <span className="ml-2 text-gray-500 dark:text-zinc-600">
                 (total: {lancamentos.length} de {totalCount})
               </span>
             )}

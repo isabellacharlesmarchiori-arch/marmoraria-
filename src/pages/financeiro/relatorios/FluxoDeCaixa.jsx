@@ -53,8 +53,8 @@ function limitesMes(mesAno) {
 function TooltipCustom({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#0a0a0a] border border-zinc-800 p-3 text-left">
-      <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-2">{label}</p>
+    <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-3 text-left">
+      <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-2">{label}</p>
       {payload.map(p => (
         <p key={p.dataKey} className="font-mono text-[10px]" style={{ color: p.color }}>
           {p.name}: {formatBRL(p.value)}
@@ -97,25 +97,25 @@ function BlocoDFC({ bloco, dados, mesAno }) {
   const saldo = dados.entradas - dados.saidas;
   const corSaldo = saldo >= 0 ? bloco.cor : 'text-red-400';
   return (
-    <div className={`bg-[#0a0a0a] border ${bloco.corBg} border p-4 flex flex-col gap-3`}>
+    <div className={`bg-gray-50 dark:bg-[#0a0a0a] border ${bloco.corBg} border p-4 flex flex-col gap-3`}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <iconify-icon icon={bloco.icon} width="14" className={`${bloco.cor} mb-1 block`}></iconify-icon>
-          <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">{bloco.titulo}</div>
-          <div className="font-mono text-[8px] text-zinc-700 mt-0.5">{bloco.desc}</div>
+          <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-400">{bloco.titulo}</div>
+          <div className="font-mono text-[8px] text-gray-400 dark:text-zinc-700 mt-0.5">{bloco.desc}</div>
         </div>
       </div>
-      <div className="flex flex-col gap-1.5 border-t border-zinc-800 pt-3">
+      <div className="flex flex-col gap-1.5 border-t border-gray-300 dark:border-zinc-800 pt-3">
         <div className="flex justify-between items-center">
-          <span className="font-mono text-[9px] text-zinc-600">Entradas</span>
+          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">Entradas</span>
           <span className="font-mono text-sm tabular-nums text-emerald-400">+{formatBRL(dados.entradas)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="font-mono text-[9px] text-zinc-600">Saídas</span>
+          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">Saídas</span>
           <span className="font-mono text-sm tabular-nums text-red-400">−{formatBRL(dados.saidas)}</span>
         </div>
-        <div className="flex justify-between items-center border-t border-zinc-800 pt-2 mt-1">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Saldo</span>
+        <div className="flex justify-between items-center border-t border-gray-300 dark:border-zinc-800 pt-2 mt-1">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">Saldo</span>
           <span className={`font-mono text-base font-bold tabular-nums tracking-tight ${corSaldo}`}>
             {formatBRL(saldo)}
           </span>
@@ -127,7 +127,7 @@ function BlocoDFC({ bloco, dados, mesAno }) {
 
 // ─── componente principal ────────────────────────────────────────────────────
 
-const INPUT_CLS = 'bg-[#0a0a0a] border border-zinc-800 px-3 py-1.5 font-mono text-[10px] text-white outline-none focus:border-yellow-400 transition-colors [color-scheme:dark]';
+const INPUT_CLS = 'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-1.5 font-mono text-[10px] text-gray-900 dark:text-white outline-none focus:border-yellow-400 transition-colors [color-scheme:dark]';
 
 export default function FluxoDeCaixa() {
   const { profile } = useAuth();
@@ -252,7 +252,7 @@ export default function FluxoDeCaixa() {
       {/* ── DFC por Blocos ──────────────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-3 mb-3 flex-wrap">
-          <div className="font-mono text-[10px] text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+          <div className="font-mono text-[10px] text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
             DFC — Demonstração do Fluxo de Caixa
           </div>
           <input
@@ -267,7 +267,7 @@ export default function FluxoDeCaixa() {
                 key={v}
                 type="button"
                 onClick={() => setCampoData(v)}
-                className={`border px-3 py-1 font-mono text-[10px] uppercase tracking-widest cursor-pointer transition-colors ${campoData === v ? 'border-yellow-400 text-yellow-400' : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'}`}
+                className={`border px-3 py-1 font-mono text-[10px] uppercase tracking-widest cursor-pointer transition-colors ${campoData === v ? 'border-yellow-400 text-yellow-400' : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600'}`}
               >
                 {l}
               </button>
@@ -276,18 +276,18 @@ export default function FluxoDeCaixa() {
         </div>
 
         {loadingDFC ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-zinc-800 border border-zinc-800">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
             {[0,1,2].map(i => (
-              <div key={i} className="bg-[#0a0a0a] p-4 flex flex-col gap-3">
-                <div className="h-3 w-28 bg-zinc-800 animate-pulse rounded" />
-                <div className="h-5 w-20 bg-zinc-800 animate-pulse rounded mt-2" />
-                <div className="h-5 w-20 bg-zinc-800 animate-pulse rounded" />
+              <div key={i} className="bg-gray-50 dark:bg-[#0a0a0a] p-4 flex flex-col gap-3">
+                <div className="h-3 w-28 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
+                <div className="h-5 w-20 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded mt-2" />
+                <div className="h-5 w-20 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
               </div>
             ))}
           </div>
         ) : dadosDFC ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-zinc-800 border border-zinc-800">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
               {BLOCOS.map(bloco => (
                 <BlocoDFC key={bloco.key} bloco={bloco} dados={dadosDFC[bloco.key]} mesAno={mesAno} />
               ))}
@@ -298,8 +298,8 @@ export default function FluxoDeCaixa() {
               const total = Object.values(dadosDFC).reduce((s, b) => s + b.entradas - b.saidas, 0);
               const corTotal = total >= 0 ? 'text-emerald-400' : 'text-red-400';
               return (
-                <div className="flex items-center justify-between px-4 py-3 border border-t-0 border-zinc-800 bg-zinc-950">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center justify-between px-4 py-3 border border-t-0 border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
                     Resultado Final de Caixa
                   </span>
                   <span className={`font-mono text-lg font-bold tabular-nums tracking-tight ${corTotal}`}>
@@ -311,7 +311,7 @@ export default function FluxoDeCaixa() {
           </>
         ) : null}
 
-        <p className="font-mono text-[8px] text-zinc-700 mt-2">
+        <p className="font-mono text-[8px] text-gray-400 dark:text-zinc-700 mt-2">
           Lançamentos sem subtipo_dfc são classificados como Operacionais por padrão.
           Classifique empréstimos e investimentos ao cadastrar o lançamento.
         </p>
@@ -321,35 +321,35 @@ export default function FluxoDeCaixa() {
 
       {loading ? (
         <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-800 border border-zinc-800">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
             {[0,1,2].map(i => (
-              <div key={i} className="bg-[#0a0a0a] p-5 flex flex-col gap-3">
-                <div className="h-3 w-20 bg-zinc-800 animate-pulse rounded" />
-                <div className="h-6 w-28 bg-zinc-800 animate-pulse rounded" />
-                <div className="h-6 w-28 bg-zinc-800 animate-pulse rounded" />
-                <div className="h-8 w-32 bg-zinc-800 animate-pulse rounded mt-1" />
+              <div key={i} className="bg-gray-50 dark:bg-[#0a0a0a] p-5 flex flex-col gap-3">
+                <div className="h-3 w-20 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
+                <div className="h-6 w-28 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
+                <div className="h-6 w-28 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
+                <div className="h-8 w-32 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
               </div>
             ))}
           </div>
-          <div className="border border-zinc-800 bg-[#0a0a0a] h-[300px] animate-pulse" />
+          <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] h-[300px] animate-pulse" />
         </div>
       ) : erro ? (
-        <div className="border border-zinc-800 p-10 flex flex-col items-center gap-3">
-          <iconify-icon icon="lucide:alert-triangle" width="28" className="text-zinc-700"></iconify-icon>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-center">{erro}</p>
-          <button type="button" onClick={carregarProjecao} className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-zinc-800 px-3 py-1.5 hover:bg-zinc-900 transition-colors">
+        <div className="border border-gray-300 dark:border-zinc-800 p-10 flex flex-col items-center gap-3">
+          <iconify-icon icon="lucide:alert-triangle" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-center">{erro}</p>
+          <button type="button" onClick={carregarProjecao} className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-gray-300 dark:border-zinc-800 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors">
             Tentar novamente
           </button>
         </div>
       ) : dados ? (
         <div className="flex flex-col gap-5">
-          <div className="font-mono text-[10px] text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+          <div className="font-mono text-[10px] text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
             Projeção — Próximos 90 dias
           </div>
 
           <div className="flex items-baseline gap-3">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">Saldo atual em contas</span>
-            <span className={`text-2xl font-bold tabular-nums tracking-tighter ${dados.saldoAtual >= 0 ? 'text-white' : 'text-red-400'}`}>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Saldo atual em contas</span>
+            <span className={`text-2xl font-bold tabular-nums tracking-tighter ${dados.saldoAtual >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-400'}`}>
               {formatBRL(dados.saldoAtual)}
             </span>
           </div>
@@ -363,18 +363,18 @@ export default function FluxoDeCaixa() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-800 border border-zinc-800">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
             {dados.meses.map((m, i) => {
               const corSaldo = m.saldo_projetado >= 0 ? 'text-emerald-400' : 'text-red-400';
               return (
-                <div key={i} className="bg-[#0a0a0a] p-5 flex flex-col gap-3">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{m.nome}</span>
+                <div key={i} className="bg-gray-50 dark:bg-[#0a0a0a] p-5 flex flex-col gap-3">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">{m.nome}</span>
                   <div className="flex flex-col gap-1.5">
                     <span className="font-mono text-sm tabular-nums text-emerald-400">+{formatBRL(m.entradas)}</span>
                     <span className="font-mono text-sm tabular-nums text-red-400">−{formatBRL(m.saidas)}</span>
                   </div>
-                  <div className="border-t border-zinc-800 pt-3">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 block mb-1">Proj. acumulado</span>
+                  <div className="border-t border-gray-300 dark:border-zinc-800 pt-3">
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 block mb-1">Proj. acumulado</span>
                     <span className={`text-xl font-bold tabular-nums tracking-tighter ${corSaldo}`}>
                       {formatBRL(m.saldo_projetado)}
                     </span>
@@ -384,14 +384,14 @@ export default function FluxoDeCaixa() {
             })}
           </div>
 
-          <div className="border border-zinc-800 bg-[#0a0a0a]">
-            <div className="px-4 py-3 border-b border-zinc-800">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white">Projeção Diária — 30 dias</span>
+          <div className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a]">
+            <div className="px-4 py-3 border-b border-gray-300 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white">Projeção Diária — 30 dias</span>
             </div>
             {dados.pendentes.length === 0 ? (
               <div className="p-10 flex flex-col items-center gap-3">
-                <iconify-icon icon="lucide:calendar-x" width="28" className="text-zinc-700"></iconify-icon>
-                <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-center">Nenhum lançamento pendente nos próximos 90 dias.</p>
+                <iconify-icon icon="lucide:calendar-x" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+                <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-center">Nenhum lançamento pendente nos próximos 90 dias.</p>
               </div>
             ) : (
               <div className="p-4">

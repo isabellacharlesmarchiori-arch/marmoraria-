@@ -13,8 +13,8 @@ export default function FinanceiroRelatorios() {
   if (profile?.perfil !== 'admin') {
     return (
       <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
-        <iconify-icon icon="lucide:lock" width="28" className="text-zinc-700"></iconify-icon>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+        <iconify-icon icon="lucide:lock" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
           Acesso restrito a administradores.
         </p>
       </div>
@@ -24,7 +24,7 @@ export default function FinanceiroRelatorios() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <div className="font-mono text-[10px] text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+        <div className="font-mono text-[10px] text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
           Relatórios
         </div>
       </div>
