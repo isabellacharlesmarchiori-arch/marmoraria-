@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
@@ -433,10 +434,10 @@ export default function DashboardAdmin() {
                         <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-200 dark:border-zinc-800 w-max px-2 py-1">
                             04 // Últimos fechamentos
                         </div>
-                        <a href="/admin/financeiro" className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors flex items-center gap-2">
+                        <Link to="/admin/financeiro" className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors flex items-center gap-2">
                             Ver extrato completo
                             <iconify-icon icon="solar:arrow-right-linear" width="10"></iconify-icon>
-                        </a>
+                        </Link>
                     </div>
 
                     <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-zinc-800">

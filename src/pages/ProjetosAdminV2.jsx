@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallba
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import ModalNovoClienteInline from '../components/ModalNovoClienteInline';
 // Valida que um valor é um UUID v4 real — rejeita null, undefined, string 'null', string vazia
 function isValidUUID(v) {
   return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
@@ -55,6 +56,10 @@ export default function Projetos() {
   const [projetoToDelete, setProjetoToDelete] = useState(null);
   const debounceRef = useRef(null);
   const refreshingRef = useRef(false);
+
+  // ── Modal Novo Cliente inline ─────────────────────────────────────────────
+  const [modalNovoCliente, setModalNovoCliente] = useState(false);
+  const [clienteTemp, setClienteTemp] = useState(null); // dados em memória, ainda não salvos no banco
 
   // ── Debounce da busca (300ms) ──────────────────────────────────────────────
   const handleBuscaChange = useCallback((e) => {
@@ -221,6 +226,7 @@ export default function Projetos() {
     setNovoClienteId('');
     setNovoArquitetoId('');
     setNovoRtPadrao('');
+    setClienteTemp(null); // descarta cliente ainda não salvo
   };
 
   const handleEditProjeto = (e, proj) => {
@@ -286,9 +292,25 @@ export default function Projetos() {
     setSalvando(true);
     try {
       const rtPadrao = parseFloat(String(novoRtPadrao).replace(',', '.')) || 0;
+
+      // Se for cliente temporário, persiste no banco agora antes de criar o projeto
+      let clienteIdReal = novoClienteId;
+      if (clienteTemp && novoClienteId === 'temp') {
+        const { id: _id, isTemporario: _t, ...dadosCliente } = clienteTemp;
+        const { data: cliSalvo, error: errCli } = await supabase
+          .from('clientes')
+          .insert({ ...dadosCliente, empresa_id: profile.empresa_id })
+          .select('id, nome')
+          .single();
+        if (errCli) throw errCli;
+        clienteIdReal = cliSalvo.id;
+        setClientes(prev => [...prev, cliSalvo].sort((a, b) => a.nome.localeCompare(b.nome)));
+        setClienteTemp(null);
+      }
+
       const payload = {
         nome:                 novoNome.trim(),
-        cliente_id:           novoClienteId,
+        cliente_id:           clienteIdReal,
         arquiteto_id:         novoArquitetoId || null,
         rt_padrao_percentual: rtPadrao > 0 ? rtPadrao : 0,
         empresa_id:           profile.empresa_id,
@@ -297,7 +319,7 @@ export default function Projetos() {
       if (editingProjetoId) {
         const { error } = await supabase.from('projetos').update(payload).eq('id', editingProjetoId);
         if (error) throw error;
-        const cliNome = clientes.find(c => c.id === novoClienteId)?.nome || '—';
+        const cliNome = clientes.find(c => c.id === clienteIdReal)?.nome ?? clienteTemp?.nome ?? '—';
         setProjetos(prev => prev.map(p => p.id === editingProjetoId ? { ...p, ...payload, cliente: cliNome } : p));
       } else {
         const { data, error } = await supabase.from('projetos').insert({ ...payload, status: 'orcado' }).select().single();
@@ -530,7 +552,17 @@ export default function Projetos() {
                 />
               </div>
               <div>
-                <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500 mb-1.5 block">Cliente</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500">Cliente</label>
+                  <button
+                    type="button"
+                    onClick={() => setModalNovoCliente(true)}
+                    className="flex items-center gap-1 font-mono text-[9px] uppercase text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition-colors"
+                  >
+                    <iconify-icon icon="solar:add-circle-linear" width="11"></iconify-icon>
+                    Novo Cliente
+                  </button>
+                </div>
                 <select
                   required
                   value={novoClienteId}
@@ -538,6 +570,9 @@ export default function Projetos() {
                   className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-3 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400"
                 >
                   <option value="">Selecionar...</option>
+                  {clienteTemp && (
+                    <option value="temp">{clienteTemp.nome} (novo — não salvo)</option>
+                  )}
                   {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
@@ -600,6 +635,17 @@ export default function Projetos() {
             </div>
           </div>
         </div>
+      )}
+
+      {modalNovoCliente && (
+        <ModalNovoClienteInline
+          onClose={() => setModalNovoCliente(false)}
+          onCreated={dados => {
+            setClienteTemp(dados);   // guarda em memória, sem tocar no banco
+            setNovoClienteId('temp');
+            setModalNovoCliente(false);
+          }}
+        />
       )}
     </div>
   );

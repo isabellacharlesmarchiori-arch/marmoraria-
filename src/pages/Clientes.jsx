@@ -2,15 +2,101 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-// ── Campo de formulário reutilizável ──────────────────────────────────────────
+// ── Máscaras nativas ──────────────────────────────────────────────────────────
+function maskCPF(v) {
+  const d = (v || '').replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+}
+
+function maskPhone(v) {
+  const d = (v || '').replace(/\D/g, '').slice(0, 11);
+  if (!d.length) return '';
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
+
+function maskCEP(v) {
+  const d = (v || '').replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0,5)}-${d.slice(5)}`;
+}
+
+// ── Validações ────────────────────────────────────────────────────────────────
+function validarCPF(cpf) {
+  const d = cpf.replace(/\D/g, '');
+  if (d.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(d)) return false;
+  let s = 0;
+  for (let i = 0; i < 9; i++) s += parseInt(d[i]) * (10 - i);
+  let r = 11 - (s % 11);
+  if ((r >= 10 ? 0 : r) !== parseInt(d[9])) return false;
+  s = 0;
+  for (let i = 0; i < 10; i++) s += parseInt(d[i]) * (11 - i);
+  r = 11 - (s % 11);
+  return (r >= 10 ? 0 : r) === parseInt(d[10]);
+}
+
+function validarRG(rg) {
+  const d = rg.replace(/\D/g, '');
+  return d.length >= 7 && d.length <= 9;
+}
+
+// ── Endereço helpers ──────────────────────────────────────────────────────────
+// Endereço é armazenado como JSON no campo `endereco` (texto). Legacy: string plain.
+function parseAddress(endStr) {
+  const empty = { cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' };
+  if (!endStr) return empty;
+  try {
+    const p = JSON.parse(endStr);
+    if (p && typeof p === 'object' && !Array.isArray(p)) return { ...empty, ...p };
+  } catch {}
+  return { ...empty, rua: endStr };
+}
+
+function formatAddressDisplay(endStr) {
+  if (!endStr) return null;
+  try {
+    const a = JSON.parse(endStr);
+    if (a && typeof a === 'object') {
+      const line1 = [a.rua, a.numero].filter(Boolean).join(', ');
+      const line2 = a.complemento || '';
+      const line3 = [a.bairro, a.cidade, a.estado].filter(Boolean).join(' — ');
+      const cep   = a.cep ? `CEP ${a.cep}` : '';
+      return [line1, line2, line3, cep].filter(Boolean).join('\n');
+    }
+  } catch {}
+  return endStr;
+}
+
+const ESTADOS_BR = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+];
+
+// ── Componentes de campo para TabArquitetos (uncontrolled) ────────────────────
+const FIELD_CLS = 'w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-4 py-3 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 font-mono resize-none';
+
 function Field({ label, name, type = 'text', defaultValue = '', required = false, span2 = false, textarea = false }) {
-  const cls = 'w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-4 py-3 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 font-mono resize-none';
   return (
     <div className={span2 ? 'col-span-2' : ''}>
       <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">{label}{required && <span className="text-yellow-600 dark:text-yellow-400 ml-0.5">*</span>}</label>
       {textarea
-        ? <textarea name={name} rows="2" defaultValue={defaultValue} className={cls} />
-        : <input name={name} type={type} defaultValue={defaultValue} required={required} className={cls} />}
+        ? <textarea name={name} rows="2" defaultValue={defaultValue} className={FIELD_CLS} />
+        : <input name={name} type={type} defaultValue={defaultValue} required={required} className={FIELD_CLS} />}
+    </div>
+  );
+}
+
+function MaskedField({ label, name, maskFn, defaultValue = '', required = false, span2 = false }) {
+  const [val, setVal] = useState(() => maskFn(defaultValue ?? ''));
+  return (
+    <div className={span2 ? 'col-span-2' : ''}>
+      <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">{label}{required && <span className="text-yellow-600 dark:text-yellow-400 ml-0.5">*</span>}</label>
+      <input name={name} value={val} onChange={e => setVal(maskFn(e.target.value))} required={required} className={FIELD_CLS} />
     </div>
   );
 }
@@ -25,7 +111,6 @@ const statusColors = {
 };
 const statusLabels = { orcado: 'Orçado', aprovado: 'Aprovado', produzindo: 'Produzindo', entregue: 'Entregue', perdido: 'Perdido' };
 
-// ── STATUS PEDIDO ─────────────────────────────────────────────────────────────
 const statusPedidoColors = {
   FECHADO:   'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700/60',
   ORCAMENTO: 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 border-gray-300 dark:border-zinc-700',
@@ -53,6 +138,7 @@ function ConfirmDeleteModal({ title, message, onConfirm, onCancel }) {
 // SUB-ABA CLIENTES
 // ═══════════════════════════════════════════════════════════════════════════════
 function TabClientes({ empresaId, session, isAdmin }) {
+  // ── list state ──
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,7 +148,12 @@ function TabClientes({ empresaId, session, isAdmin }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  // ── controlled form state ──
+  const [form, setForm] = useState({});
+  const [loadingCep, setLoadingCep] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
 
+  // ── load ──
   useEffect(() => {
     if (!session || !empresaId) return;
     setLoading(true);
@@ -87,31 +178,111 @@ function TabClientes({ empresaId, session, isAdmin }) {
 
   useEffect(() => { setCurrentPage(0); }, [searchTerm]);
 
+  // ── filter / page ──
   const filtered = clientes.filter(c => {
     const t = searchTerm.toLowerCase();
     return c.nome.toLowerCase().includes(t) ||
       (c.telefone ?? '').toLowerCase().includes(t) ||
       (c.email ?? '').toLowerCase().includes(t);
   });
-
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const filteredPage = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
-  const openModal = (cli = null) => { setEditing(cli); setIsModalOpen(true); };
-  const closeModal = () => { setEditing(null); setIsModalOpen(false); };
+  // ── modal helpers ──
+  const setF = (key, val) => {
+    setForm(prev => ({ ...prev, [key]: val }));
+    setFormErrors(prev => ({ ...prev, [key]: undefined }));
+  };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
+  const openModal = (cli = null) => {
+    setEditing(cli);
+    const addr = cli ? parseAddress(cli.endereco) : { cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' };
+    setForm({
+      nome:            cli?.nome            ?? '',
+      cpf:             cli?.cpf             ?? '',
+      rg:              cli?.rg              ?? '',
+      telefone:        cli?.telefone        ?? '',
+      email:           cli?.email           ?? '',
+      data_nascimento: cli?.data_nascimento ?? '',
+      ...addr,
+    });
+    setFormErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setEditing(null);
+    setIsModalOpen(false);
+    setForm({});
+    setFormErrors({});
+  };
+
+  // ── ViaCEP ──
+  const buscarCep = async (cep) => {
+    const limpo = cep.replace(/\D/g, '');
+    if (limpo.length !== 8) return;
+    setLoadingCep(true);
+    try {
+      const res  = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm(prev => ({
+          ...prev,
+          rua:    data.logradouro || prev.rua,
+          bairro: data.bairro     || prev.bairro,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf         || prev.estado,
+        }));
+        setFormErrors(prev => ({ ...prev, cep: undefined, rua: undefined, bairro: undefined, cidade: undefined, estado: undefined }));
+      } else {
+        setFormErrors(prev => ({ ...prev, cep: 'CEP não encontrado' }));
+      }
+    } catch {
+      setFormErrors(prev => ({ ...prev, cep: 'Erro ao buscar CEP' }));
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  // ── validation ──
+  const validateForm = () => {
+    const e = {};
+    if (!form.nome?.trim())    e.nome    = 'Campo obrigatório';
+    if (!form.telefone?.trim()) e.telefone = 'Campo obrigatório';
+    if (!form.cep?.trim())     e.cep     = 'Campo obrigatório';
+    if (!form.rua?.trim())     e.rua     = 'Campo obrigatório';
+    if (!form.numero?.trim())  e.numero  = 'Campo obrigatório';
+    if (!form.bairro?.trim())  e.bairro  = 'Campo obrigatório';
+    if (!form.cidade?.trim())  e.cidade  = 'Campo obrigatório';
+    if (!form.estado?.trim())  e.estado  = 'Campo obrigatório';
+    const cpfDigits = (form.cpf || '').replace(/\D/g, '');
+    if (cpfDigits.length > 0 && !validarCPF(form.cpf || '')) e.cpf = 'CPF inválido';
+    if (form.rg?.trim() && !validarRG(form.rg)) e.rg = 'RG deve ter 7 a 9 dígitos';
+    setFormErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  // ── save ──
+  const handleSave = async (ev) => {
+    ev.preventDefault();
+    if (!validateForm()) return;
     const payload = {
-      nome:            fd.get('nome'),
-      cpf:             fd.get('cpf') || null,
-      rg:              fd.get('rg') || null,
-      telefone:        fd.get('telefone') || null,
-      email:           fd.get('email') || null,
-      endereco:        fd.get('endereco') || null,
-      data_nascimento: fd.get('data_nascimento') || null,
-      empresa_id:      empresaId,
+      nome:            form.nome.trim(),
+      cpf:             form.cpf             || null,
+      rg:              form.rg              || null,
+      telefone:        form.telefone        || null,
+      email:           form.email           || null,
+      data_nascimento: form.data_nascimento || null,
+      endereco: JSON.stringify({
+        cep:          form.cep,
+        rua:          form.rua,
+        numero:       form.numero,
+        complemento:  form.complemento,
+        bairro:       form.bairro,
+        cidade:       form.cidade,
+        estado:       form.estado,
+      }),
+      empresa_id: empresaId,
     };
     try {
       if (editing) {
@@ -129,6 +300,7 @@ function TabClientes({ empresaId, session, isAdmin }) {
     } catch (err) { alert(err.message); }
   };
 
+  // ── other handlers ──
   const handleDelete = async () => {
     const { error } = await supabase.from('clientes').delete().eq('id', deleteId);
     if (error) { alert(error.message); return; }
@@ -169,6 +341,19 @@ function TabClientes({ empresaId, session, isAdmin }) {
     } catch (err) { alert('Erro: ' + err.message); }
   };
 
+  // ── field class (red on error, green when explicitly valid) ──
+  const cpfDigits = (form.cpf || '').replace(/\D/g, '');
+  const cpfOk = cpfDigits.length === 11 && validarCPF(form.cpf || '');
+  const rgOk  = !!(form.rg?.trim() && validarRG(form.rg));
+
+  const fc = (field, isValid) => {
+    const base = 'w-full bg-gray-50 dark:bg-black text-gray-900 dark:text-white text-sm px-4 py-3 outline-none font-mono border transition-colors ';
+    if (formErrors[field]) return base + 'border-red-500 dark:border-red-500';
+    if (isValid)           return base + 'border-green-500 dark:border-green-500';
+    return base + 'border-gray-300 dark:border-zinc-800 focus:border-yellow-500 dark:focus:border-yellow-400';
+  };
+
+  // ── render ──
   return (
     <div className="lg:flex lg:gap-8 h-full">
       {/* Lista */}
@@ -225,21 +410,13 @@ function TabClientes({ empresaId, session, isAdmin }) {
               Página {currentPage + 1} de {totalPages}
             </span>
             <div className="flex items-center gap-2">
-              <button
-                disabled={currentPage === 0}
-                onClick={() => setCurrentPage(p => p - 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon>
-                Anterior
+              <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon> Anterior
               </button>
-              <button
-                disabled={currentPage >= totalPages - 1}
-                onClick={() => setCurrentPage(p => p + 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                Próxima
-                <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
+              <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                Próxima <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
               </button>
             </div>
           </div>
@@ -260,10 +437,10 @@ function TabClientes({ empresaId, session, isAdmin }) {
             <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tighter uppercase mb-5">{selected.nome}</h2>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Telefone', value: selected.telefone },
-                { label: 'Email',    value: selected.email },
-                { label: 'CPF',      value: selected.cpf },
-                { label: 'RG',       value: selected.rg },
+                { label: 'Telefone',   value: selected.telefone },
+                { label: 'Email',      value: selected.email },
+                { label: 'CPF',        value: selected.cpf },
+                { label: 'RG',         value: selected.rg },
                 { label: 'Nascimento', value: selected.data_nascimento },
               ].map(({ label, value }) => (
                 <div key={label} className="p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
@@ -273,7 +450,9 @@ function TabClientes({ empresaId, session, isAdmin }) {
               ))}
               <div className="col-span-2 p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
                 <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">Endereço</div>
-                <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs">{selected.endereco || '—'}</div>
+                <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs whitespace-pre-line">
+                  {formatAddressDisplay(selected.endereco) || '—'}
+                </div>
               </div>
             </div>
           </div>
@@ -296,16 +475,12 @@ function TabClientes({ empresaId, session, isAdmin }) {
                   {proj.status_pedido === 'FECHADO' && (
                     <>
                       <div className={`px-2 py-1 text-[9px] font-mono uppercase border flex items-center gap-1 ${statusPedidoColors.FECHADO}`}>
-                        <iconify-icon icon="solar:lock-keyhole-minimalistic-bold" width="10"></iconify-icon>
-                        Fechado
+                        <iconify-icon icon="solar:lock-keyhole-minimalistic-bold" width="10"></iconify-icon> Fechado
                       </div>
                       {isAdmin && (
-                        <button
-                          onClick={e => handleVoltarParaOrcamento(e, proj)}
-                          className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-mono uppercase border border-red-700/40 text-red-500 dark:text-red-400 hover:bg-red-400/10 hover:border-red-500/60 transition-colors"
-                        >
-                          <iconify-icon icon="solar:refresh-linear" width="11"></iconify-icon>
-                          Voltar para Orçamento
+                        <button onClick={e => handleVoltarParaOrcamento(e, proj)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-mono uppercase border border-red-700/40 text-red-500 dark:text-red-400 hover:bg-red-400/10 hover:border-red-500/60 transition-colors">
+                          <iconify-icon icon="solar:refresh-linear" width="11"></iconify-icon> Voltar para Orçamento
                         </button>
                       )}
                     </>
@@ -330,20 +505,110 @@ function TabClientes({ empresaId, session, isAdmin }) {
       {/* Modal Criar/Editar Cliente */}
       {isModalOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="bg-gray-100 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 w-full max-w-lg p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-100 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase mb-6 flex items-center gap-3">
               <span className="w-1.5 h-1.5 bg-yellow-500 dark:bg-yellow-400"></span>
               {editing ? 'Editar Cliente' : 'Novo Cliente'}
             </h3>
-            <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
-              <Field label="Nome Completo" name="nome" required span2 defaultValue={editing?.nome} />
-              <Field label="CPF" name="cpf" defaultValue={editing?.cpf} />
-              <Field label="RG" name="rg" defaultValue={editing?.rg} />
-              <Field label="Telefone" name="telefone" defaultValue={editing?.telefone} />
-              <Field label="Email" name="email" type="email" defaultValue={editing?.email} />
-              <Field label="Data de Nascimento" name="data_nascimento" type="date" defaultValue={editing?.data_nascimento} />
-              <Field label="Endereço" name="endereco" span2 textarea defaultValue={editing?.endereco} />
-              <div className="col-span-2 flex gap-4 pt-2">
+            <form onSubmit={handleSave} noValidate className="flex flex-col gap-6">
+
+              {/* Dados Pessoais */}
+              <div>
+                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-gray-200 dark:border-zinc-800">Dados Pessoais</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Nome Completo <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <input value={form.nome ?? ''} onChange={e => setF('nome', e.target.value)} className={fc('nome')} />
+                    {formErrors.nome && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.nome}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Telefone <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <input value={form.telefone ?? ''} onChange={e => setF('telefone', maskPhone(e.target.value))} className={fc('telefone')} placeholder="(00) 00000-0000" />
+                    {formErrors.telefone && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.telefone}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Email</label>
+                    <input type="email" value={form.email ?? ''} onChange={e => setF('email', e.target.value)} className={fc('email')} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Data de Nascimento</label>
+                    <input type="date" value={form.data_nascimento ?? ''} onChange={e => setF('data_nascimento', e.target.value)} className={fc('data_nascimento')} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Documentos */}
+              <div>
+                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-gray-200 dark:border-zinc-800">Documentos</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">CPF</label>
+                    <input value={form.cpf ?? ''} onChange={e => setF('cpf', maskCPF(e.target.value))} className={fc('cpf', cpfOk)} placeholder="000.000.000-00" />
+                    {formErrors.cpf  && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cpf}</p>}
+                    {cpfOk && !formErrors.cpf && <p className="text-[9px] font-mono text-green-500 mt-1">CPF válido</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">RG</label>
+                    <input value={form.rg ?? ''} onChange={e => setF('rg', e.target.value)} className={fc('rg', rgOk)} placeholder="Apenas números" />
+                    {formErrors.rg  && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.rg}</p>}
+                    {rgOk && !formErrors.rg && <p className="text-[9px] font-mono text-green-500 mt-1">RG válido</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Endereço */}
+              <div>
+                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-gray-200 dark:border-zinc-800">Endereço</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
+                      CEP <span className="text-yellow-600 dark:text-yellow-400">*</span>
+                      {loadingCep && <span className="text-[8px] text-yellow-500 animate-pulse normal-case tracking-normal">buscando...</span>}
+                    </label>
+                    <input
+                      value={form.cep ?? ''}
+                      onChange={e => { const v = maskCEP(e.target.value); setF('cep', v); buscarCep(v); }}
+                      className={fc('cep')}
+                      placeholder="00000-000"
+                    />
+                    {formErrors.cep && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cep}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Número <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <input value={form.numero ?? ''} onChange={e => setF('numero', e.target.value)} className={fc('numero')} placeholder="123" />
+                    {formErrors.numero && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.numero}</p>}
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Rua / Logradouro <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <input value={form.rua ?? ''} onChange={e => setF('rua', e.target.value)} className={fc('rua')} />
+                    {formErrors.rua && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.rua}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Complemento</label>
+                    <input value={form.complemento ?? ''} onChange={e => setF('complemento', e.target.value)} className={fc('complemento')} placeholder="Apto, Bloco..." />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Bairro <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <input value={form.bairro ?? ''} onChange={e => setF('bairro', e.target.value)} className={fc('bairro')} />
+                    {formErrors.bairro && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.bairro}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Cidade <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <input value={form.cidade ?? ''} onChange={e => setF('cidade', e.target.value)} className={fc('cidade')} />
+                    {formErrors.cidade && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cidade}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Estado <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <select value={form.estado ?? ''} onChange={e => setF('estado', e.target.value)} className={fc('estado') + ' appearance-none cursor-pointer'}>
+                      <option value="">UF</option>
+                      {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                    </select>
+                    {formErrors.estado && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.estado}</p>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-2">
                 <button type="button" onClick={closeModal} className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase py-3 hover:text-gray-900 dark:hover:text-white transition-colors">Cancelar</button>
                 <button type="submit" className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-mono font-bold text-[10px] uppercase py-3 hover:opacity-90 transition-all">Salvar</button>
               </div>
@@ -505,21 +770,13 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
               Página {currentPage + 1} de {totalPages}
             </span>
             <div className="flex items-center gap-2">
-              <button
-                disabled={currentPage === 0}
-                onClick={() => setCurrentPage(p => p - 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon>
-                Anterior
+              <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon> Anterior
               </button>
-              <button
-                disabled={currentPage >= totalPages - 1}
-                onClick={() => setCurrentPage(p => p + 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                Próxima
-                <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
+              <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                Próxima <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
               </button>
             </div>
           </div>
@@ -540,11 +797,11 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
             <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tighter uppercase mb-5">{selected.nome}</h2>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Telefone',    value: selected.telefone },
-                { label: 'Email',       value: selected.email },
-                { label: 'CPF',         value: selected.cpf },
-                { label: 'RG',          value: selected.rg },
-                { label: 'Nascimento',  value: selected.data_nascimento },
+                { label: 'Telefone',   value: selected.telefone },
+                { label: 'Email',      value: selected.email },
+                { label: 'CPF',        value: selected.cpf },
+                { label: 'RG',         value: selected.rg },
+                { label: 'Nascimento', value: selected.data_nascimento },
               ].map(({ label, value }) => (
                 <div key={label} className="p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
                   <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">{label}</div>
@@ -589,9 +846,9 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
             </h3>
             <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
               <Field label="Nome Completo" name="nome" required span2 defaultValue={editing?.nome} />
-              <Field label="CPF" name="cpf" defaultValue={editing?.cpf} />
+              <MaskedField label="CPF" name="cpf" maskFn={maskCPF} defaultValue={editing?.cpf} />
               <Field label="RG" name="rg" defaultValue={editing?.rg} />
-              <Field label="Telefone" name="telefone" defaultValue={editing?.telefone} />
+              <MaskedField label="Telefone" name="telefone" maskFn={maskPhone} defaultValue={editing?.telefone} />
               <Field label="Email" name="email" type="email" defaultValue={editing?.email} />
               <Field label="Data de Nascimento" name="data_nascimento" type="date" defaultValue={editing?.data_nascimento} />
               <Field label="Endereço" name="endereco" span2 textarea defaultValue={editing?.endereco} />

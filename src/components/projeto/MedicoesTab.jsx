@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { MedicaoPill, normalizarJsonMedicao } from '../../utils/projetoUtils';
+import AgendaMedidor from '../AgendaMedidor';
 
 function InfoMedicao({ ambientes }) {
     if (!Array.isArray(ambientes) || ambientes.length === 0) return null;
@@ -633,6 +634,14 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                 </div>
                                 {medidores.length === 0 && <p className="font-mono text-[9px] text-zinc-700 mt-1">Nenhum medidor cadastrado na empresa</p>}
                             </div>
+
+                            {agMedidor && (
+                                <AgendaMedidor
+                                    medidorId={agMedidor}
+                                    horarioEscolhido={agData || null}
+                                    empresaId={profile?.empresa_id}
+                                />
+                            )}
 
                             <div>
                                 <label className="text-[10px] uppercase font-mono text-zinc-500 block mb-2">Data e hora</label>

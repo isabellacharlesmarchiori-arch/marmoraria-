@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import ModalOrcamentoManual from '../components/ModalOrcamentoManual';
 import PdfOptionsModal from '../components/PdfOptionsModal';
+import AgendaMedidor from '../components/AgendaMedidor';
 import CamposParcelamento from './financeiro/lancamentos/CamposParcelamento';
 import { loadPdfOpts, savePdfOpts } from '../utils/pdfOptions';
 // gerarPdfOrcamento é importado dinamicamente no click handler para não bloquear o bundle inicial
@@ -1711,6 +1712,31 @@ export default function TelaProjetoVendedor() {
         setEndConfirmado(false);
     };
 
+    function parseEnderecoCliente(str) {
+        if (!str?.trim()) return { rua: '', numero: '', bairro: '', cidade: '' };
+        // Tenta separar "Rua Nome, 123, Bairro, Cidade" (campos separados por vírgula)
+        const partes = str.split(',').map(s => s.trim());
+        return {
+            rua:    partes[0] || '',
+            numero: partes[1] || '',
+            bairro: partes[2] || '',
+            cidade: partes[3] || '',
+        };
+    }
+
+    function handleAbrirNovoAgendamento() {
+        const cliente = projeto?.clientes;
+        if (cliente?.endereco) {
+            const { rua, numero, bairro, cidade } = parseEnderecoCliente(cliente.endereco);
+            setAgRua(rua);
+            setAgNumero(numero);
+            setAgBairro(bairro);
+            setAgCidade(cidade);
+            setEndConfirmado(true);
+        }
+        setModalAgendar(true);
+    }
+
     async function handleSalvarStatus() {
         if (!id || !novoStatus) return;
         const { error } = await supabase
@@ -1967,7 +1993,7 @@ export default function TelaProjetoVendedor() {
                                 01 // Medições
                             </div>
                             <button
-                                onClick={() => setModalAgendar(true)}
+                                onClick={handleAbrirNovoAgendamento}
                                 className="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
                             >
                                 <iconify-icon icon="solar:calendar-add-linear" width="14"></iconify-icon>
@@ -3333,7 +3359,7 @@ export default function TelaProjetoVendedor() {
                         >
                             <button
                                 onClick={() => setImgZoomed(false)}
-                                className="absolute top-4 right-4 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors p-2 z-10"
+                                className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors p-2 z-10"
                             >
                                 <iconify-icon icon="solar:close-linear" width="22"></iconify-icon>
                             </button>
@@ -3352,7 +3378,7 @@ export default function TelaProjetoVendedor() {
             {modalAgendar && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeAll}></div>
-                    <div className="relative bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-[480px] z-10">
+                    <div className="relative bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-[480px] z-10 flex flex-col max-h-[90vh]">
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 dark:border-zinc-800">
                             <div>
@@ -3369,7 +3395,7 @@ export default function TelaProjetoVendedor() {
                         </div>
 
                         {/* Form */}
-                        <div className="p-6 flex flex-col gap-5">
+                        <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-5">
                             {erroAgendar && (
                                 <div className="border border-red-500/30 bg-red-400/5 px-3 py-2 flex items-center gap-2">
                                     <iconify-icon icon="solar:danger-triangle-linear" width="13" className="text-red-400 shrink-0"></iconify-icon>
@@ -3399,6 +3425,16 @@ export default function TelaProjetoVendedor() {
                                 )}
                             </div>
 
+                            {/* Agenda do medidor — aparece ao selecionar */}
+                            {agMedidor && (
+                                <AgendaMedidor
+                                    medidorId={agMedidor}
+                                    horarioEscolhido={agData || null}
+                                    empresaId={profile?.empresa_id}
+                                    onDataChange={val => setAgData(val)}
+                                />
+                            )}
+
                             {/* Data e hora */}
                             <div>
                                 <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 block mb-2">Data e hora</label>
@@ -3413,10 +3449,10 @@ export default function TelaProjetoVendedor() {
                                 </div>
                             </div>
 
-                            {/* Endereço — Rua (autocomplete) + Número manual + Bairro + Cidade */}
+                            {/* Endereço da medição — Rua (autocomplete) + Número manual + Bairro + Cidade */}
                             <div className="space-y-3">
                                 <div className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 mb-1">
-                                    Endereço{' '}
+                                    Endereço da medição{' '}
                                     <span className="text-gray-400 dark:text-zinc-700 normal-case tracking-normal text-[9px]">opcional</span>
                                 </div>
 
@@ -3526,7 +3562,7 @@ export default function TelaProjetoVendedor() {
                                     {endConfirmado && agRua && (
                                         <div className="mt-1 flex items-center gap-1.5 font-mono text-[9px] text-green-400">
                                             <iconify-icon icon="solar:check-circle-linear" width="10"></iconify-icon>
-                                            Bairro e cidade preenchidos automaticamente
+                                            {editingMedicaoId ? 'Endereço confirmado' : 'Preenchido do cadastro do cliente — editável'}
                                         </div>
                                     )}
                                     {!endConfirmado && agRua.trim().length > 0 && endSugestoes.length === 0 && !endBuscando && (
@@ -3592,25 +3628,26 @@ export default function TelaProjetoVendedor() {
                                 </div>
                             </div>
 
-                            {/* Botões */}
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={closeAll}
-                                    className="flex-1 border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest py-3 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleAgendarMedicao}
-                                    disabled={agendando || !agMedidor || !agData}
-                                    className="flex-1 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-2 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed transition-all"
-                                >
-                                    {agendando
-                                        ? <><iconify-icon icon="solar:spinner-linear" width="14" className="animate-spin"></iconify-icon>Agendando...</>
-                                        : <><iconify-icon icon="solar:check-circle-linear" width="14"></iconify-icon>Confirmar</>
-                                    }
-                                </button>
-                            </div>
+                        </div>
+
+                        {/* Footer fixo — fora do scroll */}
+                        <div className="flex gap-3 px-6 py-4 border-t border-gray-300 dark:border-zinc-800 shrink-0">
+                            <button
+                                onClick={closeAll}
+                                className="flex-1 border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest py-3 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleAgendarMedicao}
+                                disabled={agendando || !agMedidor || !agData}
+                                className="flex-1 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-2 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed transition-all"
+                            >
+                                {agendando
+                                    ? <><iconify-icon icon="solar:spinner-linear" width="14" className="animate-spin"></iconify-icon>Agendando...</>
+                                    : <><iconify-icon icon="solar:check-circle-linear" width="14"></iconify-icon>Confirmar</>
+                                }
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -44,6 +44,14 @@ function hoje() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function maskCPF(v) {
+  const d = (v || '').replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+}
+
 // ── Atoms ────────────────────────────────────────────────────────────────────
 
 function Label({ children, optional = false }) {
@@ -142,6 +150,15 @@ function CamposPix({ dados, onChange, errors }) {
             error={errors.nome_cliente}
           />
           <FieldError msg={errors.nome_cliente} />
+        </div>
+        <div>
+          <Label optional>CPF do pagador</Label>
+          <Input
+            type="text"
+            placeholder="000.000.000-00"
+            value={dados.cpf_pagador ?? ''}
+            onChange={e => onChange('cpf_pagador', maskCPF(e.target.value))}
+          />
         </div>
         <div>
           <Label>Banco do cliente</Label>
@@ -296,7 +313,7 @@ function CamposBoleto({ dados, onChange, errors }) {
           />
           <FieldError msg={errors.vencimento} />
         </div>
-        <div className="sm:col-span-2">
+        <div>
           <Label>Dados bancários do cliente</Label>
           <Input
             type="text"
@@ -310,6 +327,15 @@ function CamposBoleto({ dados, onChange, errors }) {
             <iconify-icon icon="solar:lock-linear" width="9"></iconify-icon>
             Visível apenas para administradores
           </p>
+        </div>
+        <div>
+          <Label optional>CPF/CNPJ do sacado</Label>
+          <Input
+            type="text"
+            placeholder="000.000.000-00"
+            value={dados.cpf_sacado ?? ''}
+            onChange={e => onChange('cpf_sacado', maskCPF(e.target.value))}
+          />
         </div>
       </div>
     </>
