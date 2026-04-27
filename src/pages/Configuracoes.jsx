@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { maskCNPJ, maskTelefone } from '../utils/masks';
 import { CONTRATO_PADRAO } from '../utils/contratoPadrao';
@@ -342,17 +343,36 @@ export default function ConfiguracoesPage() {
         if (item.id === session?.user?.id) await refreshProfile();
         alert('Usuário atualizado com sucesso!');
       } else {
+        // Cliente temporário sem persistência de sessão: cria auth user
+        // sem deslogar o admin atual nem tocar no localStorage.
+        const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+        });
+
+        const senhaTemp = Math.random().toString(36).slice(-10) + 'A1!';
+        const { data: authData, error: authError } = await tempClient.auth.signUp({
+          email,
+          password: senhaTemp,
+          options: { data: { nome } }
+        });
+
+        if (authError) { alert('Erro ao criar acesso: ' + authError.message); return; }
+
+        const userId = authData.user?.id;
+        if (!userId) { alert('Erro: ID do usuário não foi gerado pelo Auth.'); return; }
+
         const { data: novoUser, error: errInsert } = await supabase
           .from('usuarios')
-          .insert({ nome, email, perfil, empresa_id: profile.empresa_id, ativo: true })
+          .insert([{ id: userId, nome, email, perfil, empresa_id: profile.empresa_id, ativo: true }])
           .select()
           .single();
         if (errInsert) { alert('Erro ao cadastrar: ' + errInsert.message); return; }
+
         const { error: errEmail } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/convite`,
         });
         if (errEmail) {
-          alert('Usuário cadastrado, mas erro ao enviar email: ' + errEmail.message);
+          alert('Usuário cadastrado, mas erro ao enviar email de convite: ' + errEmail.message);
         } else {
           alert(`Convite enviado para ${email}! O usuário receberá um email para definir sua senha.`);
         }
