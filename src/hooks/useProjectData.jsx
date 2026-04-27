@@ -7,7 +7,7 @@ const AMBIENTES_SELECT = `
     id, nome,
     orcamentos(id, nome_versao, valor_total, desconto_total, majoramento_percentual, rt_percentual, rt_arquiteto_nome, valor_frete, status, created_at, itens_manuais, descartado_em,
         orcamento_pecas(*, pecas(nome_livre, area_liquida_m2, espessura_cm, ambiente_id, dimensoes)),
-        orcamento_avulsos(id, nome, quantidade, valor_unitario, valor_total)
+        orcamento_avulsos(id, produto_id, quantidade, valor_unitario, valor_total, produtos_avulsos(nome))
     )
 `;
 

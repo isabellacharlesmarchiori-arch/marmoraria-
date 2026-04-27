@@ -144,7 +144,7 @@ export function normalizarAmbiente(amb) {
         })),
         avulsos: (orc.orcamento_avulsos ?? []).map(av => ({
             id:             av.id,
-            nome:           av.nome ?? 'Produto',
+            nome:           av.produtos_avulsos?.nome ?? av.nome ?? 'Produto',
             quantidade:     av.quantidade ?? 1,
             valor_unitario: av.valor_unitario ?? 0,
             valor_total:    av.valor_total ?? 0,
