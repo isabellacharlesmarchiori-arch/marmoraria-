@@ -54,48 +54,44 @@ export default function CadastroEmpresa() {
         setLoading(true);
 
         try {
-            const { data, error } = await supabase.auth.signUp({
+            // 1. Cria empresa primeiro para ter o empresa_id disponível
+            const { data: empresaData, error: empresaError } = await supabase
+                .from('empresas')
+                .insert([{ nome: empresa }])
+                .select()
+                .single();
+
+            if (empresaError) throw empresaError;
+
+            // 2. Cria usuário no Auth
+            const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     emailRedirectTo: window.location.origin,
-                    data: { nome, empresa }
+                    data: { nome, empresa_id: empresaData.id }
                 }
             });
 
-            if (error) {
-                setErrorMsg(`ERRO: ${error.message}`);
-                return;
-            }
+            if (authError) throw authError;
 
-            // Cria empresa
-            const { data: empresaData, error: empresaError } = await supabase
-                .from('empresas')
-                .insert({ nome: empresa })
-                .select('id')
-                .single();
+            // 3. Valida que o ID foi gerado
+            const userId = authData.user?.id;
+            if (!userId) throw new Error('ID do usuário não foi criado pelo Auth');
 
-            if (empresaError) {
-                setErrorMsg(`ERRO: ${empresaError.message}`);
-                return;
-            }
-
-            // Cria usuário admin direto, sem aguardar confirmação de email
+            // 4. Insere na tabela usuarios com o ID do auth.users
             const { error: usuarioError } = await supabase
                 .from('usuarios')
-                .insert({
-                    id: data.user.id,
-                    empresa_id: empresaData.id,
-                    nome,
+                .insert([{
+                    id: userId,
                     email,
+                    nome,
                     perfil: 'admin',
+                    empresa_id: empresaData.id,
                     ativo: true
-                });
+                }]);
 
-            if (usuarioError) {
-                setErrorMsg(`ERRO: ${usuarioError.message}`);
-                return;
-            }
+            if (usuarioError) throw usuarioError;
 
             setEmpresa('');
             setNome('');
@@ -103,6 +99,8 @@ export default function CadastroEmpresa() {
             setPassword('');
             setConfirmPassword('');
             setSuccessMsg(true);
+
+            setTimeout(() => { window.location.href = '/'; }, 2000);
         } catch (err) {
             setErrorMsg(`ERRO: ${err.message}`);
         } finally {
