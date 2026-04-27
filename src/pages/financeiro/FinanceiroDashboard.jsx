@@ -37,6 +37,8 @@ function toLookup(arr) {
   return Object.fromEntries((arr ?? []).map(r => [r.id, r.nome]));
 }
 
+// TODO: SEGURANÇA [V005] — sem guard de perfil. Vendedor/medidor acessa esta UI pela URL.
+// Adicionar: if (profile?.perfil !== 'admin') return <AccessDenied /> — igual a FinanceiroContas.
 export default function FinanceiroDashboard() {
   const { profile } = useAuth();
 

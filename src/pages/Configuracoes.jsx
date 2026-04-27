@@ -43,6 +43,9 @@ function novaVariacao(espessuraDefault = '') {
   };
 }
 
+// TODO: SEGURANÇA [V004] — sem guard de perfil. Vendedor acessa lista de usuários e
+// dados da empresa (incluindo dados_bancarios no estado React via DevTools).
+// Adicionar: if (profile && profile.perfil !== 'admin') return <AccessDenied />
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function ConfiguracoesPage() {
   const { profile, session, refreshProfile } = useAuth();

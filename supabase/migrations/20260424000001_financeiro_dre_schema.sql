@@ -114,6 +114,10 @@ COMMENT ON COLUMN financeiro_lancamentos.subtipo_dfc IS
   'operacional (default quando NULL), investimento, financiamento.';
 
 
+-- TODO: SEGURANÇA [V001] — financeiro_mdo_direta e financeiro_emprestimos não têm ENABLE ROW LEVEL SECURITY.
+-- Qualquer usuário autenticado pode ler/escrever dados de qualquer empresa nessas tabelas.
+-- Criar migration separada com RLS + policies admin-only antes de popular essas tabelas.
+
 -- ─── 5. financeiro_mdo_direta ─────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS financeiro_mdo_direta (

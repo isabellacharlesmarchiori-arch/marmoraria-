@@ -32,6 +32,9 @@
 
 -- ─── 1a. Função de recálculo completo ────────────────────────────────────────
 
+-- TODO: SEGURANÇA [V003] — função SECURITY DEFINER com GRANT TO authenticated sem validação de empresa_id.
+-- Qualquer usuário autenticado pode chamar com qualquer UUID e ler/modificar saldo de conta de outra empresa.
+-- Mitigação atual: UUIDs v4 (não adivinháveis). Correção: adicionar check de empresa_id antes do SELECT.
 CREATE OR REPLACE FUNCTION public.recalcular_saldo_conta(p_conta_id uuid)
 RETURNS numeric
 LANGUAGE plpgsql
