@@ -28,8 +28,16 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Network first, fallback to cache
 self.addEventListener('fetch', event => {
+  // Navigation requests (HTML pages): network first, fallback to cached index.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Static assets: network first, fallback to cache
   event.respondWith(
     fetch(event.request)
       .then(response => {
