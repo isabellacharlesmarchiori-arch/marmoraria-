@@ -7,43 +7,16 @@ import PdfOptionsModal from '../components/PdfOptionsModal';
 import AgendaMedidor from '../components/AgendaMedidor';
 import CamposParcelamento from './financeiro/lancamentos/CamposParcelamento';
 import { loadPdfOpts, savePdfOpts } from '../utils/pdfOptions';
+import { useProjectData } from '../hooks/useProjectData';
+import {
+    STATUS_CONFIG,
+    StatusPill, MedicaoPill,
+    normalizarJsonMedicao,
+    duplicarAmbiente, duplicarVersao, duplicarPeca, clonarAvulso,
+    calcTotal, fmtBRL, calcDataFinalDiasUteis, calcParcelas,
+} from '../utils/projetoUtils';
 // gerarPdfOrcamento é importado dinamicamente no click handler para não bloquear o bundle inicial
 
-const STATUS_CONFIG = {
-    orcado:     { label: 'Orçado',     color: 'text-gray-600 dark:text-zinc-400',    border: 'border-gray-300 dark:border-zinc-700',      bg: 'bg-gray-100 dark:bg-zinc-900',        dot: 'bg-gray-400 dark:bg-zinc-500'    },
-    aprovado:   { label: 'Aprovado',   color: 'text-green-700 dark:text-green-400',  border: 'border-green-400/40 dark:border-green-500/30', bg: 'bg-green-50 dark:bg-green-400/5',  dot: 'bg-green-600 dark:bg-green-400'  },
-    produzindo: { label: 'Produzindo', color: 'text-violet-700 dark:text-violet-400', border: 'border-violet-400/40 dark:border-violet-500/30', bg: 'bg-violet-50 dark:bg-violet-400/5', dot: 'bg-violet-600 dark:bg-violet-400' },
-    entregue:   { label: 'Entregue',   color: 'text-blue-700 dark:text-blue-400',    border: 'border-blue-400/40 dark:border-blue-500/30',   bg: 'bg-blue-50 dark:bg-blue-400/5',    dot: 'bg-blue-600 dark:bg-blue-400'    },
-    perdido:    { label: 'Perdido',    color: 'text-red-700 dark:text-red-400',      border: 'border-red-400/40 dark:border-red-500/30',     bg: 'bg-red-50 dark:bg-red-400/5',      dot: 'bg-red-600 dark:bg-red-400'      },
-};
-
-const MEDICAO_STATUS = {
-    agendada:   { label: 'Agendada',   color: 'text-gray-600 dark:text-zinc-400',    border: 'border-gray-300 dark:border-zinc-700',         bg: 'bg-gray-100 dark:bg-zinc-900',        dot: 'bg-gray-400 dark:bg-zinc-500'    },
-    enviada:    { label: 'Enviada',    color: 'text-yellow-700 dark:text-yellow-400', border: 'border-yellow-400/40 dark:border-yellow-400/30', bg: 'bg-yellow-50 dark:bg-yellow-400/5', dot: 'bg-yellow-600 dark:bg-yellow-400' },
-    processada: { label: 'Processada', color: 'text-violet-700 dark:text-violet-400', border: 'border-violet-400/40 dark:border-violet-400/30', bg: 'bg-violet-50 dark:bg-violet-400/5', dot: 'bg-violet-600 dark:bg-violet-400' },
-    concluida:  { label: 'Aprovada',   color: 'text-green-700 dark:text-green-400',  border: 'border-green-400/40 dark:border-green-500/30',  bg: 'bg-green-50 dark:bg-green-400/5',  dot: 'bg-green-600 dark:bg-green-400'  },
-    aprovada:   { label: 'Aprovada',   color: 'text-green-700 dark:text-green-400',  border: 'border-green-400/40 dark:border-green-500/30',  bg: 'bg-green-50 dark:bg-green-400/5',  dot: 'bg-green-600 dark:bg-green-400'  },
-};
-
-function StatusPill({ status }) {
-    const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.orcado;
-    return (
-        <span className={`px-2 py-0.5 border ${cfg.border} text-[9px] font-mono uppercase ${cfg.color} ${cfg.bg} flex items-center gap-1.5 w-max`}>
-            <span className={`w-1 h-1 ${cfg.dot} rounded-full`}></span>
-            {cfg.label}
-        </span>
-    );
-}
-
-function MedicaoPill({ status }) {
-    const cfg = MEDICAO_STATUS[status] || MEDICAO_STATUS.agendada;
-    return (
-        <span className={`px-2 py-0.5 border ${cfg.border} text-[9px] font-mono uppercase ${cfg.color} ${cfg.bg} flex items-center gap-1.5 w-max`}>
-            <span className={`w-1 h-1 ${cfg.dot} rounded-full`}></span>
-            {cfg.label}
-        </span>
-    );
-}
 
 // ─── Informações da medição (tipo + observações) ─────────────────────────────
 // Exibe badge de tipo de medição, observações do ambiente e dos itens.
@@ -153,256 +126,7 @@ function InfoMedicao({ ambientes }) {
     );
 }
 
-// ─── Normaliza json_medicao para o formato interno resumo_por_peca ───────────
-// Suporta dois formatos:
-//   • Trigger web:  { resumo_por_peca: [...], totais: {...} }
-//   • App Flutter:  { projeto, ambientes: [{ ambiente, pecas: [...] }] }
-//
-// Campos Flutter por peça:
-//   name, type, width_cm, height_cm, thickness_cm, area_liquida_m2,
-//   recortes (array), acabamentos (array de "RS"|"ME" por aresta)
-//
-// Cálculo de ml por acabamento (retangulo):
-//   Arestas na ordem [width, height, width, height].
-//   Cada item do array acabamentos mapeia para a aresta de mesmo índice.
-//   RS = reto simples  →  soma dos comprimentos das arestas marcadas RS
-//   ME = meia-esquadria → soma dos comprimentos das arestas marcadas ME
-//   Polígonos: usa lados_cm exportados pelo app para calcular ml por acabamento
-function normalizarJsonMedicao(json) {
-    if (!json) return null;
 
-    // Formato web — já está no padrão esperado
-    if (Array.isArray(json.resumo_por_peca) && json.resumo_por_peca.length > 0) {
-        return json;
-    }
-
-    // Formato Flutter
-    if (Array.isArray(json.ambientes)) {
-        const resumo = [];
-
-        for (const amb of json.ambientes) {
-            const nomeAmbiente = amb.ambiente ?? amb.nome ?? null;
-
-            // Coleta peças com info de item (nova estrutura) ou sem (compat)
-            const fontes = [];
-            if (Array.isArray(amb.itens) && amb.itens.length > 0) {
-                // Nova estrutura: ambientes[].itens[].pecas + ambientes[].pecas_sem_item
-                for (const item of amb.itens) {
-                    const pecasItem = Array.isArray(item.pecas) ? item.pecas : [];
-                    for (const p of pecasItem) {
-                        fontes.push({ p, item_nome: item.nome ?? null, item_id: item.item_id ?? null });
-                    }
-                }
-                const semItem = Array.isArray(amb.pecas_sem_item) ? amb.pecas_sem_item : [];
-                for (const p of semItem) fontes.push({ p, item_nome: null, item_id: null });
-            } else {
-                // Estrutura antiga: ambientes[].pecas
-                const pecas = Array.isArray(amb.pecas) ? amb.pecas : [];
-                for (const p of pecas) fontes.push({ p, item_nome: null, item_id: null });
-            }
-
-            for (const { p, item_nome, item_id } of fontes) {
-                const widthM  = (parseFloat(p.width_cm)  || 0) / 100;
-                const heightM = (parseFloat(p.height_cm) || 0) / 100;
-                const area = parseFloat(p.area_liquida_m2 ?? p.area_bruta_m2) || 0;
-                const acabs = Array.isArray(p.acabamentos) ? p.acabamentos : [];
-                let arestas;
-                if (p.type === 'retangulo') {
-                    arestas = [widthM, heightM, widthM, heightM];
-                } else if (p.type === 'poligono' && Array.isArray(p.lados_cm)) {
-                    arestas = p.lados_cm.map(l => Number(l) / 100);
-                } else {
-                    arestas = [];
-                }
-                let reto_simples_ml   = 0;
-                let meia_esquadria_ml = 0;
-                acabs.forEach((ac, i) => {
-                    const len = arestas[i] ?? 0;
-                    if (ac === 'RS') reto_simples_ml   += len;
-                    if (ac === 'ME') meia_esquadria_ml += len;
-                });
-                resumo.push({
-                    nome:             p.name ?? 'Peça',
-                    area_liquida_m2:  Math.round(area * 10000) / 10000,
-                    espessura_cm:     p.thickness_cm ?? null,
-                    ambiente_nome:    nomeAmbiente,
-                    item_nome,
-                    item_id,
-                    type:             p.type ?? 'retangulo',
-                    recortes_qty:     Array.isArray(p.recortes) ? p.recortes.length : 0,
-                    recortes:         Array.isArray(p.recortes) ? p.recortes : [],
-                    acabamentos: {
-                        reto_simples_ml:   Math.round(reto_simples_ml   * 100) / 100,
-                        meia_esquadria_ml: Math.round(meia_esquadria_ml * 100) / 100,
-                    },
-                });
-            }
-        }
-
-        return { resumo_por_peca: resumo, _fonte: 'flutter' };
-    }
-
-    return json;
-}
-
-// ─── Funções puras de duplicação — FORA do componente, sem closures, sem side effects ───
-// duplicarAmbiente: recebe um ambiente, retorna um clone 100% novo com novos UUIDs em todos os níveis.
-// Não toca em nenhum estado global. Não cria versões extras. Retorna exatamente o que recebe, clonado.
-function duplicarAmbiente(amb) {
-    return {
-        id:     crypto.randomUUID(),
-        nome:   `${amb.nome} (Cópia)`,
-        status: amb.status || 'em_andamento',
-        orcamentos: (amb.orcamentos || []).map(v => ({
-            id:          crypto.randomUUID(),
-            nome:        v.nome,
-            data:        v.data || '',
-            valor_total: v.valor_total || 0,
-            avulsos: (v.avulsos || []).map(av => ({
-                id:             crypto.randomUUID(),
-                produto_id:     av.produto_id,
-                nome:           av.nome,
-                quantidade:     av.quantidade,
-                valor_unitario: av.valor_unitario,
-                valor_total:    av.valor_total,
-            })),
-            pecas: (v.pecas || []).map(p => ({
-                id:          crypto.randomUUID(),
-                nome:        p.nome,
-                material_id: p.material_id || '',
-                material:    p.material || '',
-                espessura:   p.espessura || '',
-                area:        p.area || '',
-                acabamento:  p.acabamento || '',
-                valor:       p.valor || 0,
-                recortes: (p.recortes || []).map(r => ({
-                    id:      crypto.randomUUID(),
-                    nome:    r.nome,
-                    dimensao: r.dimensao,
-                })),
-            })),
-        })),
-    };
-}
-
-// duplicarVersao: idem para uma versao individual.
-function duplicarVersao(v) {
-    return {
-        id:          crypto.randomUUID(),
-        nome:        `${v.nome} (Cópia)`,
-        data:        v.data || '',
-        valor_total: v.valor_total || 0,
-        avulsos: (v.avulsos || []).map(av => ({
-            id:             crypto.randomUUID(),
-            produto_id:     av.produto_id,
-            nome:           av.nome,
-            quantidade:     av.quantidade,
-            valor_unitario: av.valor_unitario,
-            valor_total:    av.valor_total,
-        })),
-        pecas: (v.pecas || []).map(p => ({
-            id:          crypto.randomUUID(),
-            nome:        p.nome,
-            material_id: p.material_id || '',
-            material:    p.material || '',
-            espessura:   p.espessura || '',
-            area:        p.area || '',
-            acabamento:  p.acabamento || '',
-            valor:       p.valor || 0,
-            recortes: (p.recortes || []).map(r => ({
-                id:      crypto.randomUUID(),
-                nome:    r.nome,
-                dimensao: r.dimensao,
-            })),
-        })),
-    };
-}
-
-// duplicarPeca: idem para uma peça individual.
-function duplicarPeca(p) {
-    return {
-        id:          crypto.randomUUID(),
-        nome:        `${p.nome} (Cópia)`,
-        material_id: p.material_id || '',
-        material:    p.material || '',
-        espessura:   p.espessura || '',
-        area:        p.area || '',
-        acabamento:  p.acabamento || '',
-        valor:       p.valor || 0,
-        recortes: (p.recortes || []).map(r => ({
-            id:      crypto.randomUUID(),
-            nome:    r.nome,
-            dimensao: r.dimensao,
-        })),
-    };
-}
-
-// clonarAvulso: para uso em adicionarAvulso
-function clonarAvulso(av) {
-    return {
-        id:             crypto.randomUUID(),
-        produto_id:     av.produto_id,
-        nome:           String(av.nome           || ''),
-        quantidade:     Number(av.quantidade     || 1),
-        valor_unitario: Number(av.valor_unitario || 0),
-        valor_total:    Number(av.valor_total    || 0),
-    };
-}
-
-// Recalcula valor_total de uma versão (pecas + avulsos)
-function calcTotal(versao) {
-    const tp = (versao.pecas   || []).reduce((s, p)  => s + (Number(p.valor)       || 0), 0);
-    const ta = (versao.avulsos || []).reduce((s, av) => s + (Number(av.valor_total) || 0), 0);
-    return tp + ta;
-}
-
-// ── Helpers de normalização — transforma a estrutura do Supabase ──────────────
-
-function normalizarAmbiente(amb) {
-    // Filtra orçamentos descartados (soft delete — descartado_em NOT NULL)
-    const orcamentosDoAmb = (amb.orcamentos ?? []).filter(o => !o.descartado_em);
-    const versoes = orcamentosDoAmb.map(orc => ({
-        id:             orc.id,
-        nome:           orc.nome_versao ?? orc.nome ?? 'Versão',
-        status:         orc.status ?? 'rascunho',
-        valor_total:    orc.valor_total ?? 0,
-        desconto_total: orc.desconto_total ?? 0,
-        majoramento_percentual: orc.majoramento_percentual ?? 0,
-        rt_percentual:          orc.rt_percentual ?? 0,
-        rt_arquiteto_nome:      orc.rt_arquiteto_nome ?? '',
-        valor_frete:            orc.valor_frete ?? 0,
-        data:           orc.created_at
-            ? new Date(orc.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-            : '',
-        itens_manuais: orc.itens_manuais ?? [],
-        pecas: (orc.orcamento_pecas ?? []).map((op, idx) => ({
-            id:               op.id,
-            nome:             op.pecas?.nome_livre ?? `Peça ${idx + 1}`,
-            material:         'Material Padrão',
-            material_id:      op.material_id ?? '',
-            espessura:        op.pecas?.espessura_cm != null ? `${op.pecas.espessura_cm}` : '—',
-            area:             op.pecas?.area_liquida_m2 != null ? op.pecas.area_liquida_m2 : null,
-            acabamento:       '—',
-            valor:            op.valor_total ?? 0,
-            valor_acabamentos: op.valor_acabamentos ?? 0,
-            recortes:         [],
-            ambiente_id:      op.pecas?.ambiente_id ?? null,
-            item_nome:        op.pecas?.dimensoes?.item_nome ?? null,
-            acabamentos:      op.acabamentos ?? [],
-        })),
-        avulsos: (orc.orcamento_avulsos ?? []).map(av => ({
-            id:             av.id,
-            nome:           av.nome ?? 'Produto',
-            quantidade:     av.quantidade ?? 1,
-            valor_unitario: av.valor_unitario ?? 0,
-            valor_total:    av.valor_total ?? 0,
-        })),
-    }));
-    const orcamento_status = versoes.length === 0
-        ? 'sem_orcamento'
-        : orcamentosDoAmb.some(o => o.status === 'completo') ? 'completo' : 'em_andamento';
-    return { id: amb.id, nome: amb.nome, orcamento_status, orcamentos: versoes };
-}
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
@@ -415,35 +139,21 @@ export default function TelaProjetoVendedor() {
 
     const [activeTab, setActiveTab] = useState('medicoes');
 
-    // ── Estado único de ambientes — alimentado pelo Supabase ─────────────────
-    const [ambientes, setAmbientes] = useState([]);
-    const [projeto, setProjeto] = useState(null);
-    const [loadingProjeto, setLoadingProjeto] = useState(true);
+    const {
+        projeto,         setProjeto,
+        ambientes,       setAmbientes,
+        medicoes,        setMedicoes,
+        catMateriais,    catProdAvulsos,
+        medidores,
+        pedidoFechado,   setPedidoFechado,
+        loadingProjeto,
+        loadingPecasOrc,
+        recarregarAmbientes,
+        recarregarMedicoes,
+        fetchPecasParaOrcamento,
+    } = useProjectData(id, activeTab);
 
     const isViewOnlyAdmin = isAdmin && projeto && projeto.vendedor_id !== session?.user?.id;
-
-    // ── Estado de medições — carregado do Supabase ───────────────────────────
-    const [medicoes, setMedicoes] = useState([]);
-
-    const recarregarMedicoes = React.useCallback(async () => {
-        if (!id) return;
-        const { data, error } = await supabase
-            .from('medicoes')
-            .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
-            .eq('projeto_id', id)
-            .order('data_medicao', { ascending: false });
-        if (error) {
-            console.error('[medicoes] Erro ao carregar:', error);
-            return;
-        }
-        if (data) setMedicoes(data.map(m => ({
-            ...m,
-            data: m.data_medicao
-                ? new Date(m.data_medicao).toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                : '—',
-            medidor: m.responsavel ?? '—',
-        })));
-    }, [id]);
 
     // Abre modal de edição preenchido com dados existentes
     function handleAbrirEditar(m) {
@@ -472,98 +182,6 @@ export default function TelaProjetoVendedor() {
         setMedicoes(prev => prev.filter(item => item.id !== m.id));
     }
 
-    // Helper para recarregar ambientes do banco após mutações
-    const recarregarAmbientes = React.useCallback(async () => {
-        if (!session || !id) return;
-        const { data, error } = await supabase
-            .from('ambientes')
-            .select(`
-                id, nome,
-                orcamentos(id, nome_versao, valor_total, desconto_total, majoramento_percentual, rt_percentual, rt_arquiteto_nome, valor_frete, status, created_at, itens_manuais, descartado_em,
-                    orcamento_pecas(*, pecas(nome_livre, area_liquida_m2, espessura_cm, ambiente_id, dimensoes)),
-                    orcamento_avulsos(id, nome, quantidade, valor_unitario, valor_total)
-                )
-            `)
-            .eq('projeto_id', id)
-            .order('created_at');
-        if (error) {
-            console.error('Erro ao recarregar ambientes:', error.message, error.details);
-            // Fallback sem sub-joins opcionais
-            const { data: fb, error: fbErr } = await supabase
-                .from('ambientes')
-                .select(`
-                    id, nome,
-                    orcamentos(id, nome_versao, valor_total, desconto_total, majoramento_percentual, rt_percentual, rt_arquiteto_nome, valor_frete, status, created_at, itens_manuais)
-                `)
-                .eq('projeto_id', id)
-                .order('created_at');
-            if (fbErr) { console.error('Erro no fallback:', fbErr.message); return; }
-            if (fb) setAmbientes(fb.map(normalizarAmbiente));
-            return;
-        }
-        if (data) setAmbientes(data.map(normalizarAmbiente));
-    }, [session, id]);
-
-    // Fetch inicial de medições
-    useEffect(() => {
-        if (id) recarregarMedicoes();
-    }, [id, recarregarMedicoes]);
-
-    // Carregamento inicial
-    useEffect(() => {
-        if (!id) return;
-
-        async function loadData() {
-            setLoadingProjeto(true);
-            try {
-                const [resP, resA] = await Promise.all([
-                    supabase.from('projetos').select('*, clientes(id, nome, telefone, email, endereco), arquitetos(id, nome), rt_padrao_percentual').eq('id', id).single(),
-                    supabase.from('ambientes').select(`
-                        id, nome,
-                        orcamentos(id, nome_versao, valor_total, desconto_total, majoramento_percentual, rt_percentual, rt_arquiteto_nome, valor_frete, status, created_at, itens_manuais, descartado_em,
-                            orcamento_pecas(*, pecas(nome_livre, area_liquida_m2, espessura_cm, ambiente_id, dimensoes)),
-                            orcamento_avulsos(id, nome, quantidade, valor_unitario, valor_total)
-                        )
-                    `).eq('projeto_id', id).order('created_at'),
-                ]);
-
-                if (resP.error) console.error('[TelaProjeto] Erro projeto:', resP.error.message);
-
-                if (resP.data) setProjeto(resP.data);
-
-                if (resA.error) {
-                    console.error('[TelaProjeto] Erro ao carregar ambientes+orçamentos:', resA.error.message, resA.error.details);
-                    // Fallback: busca apenas ambientes com orcamentos básicos (sem sub-joins opcionais)
-                    const { data: fallbackData, error: fallbackErr } = await supabase
-                        .from('ambientes')
-                        .select(`
-                            id, nome,
-                            orcamentos(id, nome_versao, valor_total, desconto_total, majoramento_percentual, rt_percentual, rt_arquiteto_nome, valor_frete, status, created_at, itens_manuais)
-                        `)
-                        .eq('projeto_id', id)
-                        .order('created_at');
-                    if (fallbackErr) {
-                        console.error('[TelaProjeto] Erro no fallback de ambientes:', fallbackErr.message);
-                    }
-                    const dados = Array.isArray(fallbackData) ? fallbackData.map(normalizarAmbiente) : [];
-                    setAmbientes(dados);
-                } else {
-                    const dadosNormalizados = Array.isArray(resA.data)
-                        ? resA.data.map(normalizarAmbiente)
-                        : [];
-                    setAmbientes(dadosNormalizados);
-                }
-
-            } catch (err) {
-                console.error('[TelaProjeto] Erro fatal no loadData:', err);
-            } finally {
-                setLoadingProjeto(false);
-            }
-        }
-
-        loadData();
-    }, [id]);
-
     const [versoesExpandidas, setVersoesExpandidas] = useState({});
 
     const toggleVersao = (e, versaoId) => {
@@ -576,10 +194,6 @@ export default function TelaProjetoVendedor() {
     const [pecaEmEdicao, setPecaEmEdicao] = useState(null);
     const [itemManualEmEdicao, setItemManualEmEdicao] = useState(null);
     // ^ { ambienteId, orcamentoId, itemIndex, itemData }
-
-    // Catálogos do Supabase
-    const [catMateriais,      setCatMateriais]      = useState([]);
-    const [catProdAvulsos,    setCatProdAvulsos]    = useState([]);
 
     // Modais / edição de versão
     const [editingAmbNome,   setEditingAmbNome]   = useState(null);
@@ -737,18 +351,6 @@ export default function TelaProjetoVendedor() {
         setBulkMat(p => ({ ...p, [versaoId]: '' }));
     };
 
-    // ── Carregar catálogos do Supabase ────────────────────────────────────────
-    useEffect(() => {
-        if (!profile?.empresa_id) return;
-        Promise.all([
-            supabase.from('materiais').select('id, nome').eq('empresa_id', profile.empresa_id).eq('ativo', true).order('nome'),
-            supabase.from('produtos_avulsos').select('id, nome, preco_unitario').eq('empresa_id', profile.empresa_id).eq('ativo', true).order('nome'),
-        ]).then(([{ data: mats }, { data: prods }]) => {
-            if (mats)  setCatMateriais(mats);
-            if (prods) setCatProdAvulsos(prods);
-        }).catch(() => {});
-    }, [profile?.empresa_id]);
-
     // ── AVULSOS CRUD (local apenas — integração Supabase futura) ─────────────
     const adicionarAvulso = (ambId, versaoId) => {
         const sel  = novoAvulso[versaoId];
@@ -843,7 +445,6 @@ export default function TelaProjetoVendedor() {
         setEditingVersao(null);
     };
 
-    const fmtBRL = v => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const totalCarrinho = ambientes
         .flatMap(a => a.orcamentos)
         .filter(o => selectedIds.includes(o.id))
@@ -1036,7 +637,6 @@ export default function TelaProjetoVendedor() {
     const [carrinhoEditandoNome,    setCarrinhoEditandoNome]    = useState(null); // { id, nome }
     const [carrinhoEditandoDesconto, setCarrinhoEditandoDesconto] = useState(null); // { id, valor, tipo }
     const [carrinhoEditandoAjustes, setCarrinhoEditandoAjustes] = useState(null); // { id, majoramento, rt, rtNome }
-    const [loadingPecasOrc,         setLoadingPecasOrc]         = useState({}); // { orcId: bool }
 
     // ── Mesclar Cenários ─────────────────────────────────────────────────────
     const [modoMesclar,      setModoMesclar]      = useState(false);
@@ -1064,43 +664,11 @@ export default function TelaProjetoVendedor() {
     const [loadingFechar,      setLoadingFechar]      = useState(false);
     const [toastFechar,        setToastFechar]        = useState('');
     const [fecharOpen,         setFecharOpen]         = useState({ cenarios: false, pagamento: true, prazo: false });
-    const [pedidoFechado,      setPedidoFechado]      = useState(null);
     const [loadingPdf,         setLoadingPdf]         = useState(null);
     const [pdfModal,           setPdfModal]           = useState(null); // null | { tipo, orc?, defaults }
 
     const cancelarFecharPedido = () => { setModoFecharPedido(false); setFecharIds([]); setModalFechar(null); };
     const toggleFecharId = (orcId) => setFecharIds(p => p.includes(orcId) ? p.filter(x => x !== orcId) : [...p, orcId]);
-
-    // Calcula data final dado N dias úteis a partir de hoje
-    function calcDataFinalDiasUteis(dias) {
-        if (!dias || dias < 1) return null;
-        let count = 0;
-        let d = new Date();
-        while (count < dias) {
-            d.setDate(d.getDate() + 1);
-            const dow = d.getDay();
-            if (dow !== 0 && dow !== 6) count++;
-        }
-        return d.toISOString().slice(0, 10);
-    }
-
-    // Calcula array de parcelas mensais a partir da data do primeiro vencimento
-    function calcParcelas(total, qtd, primVenc) {
-        if (!qtd || qtd < 1 || !primVenc) return [];
-        const valorParcela = total / qtd;
-        const result = [];
-        const base = new Date(primVenc + 'T12:00:00');
-        for (let i = 0; i < qtd; i++) {
-            const d = new Date(base);
-            d.setMonth(d.getMonth() + i);
-            result.push({
-                numero:     i + 1,
-                valor:      Math.round(valorParcela * 100) / 100,
-                vencimento: d.toISOString().slice(0, 10),
-            });
-        }
-        return result;
-    }
 
     async function confirmarFechamento() {
         if (!modalFechar || fecharIds.length === 0) return;
@@ -1354,23 +922,6 @@ export default function TelaProjetoVendedor() {
         }
     }
 
-    // Carrega pedido fechado ativo ao abrir a aba
-    useEffect(() => {
-        if (activeTab !== 'carrinho' || !id) return;
-        supabase.from('pedidos_fechados')
-            .select('*')
-            .eq('projeto_id', id)
-            .eq('status', 'FECHADO')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .then(({ data }) => { if (data?.[0]) setPedidoFechado(data[0]); });
-    }, [activeTab, id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Refetch quando o usuário abre a aba Carrinho
-    useEffect(() => {
-        if (activeTab === 'carrinho') recarregarAmbientes();
-    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
-
     // ── Fetch completo de peças para geração de PDF (sempre fresh do banco) ──────
     async function fetchPecasParaPdf(orcId) {
         const { data, error } = await supabase
@@ -1393,44 +944,6 @@ export default function TelaProjetoVendedor() {
             item_nome:         op.item_nome ?? op.pecas?.dimensoes?.item_nome ?? null,
             acabamentos:       op.acabamentos ?? [],
         }));
-    }
-
-    // Busca as peças de um orçamento específico sob demanda (lazy load)
-    async function fetchPecasParaOrcamento(orcId) {
-        setLoadingPecasOrc(prev => ({ ...prev, [orcId]: true }));
-        const { data, error } = await supabase
-            .from('orcamento_pecas')
-            .select('*, pecas(nome_livre, area_liquida_m2, espessura_cm, ambiente_id, dimensoes)')
-            .eq('orcamento_id', orcId);
-        if (!error && data) {
-            setAmbientes(prev => prev.map(amb => ({
-                ...amb,
-                orcamentos: (amb.orcamentos ?? []).map(o => {
-                    if (o.id !== orcId) return o;
-                    return {
-                        ...o,
-                        pecas: data.map((op, idx) => ({
-                            id:                op.id,
-                            nome:              op.pecas?.nome_livre ?? `Peça ${idx + 1}`,
-                            material:          'Material Padrão',
-                            material_id:       op.material_id ?? '',
-                            espessura:         op.pecas?.espessura_cm != null ? `${op.pecas.espessura_cm}` : '—',
-                            area:              op.pecas?.area_liquida_m2 ?? null,
-                            acabamento:        '—',
-                            valor:             op.valor_total ?? 0,
-                            valor_acabamentos: op.valor_acabamentos ?? 0,
-                            recortes:          [],
-                            ambiente_id:       op.pecas?.ambiente_id ?? null,
-                            item_nome:         op.item_nome ?? op.pecas?.dimensoes?.item_nome ?? null,
-                            acabamentos:       op.acabamentos ?? [],
-                        })),
-                    };
-                }),
-            })));
-        } else if (error) {
-            console.error('[lazy pecas]', error.message);
-        }
-        setLoadingPecasOrc(prev => ({ ...prev, [orcId]: false }));
     }
 
     function toggleCarrinhoDetalhes(orcId) {
@@ -1653,32 +1166,6 @@ export default function TelaProjetoVendedor() {
     // Combina os campos em uma string para salvar no banco
     const enderecoCompleto = [agRua, agNumero, agBairro, agCidade]
         .map(s => s.trim()).filter(Boolean).join(', ');
-
-    // Lista de medidores da empresa — busca na tabela profiles
-    const [medidores, setMedidores] = useState([]);
-
-    useEffect(() => {
-        console.log('[medidores] Empresa ID logado:', profile?.empresa_id);
-        // Monta a query base — filtra por role obrigatoriamente
-        let query = supabase
-            .from('profiles')
-            .select('id, full_name')
-            .eq('role', 'medidor')
-            .order('full_name');
-
-        // Aplica filtro de empresa somente se o campo estiver disponível
-        if (profile?.empresa_id) {
-            query = query.eq('empresa_id', profile.empresa_id);
-        } else {
-            console.warn('[medidores] empresa_id nulo — buscando todos os medidores sem filtro de empresa (modo diagnóstico)');
-        }
-
-        query.then(({ data, error }) => {
-            if (error) console.error('[medidores] Erro ao buscar:', error);
-            console.log('[medidores] Resultado:', data);
-            if (data) setMedidores(data);
-        });
-    }, [profile?.empresa_id]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
