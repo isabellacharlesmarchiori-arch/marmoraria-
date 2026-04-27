@@ -54,16 +54,20 @@ export default function CadastroEmpresa() {
         setLoading(true);
 
         try {
-            // 1. Cria empresa primeiro para ter o empresa_id disponível
+            // 1. Cria empresa
+            console.log('1. Criando empresa:', empresa);
             const { data: empresaData, error: empresaError } = await supabase
                 .from('empresas')
                 .insert([{ nome: empresa }])
                 .select()
                 .single();
 
+            console.log('1. Empresa criada:', empresaData);
+            console.log('1. Erro empresa:', empresaError);
             if (empresaError) throw empresaError;
 
-            // 2. Cria usuário no Auth
+            // 2. Cria auth
+            console.log('2. Criando auth com email:', email);
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -73,14 +77,33 @@ export default function CadastroEmpresa() {
                 }
             });
 
+            console.log('2. AuthData completo:', authData);
+            console.log('2. authData.user:', authData?.user);
+            console.log('2. authData.user.id:', authData?.user?.id);
+            console.log('2. Erro auth:', authError);
             if (authError) throw authError;
 
-            // 3. Valida que o ID foi gerado
-            const userId = authData.user?.id;
-            if (!userId) throw new Error('ID do usuário não foi criado pelo Auth');
+            // 3. Valida ID
+            const userId = authData?.user?.id;
+            console.log('3. userId extraído:', userId);
+            console.log('3. Tipo de userId:', typeof userId);
 
-            // 4. Insere na tabela usuarios com o ID do auth.users
-            const { error: usuarioError } = await supabase
+            if (!userId) {
+                console.error('ERRO: userId está vazio ou undefined');
+                throw new Error('ID do usuário não foi criado pelo Supabase Auth');
+            }
+
+            // 4. Insere usuario
+            console.log('4. Inserindo usuario com dados:', {
+                id: userId,
+                email,
+                nome,
+                perfil: 'admin',
+                empresa_id: empresaData.id,
+                ativo: true
+            });
+
+            const { data: usuarioData, error: usuarioError } = await supabase
                 .from('usuarios')
                 .insert([{
                     id: userId,
@@ -89,10 +112,14 @@ export default function CadastroEmpresa() {
                     perfil: 'admin',
                     empresa_id: empresaData.id,
                     ativo: true
-                }]);
+                }])
+                .select();
 
+            console.log('4. Usuario inserido:', usuarioData);
+            console.log('4. Erro usuario:', usuarioError);
             if (usuarioError) throw usuarioError;
 
+            console.log('✅ SUCESSO total');
             setEmpresa('');
             setNome('');
             setEmail('');
@@ -102,6 +129,9 @@ export default function CadastroEmpresa() {
 
             setTimeout(() => { window.location.href = '/'; }, 2000);
         } catch (err) {
+            console.error('❌ ERRO COMPLETO:', err);
+            console.error('❌ Error.message:', err.message);
+            console.error('❌ Error.stack:', err.stack);
             setErrorMsg(`ERRO: ${err.message}`);
         } finally {
             setLoading(false);
