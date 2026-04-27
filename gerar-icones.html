@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Ícones — Marmoraria</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --y: #FFB800;
+    --bg: #0d0d0d;
+    --card: #131313;
+    --border: #212121;
+    --muted: #505050;
+  }
+
+  body {
+    background: var(--bg);
+    color: #e0e0e0;
+    font-family: system-ui, -apple-system, 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 56px 24px 96px;
+  }
+
+  header { text-align: center; margin-bottom: 60px; }
+
+  header h1 {
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: var(--y);
+    letter-spacing: -0.045em;
+    margin-bottom: 8px;
+  }
+
+  header p { color: var(--muted); font-size: 0.88rem; }
+
+  .sections {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 40px 40px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 28px;
+    margin-bottom: 36px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tag {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--y);
+    color: #0a0a0a;
+    padding: 4px 12px;
+    border-radius: 100px;
+  }
+
+  .section-name { font-size: 0.95rem; font-weight: 500; color: #999; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 52px; align-items: flex-end; }
+
+  .card { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+  canvas {
+    display: block;
+    border-radius: 22%;
+    box-shadow: 0 16px 56px rgba(0,0,0,0.75);
+  }
+
+  .sz {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--y);
+    color: #0a0a0a;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 0.79rem;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: opacity .15s, transform .1s;
+  }
+
+  button:hover { opacity: .88; }
+  button:active { transform: scale(.97); }
+
+  footer { text-align: center; margin-top: 64px; color: #252525; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ícones Marmoraria</h1>
+  <p>Canvas API · Dashboard Web + Flutter App · exporta PNG</p>
+</header>
+
+<div class="sections">
+
+  <div class="section">
+    <div class="section-head">
+      <span class="tag">Dashboard</span>
+      <span class="section-name">SS entrelaçados · fundo preto com grid</span>
+    </div>
+    <div class="row">
+      <div class="card">
+        <canvas id="d192" width="192" height="192" style="width:130px;height:130px"></canvas>
+        <span class="sz">192 × 192 px</span>
+        <button onclick="dl('d192','icon-dashboard-192.png')">↓ Baixar PNG</button>
+      </div>
+      <div class="card">
+        <canvas id="d512" width="512" height="512" style="width:200px;height:200px"></canvas>
+        <span class="sz">512 × 512 px</span>
+        <button onclick="dl('d512','icon-dashboard-512.png')">↓ Baixar PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="tag">Flutter</span>
+      <span class="section-name">S sendo desenhado · efeito de traço de caneta</span>
+    </div>
+    <div class="row">
+      <div class="card">
+        <canvas id="f192" width="192" height="192" style="width:130px;height:130px"></canvas>
+        <span class="sz">192 × 192 px</span>
+        <button onclick="dl('f192','icon-flutter-192.png')">↓ Baixar PNG</button>
+      </div>
+      <div class="card">
+        <canvas id="f512" width="512" height="512" style="width:200px;height:200px"></canvas>
+        <span class="sz">512 × 512 px</span>
+        <button onclick="dl('f512','icon-flutter-512.png')">↓ Baixar PNG</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Marmoraria ERP · 2026</footer>
+
+<script>
+const Y  = '#FFB800';
+const BG = '#0a0a0a';
+
+function dl(id, name) {
+  const c = document.getElementById(id);
+  const a = document.createElement('a');
+  a.download = name;
+  a.href = c.toDataURL('image/png');
+  a.click();
+}
+
+// Builds the S path on ctx. cx/cy = center, sw = width, sh = height.
+// C1-continuous: junctions at (l, t+28%) and (r, b-28%) have matching tangents.
+function pathS(ctx, cx, cy, sw, sh) {
+  const l = cx - sw * 0.5;
+  const r = cx + sw * 0.5;
+  const t = cy - sh * 0.5;
+  const b = cy + sh * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(r, t + sh * 0.13);
+  ctx.bezierCurveTo(r, t,  l, t,  l, t + sh * 0.28);   // upper arc
+  ctx.bezierCurveTo(l, cy, r, cy, r, b - sh * 0.28);   // middle cross
+  ctx.bezierCurveTo(r, b,  l, b,  l, b - sh * 0.13);   // lower arc
+}
+
+// Manual rounded-rect (broad browser compat)
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y,     x + w, y + r,     r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h,     x, y + h - r,     r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y,         x + r, y,         r);
+  ctx.closePath();
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function drawDashboard(canvas) {
+  const ctx = canvas.getContext('2d');
+  const n = canvas.width;
+  const cx = n / 2, cy = n / 2;
+
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, n, n);
+
+  // Grid lines
+  ctx.save();
+  ctx.strokeStyle = '#1c1c1c';
+  ctx.lineWidth = 1;
+  const g = Math.round(n / 10);
+  for (let x = g; x < n; x += g) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, n); ctx.stroke(); }
+  for (let y = g; y < n; y += g) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(n, y); ctx.stroke(); }
+  ctx.restore();
+
+  // Diagonal accent lines (marble-like)
+  ctx.save();
+  ctx.strokeStyle = '#161616';
+  ctx.lineWidth = 1;
+  const ds = n / 14;
+  for (let d = -n; d < n * 2; d += ds) {
+    ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + n, n); ctx.stroke();
+  }
+  ctx.restore();
+
+  const sw = n * 0.44;
+  const sh = n * 0.57;
+  const lw = n * 0.079;
+  const ox = n * 0.042;
+  const oy = n * 0.024;
+
+  ctx.lineCap  = 'round';
+  ctx.lineJoin = 'round';
+
+  // Back S — mirrored, offset lower-right, ghost opacity
+  ctx.save();
+  ctx.globalAlpha = 0.30;
+  ctx.strokeStyle = Y;
+  ctx.lineWidth   = lw;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  // Mirror S horizontally around its own center, then place it offset
+  const bx = cx + ox * 2.0;
+  const by = cy + oy * 1.4;
+  ctx.translate(bx, by);
+  ctx.scale(-1, 1);
+  ctx.translate(-cx, -cy);
+  pathS(ctx, cx, cy, sw, sh);
+  ctx.stroke();
+  ctx.restore();
+
+  // Front S — full opacity + glow
+  ctx.save();
+  ctx.globalAlpha   = 1;
+  ctx.strokeStyle   = Y;
+  ctx.lineWidth     = lw;
+  ctx.lineCap       = 'round';
+  ctx.lineJoin      = 'round';
+  ctx.shadowColor   = 'rgba(255,184,0,0.40)';
+  ctx.shadowBlur    = lw * 1.4;
+  pathS(ctx, cx - ox * 0.5, cy - oy * 0.4, sw, sh);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ─── FLUTTER ──────────────────────────────────────────────────────────────────
+function drawFlutter(canvas) {
+  const ctx = canvas.getContext('2d');
+  const n = canvas.width;
+  const cx = n / 2, cy = n / 2;
+
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, n, n);
+
+  // Warm radial glow
+  const gr = ctx.createRadialGradient(cx * 1.05, cy * 0.88, 0, cx, cy, n * 0.54);
+  gr.addColorStop(0, 'rgba(255,184,0,0.10)');
+  gr.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = gr;
+  ctx.fillRect(0, 0, n, n);
+
+  const sw = n * 0.44;
+  const sh = n * 0.57;
+  const lw = n * 0.076;
+
+  const l  = cx - sw * 0.5;
+  const r  = cx + sw * 0.5;
+  const t  = cy - sh * 0.5;
+  const b  = cy + sh * 0.5;
+
+  // Solid stroke — top arc + middle crossover (~65% of S)
+  ctx.save();
+  ctx.strokeStyle = Y;
+  ctx.lineWidth   = lw;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.shadowColor = 'rgba(255,184,0,0.50)';
+  ctx.shadowBlur  = lw * 1.1;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(r, t + sh * 0.13);
+  ctx.bezierCurveTo(r, t,  l, t,  l, t + sh * 0.28);
+  ctx.bezierCurveTo(l, cy, r, cy, r, b - sh * 0.28);
+  ctx.stroke();
+  ctx.restore();
+
+  // Dashed stroke — lower arc (~35% of S), fading opacity
+  ctx.save();
+  ctx.strokeStyle = Y;
+  ctx.lineWidth   = lw;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.globalAlpha = 0.48;
+  ctx.setLineDash([lw * 0.95, lw * 0.72]);
+  ctx.beginPath();
+  ctx.moveTo(r, b - sh * 0.28);
+  ctx.bezierCurveTo(r, b, l, b, l, b - sh * 0.13);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Pen at tip of dashed arc end
+  drawPen(ctx, l, b - sh * 0.13, n, lw);
+}
+
+function drawPen(ctx, tipX, tipY, n, lw) {
+  const s  = n * 0.12;
+  const bw = s * 0.33;
+  const bh = s * 1.18;
+  const cr = bw * 0.38;
+
+  ctx.save();
+  ctx.translate(tipX, tipY);
+  // Orient pen: tip is at origin, body extends upward-right (writing upward-left along bottom of S)
+  ctx.rotate(-Math.PI * 0.18);
+
+  // Drop shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur  = s * 0.35;
+  ctx.shadowOffsetX = s * 0.05;
+  ctx.shadowOffsetY = s * 0.08;
+
+  // Body
+  ctx.fillStyle = Y;
+  rr(ctx, -bw / 2, -bh * 0.95, bw, bh * 0.77, cr);
+  ctx.fill();
+
+  ctx.shadowColor = 'transparent';
+
+  // Ferrule (metal ring)
+  ctx.fillStyle = '#CC9200';
+  rr(ctx, -bw / 2, -bh * 0.18, bw, bh * 0.13, cr * 0.5);
+  ctx.fill();
+
+  // Tip triangle
+  ctx.beginPath();
+  ctx.moveTo(-bw / 2, -bh * 0.18);
+  ctx.lineTo( bw / 2, -bh * 0.18);
+  ctx.lineTo(0, bh * 0.2);
+  ctx.closePath();
+  ctx.fillStyle = '#CC9200';
+  ctx.fill();
+
+  // Metal nib
+  ctx.beginPath();
+  ctx.moveTo(-bw * 0.22, bh * 0.02);
+  ctx.lineTo( bw * 0.22, bh * 0.02);
+  ctx.lineTo(0, bh * 0.2);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.90)';
+  ctx.fill();
+
+  // Clip line on body
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth   = s * 0.022;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(-bw / 2, -bh * 0.78);
+  ctx.lineTo( bw / 2, -bh * 0.78);
+  ctx.stroke();
+
+  // Top cap
+  ctx.fillStyle = '#FFD060';
+  rr(ctx, -bw / 2, -bh * 0.95, bw, bh * 0.17, cr);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+drawDashboard(document.getElementById('d192'));
+drawDashboard(document.getElementById('d512'));
+drawFlutter(document.getElementById('f192'));
+drawFlutter(document.getElementById('f512'));
+</script>
+</body>
+</html>
