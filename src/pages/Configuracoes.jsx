@@ -369,7 +369,7 @@ export default function ConfiguracoesPage() {
         if (errInsert) { alert('Erro ao cadastrar: ' + errInsert.message); return; }
 
         const { error: errEmail } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${window.location.origin}/convite`,
         });
         if (errEmail) {
           alert('Usuário cadastrado, mas erro ao enviar email de convite: ' + errEmail.message);
