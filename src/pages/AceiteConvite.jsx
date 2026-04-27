@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export default function AceiteConvite() {
+  console.log('🚀 AceiteConvite montado');
+  console.log('📍 URL:', window.location.href);
+  console.log('📍 Hash:', window.location.hash);
+  console.log('📍 Pathname:', window.location.pathname);
+
   const navigate = useNavigate();
   const [password,        setPassword]        = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,25 +21,56 @@ export default function AceiteConvite() {
   const [empresaNome,     setEmpresaNome]     = useState('');
   const [sessionReady,    setSessionReady]    = useState(false); // false = ainda verificando
 
-  // Supabase injeta #access_token na URL quando o usuário clica no link.
-  // detectSessionInUrl: true (configurado no cliente) processa o hash automaticamente
-  // antes deste useEffect rodar — getSession() já retorna a sessão de recovery.
   useEffect(() => {
-    async function verificarSessao() {
-      const { data: { session } } = await supabase.auth.getSession();
+    console.log('⚡ useEffect executando');
 
-      if (!session?.user) {
+    async function verificarSessao() {
+      console.log('🔍 1. Processando token da URL...');
+
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const access_token  = hashParams.get('access_token');
+      const refresh_token = hashParams.get('refresh_token');
+      const type          = hashParams.get('type');
+
+      console.log('🔍 2. Tokens extraídos:');
+      console.log('   - access_token:', access_token ? 'presente' : 'ausente');
+      console.log('   - refresh_token:', refresh_token ? 'presente' : 'ausente');
+      console.log('   - type:', type);
+
+      if (!access_token || type !== 'recovery') {
+        console.log('❌ Token não encontrado ou tipo inválido');
         setErrorMsg('Link inválido ou expirado. Solicite um novo convite ao administrador.');
         setSessionReady(true);
         return;
       }
 
-      setUserEmail(session.user.email ?? '');
+      console.log('🔍 3. Tipo recovery detectado, chamando setSession...');
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token,
+        refresh_token: refresh_token || access_token,
+      });
+
+      console.log('🔍 4. Resultado setSession:');
+      console.log('   - data:', data);
+      console.log('   - error:', error);
+
+      if (error || !data.session?.user) {
+        console.error('❌ Erro ao definir sessão:', error);
+        setErrorMsg('Link inválido ou expirado. Solicite um novo convite ao administrador.');
+        setSessionReady(true);
+        return;
+      }
+
+      console.log('✅ SESSÃO CRIADA com sucesso!');
+      console.log('👤 User ID:', data.session.user.id);
+
+      setUserEmail(data.session.user.email ?? '');
 
       const { data: usuario } = await supabase
         .from('usuarios')
         .select('nome, perfil, empresa_id')
-        .eq('id', session.user.id)
+        .eq('id', data.session.user.id)
         .single();
 
       if (usuario) {
