@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function CadastroEmpresa() {
     const [empresa, setEmpresa] = useState('');
@@ -30,7 +31,7 @@ export default function CadastroEmpresa() {
         return () => observer.disconnect();
     }, []);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMsg('');
         setSuccessMsg(false);
@@ -52,15 +53,61 @@ export default function CadastroEmpresa() {
 
         setLoading(true);
 
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: window.location.origin,
+                    data: { nome, empresa }
+                }
+            });
+
+            if (error) {
+                setErrorMsg(`ERRO: ${error.message}`);
+                return;
+            }
+
+            // Cria empresa
+            const { data: empresaData, error: empresaError } = await supabase
+                .from('empresas')
+                .insert({ nome: empresa })
+                .select('id')
+                .single();
+
+            if (empresaError) {
+                setErrorMsg(`ERRO: ${empresaError.message}`);
+                return;
+            }
+
+            // Cria usuário admin direto, sem aguardar confirmação de email
+            const { error: usuarioError } = await supabase
+                .from('usuarios')
+                .insert({
+                    id: data.user.id,
+                    empresa_id: empresaData.id,
+                    nome,
+                    email,
+                    perfil: 'admin',
+                    ativo: true
+                });
+
+            if (usuarioError) {
+                setErrorMsg(`ERRO: ${usuarioError.message}`);
+                return;
+            }
+
             setEmpresa('');
             setNome('');
             setEmail('');
             setPassword('');
             setConfirmPassword('');
             setSuccessMsg(true);
-        }, 1500);
+        } catch (err) {
+            setErrorMsg(`ERRO: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const isFormValid = empresa && nome && email && password && confirmPassword;
@@ -106,7 +153,7 @@ export default function CadastroEmpresa() {
 
                         {successMsg && (
                             <div className="sys-reveal border-l border-white bg-[rgba(255,255,255,0.03)] p-4 mb-6">
-                                <p className="font-mono text-white text-xs uppercase tracking-widest">CONTA CRIADA. Verifique seu email para confirmar o acesso.</p>
+                                <p className="font-mono text-white text-xs uppercase tracking-widest">CONTA CRIADA. Bem-vindo ao SmartStone.</p>
                             </div>
                         )}
 
