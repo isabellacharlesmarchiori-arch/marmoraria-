@@ -76,7 +76,7 @@ export function useProjectActions(projectId, {
         const empresaId        = profile?.empresa_id ?? EMPRESA_ID_FALLBACK;
         const dataAgendadaISO  = new Date(agData).toISOString();
         const medidorSel       = medidores.find(m => m.id === agMedidor);
-        const nomeResponsavel  = medidorSel?.full_name ?? '';
+        const nomeResponsavel  = medidorSel?.nome ?? '';
 
         const formatarParaLista = (m) => ({
             ...m,
@@ -667,8 +667,8 @@ export function useProjectActions(projectId, {
 
             const clienteNome  = projeto?.clientes?.nome ?? projeto?.nome ?? '';
             const vendedorNome = profile?.nome ?? 'Vendedor';
-            const { data: admins } = await supabase.from('profiles')
-                .select('id').eq('empresa_id', profile?.empresa_id).in('perfil', ['admin', 'master']);
+            const { data: admins } = await supabase.from('usuarios')
+                .select('id').eq('empresa_id', profile?.empresa_id).in('perfil', ['admin']).eq('ativo', true);
             if (admins?.length) {
                 await supabase.from('notificacoes').insert(
                     admins.filter(a => a.id !== session?.user?.id).map(a => ({

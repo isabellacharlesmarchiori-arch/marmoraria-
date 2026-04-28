@@ -1953,7 +1953,7 @@ export default function TelaProjetoVendedor() {
                                     >
                                         <option value="">Selecionar medidor</option>
                                         {medidores.map(m => (
-                                            <option key={m.id} value={m.id}>{m.full_name}</option>
+                                            <option key={m.id} value={m.id}>{m.nome}</option>
                                         ))}
                                     </select>
                                     <iconify-icon icon="solar:alt-arrow-down-linear" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-600 pointer-events-none" width="14"></iconify-icon>

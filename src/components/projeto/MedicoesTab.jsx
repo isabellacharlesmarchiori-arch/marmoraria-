@@ -628,7 +628,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                         className="w-full bg-black border border-zinc-800 text-white text-sm pl-9 pr-4 py-3 rounded-none focus:outline-none focus:border-yellow-400 focus:shadow-[0_0_10px_rgba(250,204,21,0.15)] transition-colors appearance-none"
                                     >
                                         <option value="">Selecionar medidor</option>
-                                        {medidores.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                                        {medidores.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
                                     </select>
                                     <iconify-icon icon="solar:alt-arrow-down-linear" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" width="14"></iconify-icon>
                                 </div>

@@ -118,7 +118,7 @@ export function useProjetoData(projetoId, { session, profile, activeTab }) {
 
     // Medidores
     useEffect(() => {
-        let query = supabase.from('profiles').select('id, full_name').eq('role', 'medidor').order('full_name');
+        let query = supabase.from('usuarios').select('id, nome').in('perfil', ['medidor', 'vendedor_medidor', 'admin_medidor']).eq('ativo', true).order('nome');
         if (profile?.empresa_id) query = query.eq('empresa_id', profile.empresa_id);
         query.then(({ data, error }) => {
             if (error) console.error('[medidores] Erro ao buscar:', error);
