@@ -77,7 +77,9 @@ export default function ConfiguracoesPage() {
   const [empresaSalvando,  setEmpresaSalvando]  = useState(false);
 
   // Modal genérico (não-materiais)
-  const [modalState, setModalState] = useState({ isOpen: false, type: null, item: null });
+  const [modalState,    setModalState]    = useState({ isOpen: false, type: null, item: null });
+  const [novaSenha,     setNovaSenha]     = useState('');
+  const [mostrarSenha,  setMostrarSenha]  = useState(false);
 
   // Modal de material (controlado)
   const [matModal,    setMatModal]    = useState(false);
@@ -343,16 +345,20 @@ export default function ConfiguracoesPage() {
         if (item.id === session?.user?.id) await refreshProfile();
         alert('Usuário atualizado com sucesso!');
       } else {
+        if (!novaSenha || novaSenha.length < 8) {
+          alert('A senha deve ter no mínimo 8 caracteres.');
+          return;
+        }
+
         // Cliente temporário sem persistência de sessão: cria auth user
         // sem deslogar o admin atual nem tocar no localStorage.
         const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
           auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
         });
 
-        const senhaTemp = Math.random().toString(36).slice(-10) + 'A1!';
         const { data: authData, error: authError } = await tempClient.auth.signUp({
           email,
-          password: senhaTemp,
+          password: novaSenha,
           options: { data: { nome } }
         });
 
@@ -368,18 +374,16 @@ export default function ConfiguracoesPage() {
           .single();
         if (errInsert) { alert('Erro ao cadastrar: ' + errInsert.message); return; }
 
-        const { error: errEmail } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: false,
-            emailRedirectTo: `${window.location.origin}/convite`,
-          },
-        });
-        if (errEmail) {
-          alert('Usuário cadastrado, mas erro ao enviar email de convite: ' + errEmail.message);
-        } else {
-          alert(`Convite enviado para ${email}! O usuário receberá um email para definir sua senha.`);
+        const credenciais = `Email: ${email}\nSenha: ${novaSenha}`;
+        try {
+          await navigator.clipboard.writeText(credenciais);
+          alert(`✅ Usuário criado com sucesso!\n\nEmail: ${email}\nSenha: ${novaSenha}\n\n📋 Credenciais copiadas para a área de transferência.`);
+        } catch {
+          alert(`✅ Usuário criado com sucesso!\n\nEmail: ${email}\nSenha: ${novaSenha}\n\nAnote ou envie essas credenciais para o usuário.`);
         }
+
+        setNovaSenha('');
+        setMostrarSenha(false);
         setUsuarios(prev => [...prev, novoUser]);
       }
     } else if (type === 'produto') {
@@ -1209,10 +1213,34 @@ export default function ConfiguracoesPage() {
                     <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
                   </div>
                   {!modalState.item && (
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail (Login)</label>
-                      <input type="email" name="email" required className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
-                    </div>
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail (Login)</label>
+                        <input type="email" name="email" required className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Senha Inicial</label>
+                        <div className="relative">
+                          <input
+                            type={mostrarSenha ? 'text' : 'password'}
+                            value={novaSenha}
+                            onChange={(e) => setNovaSenha(e.target.value)}
+                            placeholder="Mínimo 8 caracteres"
+                            minLength={8}
+                            required
+                            className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 pr-12 text-sm focus:outline-none focus:border-yellow-400 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMostrarSenha(!mostrarSenha)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-white transition-colors"
+                          >
+                            <iconify-icon icon={mostrarSenha ? 'solar:eye-closed-linear' : 'solar:eye-linear'} className="text-lg"></iconify-icon>
+                          </button>
+                        </div>
+                        <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-600">O usuário poderá alterar depois no primeiro acesso.</p>
+                      </div>
+                    </>
                   )}
                   {modalState.item && (
                     <div className="space-y-2">
