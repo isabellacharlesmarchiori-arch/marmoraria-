@@ -28,35 +28,33 @@ export default function AceiteConvite() {
       console.log('🔍 1. Processando token da URL...');
 
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const access_token  = hashParams.get('access_token');
-      const refresh_token = hashParams.get('refresh_token');
-      const type          = hashParams.get('type');
+      const token = hashParams.get('access_token');
+      const type  = hashParams.get('type');
 
-      console.log('🔍 2. Tokens extraídos:');
-      console.log('   - access_token:', access_token ? 'presente' : 'ausente');
-      console.log('   - refresh_token:', refresh_token ? 'presente' : 'ausente');
-      console.log('   - type:', type);
+      console.log('🔍 2. Token extraído:', token ? 'presente' : 'ausente');
+      console.log('🔍 3. Type:', type);
 
-      if (!access_token || type !== 'recovery') {
+      const tiposValidos = ['recovery', 'magiclink'];
+      if (!token || !tiposValidos.includes(type)) {
         console.log('❌ Token não encontrado ou tipo inválido');
         setErrorMsg('Link inválido ou expirado. Solicite um novo convite ao administrador.');
         setSessionReady(true);
         return;
       }
 
-      console.log('🔍 3. Tipo recovery detectado, chamando setSession...');
+      console.log('🔍 4. Chamando verifyOtp...');
 
-      const { data, error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token: refresh_token || access_token,
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type,
       });
 
-      console.log('🔍 4. Resultado setSession:');
+      console.log('🔍 5. Resultado verifyOtp:');
       console.log('   - data:', data);
       console.log('   - error:', error);
 
       if (error || !data.session?.user) {
-        console.error('❌ Erro ao definir sessão:', error);
+        console.error('❌ Erro ao verificar token:', error);
         setErrorMsg('Link inválido ou expirado. Solicite um novo convite ao administrador.');
         setSessionReady(true);
         return;
