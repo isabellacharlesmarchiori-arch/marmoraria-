@@ -447,6 +447,14 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                     </div>
                                 )}
 
+                                {/* Observações de Acesso */}
+                                {obsAcesso && (
+                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                        <SecaoLabel icon="solar:map-point-linear" label="Observações de Acesso" />
+                                        <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{obsAcesso}</p>
+                                    </div>
+                                )}
+
                                 {/* Grupos / Observações de campo */}
                                 {gruposDoAmb.length > 0 && (
                                     <div className="bg-black border border-zinc-900 px-4 py-3">
@@ -499,14 +507,6 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                                 );
                                             })}
                                         </div>
-                                    </div>
-                                )}
-
-                                {/* Observações de Acesso */}
-                                {obsAcesso && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
-                                        <SecaoLabel icon="solar:map-point-linear" label="Observações de Acesso" />
-                                        <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{obsAcesso}</p>
                                     </div>
                                 )}
 
