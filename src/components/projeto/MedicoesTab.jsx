@@ -3,13 +3,30 @@ import { supabase } from '../../lib/supabase';
 import { MedicaoPill, normalizarJsonMedicao } from '../../utils/projetoUtils';
 import AgendaMedidor from '../AgendaMedidor';
 
+function parseSvgUrl(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (trimmed.startsWith('[')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+            } catch { /* fallback abaixo */ }
+        }
+        return raw;
+    }
+    if (Array.isArray(raw) && raw.length > 0) return raw[0];
+    return null;
+}
+
 function InfoMedicao({ ambientes }) {
     if (!Array.isArray(ambientes) || ambientes.length === 0) return null;
     const temInfo = ambientes.some(amb => {
-        const tipo = amb.extras?.tipo_medicao ?? 'producao';
+        const tipo = amb.tipo_medicao ?? amb.extras?.tipo_medicao ?? 'producao';
         const infoAmb = (amb.extras?.info_adicional ?? '').trim();
         const itensComInfo = (amb.itens ?? []).some(it => (it.info_adicional ?? '').trim() !== '');
-        return tipo === 'orcamento' || infoAmb !== '' || itensComInfo;
+        const gruposComInfo = (amb.grupos ?? []).some(g => (g.info ?? '').trim() !== '');
+        return tipo === 'orcamento' || infoAmb !== '' || itensComInfo || gruposComInfo;
     });
     if (!temInfo) return null;
     return (
@@ -19,11 +36,12 @@ function InfoMedicao({ ambientes }) {
             </div>
             <div className="flex flex-col gap-4">
                 {ambientes.map((amb, i) => {
-                    const tipo         = amb.extras?.tipo_medicao ?? 'producao';
-                    const infoAmb      = (amb.extras?.info_adicional ?? '').trim();
-                    const itensComInfo = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
-                    const nomeAmb      = amb.ambiente ?? amb.nome ?? `Ambiente ${i + 1}`;
-                    const hasContent   = tipo === 'orcamento' || infoAmb !== '' || itensComInfo.length > 0;
+                    const tipo          = amb.tipo_medicao ?? amb.extras?.tipo_medicao ?? 'producao';
+                    const infoAmb       = (amb.extras?.info_adicional ?? '').trim();
+                    const itensComInfo  = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
+                    const gruposComInfo = (amb.grupos ?? []).filter(g => (g.info ?? '').trim() !== '');
+                    const nomeAmb       = amb.ambiente ?? amb.nome ?? `Ambiente ${i + 1}`;
+                    const hasContent    = tipo === 'orcamento' || infoAmb !== '' || itensComInfo.length > 0 || gruposComInfo.length > 0;
                     if (!hasContent) return null;
                     return (
                         <div key={i} className="flex flex-col gap-2.5">
@@ -67,6 +85,22 @@ function InfoMedicao({ ambientes }) {
                                             <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-0.5">
                                                 <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{item.nome}</span>
                                                 <span className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{item.info_adicional.trim()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {gruposComInfo.length > 0 && (
+                                <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="flex items-center gap-1.5 mb-3">
+                                        <iconify-icon icon="solar:list-linear" width="11" className="text-zinc-500 shrink-0"></iconify-icon>
+                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Observações de Campo</span>
+                                    </div>
+                                    <div className="flex flex-col gap-2.5">
+                                        {gruposComInfo.map((g, j) => (
+                                            <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-0.5">
+                                                <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{g.nome}</span>
+                                                <span className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -179,7 +213,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
         const empresaId = profile?.empresa_id ?? EMPRESA_ID_FALLBACK;
         const dataAgendadaISO = new Date(agData).toISOString();
         const medidorSelecionado = medidores.find(m => m.id === agMedidor);
-        const nomeResponsavel = medidorSelecionado?.full_name ?? '';
+        const nomeResponsavel = medidorSelecionado?.nome ?? '';
 
         const formatarParaLista = (m) => ({
             ...m,
@@ -202,7 +236,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                     ...(isMedidor ? { status: 'concluida' } : {}),
                 })
                 .eq('id', editingMedicaoId)
-                .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
+                .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, status, json_medicao, svg_url')
                 .single();
             if (errUpd) {
                 setErroAgendar(`Erro: ${errUpd.message}`);
@@ -236,7 +270,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                     observacoes_acesso: agObservacoes.trim() || null,
                     status:             'agendada',
                 })
-                .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
+                .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, status, json_medicao, svg_url')
                 .single();
             if (errMed) {
                 setErroAgendar(`Erro: ${errMed.message}`);
@@ -309,7 +343,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                 <div className="col-span-3 flex items-center justify-end gap-1.5">
                                     {m?.status !== 'agendada' && m?.status !== 'pendente' && (
                                         <button
-                                            onClick={() => { setPainelMedicao(m); setImgLoading(!!m?.svg_url); setImgError(false); setImgZoomed(false); }}
+                                            onClick={() => { setPainelMedicao(m); setImgLoading(!!parseSvgUrl(m?.svg_url)); setImgError(false); setImgZoomed(false); }}
                                             className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border ${
                                                 isAprovada
                                                     ? 'border-green-500/40 text-green-400 hover:border-green-400 hover:bg-green-400/10'
@@ -370,7 +404,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
                             <div>
                                 <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-3">Desenho Técnico</div>
-                                {painelMedicao?.svg_url ? (
+                                {parseSvgUrl(painelMedicao?.svg_url) ? (
                                     <div className="flex flex-col gap-2">
                                         <div className="relative border border-zinc-800 bg-black overflow-hidden cursor-zoom-in group" onClick={() => setImgZoomed(true)}>
                                             {imgLoading && (
@@ -386,7 +420,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                             ) : (
                                                 <>
                                                     <img
-                                                        src={painelMedicao.svg_url}
+                                                        src={parseSvgUrl(painelMedicao.svg_url)}
                                                         alt="Desenho técnico da medição"
                                                         className={`w-full h-auto max-h-[280px] object-contain transition-opacity duration-200 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
                                                         onLoad={() => setImgLoading(false)}
@@ -405,7 +439,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                         </div>
                                         {!imgError && !imgLoading && (
                                             <button
-                                                onClick={() => handleDownloadDesenho(painelMedicao.svg_url, painelMedicao.id)}
+                                                onClick={() => handleDownloadDesenho(parseSvgUrl(painelMedicao.svg_url), painelMedicao.id)}
                                                 className="flex items-center justify-center gap-2 w-full border border-zinc-700 text-zinc-400 hover:border-white hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
                                             >
                                                 <iconify-icon icon="solar:download-linear" width="13"></iconify-icon>
@@ -423,12 +457,22 @@ const MedicoesTab = React.memo(function MedicoesTab({
 
                             <InfoMedicao ambientes={painelMedicao?.json_medicao?.ambientes} />
 
+                            {painelMedicao?.observacoes_acesso && (
+                                <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        <iconify-icon icon="solar:map-point-linear" width="11" className="text-zinc-500 shrink-0"></iconify-icon>
+                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Observações de Acesso</span>
+                                    </div>
+                                    <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{painelMedicao.observacoes_acesso}</p>
+                                </div>
+                            )}
+
                             <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-1">Resumo da Medição</div>
 
                             {(() => {
                                 const jsonNorm  = normalizarJsonMedicao(painelMedicao?.json_medicao);
                                 const pecas     = jsonNorm?.resumo_por_peca ?? [];
-                                const isFlutter = jsonNorm?._fonte === 'flutter';
+                                const isFlutter = jsonNorm?._fonte === 'flutter' || jsonNorm?._fonte === 'flutter2';
                                 if (pecas.length === 0) {
                                     return (
                                         <div className="text-center py-10 px-4 border border-zinc-900 bg-black">
@@ -539,14 +583,23 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                                 <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 pt-3 pb-2">[ RECORTES ]</div>
                                                 <div className="flex flex-col gap-2">
                                                     {todosRecortes.map((rc, i) => {
-                                                        const isCircular = rc.type === 'circular';
-                                                        const dim = isCircular ? `∅ ${rc.diameter_cm ?? '?'} cm` : `${rc.dimX_cm ?? '?'} × ${rc.dimY_cm ?? '?'} cm`;
+                                                        const label = rc.funcao_label ?? rc.description ?? rc.funcao ?? (rc.formato === 'circular' || rc.type === 'circular' ? 'Furo circular' : 'Recorte retangular');
+                                                        let dim;
+                                                        if (rc.formato === 'circular' || rc.type === 'circular') {
+                                                            dim = `∅ ${rc.diametro_cm ?? rc.diameter_cm ?? '?'} cm`;
+                                                        } else if (rc.formato === 'retangular' || rc.type === 'rectangular' || rc.type === 'rectangle') {
+                                                            dim = `${rc.largura_cm ?? rc.dimX_cm ?? '?'} × ${rc.altura_cm ?? rc.dimY_cm ?? '?'} cm`;
+                                                        } else if (rc.formato) {
+                                                            dim = rc.formato;
+                                                        } else {
+                                                            dim = `${rc.dimX_cm ?? '?'} × ${rc.dimY_cm ?? '?'} cm`;
+                                                        }
                                                         return (
                                                             <div key={i} className="bg-black border border-zinc-900 px-4 py-3">
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">
                                                                         <iconify-icon icon="solar:scissors-linear" width="12" className="text-zinc-500"></iconify-icon>
-                                                                        <span className="font-mono text-[11px] text-zinc-300">{rc.description || (isCircular ? 'Furo circular' : 'Recorte retangular')}</span>
+                                                                        <span className="font-mono text-[11px] text-zinc-300">{label}</span>
                                                                     </div>
                                                                     <span className="font-mono text-[10px] text-zinc-500">{dim}</span>
                                                                 </div>
@@ -557,6 +610,50 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                                 </div>
                                             </>
                                         )}
+                                        {(() => {
+                                            const faixas = (painelMedicao?.json_medicao?.ambientes ?? []).flatMap(amb =>
+                                                (amb.faixas ?? []).map(f => ({ ...f, ambNome: amb.nome ?? amb.ambiente ?? null }))
+                                            );
+                                            if (faixas.length === 0) return null;
+                                            return (
+                                                <>
+                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 pt-3 pb-2">[ FAIXAS ]</div>
+                                                    <div className="flex flex-col gap-2">
+                                                        {faixas.map((f, i) => (
+                                                            <div key={i} className="bg-black border border-zinc-900 px-4 py-3">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="font-mono text-[11px] text-zinc-300">{f.nome ?? `Faixa ${i + 1}`}</span>
+                                                                    {f.area_m2 != null && <span className="font-mono text-[11px] text-yellow-400 font-bold">{f.area_m2} m²</span>}
+                                                                </div>
+                                                                <div className="font-mono text-[10px] text-zinc-500 mt-1">
+                                                                    {f.comprimento_cm ?? '?'} × {f.largura_cm ?? '?'} cm
+                                                                    {f.espessura_cm ? ` · esp. ${f.espessura_cm} cm` : ''}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                        {(() => {
+                                            const grupos = (painelMedicao?.json_medicao?.ambientes ?? []).flatMap(amb =>
+                                                (amb.grupos ?? []).filter(g => (g.info ?? '').trim() !== '')
+                                            );
+                                            if (grupos.length === 0) return null;
+                                            return (
+                                                <>
+                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 pt-3 pb-2">[ GRUPOS ]</div>
+                                                    <div className="flex flex-col gap-2">
+                                                        {grupos.map((g, i) => (
+                                                            <div key={i} className="bg-black border border-zinc-900 px-4 py-3">
+                                                                <div className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80 mb-1">{g.nome}</div>
+                                                                <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </>
                                 );
                             })()}
@@ -577,13 +674,13 @@ const MedicoesTab = React.memo(function MedicoesTab({
                         </div>
                     </div>
 
-                    {imgZoomed && painelMedicao?.svg_url && (
+                    {imgZoomed && parseSvgUrl(painelMedicao?.svg_url) && (
                         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 cursor-zoom-out" onClick={() => setImgZoomed(false)}>
                             <button onClick={() => setImgZoomed(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors p-2 z-10">
                                 <iconify-icon icon="solar:close-linear" width="22"></iconify-icon>
                             </button>
                             <img
-                                src={painelMedicao.svg_url}
+                                src={parseSvgUrl(painelMedicao.svg_url)}
                                 alt="Desenho técnico (ampliado)"
                                 className="max-w-full max-h-full object-contain"
                                 onClick={(e) => e.stopPropagation()}

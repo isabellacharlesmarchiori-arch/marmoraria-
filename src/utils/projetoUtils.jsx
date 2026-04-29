@@ -50,6 +50,46 @@ export function normalizarJsonMedicao(json) {
     }
 
     if (Array.isArray(json.ambientes)) {
+        // Flutter 2.0: pecas têm segmentos[] em vez de width_cm/height_cm
+        const isFlutter2 = !!json.versao_app ||
+            Array.isArray(json.ambientes[0]?.pecas) && json.ambientes[0].pecas[0]?.segmentos !== undefined;
+
+        if (isFlutter2) {
+            const resumo = [];
+            for (const amb of json.ambientes) {
+                const nomeAmbiente = amb.nome ?? amb.ambiente ?? null;
+                for (const p of (Array.isArray(amb.pecas) ? amb.pecas : [])) {
+                    const area = parseFloat(p.area_m2) || 0;
+                    const segs = Array.isArray(p.segmentos) ? p.segmentos : [];
+                    let reto_simples_ml   = 0;
+                    let meia_esquadria_ml = 0;
+                    segs.forEach(s => {
+                        const lenM = (parseFloat(s.medida_cm) || 0) / 100;
+                        if (s.acabamento === 'RS') reto_simples_ml   += lenM;
+                        if (s.acabamento === 'ME') meia_esquadria_ml += lenM;
+                    });
+                    resumo.push({
+                        nome:            p.nome ?? 'Peça',
+                        area_liquida_m2: Math.round(area * 10000) / 10000,
+                        espessura_cm:    p.espessura_cm ?? null,
+                        ambiente_nome:   nomeAmbiente,
+                        item_nome:       null,
+                        item_id:         null,
+                        type:            p.tipo ?? 'retangulo',
+                        recortes_qty:    Array.isArray(p.recortes) ? p.recortes.length : 0,
+                        recortes:        Array.isArray(p.recortes) ? p.recortes : [],
+                        segmentos:       segs,
+                        acabamentos: {
+                            reto_simples_ml:   Math.round(reto_simples_ml   * 100) / 100,
+                            meia_esquadria_ml: Math.round(meia_esquadria_ml * 100) / 100,
+                        },
+                    });
+                }
+            }
+            return { resumo_por_peca: resumo, _fonte: 'flutter2' };
+        }
+
+        // Flutter 1.0 / formato legado
         const resumo = [];
         for (const amb of json.ambientes) {
             const nomeAmbiente = amb.ambiente ?? amb.nome ?? null;

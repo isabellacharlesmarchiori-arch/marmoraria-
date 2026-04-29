@@ -16,6 +16,22 @@ import {
 // gerarPdfOrcamento é importado dinamicamente no click handler para não bloquear o bundle inicial
 
 
+function parseSvgUrl(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (trimmed.startsWith('[')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+            } catch { /* fallback abaixo */ }
+        }
+        return raw;
+    }
+    if (Array.isArray(raw) && raw.length > 0) return raw[0];
+    return null;
+}
+
 // ─── Informações da medição (tipo + observações) ─────────────────────────────
 // Exibe badge de tipo de medição, observações do ambiente e dos itens.
 // Só renderiza quando há pelo menos um dado a mostrar.
@@ -582,7 +598,7 @@ export default function TelaProjetoVendedor() {
                                     <div className="col-span-3 flex items-center justify-end gap-1.5">
                                         {m?.status !== 'agendada' && m?.status !== 'pendente' && (
                                             <button
-                                                onClick={() => { setPainelMedicao(m); setImgLoading(!!m?.svg_url); setImgError(false); setImgZoomed(false); }}
+                                                onClick={() => { setPainelMedicao(m); setImgLoading(!!parseSvgUrl(m?.svg_url)); setImgError(false); setImgZoomed(false); }}
                                                 className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border ${
                                                     isAprovada
                                                         ? 'border-green-500/40 text-green-400 hover:border-green-400 hover:bg-green-400/10'
@@ -1649,7 +1665,7 @@ export default function TelaProjetoVendedor() {
                                 <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-3">
                                     Desenho Técnico
                                 </div>
-                                {painelMedicao?.svg_url ? (
+                                {parseSvgUrl(painelMedicao?.svg_url) ? (
                                     <div className="flex flex-col gap-2">
                                         <div
                                             className="relative border border-gray-300 dark:border-zinc-800 bg-gray-100 dark:bg-black overflow-hidden cursor-zoom-in group"
@@ -1668,7 +1684,7 @@ export default function TelaProjetoVendedor() {
                                             ) : (
                                                 <>
                                                     <img
-                                                        src={painelMedicao.svg_url}
+                                                        src={parseSvgUrl(painelMedicao.svg_url)}
                                                         alt="Desenho técnico da medição"
                                                         className={`w-full h-auto max-h-[280px] object-contain transition-opacity duration-200 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
                                                         onLoad={() => setImgLoading(false)}
@@ -1687,7 +1703,7 @@ export default function TelaProjetoVendedor() {
                                         </div>
                                         {!imgError && !imgLoading && (
                                             <button
-                                                onClick={() => handleDownloadDesenho(painelMedicao.svg_url, painelMedicao.id)}
+                                                onClick={() => handleDownloadDesenho(parseSvgUrl(painelMedicao.svg_url), painelMedicao.id)}
                                                 className="flex items-center justify-center gap-2 w-full border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
                                             >
                                                 <iconify-icon icon="solar:download-linear" width="13"></iconify-icon>
@@ -1890,7 +1906,7 @@ export default function TelaProjetoVendedor() {
                     </div>
 
                     {/* ── Lightbox — Zoom do desenho ── */}
-                    {imgZoomed && painelMedicao?.svg_url && (
+                    {imgZoomed && parseSvgUrl(painelMedicao?.svg_url) && (
                         <div
                             className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 cursor-zoom-out"
                             onClick={() => setImgZoomed(false)}
@@ -1902,7 +1918,7 @@ export default function TelaProjetoVendedor() {
                                 <iconify-icon icon="solar:close-linear" width="22"></iconify-icon>
                             </button>
                             <img
-                                src={painelMedicao.svg_url}
+                                src={parseSvgUrl(painelMedicao.svg_url)}
                                 alt="Desenho técnico (ampliado)"
                                 className="max-w-full max-h-full object-contain"
                                 onClick={(e) => e.stopPropagation()}
