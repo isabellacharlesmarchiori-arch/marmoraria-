@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { normalizarJsonMedicao } from '../utils/projetoUtils';
 
 // Valida que um valor é um UUID v4 real — rejeita null, undefined, string 'null', string vazia
 function isValidUUID(v) {
@@ -2336,62 +2337,8 @@ export default function CriarOrcamento() {
           const json = medRow.json_medicao;
           let resumo = [];
 
-          if (json && Array.isArray(json.resumo_por_peca) && json.resumo_por_peca.length > 0) {
-            // Formato web (trigger) — já está no padrão esperado
-            resumo = json.resumo_por_peca;
-          } else if (json && Array.isArray(json.ambientes)) {
-            // Formato Flutter bruto — normalizar igual TelaProjeto faz
-            for (const amb of json.ambientes) {
-              const nomeAmb = amb.ambiente ?? amb.nome ?? null;
-              // Suporta nova estrutura (itens) e estrutura antiga (pecas plano)
-              const fontes = [];
-              if (Array.isArray(amb.itens) && amb.itens.length > 0) {
-                for (const item of amb.itens) {
-                  const pecasItem = Array.isArray(item.pecas) ? item.pecas : [];
-                  for (const p of pecasItem) fontes.push({ p, item_nome: item.nome ?? null });
-                }
-                const semItem = Array.isArray(amb.pecas_sem_item) ? amb.pecas_sem_item : [];
-                for (const p of semItem) fontes.push({ p, item_nome: null });
-              } else {
-                const pecasAmb = Array.isArray(amb.pecas) ? amb.pecas : [];
-                for (const p of pecasAmb) fontes.push({ p, item_nome: null });
-              }
-              for (const { p, item_nome } of fontes) {
-                const area    = parseFloat(p.area_liquida_m2 ?? p.area_bruta_m2) || 0;
-                const widthM  = (parseFloat(p.width_cm)  || 0) / 100;
-                const heightM = (parseFloat(p.height_cm) || 0) / 100;
-                const acabs   = Array.isArray(p.acabamentos) ? p.acabamentos : [];
-                let arestas;
-                if (p.type === 'retangulo') {
-                  arestas = [widthM, heightM, widthM, heightM];
-                } else if (p.type === 'poligono' && Array.isArray(p.lados_cm)) {
-                  arestas = p.lados_cm.map(l => Number(l) / 100);
-                } else {
-                  arestas = [];
-                }
-                let reto_simples_ml   = 0;
-                let meia_esquadria_ml = 0;
-                acabs.forEach((ac, i) => {
-                  const len = arestas[i] ?? 0;
-                  if (ac === 'RS') reto_simples_ml   += len;
-                  if (ac === 'ME') meia_esquadria_ml += len;
-                });
-                resumo.push({
-                  peca_id:         crypto.randomUUID(),
-                  nome:            p.name ?? 'Peça',
-                  ambiente_nome:   nomeAmb,
-                  item_nome,
-                  area_liquida_m2: Math.round(area * 10000) / 10000,
-                  espessura_cm:    p.thickness_cm ?? 2,
-                  acabamentos: {
-                    meia_esquadria_ml: Math.round(meia_esquadria_ml * 100) / 100,
-                    reto_simples_ml:   Math.round(reto_simples_ml   * 100) / 100,
-                  },
-                  recortes_qty: Array.isArray(p.recortes) ? p.recortes.length : 0,
-                });
-              }
-            }
-          }
+          const normalizado = normalizarJsonMedicao(json);
+          resumo = normalizado?.resumo_por_peca ?? [];
 
           setPecas(resumo.map(r => ({
             id:                r.peca_id ?? crypto.randomUUID(),
