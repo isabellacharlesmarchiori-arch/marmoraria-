@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { parseSvgUrl } from '../utils/projetoUtils';
+import { PainelDetalhesMedicao } from '../components/projeto/PainelDetalhesMedicao';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -39,24 +40,6 @@ function gerarCelulas(mesBase) {
     }
   }
   return cells;
-}
-
-async function downloadDesenho(url, medicaoId) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Falha ao baixar');
-    const blob = await res.blob();
-    const objectUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = `desenho-medicao-${medicaoId ?? Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(objectUrl);
-  } catch (err) {
-    console.error('[download] Erro ao baixar desenho:', err);
-  }
 }
 
 // ── Painel de medições do dia selecionado ─────────────────────────────────────
@@ -142,117 +125,6 @@ function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
   );
 }
 
-// ── Modal de desenho inline ───────────────────────────────────────────────────
-function ModalDesenho({ medicao, onClose }) {
-  const [imgLoading, setImgLoading] = useState(true);
-  const [imgError,   setImgError]   = useState(false);
-  const [imgZoomed,  setImgZoomed]  = useState(false);
-
-  const svgUrl = parseSvgUrl(medicao?.svg_url);
-  const proj   = medicao?.projetos ?? {};
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
-        onClick={() => { onClose(); setImgZoomed(false); }}
-      />
-
-      {/* Painel lateral */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-[480px] bg-[#0a0a0a] border-l border-zinc-800 z-50 flex flex-col overflow-hidden">
-
-        {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
-          <div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">Desenho Técnico</div>
-            <div className="text-white font-semibold text-sm">{proj.nome ?? '—'}</div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-600 hover:text-white transition-colors p-1"
-          >
-            <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
-          </button>
-        </div>
-
-        {/* Corpo */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {svgUrl ? (
-            <div className="flex flex-col gap-3">
-              {/* Imagem com loading + zoom */}
-              <div
-                className="relative border border-zinc-800 bg-black overflow-hidden cursor-zoom-in group"
-                onClick={() => !imgError && setImgZoomed(true)}
-              >
-                {imgLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black z-10 min-h-[160px]">
-                    <div className="w-5 h-5 border-2 border-zinc-700 border-t-yellow-400 rounded-full animate-spin"></div>
-                  </div>
-                )}
-                {imgError ? (
-                  <div className="flex flex-col items-center justify-center py-8 gap-2 min-h-[120px]">
-                    <iconify-icon icon="solar:image-broken-linear" width="24" className="text-zinc-700"></iconify-icon>
-                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Imagem indisponível</span>
-                  </div>
-                ) : (
-                  <>
-                    <img
-                      src={svgUrl}
-                      alt="Desenho técnico da medição"
-                      className={`w-full h-auto max-h-[320px] object-contain transition-opacity duration-200 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
-                      onLoad={() => setImgLoading(false)}
-                      onError={() => { setImgLoading(false); setImgError(true); }}
-                    />
-                    {!imgLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 pointer-events-none">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-black/80 border border-zinc-700">
-                          <iconify-icon icon="solar:magnifer-zoom-in-linear" width="13" className="text-white"></iconify-icon>
-                          <span className="font-mono text-[9px] uppercase tracking-widest text-white">Ampliar</span>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Download */}
-              {!imgError && !imgLoading && (
-                <button
-                  onClick={() => downloadDesenho(svgUrl, medicao.id)}
-                  className="flex items-center justify-center gap-2 w-full border border-zinc-700 text-zinc-400 hover:border-white hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
-                >
-                  <iconify-icon icon="solar:download-linear" width="13"></iconify-icon>
-                  Baixar Desenho
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-10 gap-2 border border-zinc-900 bg-black">
-              <iconify-icon icon="solar:ruler-pen-linear" width="20" className="text-zinc-700"></iconify-icon>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Desenho não disponível</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Zoom overlay (fullscreen) */}
-      {imgZoomed && svgUrl && (
-        <div
-          className="fixed inset-0 z-[60] bg-black flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setImgZoomed(false)}
-        >
-          <img
-            src={svgUrl}
-            alt="Desenho técnico ampliado"
-            className="max-w-full max-h-full object-contain"
-          />
-        </div>
-      )}
-    </>
-  );
-}
-
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function MedidorHistorico() {
   // Bug 1 fix: usa o loading do AuthContext (session === undefined enquanto auth carrega)
@@ -274,7 +146,7 @@ export default function MedidorHistorico() {
     supabase
       .from('medicoes')
       .select(`
-        id, data_medicao, data_enviada, status, json_medicao, svg_url,
+        id, data_medicao, data_enviada, status, json_medicao, svg_url, observacoes_acesso,
         projetos(id, nome, clientes(nome))
       `)
       .eq('medidor_id', session.user.id)
@@ -441,9 +313,9 @@ export default function MedidorHistorico() {
         )}
       </div>
 
-      {/* Modal de desenho inline */}
+      {/* Painel de detalhes da medição */}
       {desenhoMedicao && (
-        <ModalDesenho
+        <PainelDetalhesMedicao
           medicao={desenhoMedicao}
           onClose={() => setDesenhoMedicao(null)}
         />
