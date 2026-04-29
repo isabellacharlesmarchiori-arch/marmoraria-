@@ -1,23 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { MedicaoPill, normalizarJsonMedicao } from '../../utils/projetoUtils';
+import { MedicaoPill, normalizarJsonMedicao, parseSvgUrl } from '../../utils/projetoUtils';
 import AgendaMedidor from '../AgendaMedidor';
-
-function parseSvgUrl(raw) {
-    if (!raw) return null;
-    if (typeof raw === 'string') {
-        const trimmed = raw.trim();
-        if (trimmed.startsWith('[')) {
-            try {
-                const parsed = JSON.parse(trimmed);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-            } catch { /* fallback abaixo */ }
-        }
-        return raw;
-    }
-    if (Array.isArray(raw) && raw.length > 0) return raw[0];
-    return null;
-}
 
 function InfoMedicao({ ambientes }) {
     if (!Array.isArray(ambientes) || ambientes.length === 0) return null;

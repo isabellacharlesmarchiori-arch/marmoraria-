@@ -1,5 +1,23 @@
 import React from 'react';
 
+// ─── SVG URL parser ──────────────────────────────────────────────────────────
+// O banco armazena svg_url como string JSON `["https://..."]` — desserializa aqui.
+export function parseSvgUrl(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (trimmed.startsWith('[')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+            } catch { /* fallback abaixo */ }
+        }
+        return raw;
+    }
+    if (Array.isArray(raw) && raw.length > 0) return raw[0];
+    return null;
+}
+
 // ─── Status configs ──────────────────────────────────────────────────────────
 
 export const STATUS_CONFIG = {

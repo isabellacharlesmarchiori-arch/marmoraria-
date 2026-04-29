@@ -11,26 +11,10 @@ import {
     STATUS_CONFIG,
     StatusPill, MedicaoPill,
     normalizarJsonMedicao,
+    parseSvgUrl,
     fmtBRL, calcDataFinalDiasUteis, calcParcelas,
 } from '../utils/projetoUtils';
 // gerarPdfOrcamento é importado dinamicamente no click handler para não bloquear o bundle inicial
-
-
-function parseSvgUrl(raw) {
-    if (!raw) return null;
-    if (typeof raw === 'string') {
-        const trimmed = raw.trim();
-        if (trimmed.startsWith('[')) {
-            try {
-                const parsed = JSON.parse(trimmed);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-            } catch { /* fallback abaixo */ }
-        }
-        return raw;
-    }
-    if (Array.isArray(raw) && raw.length > 0) return raw[0];
-    return null;
-}
 
 // ─── Informações da medição (tipo + observações) ─────────────────────────────
 // Exibe badge de tipo de medição, observações do ambiente e dos itens.
