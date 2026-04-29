@@ -1,6 +1,14 @@
 import { jsPDF } from 'jspdf';
 import { CONTRATO_PADRAO, NORMAS_EXECUCAO, renderClausulas } from './contratoPadrao.js';
 
+// ── Utilitários ───────────────────────────────────────────────────────────────
+const sanitize = (str) => (str || 'sem_nome')
+  .normalize('NFD')
+  .replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-zA-Z0-9_]/g, '_')
+  .replace(/_+/g, '_')
+  .toLowerCase();
+
 // ── Formatadores ──────────────────────────────────────────────────────────────
 const fmtBRL = v =>
   (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -731,10 +739,11 @@ async function buildOrcamentoPdf(
   }
 
   // ── Download ──────────────────────────────────────────────────────────────
-  const slug   = cliNome.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '');
-  const suffix = modo === 'bw' ? '-impressao' : '';
-  const prefix = isPedido ? 'pedido' : 'orcamento';
-  doc.save(`${prefix}-${slug}-${(orc.id ?? '').slice(-6)}${suffix}.pdf`);
+  const suffix    = modo === 'bw' ? '_impressao' : '';
+  const prefix    = isPedido ? 'pedido' : 'orcamento';
+  const tituloSlug = sanitize(orc.nome ?? orc.nome_versao ?? 'orcamento');
+  const projetoSlug = sanitize(projeto?.nome);
+  doc.save(`${prefix}_${tituloSlug}_${projetoSlug}${suffix}.pdf`);
 }
 
 // ── Exports ──────────────────────────────────────────────────────────────────

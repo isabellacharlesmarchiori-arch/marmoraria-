@@ -116,7 +116,7 @@ export function normalizarJsonMedicao(json) {
                     const segs = Array.isArray(p.segmentos) ? p.segmentos : [];
                     const peca = {
                         nome:            p.nome ?? 'Peça',
-                        peca_id:         p.id ?? null,
+                        peca_id:         p.peca_id ?? p.id ?? null,
                         area_liquida_m2: Math.round(area * 10000) / 10000,
                         espessura_cm:    p.espessura_cm ?? null,
                         ambiente_nome:   nomeAmbiente,
@@ -135,12 +135,40 @@ export function normalizarJsonMedicao(json) {
                     pecasDoAmb.push(peca);
                     resumo.push(peca);
                 }
-                // Enrich pieces with grupo_nome from amb.grupos[]
+                // Faixas do ambiente (construídas antes do enriquecimento para ficarem disponíveis no loop de grupos)
+                const faixasDoAmb = [];
+                (amb.faixas ?? []).forEach(f => {
+                    const area = parseFloat(f.area_m2) || 0;
+                    if (area <= 0) return;
+                    const faixa = {
+                        nome:            f.nome ?? 'Faixa',
+                        peca_id:         f.id ?? f.peca_id ?? null,
+                        descricao:       `${f.largura_cm ?? '?'}×${f.comprimento_cm ?? '?'}×${f.espessura_cm ?? '?'}cm — ${area.toFixed(3)}m²`,
+                        area_liquida_m2: Math.round(area * 10000) / 10000,
+                        espessura_cm:    f.espessura_cm ?? 2,
+                        ambiente_nome:   nomeAmbiente,
+                        ambiente_index:  ambIdx,
+                        grupo_nome:      null,
+                        grupo_index:     null,
+                        item_nome:       null,
+                        item_id:         null,
+                        type:            'faixa',
+                        recortes_qty:    0,
+                        recortes:        [],
+                        segmentos:       [],
+                        acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
+                    };
+                    faixasDoAmb.push(faixa);
+                    resumo.push(faixa);
+                });
+                // Enrich pieces and faixas with grupo_nome from amb.grupos[]
                 (amb.grupos ?? []).forEach((grupo, grupoIdx) => {
                     const nome = grupo.nome ?? `Grupo ${grupoIdx + 1}`;
                     (grupo.elemento_ids ?? []).forEach(eId => {
                         const piece = pecasDoAmb.find(p => p.peca_id === eId);
                         if (piece) { piece.grupo_nome = nome; piece.grupo_index = grupoIdx; }
+                        const faixa = faixasDoAmb.find(f => f.peca_id === eId);
+                        if (faixa) { faixa.grupo_nome = nome; faixa.grupo_index = grupoIdx; }
                     });
                 });
                 // Fonte única: metadados_ambiente calculados pelo Flutter.
@@ -158,26 +186,6 @@ export function normalizarJsonMedicao(json) {
                 }
                 ambTotalME += totalME;
                 ambTotalRS += totalRS;
-                // Faixas do ambiente
-                (amb.faixas ?? []).forEach(f => {
-                    const area = parseFloat(f.area_m2) || 0;
-                    if (area <= 0) return;
-                    resumo.push({
-                        nome:            f.nome ?? 'Faixa',
-                        descricao:       `${f.largura_cm ?? '?'}×${f.comprimento_cm ?? '?'}×${f.espessura_cm ?? '?'}cm — ${area.toFixed(3)}m²`,
-                        area_liquida_m2: Math.round(area * 10000) / 10000,
-                        espessura_cm:    f.espessura_cm ?? 2,
-                        ambiente_nome:   nomeAmbiente,
-                        ambiente_index:  ambIdx,
-                        item_nome:       null,
-                        item_id:         null,
-                        type:            'faixa',
-                        recortes_qty:    0,
-                        recortes:        [],
-                        segmentos:       [],
-                        acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
-                    });
-                });
             }
             return {
                 resumo_por_peca: resumo,
@@ -231,6 +239,7 @@ export function normalizarJsonMedicao(json) {
                 });
                 resumo.push({
                     nome:             p.name ?? 'Peça',
+                    peca_id:          p.peca_id ?? p.id ?? null,
                     area_liquida_m2:  Math.round(area * 10000) / 10000,
                     espessura_cm:     p.thickness_cm ?? null,
                     ambiente_nome:    nomeAmbiente,

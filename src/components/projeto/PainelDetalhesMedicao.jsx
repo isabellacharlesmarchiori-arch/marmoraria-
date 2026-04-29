@@ -404,7 +404,16 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                         const obsAcesso = parseObsAcesso(medicao?.observacoes_acesso, ambNome, i, rawAmbientes.length);
                         const infoAmb   = (amb.extras?.info_adicional ?? '').trim();
                         const itensComInfo  = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
-                        const faixasDoAmb   = amb.faixas ?? [];
+                        // Mapa faixa-id → grupo_nome a partir dos grupos do ambiente
+                        const faixaGrupoMap = new Map();
+                        (amb.grupos ?? []).forEach((g, gi) => {
+                            const gNome = g.nome ?? `Grupo ${gi + 1}`;
+                            (g.elemento_ids ?? []).forEach(eId => faixaGrupoMap.set(eId, gNome));
+                        });
+                        const faixasDoAmb = (amb.faixas ?? []).map(f => ({
+                            ...f,
+                            grupo_nome: faixaGrupoMap.get(f.id ?? f.peca_id) ?? null,
+                        }));
                         const gruposDoAmb   = (amb.grupos ?? []).filter(g =>
                             (g.info ?? '').trim() !== '' || g.vai_descer || g.vai_embutir
                         );
@@ -492,20 +501,41 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                     <div className="bg-black border border-zinc-900 px-4 py-3">
                                         <SecaoLabel icon="solar:ruler-linear" label={`Faixas (${faixasDoAmb.length})`} />
                                         <div className="flex flex-col gap-1.5">
-                                            {faixasDoAmb.map((f, j) => {
-                                                const area = f.area_m2 != null ? parseFloat(f.area_m2) : null;
-                                                const dim = [f.largura_cm, f.comprimento_cm, f.espessura_cm]
-                                                    .filter(v => v != null)
-                                                    .join('×');
-                                                return (
-                                                    <div key={j} className="font-mono text-[11px] text-zinc-300 flex items-center justify-between gap-2">
-                                                        <span>{dim ? `${dim} cm` : (f.nome ?? `Faixa ${j + 1}`)}</span>
-                                                        {area != null && (
-                                                            <span className="text-yellow-400 font-bold shrink-0">{area} m²</span>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                            {(() => {
+                                                const gMap = new Map();
+                                                const gOrder = [];
+                                                faixasDoAmb.forEach(f => {
+                                                    const k = f.grupo_nome ?? '__sem_grupo__';
+                                                    if (!gMap.has(k)) { gMap.set(k, []); gOrder.push(k); }
+                                                    gMap.get(k).push(f);
+                                                });
+                                                const temGrupos = gOrder.some(k => k !== '__sem_grupo__');
+                                                return gOrder.flatMap(gKey => {
+                                                    const grupoNome = gKey === '__sem_grupo__' ? null : gKey;
+                                                    const grupoLabel = grupoNome ?? (temGrupos ? 'Avulsas' : null);
+                                                    return [
+                                                        ...(grupoLabel ? [
+                                                            <div key={`fg-${gKey}`} className="flex items-center gap-1.5 mt-1 mb-0.5">
+                                                                <iconify-icon icon="solar:folder-linear" width="9" className="text-zinc-700 shrink-0"></iconify-icon>
+                                                                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{grupoLabel}</span>
+                                                            </div>
+                                                        ] : []),
+                                                        ...gMap.get(gKey).map((f, j) => {
+                                                            const area = f.area_m2 != null ? parseFloat(f.area_m2) : null;
+                                                            const dim = [f.largura_cm, f.comprimento_cm, f.espessura_cm]
+                                                                .filter(v => v != null).join('×');
+                                                            return (
+                                                                <div key={f.id ?? j} className="font-mono text-[11px] text-zinc-300 flex items-center justify-between gap-2">
+                                                                    <span>{dim ? `${dim} cm` : (f.nome ?? `Faixa ${j + 1}`)}</span>
+                                                                    {area != null && (
+                                                                        <span className="text-yellow-400 font-bold shrink-0">{area} m²</span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        }),
+                                                    ];
+                                                });
+                                            })()}
                                         </div>
                                     </div>
                                 )}

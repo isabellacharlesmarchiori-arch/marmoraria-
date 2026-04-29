@@ -3721,16 +3721,18 @@ export default function CriarOrcamento() {
                           if (!gMap.has(k)) { gMap.set(k, []); gOrdem.push(k); }
                           gMap.get(k).push(p);
                         });
+                        const temGruposNomeados = gOrdem.some(k => k !== '__sem_grupo__');
                         return gOrdem.flatMap(gKey => {
                           const grupoNome = gKey === '__sem_grupo__' ? null : gKey;
+                          const grupoLabel = grupoNome ?? (temGruposNomeados ? 'Peças avulsas' : null);
                           const geKey = `${amb}::${gKey}`;
                           const ge = grupoExtras[geKey] ?? { acabamentos: [], furos: [] };
                           return [
                             // Cabeçalho do grupo
-                            ...(grupoNome ? [
+                            ...(grupoLabel ? [
                               <div key={`grp-${gKey}`} className="flex items-center gap-2 px-4 py-1.5 bg-gray-200/20 dark:bg-zinc-900/20 border-b border-gray-200 dark:border-zinc-900/60">
                                 <iconify-icon icon="solar:folder-linear" width="10" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
-                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{grupoNome}</span>
+                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{grupoLabel}</span>
                               </div>
                             ] : []),
                             // Peças do grupo
