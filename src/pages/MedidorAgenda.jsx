@@ -137,7 +137,10 @@ export default function MedidorAgenda() {
         projetos(id, nome, vendedor_id, empresa_id, clientes(nome, telefone))
       `)
       .eq('medidor_id', session.user.id)
+      .neq('status', 'enviada')
       .neq('status', 'aprovada')
+      .neq('status', 'concluida')
+      .neq('status', 'cancelada')
       .order('data_medicao', { ascending: true });
 
     if (error) console.error('[MedidorAgenda] Erro:', error);
