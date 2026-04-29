@@ -59,15 +59,26 @@ function formatDataLabel(medicao) {
 
 // Retorna a obs de acesso referente a um ambiente específico.
 // Formato esperado: "Ambiente 1: texto\nAmbiente 2: texto" ou texto livre.
-function parseObsAcesso(text, ambIndex, totalAmbientes) {
+function parseObsAcesso(text, ambNome, ambIndex, totalAmbientes) {
     if (!text) return null;
     if (totalAmbientes <= 1) return text.trim() || null;
-    const regex = new RegExp(
-        `Ambiente\\s+${ambIndex + 1}\\s*:[\\s]*([^\\r\\n]*(?:[\\r\\n](?!Ambiente\\s+\\d)[^\\r\\n]*)*)`,
+
+    // Tenta pelo nome real do ambiente (ex: "wc casal:")
+    const escapedNome = ambNome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regexNome = new RegExp(
+        `${escapedNome}\\s*:[\\s]*([\\s\\S]*?)(?=[\\r\\n]+\\S[^:]*:|$)`,
         'i'
     );
-    const match = text.match(regex);
-    return match ? match[1].trim() || null : null;
+    const matchNome = text.match(regexNome);
+    if (matchNome) return matchNome[1].trim() || null;
+
+    // Fallback: tenta "Ambiente N:"
+    const regexAmb = new RegExp(
+        `Ambiente\\s+${ambIndex + 1}\\s*:[\\s]*([\\s\\S]*?)(?=[\\r\\n]+Ambiente\\s+\\d|$)`,
+        'i'
+    );
+    const matchAmb = text.match(regexAmb);
+    return matchAmb ? matchAmb[1].trim() || null : null;
 }
 
 // Retorna a URL da foto para um ambiente, tentando por id e por nome.
@@ -390,7 +401,7 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                         const ambNome   = amb.nome ?? amb.ambiente ?? `Ambiente ${i + 1}`;
                         const svgUrl    = svgUrls[i] ?? null;
                         const fotoUrl   = getFotoParaAmbiente(medicao?.fotos, amb.ambiente_id ?? amb.id, ambNome);
-                        const obsAcesso = parseObsAcesso(medicao?.observacoes_acesso, i, rawAmbientes.length);
+                        const obsAcesso = parseObsAcesso(medicao?.observacoes_acesso, ambNome, i, rawAmbientes.length);
                         const infoAmb   = (amb.extras?.info_adicional ?? '').trim();
                         const itensComInfo  = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
                         const faixasDoAmb   = amb.faixas ?? [];

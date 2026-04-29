@@ -32,7 +32,7 @@ function precoAcabamento(ml, matLinearId, matLineares) {
 }
 
 // Gera as linhas de acabamento derivadas de uma peça de pedra
-function criarAcabamentosParaPeca(p, stoneUid) {
+function criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios = []) {
   const rows = [];
   if ((p.meia_esquadria_ml ?? 0) > 0) {
     rows.push({
@@ -63,6 +63,9 @@ function criarAcabamentosParaPeca(p, stoneUid) {
     });
   }
   (p.recortes ?? []).forEach(rc => {
+    const acabUnit = acabamentosUnitarios.find(
+      a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase()
+    );
     rows.push({
       uid:           `rc-${stoneUid}-${Math.random()}`,
       idBase:        p.id,
@@ -70,7 +73,7 @@ function criarAcabamentosParaPeca(p, stoneUid) {
       tipo:          'recorte',
       nome:          rc.funcao_label ?? rc.funcao ?? 'Recorte',
       formato:       rc.formato ?? null,
-      precoUnit:     0,
+      precoUnit:     acabUnit ? parseFloat(acabUnit.preco) : 0,
       ambiente_nome: p.ambiente_nome ?? null,
       item_nome:     p.item_nome ?? null,
     });
@@ -802,7 +805,7 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
   );
 }
 
-function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, onSalvar, onVoltar, todosM, matLineares = [], salvando = false }) {
+function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, onSalvar, onVoltar, todosM, matLineares = [], acabamentosUnitarios = [], salvando = false }) {
 
   // ── Lista de ambientes (mutável: suporta rename/delete/duplicate) ─
   const [listaAmbientes, setListaAmbientes] = useState(() => {
@@ -850,7 +853,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
             reto_simples_ml: p.reto_simples_ml ?? 0,
             cortes: p.cortes ?? 0,
           };
-          return [stone, ...criarAcabamentosParaPeca(p, stoneUid)];
+          return [stone, ...criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios)];
         }),
         avulsos: [],
       }));
@@ -1124,7 +1127,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         reto_simples_ml: p.reto_simples_ml ?? 0,
         cortes: p.cortes ?? 0,
       };
-      return [stone, ...criarAcabamentosParaPeca(p, stoneUid)];
+      return [stone, ...criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios)];
     });
     const nova = {
       id: novaId,
@@ -2144,6 +2147,7 @@ export default function CriarOrcamento() {
   const [loadingPecas, setLoadingPecas] = useState(true);
   const [materiais, setMateriais] = useState([]);
   const [matLineares, setMatLineares] = useState([]);
+  const [acabamentosUnitarios, setAcabamentosUnitarios] = useState([]);
   const [produtos, setProdutos] = useState([]);     // itens avulsos adicionados pelo usuário no passo 1
   const [produtosCatalogo, setProdutosCatalogo] = useState([]); // catálogo bruto do Supabase
   const [bulkMaterialId, setBulkMaterialId] = useState('');     // bulk action: material único
@@ -2390,6 +2394,20 @@ export default function CriarOrcamento() {
       .then(({ data, error }) => {
         if (error) { console.error('[CriarOrcamento] matLineares:', error.message); return; }
         if (data) setMatLineares(data);
+      });
+  }, [session, profile?.empresa_id]);
+
+  // Busca acabamentos unitários (furos, recortes com preço fixo por unidade)
+  useEffect(() => {
+    if (!session || !profile?.empresa_id) return;
+    supabase
+      .from('acabamentos_unitarios')
+      .select('id, nome, unidade, preco')
+      .eq('empresa_id', profile.empresa_id)
+      .eq('ativo', true)
+      .then(({ data, error }) => {
+        if (error) { console.error('[CriarOrcamento] acabamentosUnitarios:', error.message); return; }
+        if (data) setAcabamentosUnitarios(data);
       });
   }, [session, profile?.empresa_id]);
 
@@ -3001,6 +3019,7 @@ export default function CriarOrcamento() {
         onVoltar={() => setVersoesCriadas(null)}
         todosM={materiais}
         matLineares={matLineares}
+        acabamentosUnitarios={acabamentosUnitarios}
         salvando={salvandoOrc}
       />
     );
@@ -3596,6 +3615,63 @@ export default function CriarOrcamento() {
             )}
           </div>
         </div>
+
+        {/* ══ Acabamentos + Recortes (informativo) ═════════════════ */}
+        {(() => {
+          const totalME = pecas.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0);
+          const totalRS = pecas.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0);
+          const todosRecortes = pecas.flatMap(p => p.recortes ?? []);
+          if (totalME === 0 && totalRS === 0 && todosRecortes.length === 0) return null;
+          return (
+            <div className="sys-reveal">
+              <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-3">
+                02 // Acabamentos &amp; Recortes
+              </div>
+              <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 divide-y divide-gray-200 dark:divide-zinc-900">
+                {/* Acabamentos lineares */}
+                {(totalME > 0 || totalRS > 0) && (
+                  <div className="px-4 py-3">
+                    <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Acabamentos de aresta</div>
+                    <div className="flex flex-col gap-1">
+                      {totalME > 0 && (
+                        <div className="flex items-center gap-2">
+                          <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
+                          <span className="font-mono text-[11px] text-amber-400">Meia-Esquadria</span>
+                          <span className="font-mono text-[11px] text-amber-300 ml-auto">{totalME.toFixed(2)} ml</span>
+                        </div>
+                      )}
+                      {totalRS > 0 && (
+                        <div className="flex items-center gap-2">
+                          <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
+                          <span className="font-mono text-[11px] text-amber-400">Reto Simples</span>
+                          <span className="font-mono text-[11px] text-amber-300 ml-auto">{totalRS.toFixed(2)} ml</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Recortes / furos */}
+                {todosRecortes.length > 0 && (
+                  <div className="px-4 py-3">
+                    <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Recortes / Furos</div>
+                    <div className="flex flex-col gap-1">
+                      {todosRecortes.map((rc, i) => {
+                        const label = rc.funcao_label ?? rc.funcao ?? 'Recorte';
+                        const dim   = rc.formato ? ` · ${rc.formato}` : '';
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
+                            <span className="font-mono text-[11px] text-teal-400">{label}{dim}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ══ Produtos avulsos ══════════════════════════════════════ */}
         <div className="sys-reveal sys-delay-200">
