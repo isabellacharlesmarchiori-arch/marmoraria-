@@ -67,19 +67,33 @@ export function normalizarJsonMedicao(json) {
     if (!json) return null;
 
     if (Array.isArray(json.resumo_por_peca) && json.resumo_por_peca.length > 0) {
-        if (json.resumo_por_peca[0]?.ambiente_index != null) return json;
+        if (json.resumo_por_peca[0]?.ambiente_index != null && json.resumo_por_peca[0]?.grupo_nome !== undefined) return json;
         const ambIndexMap = new Map();
         (json.ambientes ?? []).forEach((a, idx) => {
             [a.nome, a.ambiente, `Ambiente ${idx + 1}`]
                 .filter(Boolean)
                 .forEach(n => { if (!ambIndexMap.has(n)) ambIndexMap.set(n, idx); });
         });
+        const grupoByPecaId = new Map();
+        (json.ambientes ?? []).forEach(amb => {
+            (amb.grupos ?? []).forEach((grupo, grupoIdx) => {
+                (grupo.elemento_ids ?? []).forEach(eId => {
+                    if (!grupoByPecaId.has(eId))
+                        grupoByPecaId.set(eId, { grupo_nome: grupo.nome ?? `Grupo ${grupoIdx + 1}`, grupo_index: grupoIdx });
+                });
+            });
+        });
         return {
             ...json,
-            resumo_por_peca: json.resumo_por_peca.map(p => ({
-                ...p,
-                ambiente_index: ambIndexMap.get(p.ambiente_nome) ?? null,
-            })),
+            resumo_por_peca: json.resumo_por_peca.map(p => {
+                const gi = p.peca_id ? grupoByPecaId.get(p.peca_id) : null;
+                return {
+                    ...p,
+                    ambiente_index: p.ambiente_index ?? ambIndexMap.get(p.ambiente_nome) ?? null,
+                    grupo_nome:  p.grupo_nome  ?? gi?.grupo_nome  ?? p.item_nome  ?? null,
+                    grupo_index: p.grupo_index ?? gi?.grupo_index ?? null,
+                };
+            }),
         };
     }
 
@@ -100,33 +114,50 @@ export function normalizarJsonMedicao(json) {
                 for (const p of (Array.isArray(amb.pecas) ? amb.pecas : [])) {
                     const area = parseFloat(p.area_m2) || 0;
                     const segs = Array.isArray(p.segmentos) ? p.segmentos : [];
-                    let reto_simples_ml   = 0;
-                    let meia_esquadria_ml = 0;
-                    segs.forEach(s => {
-                        const lenM = (parseFloat(s.medida_cm) || 0) / 100;
-                        if (s.acabamento === 'RS') reto_simples_ml   += lenM;
-                        if (s.acabamento === 'ME') meia_esquadria_ml += lenM;
-                    });
                     const peca = {
                         nome:            p.nome ?? 'Peça',
+                        peca_id:         p.id ?? null,
                         area_liquida_m2: Math.round(area * 10000) / 10000,
                         espessura_cm:    p.espessura_cm ?? null,
                         ambiente_nome:   nomeAmbiente,
                         ambiente_index:  ambIdx,
+                        grupo_nome:      null,
+                        grupo_index:     null,
                         item_nome:       null,
                         item_id:         null,
                         type:            p.tipo ?? 'retangulo',
                         recortes_qty:    Array.isArray(p.recortes) ? p.recortes.length : 0,
                         recortes:        Array.isArray(p.recortes) ? p.recortes : [],
                         segmentos:       segs,
-                        acabamentos: {
-                            reto_simples_ml:   Math.round(reto_simples_ml   * 100) / 100,
-                            meia_esquadria_ml: Math.round(meia_esquadria_ml * 100) / 100,
-                        },
+                        // ME/RS zeramos aqui; distribuídos do metadados_ambiente abaixo
+                        acabamentos:     { reto_simples_ml: 0, meia_esquadria_ml: 0 },
                     };
                     pecasDoAmb.push(peca);
                     resumo.push(peca);
                 }
+                // Enrich pieces with grupo_nome from amb.grupos[]
+                (amb.grupos ?? []).forEach((grupo, grupoIdx) => {
+                    const nome = grupo.nome ?? `Grupo ${grupoIdx + 1}`;
+                    (grupo.elemento_ids ?? []).forEach(eId => {
+                        const piece = pecasDoAmb.find(p => p.peca_id === eId);
+                        if (piece) { piece.grupo_nome = nome; piece.grupo_index = grupoIdx; }
+                    });
+                });
+                // Fonte única: metadados_ambiente calculados pelo Flutter.
+                // Distribui pelo representante do grupo que contém segmentos ME/RS;
+                // se nenhum tiver, usa a primeira peça do ambiente.
+                const totalME = parseFloat(meta?.meia_esquadria_ml ?? 0) || 0;
+                const totalRS = parseFloat(meta?.reto_simples_ml   ?? 0) || 0;
+                if (totalME > 0 && pecasDoAmb.length > 0) {
+                    const rep = pecasDoAmb.find(p => (p.segmentos ?? []).some(s => s.acabamento === 'ME')) ?? pecasDoAmb[0];
+                    rep.acabamentos.meia_esquadria_ml = Math.round(totalME * 100) / 100;
+                }
+                if (totalRS > 0 && pecasDoAmb.length > 0) {
+                    const rep = pecasDoAmb.find(p => (p.segmentos ?? []).some(s => s.acabamento === 'RS')) ?? pecasDoAmb[0];
+                    rep.acabamentos.reto_simples_ml = Math.round(totalRS * 100) / 100;
+                }
+                ambTotalME += totalME;
+                ambTotalRS += totalRS;
                 // Faixas do ambiente
                 (amb.faixas ?? []).forEach(f => {
                     const area = parseFloat(f.area_m2) || 0;
@@ -147,27 +178,6 @@ export function normalizarJsonMedicao(json) {
                         acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
                     });
                 });
-                // Fallback: segmentos de medições antigas não têm s.acabamento;
-                // se nenhum valor foi calculado mas metadados_ambiente tem o total, atribui à 1ª peça.
-                if (meta && pecasDoAmb.length > 0) {
-                    const calcME = pecasDoAmb.reduce((s, p) => s + p.acabamentos.meia_esquadria_ml, 0);
-                    const calcRS = pecasDoAmb.reduce((s, p) => s + p.acabamentos.reto_simples_ml,   0);
-                    const metaME = parseFloat(meta.meia_esquadria_ml) || 0;
-                    const metaRS = parseFloat(meta.reto_simples_ml)   || 0;
-                    if (calcME === 0 && metaME > 0) pecasDoAmb[0].acabamentos.meia_esquadria_ml = Math.round(metaME * 100) / 100;
-                    if (calcRS === 0 && metaRS > 0) pecasDoAmb[0].acabamentos.reto_simples_ml   = Math.round(metaRS * 100) / 100;
-                }
-                // Flutter já calculou o total correto do ambiente — usa quando disponível.
-                // Sem metadados, soma por peça (pode duplicar lados opostos em retângulos).
-                if (meta) {
-                    ambTotalME += parseFloat(meta.meia_esquadria_ml) || 0;
-                    ambTotalRS += parseFloat(meta.reto_simples_ml)   || 0;
-                } else {
-                    pecasDoAmb.forEach(p => {
-                        ambTotalME += p.acabamentos.meia_esquadria_ml;
-                        ambTotalRS += p.acabamentos.reto_simples_ml;
-                    });
-                }
             }
             return {
                 resumo_por_peca: resumo,
@@ -225,6 +235,8 @@ export function normalizarJsonMedicao(json) {
                     espessura_cm:     p.thickness_cm ?? null,
                     ambiente_nome:    nomeAmbiente,
                     ambiente_index:   ambIdx,
+                    grupo_nome:       item_nome ?? null,
+                    grupo_index:      null,
                     item_nome,
                     item_id,
                     type:             p.type ?? 'retangulo',

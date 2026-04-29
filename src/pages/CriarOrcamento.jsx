@@ -805,7 +805,7 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
   );
 }
 
-function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, onSalvar, onVoltar, todosM, matLineares = [], acabamentosUnitarios = [], salvando = false }) {
+function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, onSalvar, onVoltar, todosM, matLineares = [], acabamentosUnitarios = [], salvando = false, grupoExtras = {} }) {
 
   // ── Lista de ambientes (mutável: suporta rename/delete/duplicate) ─
   const [listaAmbientes, setListaAmbientes] = useState(() => {
@@ -833,30 +833,91 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   const [ambiVersoes, setAmbiVersoes] = useState(() => {
     const result = {};
     listaAmbientes.forEach(amb => {
-      result[amb] = initialVersoes.map((v, vIdx) => ({
-        id: `v-${amb}-${Date.now()}-${vIdx}`,
-        nome: v.nome,
-        pecasList: pecas.filter(p => p.incluida && (p.ambiente_nome ?? '') === amb).flatMap(p => {
-          const stoneUid = `${p.id}-${Math.random()}`;
-          const stone = {
-            uid: stoneUid,
-            idBase: p.id,
-            tipo: 'pedra',
-            nome: p.nome,
-            ambiente_nome: p.ambiente_nome ?? null,
-            item_nome: p.item_nome ?? null,
-            matId: v.mats[p.id] ?? null,
-            matAcabamento: null,
-            area_liq: p.area_liq ?? 0,
-            espessura: p.espessura ?? 2,
-            meia_esquadria_ml: p.meia_esquadria_ml ?? 0,
-            reto_simples_ml: p.reto_simples_ml ?? 0,
-            cortes: p.cortes ?? 0,
-          };
-          return [stone, ...criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios)];
-        }),
-        avulsos: [],
-      }));
+      result[amb] = initialVersoes.map((v, vIdx) => {
+        // Agrupa peças do ambiente por grupo_nome (fallback: item_nome)
+        const pecasAmb = pecas.filter(p => p.incluida && (p.ambiente_nome ?? '') === amb);
+        const gMap = new Map();
+        const gOrder = [];
+        pecasAmb.forEach(p => {
+          const k = p.grupo_nome ?? p.item_nome ?? '__sem_grupo__';
+          if (!gMap.has(k)) { gMap.set(k, []); gOrder.push(k); }
+          gMap.get(k).push(p);
+        });
+        const pecasList = [];
+        gOrder.forEach(gKey => {
+          const pcsGroup = gMap.get(gKey);
+          const grupoNomeVal = gKey === '__sem_grupo__' ? null : gKey;
+          let firstStoneUid = null;
+          pcsGroup.forEach((p, idx) => {
+            const stoneUid = `${p.id}-${Math.random()}`;
+            if (idx === 0) firstStoneUid = stoneUid;
+            pecasList.push({
+              uid: stoneUid,
+              idBase: p.id,
+              tipo: 'pedra',
+              nome: p.nome,
+              ambiente_nome: p.ambiente_nome ?? null,
+              item_nome: grupoNomeVal,
+              matId: v.mats[p.id] ?? null,
+              matAcabamento: null,
+              area_liq: p.area_liq ?? 0,
+              espessura: p.espessura ?? 2,
+              meia_esquadria_ml: p.meia_esquadria_ml ?? 0,
+              reto_simples_ml: p.reto_simples_ml ?? 0,
+              cortes: p.cortes ?? 0,
+            });
+          });
+          // Acabamentos e furos do grupo (de grupoExtras ou agregado das peças)
+          const geKey = `${amb}::${gKey}`;
+          const ge = grupoExtras[geKey];
+          if (ge) {
+            (ge.acabamentos ?? []).forEach(ac => {
+              pecasList.push({
+                uid: `ac-g-${ac.tipo === 'meia_esquadria' ? 'me' : 'rs'}-${firstStoneUid}-${Math.random()}`,
+                idBase: pcsGroup[0]?.id ?? null,
+                idPedraUid: firstStoneUid,
+                tipo: 'acabamento',
+                tipoAcabamento: ac.tipo,
+                nome: ac.tipo === 'meia_esquadria' ? 'Meia Esquadria' : 'Reto Simples',
+                ml: ac.ml,
+                matLinearId: null,
+                ambiente_nome: amb,
+                item_nome: grupoNomeVal,
+              });
+            });
+            (ge.furos ?? []).forEach(fu => {
+              const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase());
+              pecasList.push({
+                uid: `rc-g-${firstStoneUid}-${Math.random()}`,
+                idBase: pcsGroup[0]?.id ?? null,
+                idPedraUid: firstStoneUid,
+                tipo: 'recorte',
+                nome: fu.tipo,
+                formato: fu.formato ?? null,
+                precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0,
+                ambiente_nome: amb,
+                item_nome: grupoNomeVal,
+              });
+            });
+          } else {
+            // Fallback: agrega das peças (sem grupoExtras)
+            const totalME = pcsGroup.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0);
+            const totalRS = pcsGroup.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0);
+            if (totalME > 0) pecasList.push({ uid: `ac-me-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'meia_esquadria', nome: 'Meia Esquadria', ml: totalME, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+            if (totalRS > 0) pecasList.push({ uid: `ac-rs-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'reto_simples', nome: 'Reto Simples', ml: totalRS, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+            pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => {
+              const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase());
+              pecasList.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0, ambiente_nome: amb, item_nome: grupoNomeVal });
+            });
+          }
+        });
+        return {
+          id: `v-${amb}-${Date.now()}-${vIdx}`,
+          nome: v.nome,
+          pecasList: aplicarAutoMatchNaLista(pecasList, todosM, matLineares),
+          avulsos: [],
+        };
+      });
     });
     return result;
   });
@@ -943,11 +1004,24 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   function excluirPecaDaVersao(amb, vId, uid) {
     setAmbiVersoes(prev => ({
       ...prev,
-      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
-        ...v,
-        // Remove a peça E seus acabamentos filhos
-        pecasList: v.pecasList.filter(pw => pw.uid !== uid && pw.idPedraUid !== uid),
-      }),
+      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : (() => {
+        const stone = v.pecasList.find(p => p.uid === uid);
+        const withoutStone = v.pecasList.filter(p => p.uid !== uid);
+        if (!stone || stone.tipo !== 'pedra' || !stone.item_nome) {
+          // Sem grupo: remove stone + filhos por idPedraUid (comportamento legado)
+          return { ...v, pecasList: withoutStone.filter(p => p.idPedraUid !== uid) };
+        }
+        // Stone em grupo: verifica se ainda há outras pedras no grupo
+        const groupAcabamentos = withoutStone.filter(p => p.idPedraUid === uid);
+        if (groupAcabamentos.length === 0) return { ...v, pecasList: withoutStone };
+        const nextStone = withoutStone.find(p => p.tipo === 'pedra' && p.item_nome === stone.item_nome);
+        if (!nextStone) {
+          // Última pedra do grupo: remove grupo também
+          return { ...v, pecasList: withoutStone.filter(p => p.idPedraUid !== uid) };
+        }
+        // Re-atribui idPedraUid dos acabamentos do grupo para a próxima pedra
+        return { ...v, pecasList: withoutStone.map(p => p.idPedraUid === uid ? { ...p, idPedraUid: nextStone.uid } : p) };
+      })()),
     }));
   }
 
@@ -957,15 +1031,19 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
       [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : (() => {
         const idx = v.pecasList.findIndex(pw => pw.uid === uid);
         if (idx === -1) return v;
+        const stone = v.pecasList[idx];
         const newStoneUid = `dup-${uid}-${Math.random()}`;
         const newIdBase   = crypto.randomUUID();
-        const clone = { ...v.pecasList[idx], uid: newStoneUid, idBase: newIdBase };
-        // Clona os acabamentos filhos desta peça
-        const acabamentosFilhos = v.pecasList
-          .filter(pw => pw.idPedraUid === uid)
-          .map(ac => ({ ...ac, uid: `ac-dup-${Math.random()}`, idBase: newIdBase, idPedraUid: newStoneUid }));
-        // Insere após o último filho original
-        const lastChildIdx = v.pecasList.reduce((last, pw, i) => pw.idPedraUid === uid ? i : last, idx);
+        const clone = { ...stone, uid: newStoneUid, idBase: newIdBase };
+        // Pedra de grupo: não clona os acabamentos do grupo (são compartilhados)
+        const acabamentosFilhos = (stone.tipo === 'pedra' && stone.item_nome)
+          ? []
+          : v.pecasList
+              .filter(pw => pw.idPedraUid === uid)
+              .map(ac => ({ ...ac, uid: `ac-dup-${Math.random()}`, idBase: newIdBase, idPedraUid: newStoneUid }));
+        const lastChildIdx = (stone.tipo === 'pedra' && stone.item_nome)
+          ? idx
+          : v.pecasList.reduce((last, pw, i) => pw.idPedraUid === uid ? i : last, idx);
         const nova = [...v.pecasList];
         nova.splice(lastChildIdx + 1, 0, clone, ...acabamentosFilhos);
         return { ...v, pecasList: nova };
@@ -1109,32 +1187,38 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   // ── CRUD versões por ambiente ─────────────────────────────────────
   function adicionarVersao(amb) {
     const existentes = ambiVersoes[amb] ?? [];
-    const novaId = `v-${amb}-${Date.now()}`;
-    const pecasListRaw = pecas.filter(p => p.incluida && (p.ambiente_nome ?? '') === amb).flatMap(p => {
-      const stoneUid = `${p.id}-${Math.random()}`;
-      const stone = {
-        uid: stoneUid,
-        idBase: p.id,
-        tipo: 'pedra',
-        nome: p.nome,
-        ambiente_nome: p.ambiente_nome ?? null,
-        item_nome: p.item_nome ?? null,
-        matId: null,
-        matAcabamento: null,
-        area_liq: p.area_liq ?? 0,
-        espessura: p.espessura ?? 2,
-        meia_esquadria_ml: p.meia_esquadria_ml ?? 0,
-        reto_simples_ml: p.reto_simples_ml ?? 0,
-        cortes: p.cortes ?? 0,
-      };
-      return [stone, ...criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios)];
+    const pecasAmb = pecas.filter(p => p.incluida && (p.ambiente_nome ?? '') === amb);
+    const gMap = new Map();
+    const gOrder = [];
+    pecasAmb.forEach(p => {
+      const k = p.grupo_nome ?? p.item_nome ?? '__sem_grupo__';
+      if (!gMap.has(k)) { gMap.set(k, []); gOrder.push(k); }
+      gMap.get(k).push(p);
     });
-    const nova = {
-      id: novaId,
-      nome: `Versão ${existentes.length + 1}`,
-      pecasList: aplicarAutoMatchNaLista(pecasListRaw, todosM, matLineares),
-      avulsos: [],
-    };
+    const pecasListRaw = [];
+    gOrder.forEach(gKey => {
+      const pcsGroup = gMap.get(gKey);
+      const grupoNomeVal = gKey === '__sem_grupo__' ? null : gKey;
+      let firstStoneUid = null;
+      pcsGroup.forEach((p, idx) => {
+        const stoneUid = `${p.id}-${Math.random()}`;
+        if (idx === 0) firstStoneUid = stoneUid;
+        pecasListRaw.push({ uid: stoneUid, idBase: p.id, tipo: 'pedra', nome: p.nome, ambiente_nome: p.ambiente_nome ?? null, item_nome: grupoNomeVal, matId: null, matAcabamento: null, area_liq: p.area_liq ?? 0, espessura: p.espessura ?? 2, meia_esquadria_ml: p.meia_esquadria_ml ?? 0, reto_simples_ml: p.reto_simples_ml ?? 0, cortes: p.cortes ?? 0 });
+      });
+      const geKey = `${amb}::${gKey}`;
+      const ge = grupoExtras[geKey];
+      if (ge) {
+        (ge.acabamentos ?? []).forEach(ac => { pecasListRaw.push({ uid: `ac-g-${ac.tipo === 'meia_esquadria' ? 'me' : 'rs'}-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: ac.tipo, nome: ac.tipo === 'meia_esquadria' ? 'Meia Esquadria' : 'Reto Simples', ml: ac.ml, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal }); });
+        (ge.furos ?? []).forEach(fu => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: fu.tipo, formato: fu.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
+      } else {
+        const totalME = pcsGroup.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0);
+        const totalRS = pcsGroup.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0);
+        if (totalME > 0) pecasListRaw.push({ uid: `ac-me-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'meia_esquadria', nome: 'Meia Esquadria', ml: totalME, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+        if (totalRS > 0) pecasListRaw.push({ uid: `ac-rs-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'reto_simples', nome: 'Reto Simples', ml: totalRS, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+        pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
+      }
+    });
+    const nova = { id: `v-${amb}-${Date.now()}`, nome: `Versão ${existentes.length + 1}`, pecasList: aplicarAutoMatchNaLista(pecasListRaw, todosM, matLineares), avulsos: [] };
     setAmbiVersoes(prev => ({ ...prev, [amb]: [...(prev[amb] ?? []), nova] }));
   }
 
@@ -2474,6 +2558,8 @@ export default function CriarOrcamento() {
             descricao:         r.descricao ?? null,
             ambiente_nome:     r.ambiente_nome ?? null,
             item_nome:         r.item_nome ?? null,
+            grupo_nome:        r.grupo_nome ?? null,
+            grupo_index:       r.grupo_index ?? null,
             area_liq:          Number(r.area_liquida_m2 ?? 0),
             espessura:         Number(r.espessura_cm    ?? 2),
             meia_esquadria_ml: Number(r.acabamentos?.meia_esquadria_ml ?? 0),
@@ -2565,6 +2651,34 @@ export default function CriarOrcamento() {
     }
   }, [projetoId, medicaoIdFromUrl]);
 
+  // ── Estado de acabamentos/furos por grupo (chave: "${amb}::${grupo}") ──────
+  const [grupoExtras, setGrupoExtras] = useState({});
+
+  useEffect(() => {
+    if (loadingPecas || pecas.length === 0) { setGrupoExtras({}); return; }
+    const map = {};
+    pecas.filter(p => p.incluida).forEach(p => {
+      const gNome = p.grupo_nome ?? p.item_nome ?? null;
+      const gKey  = `${p.ambiente_nome ?? ''}::${gNome ?? '__sem_grupo__'}`;
+      if (!map[gKey]) map[gKey] = { amb_nome: p.ambiente_nome ?? '', grupo_nome: gNome, acabamentos: [], furos: [] };
+      const g = map[gKey];
+      if ((p.meia_esquadria_ml ?? 0) > 0) {
+        const ex = g.acabamentos.find(a => a.tipo === 'meia_esquadria');
+        if (ex) ex.ml = Math.round((ex.ml + p.meia_esquadria_ml) * 100) / 100;
+        else g.acabamentos.push({ id: crypto.randomUUID(), tipo: 'meia_esquadria', ml: p.meia_esquadria_ml });
+      }
+      if ((p.reto_simples_ml ?? 0) > 0) {
+        const ex = g.acabamentos.find(a => a.tipo === 'reto_simples');
+        if (ex) ex.ml = Math.round((ex.ml + p.reto_simples_ml) * 100) / 100;
+        else g.acabamentos.push({ id: crypto.randomUUID(), tipo: 'reto_simples', ml: p.reto_simples_ml });
+      }
+      (p.recortes ?? []).forEach(rc => {
+        g.furos.push({ id: crypto.randomUUID(), tipo: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null });
+      });
+    });
+    setGrupoExtras(map);
+  }, [loadingPecas]); // re-init only when loading state changes
+
   const [painelMaterialPecaId, setPainelMaterialPecaId] = useState(null);
   const [modalProduto, setModalProduto] = useState(false);
   const [modalVersoes, setModalVersoes] = useState(false);
@@ -2654,6 +2768,26 @@ export default function CriarOrcamento() {
     setPecas(prev => prev.map(p =>
       p.incluida ? { ...p, materiais: [bulkMaterialId] } : p
     ));
+  }
+
+  // ── Handlers de acabamentos/furos por grupo ──────────────────────────────
+  function addGrupoAcabamento(geKey) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...(prev[geKey] ?? { acabamentos: [], furos: [] }), acabamentos: [...(prev[geKey]?.acabamentos ?? []), { id: crypto.randomUUID(), tipo: 'meia_esquadria', ml: 0 }] } }));
+  }
+  function removeGrupoAcabamento(geKey, acId) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], acabamentos: (prev[geKey]?.acabamentos ?? []).filter(a => a.id !== acId) } }));
+  }
+  function updateGrupoAcabamento(geKey, acId, field, value) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], acabamentos: (prev[geKey]?.acabamentos ?? []).map(a => a.id === acId ? { ...a, [field]: value } : a) } }));
+  }
+  function addGrupoFuro(geKey) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...(prev[geKey] ?? { acabamentos: [], furos: [] }), furos: [...(prev[geKey]?.furos ?? []), { id: crypto.randomUUID(), tipo: 'Recorte', formato: null }] } }));
+  }
+  function removeGrupoFuro(geKey, fuId) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], furos: (prev[geKey]?.furos ?? []).filter(f => f.id !== fuId) } }));
+  }
+  function updateGrupoFuro(geKey, fuId, field, value) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], furos: (prev[geKey]?.furos ?? []).map(f => f.id === fuId ? { ...f, [field]: value } : f) } }));
   }
 
   function removerProduto(idx) {
@@ -3021,6 +3155,7 @@ export default function CriarOrcamento() {
         matLineares={matLineares}
         acabamentosUnitarios={acabamentosUnitarios}
         salvando={salvandoOrc}
+        grupoExtras={grupoExtras}
       />
     );
   }
@@ -3576,34 +3711,86 @@ export default function CriarOrcamento() {
                           </div>
                         </div>
                       )}
-                      {/* ── Peças do ambiente, agrupadas por item_nome ── */}
+                      {/* ── Peças do ambiente, agrupadas por grupo_nome ── */}
                       {(() => {
                         const pecasDoAmb = mapa.get(amb);
-                        const temItens = pecasDoAmb.some(p => p.item_nome);
-                        if (!temItens) {
-                          return pecasDoAmb.map(p => (
-                            <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} todosM={materiais} />
-                          ));
-                        }
-                        const itMap = new Map();
-                        const itOrdem = [];
+                        const gMap = new Map();
+                        const gOrdem = [];
                         pecasDoAmb.forEach(p => {
-                          const k = p.item_nome ?? '__sem_item__';
-                          if (!itMap.has(k)) { itMap.set(k, []); itOrdem.push(k); }
-                          itMap.get(k).push(p);
+                          const k = p.grupo_nome ?? p.item_nome ?? '__sem_grupo__';
+                          if (!gMap.has(k)) { gMap.set(k, []); gOrdem.push(k); }
+                          gMap.get(k).push(p);
                         });
-                        return itOrdem.flatMap(itemKey => {
-                          const nomeItem = itemKey === '__sem_item__' ? null : itemKey;
+                        return gOrdem.flatMap(gKey => {
+                          const grupoNome = gKey === '__sem_grupo__' ? null : gKey;
+                          const geKey = `${amb}::${gKey}`;
+                          const ge = grupoExtras[geKey] ?? { acabamentos: [], furos: [] };
                           return [
-                            ...(nomeItem ? [
-                              <div key={`item-${itemKey}`} className="flex items-center gap-2 px-4 py-1.5 bg-gray-200/20 dark:bg-zinc-900/20 border-b border-gray-200 dark:border-zinc-900/60">
+                            // Cabeçalho do grupo
+                            ...(grupoNome ? [
+                              <div key={`grp-${gKey}`} className="flex items-center gap-2 px-4 py-1.5 bg-gray-200/20 dark:bg-zinc-900/20 border-b border-gray-200 dark:border-zinc-900/60">
                                 <iconify-icon icon="solar:folder-linear" width="10" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
-                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{nomeItem}</span>
+                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{grupoNome}</span>
                               </div>
                             ] : []),
-                            ...itMap.get(itemKey).map(p => (
+                            // Peças do grupo
+                            ...gMap.get(gKey).map(p => (
                               <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} todosM={materiais} />
                             )),
+                            // Acabamentos lineares do grupo
+                            ...ge.acabamentos.map(ac => (
+                              <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-950/20 border-b border-amber-900/20 group">
+                                <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
+                                <select
+                                  value={ac.tipo}
+                                  onChange={e => updateGrupoAcabamento(geKey, ac.id, 'tipo', e.target.value)}
+                                  className="bg-transparent border border-amber-900/40 text-amber-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-amber-500/60 shrink-0"
+                                >
+                                  <option value="meia_esquadria">Meia Esquadria</option>
+                                  <option value="reto_simples">Reto Simples</option>
+                                </select>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number" min="0" step="0.01"
+                                    value={ac.ml}
+                                    onChange={e => updateGrupoAcabamento(geKey, ac.id, 'ml', parseFloat(e.target.value) || 0)}
+                                    className="w-14 bg-transparent border border-amber-900/40 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
+                                  />
+                                  <span className="font-mono text-[9px] text-amber-700">ml</span>
+                                </div>
+                                <span className="flex-1"></span>
+                                <button onClick={() => removeGrupoAcabamento(geKey, ac.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                                  <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
+                                </button>
+                              </div>
+                            )),
+                            // Furos / recortes do grupo
+                            ...ge.furos.map(fu => (
+                              <div key={fu.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/10 border-b border-teal-900/20 group">
+                                <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
+                                <input
+                                  value={fu.tipo}
+                                  onChange={e => updateGrupoFuro(geKey, fu.id, 'tipo', e.target.value)}
+                                  className="flex-1 bg-transparent border-b border-teal-900/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-teal-500/60 min-w-0"
+                                />
+                                {fu.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{fu.formato}</span>}
+                                <span className="flex-1"></span>
+                                <button onClick={() => removeGrupoFuro(geKey, fu.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                                  <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
+                                </button>
+                              </div>
+                            )),
+                            // Botões adicionar
+                            <div key={`add-${gKey}`} className="flex items-center gap-3 pl-6 pr-4 py-1 bg-zinc-950/20 border-b border-zinc-900/30">
+                              <button onClick={() => addGrupoAcabamento(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-amber-800 hover:text-amber-500 transition-colors">
+                                <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
+                                Acabamento
+                              </button>
+                              <button onClick={() => addGrupoFuro(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-teal-800 hover:text-teal-500 transition-colors">
+                                <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
+                                Furo
+                              </button>
+                            </div>,
                           ];
                         });
                       })()}
@@ -3615,63 +3802,6 @@ export default function CriarOrcamento() {
             )}
           </div>
         </div>
-
-        {/* ══ Acabamentos + Recortes (informativo) ═════════════════ */}
-        {(() => {
-          const totalME = pecas.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0);
-          const totalRS = pecas.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0);
-          const todosRecortes = pecas.flatMap(p => p.recortes ?? []);
-          if (totalME === 0 && totalRS === 0 && todosRecortes.length === 0) return null;
-          return (
-            <div className="sys-reveal">
-              <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-3">
-                02 // Acabamentos &amp; Recortes
-              </div>
-              <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 divide-y divide-gray-200 dark:divide-zinc-900">
-                {/* Acabamentos lineares */}
-                {(totalME > 0 || totalRS > 0) && (
-                  <div className="px-4 py-3">
-                    <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Acabamentos de aresta</div>
-                    <div className="flex flex-col gap-1">
-                      {totalME > 0 && (
-                        <div className="flex items-center gap-2">
-                          <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
-                          <span className="font-mono text-[11px] text-amber-400">Meia-Esquadria</span>
-                          <span className="font-mono text-[11px] text-amber-300 ml-auto">{totalME.toFixed(2)} ml</span>
-                        </div>
-                      )}
-                      {totalRS > 0 && (
-                        <div className="flex items-center gap-2">
-                          <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
-                          <span className="font-mono text-[11px] text-amber-400">Reto Simples</span>
-                          <span className="font-mono text-[11px] text-amber-300 ml-auto">{totalRS.toFixed(2)} ml</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {/* Recortes / furos */}
-                {todosRecortes.length > 0 && (
-                  <div className="px-4 py-3">
-                    <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Recortes / Furos</div>
-                    <div className="flex flex-col gap-1">
-                      {todosRecortes.map((rc, i) => {
-                        const label = rc.funcao_label ?? rc.funcao ?? 'Recorte';
-                        const dim   = rc.formato ? ` · ${rc.formato}` : '';
-                        return (
-                          <div key={i} className="flex items-center gap-2">
-                            <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
-                            <span className="font-mono text-[11px] text-teal-400">{label}{dim}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
 
         {/* ══ Produtos avulsos ══════════════════════════════════════ */}
         <div className="sys-reveal sys-delay-200">
