@@ -67,7 +67,20 @@ export function normalizarJsonMedicao(json) {
     if (!json) return null;
 
     if (Array.isArray(json.resumo_por_peca) && json.resumo_por_peca.length > 0) {
-        return json;
+        if (json.resumo_por_peca[0]?.ambiente_index != null) return json;
+        const ambIndexMap = new Map();
+        (json.ambientes ?? []).forEach((a, idx) => {
+            [a.nome, a.ambiente, `Ambiente ${idx + 1}`]
+                .filter(Boolean)
+                .forEach(n => { if (!ambIndexMap.has(n)) ambIndexMap.set(n, idx); });
+        });
+        return {
+            ...json,
+            resumo_por_peca: json.resumo_por_peca.map(p => ({
+                ...p,
+                ambiente_index: ambIndexMap.get(p.ambiente_nome) ?? null,
+            })),
+        };
     }
 
     if (Array.isArray(json.ambientes)) {
@@ -79,8 +92,9 @@ export function normalizarJsonMedicao(json) {
             const resumo = [];
             let ambTotalME = 0;
             let ambTotalRS = 0;
-            for (const amb of json.ambientes) {
-                const nomeAmbiente = amb.nome ?? amb.ambiente ?? null;
+            for (let ambIdx = 0; ambIdx < json.ambientes.length; ambIdx++) {
+                const amb = json.ambientes[ambIdx];
+                const nomeAmbiente = amb.nome ?? amb.ambiente ?? `Ambiente ${ambIdx + 1}`;
                 const meta = amb.metadados_ambiente;
                 const pecasDoAmb = [];
                 for (const p of (Array.isArray(amb.pecas) ? amb.pecas : [])) {
@@ -98,6 +112,7 @@ export function normalizarJsonMedicao(json) {
                         area_liquida_m2: Math.round(area * 10000) / 10000,
                         espessura_cm:    p.espessura_cm ?? null,
                         ambiente_nome:   nomeAmbiente,
+                        ambiente_index:  ambIdx,
                         item_nome:       null,
                         item_id:         null,
                         type:            p.tipo ?? 'retangulo',
@@ -122,6 +137,7 @@ export function normalizarJsonMedicao(json) {
                         area_liquida_m2: Math.round(area * 10000) / 10000,
                         espessura_cm:    f.espessura_cm ?? 2,
                         ambiente_nome:   nomeAmbiente,
+                        ambiente_index:  ambIdx,
                         item_nome:       null,
                         item_id:         null,
                         type:            'faixa',
@@ -131,6 +147,16 @@ export function normalizarJsonMedicao(json) {
                         acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
                     });
                 });
+                // Fallback: segmentos de medições antigas não têm s.acabamento;
+                // se nenhum valor foi calculado mas metadados_ambiente tem o total, atribui à 1ª peça.
+                if (meta && pecasDoAmb.length > 0) {
+                    const calcME = pecasDoAmb.reduce((s, p) => s + p.acabamentos.meia_esquadria_ml, 0);
+                    const calcRS = pecasDoAmb.reduce((s, p) => s + p.acabamentos.reto_simples_ml,   0);
+                    const metaME = parseFloat(meta.meia_esquadria_ml) || 0;
+                    const metaRS = parseFloat(meta.reto_simples_ml)   || 0;
+                    if (calcME === 0 && metaME > 0) pecasDoAmb[0].acabamentos.meia_esquadria_ml = Math.round(metaME * 100) / 100;
+                    if (calcRS === 0 && metaRS > 0) pecasDoAmb[0].acabamentos.reto_simples_ml   = Math.round(metaRS * 100) / 100;
+                }
                 // Flutter já calculou o total correto do ambiente — usa quando disponível.
                 // Sem metadados, soma por peça (pode duplicar lados opostos em retângulos).
                 if (meta) {
@@ -155,8 +181,9 @@ export function normalizarJsonMedicao(json) {
 
         // Flutter 1.0 / formato legado
         const resumo = [];
-        for (const amb of json.ambientes) {
-            const nomeAmbiente = amb.ambiente ?? amb.nome ?? null;
+        for (let ambIdx = 0; ambIdx < json.ambientes.length; ambIdx++) {
+            const amb = json.ambientes[ambIdx];
+            const nomeAmbiente = amb.nome ?? amb.ambiente ?? `Ambiente ${ambIdx + 1}`;
             const fontes = [];
             if (Array.isArray(amb.itens) && amb.itens.length > 0) {
                 for (const item of amb.itens) {
@@ -197,11 +224,15 @@ export function normalizarJsonMedicao(json) {
                     area_liquida_m2:  Math.round(area * 10000) / 10000,
                     espessura_cm:     p.thickness_cm ?? null,
                     ambiente_nome:    nomeAmbiente,
+                    ambiente_index:   ambIdx,
                     item_nome,
                     item_id,
                     type:             p.type ?? 'retangulo',
                     recortes_qty:     Array.isArray(p.recortes) ? p.recortes.length : 0,
                     recortes:         Array.isArray(p.recortes) ? p.recortes : [],
+                    segmentos:        p.width_cm != null && p.height_cm != null
+                        ? [{ medida_cm: p.width_cm }, { medida_cm: p.height_cm }]
+                        : [],
                     acabamentos: {
                         reto_simples_ml:   Math.round(reto_simples_ml   * 100) / 100,
                         meia_esquadria_ml: Math.round(meia_esquadria_ml * 100) / 100,
@@ -214,10 +245,11 @@ export function normalizarJsonMedicao(json) {
                 if (area <= 0) return;
                 resumo.push({
                     nome:            f.nome ?? 'Faixa',
-                        descricao:       `${f.largura_cm ?? '?'}×${f.comprimento_cm ?? '?'}×${f.espessura_cm ?? '?'}cm — ${area.toFixed(3)}m²`,
+                    descricao:       `${f.largura_cm ?? '?'}×${f.comprimento_cm ?? '?'}×${f.espessura_cm ?? '?'}cm — ${area.toFixed(3)}m²`,
                     area_liquida_m2: Math.round(area * 10000) / 10000,
                     espessura_cm:    f.espessura_cm ?? 2,
                     ambiente_nome:   nomeAmbiente,
+                    ambiente_index:  ambIdx,
                     item_nome:       null,
                     item_id:         null,
                     type:            'faixa',

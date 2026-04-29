@@ -146,7 +146,7 @@ export default function MedidorHistorico() {
     supabase
       .from('medicoes')
       .select(`
-        id, data_medicao, data_enviada, status, json_medicao, svg_url, observacoes_acesso,
+        id, data_medicao, data_enviada, status, json_medicao, svg_url, observacoes_acesso, fotos,
         projetos(id, nome, clientes(nome))
       `)
       .eq('medidor_id', session.user.id)

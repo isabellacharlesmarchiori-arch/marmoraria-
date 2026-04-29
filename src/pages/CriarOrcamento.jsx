@@ -62,6 +62,19 @@ function criarAcabamentosParaPeca(p, stoneUid) {
       item_nome:       p.item_nome ?? null,
     });
   }
+  (p.recortes ?? []).forEach(rc => {
+    rows.push({
+      uid:           `rc-${stoneUid}-${Math.random()}`,
+      idBase:        p.id,
+      idPedraUid:    stoneUid,
+      tipo:          'recorte',
+      nome:          rc.funcao_label ?? rc.funcao ?? 'Recorte',
+      formato:       rc.formato ?? null,
+      precoUnit:     0,
+      ambiente_nome: p.ambiente_nome ?? null,
+      item_nome:     p.item_nome ?? null,
+    });
+  });
   return rows;
 }
 
@@ -966,8 +979,9 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         // Atualiza matId das pedras do item; zera matLinearId dos acabamentos filhos para re-match
         const comNovoMat = v.pecasList.map(pw => {
           if ((pw.item_nome ?? '__sem_item__') !== itemKey) return pw;
-          if (pw.tipo !== 'acabamento') return { ...pw, matId, matAcabamento: acabamento };
-          return { ...pw, matLinearId: null }; // reset para re-match
+          if (pw.tipo === 'pedra')     return { ...pw, matId, matAcabamento: acabamento };
+          if (pw.tipo === 'acabamento') return { ...pw, matLinearId: null };
+          return pw;
         });
         return { ...v, pecasList: aplicarAutoMatchNaLista(comNovoMat, todosM, matLineares) };
       }),
@@ -990,6 +1004,16 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
       [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
         ...v,
         pecasList: v.pecasList.map(pw => pw.uid === uid ? { ...pw, matLinearId } : pw),
+      }),
+    }));
+  }
+
+  function editarRecortePreco(amb, vId, uid, precoUnit) {
+    setAmbiVersoes(prev => ({
+      ...prev,
+      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
+        ...v,
+        pecasList: v.pecasList.map(pw => pw.uid === uid ? { ...pw, precoUnit } : pw),
       }),
     }));
   }
@@ -1047,6 +1071,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
     if (!v) return 0;
     const tPecas = v.pecasList.reduce((s, pw) => {
       if (pw.tipo === 'acabamento') return s + precoAcabamento(pw.ml, pw.matLinearId, matLineares);
+      if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
       const pOrig = pecas.find(p => p.id === pw.idBase);
       return s + precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
     }, 0);
@@ -1057,7 +1082,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   function matsResumoAmbi(amb, vId) {
     const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
     if (!v) return [];
-    const ids = [...new Set(v.pecasList.filter(pw => pw.matId && pw.tipo !== 'acabamento').map(pw => pw.matId))];
+    const ids = [...new Set(v.pecasList.filter(pw => pw.matId && pw.tipo === 'pedra').map(pw => pw.matId))];
     return ids.map(id => todosM.find(m => m.id === id)?.nome).filter(Boolean);
   }
 
@@ -1124,7 +1149,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         const novoUid = `${p.idBase}-${Math.random()}`;
         uidMap[p.uid] = novoUid;
         return { ...p, uid: novoUid };
-      }).map(p => p.tipo === 'acabamento' && p.idPedraUid
+      }).map(p => (p.tipo === 'acabamento' || p.tipo === 'recorte') && p.idPedraUid
         ? { ...p, idPedraUid: uidMap[p.idPedraUid] ?? p.idPedraUid }
         : p
       );
@@ -1643,11 +1668,41 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 );
                               };
 
+                              // Helper: renderiza uma linha de recorte/furo
+                              const renderRecorte = (pw, indent = false) => (
+                                <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-teal-900/20 last:border-b-0 bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                  <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
+                                    <div className="w-px h-2 bg-teal-600/30"></div>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-teal-600/50"></div>
+                                  </div>
+                                  <iconify-icon icon="solar:scissors-linear" width="12" className="text-teal-500/70 shrink-0"></iconify-icon>
+                                  <span className="font-mono text-[10px] text-teal-400/80 min-w-[90px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
+                                  {pw.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{pw.formato}</span>}
+                                  <span className="flex-1"></span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className="font-mono text-[10px] text-teal-700">R$</span>
+                                    <input
+                                      type="number" min="0" step="0.01"
+                                      value={pw.precoUnit}
+                                      onChange={e => editarRecortePreco(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
+                                      className="w-20 bg-gray-50 dark:bg-black border border-teal-900/40 text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
+                                    />
+                                  </div>
+                                  <span className="font-mono text-[11px] text-teal-400 shrink-0 w-20 text-right font-semibold">{pw.precoUnit > 0 ? fmt(pw.precoUnit) : '—'}</span>
+                                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover recorte" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
+                                      <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+
                               const temItens = v.pecasList.some(pw => pw.item_nome && pw.tipo !== 'acabamento');
                               if (!temItens) {
                                 // Sem itens: lista plana
                                 return v.pecasList.map(pw => {
                                   if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
+                                  if (pw.tipo === 'recorte')    return renderRecorte(pw, false);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   if (!pOrig) return null;
                                   const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
@@ -1707,10 +1762,11 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 const nomeItem = itemKey === '__sem_item__' ? null : itemKey;
                                 const pwsItem  = itMap.get(itemKey);
                                 // matId do item: considera apenas pedras
-                                const matIdItem = pwsItem.find(pw => pw.tipo !== 'acabamento')?.matId ?? '';
-                                // Subtotal inclui pedras + acabamentos
+                                const matIdItem = pwsItem.find(pw => pw.tipo === 'pedra')?.matId ?? '';
+                                // Subtotal inclui pedras + acabamentos + recortes
                                 const subtotalItem = pwsItem.reduce((s, pw) => {
                                   if (pw.tipo === 'acabamento') return s + precoAcabamento(pw.ml, pw.matLinearId, matLineares);
+                                  if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   return s + precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
                                 }, 0);
@@ -1766,6 +1822,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                     {/* Peças do item */}
                                     {pwsItem.map(pw => {
                                       if (pw.tipo === 'acabamento') return renderAcabamento(pw, true);
+                                      if (pw.tipo === 'recorte')    return renderRecorte(pw, true);
                                       const pOrig = pecas.find(p => p.id === pw.idBase);
                                       if (!pOrig) return null;
                                       const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
@@ -2404,6 +2461,7 @@ export default function CriarOrcamento() {
             meia_esquadria_ml: Number(r.acabamentos?.meia_esquadria_ml ?? 0),
             reto_simples_ml:   Number(r.acabamentos?.reto_simples_ml   ?? 0),
             cortes:            Number(r.recortes_qty ?? 0),
+            recortes:          r.recortes ?? [],
             incluida:          true,
             materiais:         [],
           })));
@@ -2467,6 +2525,7 @@ export default function CriarOrcamento() {
             meia_esquadria_ml: /meia.esquadria/i.test(face) ? perimetro : 0,
             reto_simples_ml:   /reto.simples/i.test(face)   ? perimetro : 0,
             cortes:            Array.isArray(p.recortes) ? p.recortes.length : 0,
+            recortes:          Array.isArray(p.recortes) ? p.recortes : [],
             incluida:          true,
             materiais:         [],
           };
@@ -2693,9 +2752,9 @@ export default function CriarOrcamento() {
   async function garantirPecasNoBanco(versao, ambMapping, empresaId) {
     const fallbackAmbId = Object.values(ambMapping).find(isValidUUID) ?? null;
 
-    // 1. Monta linhas a garantir (apenas peças de pedra; acabamentos não têm linha própria no banco)
+    // 1. Monta linhas a garantir (apenas peças de pedra; acabamentos/recortes não têm linha própria no banco)
     const todasRows = versao.pecasList
-      .filter(pw => isValidUUID(pw.idBase) && pw.tipo !== 'acabamento')
+      .filter(pw => isValidUUID(pw.idBase) && pw.tipo === 'pedra')
       .map(pw => ({
         id:              pw.idBase,
         empresa_id:      empresaId,
@@ -2803,10 +2862,18 @@ export default function CriarOrcamento() {
             acabamentosPorPedra.get(pw.idPedraUid).push(pw);
           });
 
+        // Agrupa recortes por stoneUid para agregar valor_recortes por pedra
+        const recortesPorPedra = new Map();
+        versao.pecasList
+          .filter(pw => pw.tipo === 'recorte')
+          .forEach(pw => {
+            if (!recortesPorPedra.has(pw.idPedraUid)) recortesPorPedra.set(pw.idPedraUid, []);
+            recortesPorPedra.get(pw.idPedraUid).push(pw);
+          });
+
         const valorPecas = versao.pecasList.reduce((s, pWrapper) => {
-          if (pWrapper.tipo === 'acabamento') {
-            return s + precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares);
-          }
+          if (pWrapper.tipo === 'acabamento') return s + precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares);
+          if (pWrapper.tipo === 'recorte')    return s + (pWrapper.precoUnit ?? 0);
           const rawMat = pWrapper.matId;
           const matId  = rawMat && typeof rawMat === 'object' ? (rawMat.id ?? null) : (rawMat ?? null);
           const pSrc   = pecas.find(p => p.id === pWrapper.idBase) ?? pWrapper;
@@ -2850,7 +2917,7 @@ export default function CriarOrcamento() {
         // 2. Insert em orcamento_pecas — apenas peças de pedra confirmadas no banco
         //    Filtra por pecasGarantidas para nunca violar o FK peca_id → pecas.id
         const pecasRows = versao.pecasList
-          .filter(pw => pw.tipo !== 'acabamento' && isValidUUID(pw.idBase) && pecasGarantidas.has(pw.idBase))
+          .filter(pw => pw.tipo === 'pedra' && isValidUUID(pw.idBase) && pecasGarantidas.has(pw.idBase))
           .map(pWrapper => {
             const rawMat    = pWrapper.matId;
             const materialId = rawMat && typeof rawMat === 'object'
@@ -2871,6 +2938,10 @@ export default function CriarOrcamento() {
               valor:        precoAcabamento(ac.ml, ac.matLinearId, matLineares),
             }));
 
+            // Agrega recortes vinculados a esta pedra
+            const recortesFilhos = recortesPorPedra.get(pWrapper.uid) ?? [];
+            const valorRecortesTotal = recortesFilhos.reduce((s, rc) => s + (rc.precoUnit ?? 0), 0);
+
             return {
               orcamento_id:      orcamentoId,
               peca_id:           pWrapper.idBase,
@@ -2878,8 +2949,8 @@ export default function CriarOrcamento() {
               item_nome:         pWrapper.item_nome ?? null,
               valor_area:        valorArea,
               valor_acabamentos: valorAcabamentosTotal,
-              valor_recortes:    0,
-              valor_total:       valorArea + valorAcabamentosTotal,
+              valor_recortes:    valorRecortesTotal,
+              valor_total:       valorArea + valorAcabamentosTotal + valorRecortesTotal,
               acabamentos:       acabamentosJson,
             };
           });

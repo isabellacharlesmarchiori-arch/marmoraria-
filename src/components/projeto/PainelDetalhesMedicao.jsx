@@ -62,7 +62,10 @@ function formatDataLabel(medicao) {
 function parseObsAcesso(text, ambIndex, totalAmbientes) {
     if (!text) return null;
     if (totalAmbientes <= 1) return text.trim() || null;
-    const regex = new RegExp(`Ambiente\\s+${ambIndex + 1}\\s*:[\\s]*([\\s\\S]*?)(?=\\nAmbiente\\s+\\d|$)`, 'i');
+    const regex = new RegExp(
+        `Ambiente\\s+${ambIndex + 1}\\s*:[\\s]*([^\\r\\n]*(?:[\\r\\n](?!Ambiente\\s+\\d)[^\\r\\n]*)*)`,
+        'i'
+    );
     const match = text.match(regex);
     return match ? match[1].trim() || null : null;
 }
@@ -322,13 +325,6 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
     const pecas        = jsonNorm?.resumo_por_peca ?? [];
     const isFlutter    = jsonNorm?._fonte === 'flutter' || jsonNorm?._fonte === 'flutter2';
 
-    // Índice de peças por nome de ambiente para lookup rápido
-    const pecasPorAmb = new Map();
-    pecas.forEach(p => {
-        const key = p.ambiente_nome ?? '';
-        if (!pecasPorAmb.has(key)) pecasPorAmb.set(key, []);
-        pecasPorAmb.get(key).push(p);
-    });
 
     // Tipo global: usa o primeiro ambiente como referência
     const tipoGlobal = rawAmbientes[0]?.tipo_medicao ?? rawAmbientes[0]?.extras?.tipo_medicao ?? 'producao';
@@ -397,13 +393,18 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                         const obsAcesso = parseObsAcesso(medicao?.observacoes_acesso, i, rawAmbientes.length);
                         const infoAmb   = (amb.extras?.info_adicional ?? '').trim();
                         const itensComInfo  = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
+                        const faixasDoAmb   = amb.faixas ?? [];
                         const gruposDoAmb   = (amb.grupos ?? []).filter(g =>
                             (g.info ?? '').trim() !== '' || g.vai_descer || g.vai_embutir
                         );
 
-                        // Peças: tenta por nome exato, fallback por string vazia (medições com 1 ambiente sem nome)
-                        const pecasDoAmb = pecasPorAmb.get(ambNome)
-                            ?? (rawAmbientes.length === 1 ? (pecasPorAmb.get('') ?? []) : []);
+                        // Associação por ambiente_index (robusto) com fallback por nome.
+                        const pecasDoAmb = pecas.filter(p => {
+                            if (p.type === 'faixa') return false;
+                            if (p.ambiente_index != null) return p.ambiente_index === i;
+                            if (p.ambiente_nome === ambNome) return true;
+                            return rawAmbientes.length === 1 && (p.ambiente_nome == null || p.ambiente_nome === '');
+                        });
 
                         return (
                             <div key={i} className="flex flex-col gap-3">
@@ -466,6 +467,29 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
 
                                 {/* Peças (com recortes inline) */}
                                 <PecasAmbiente pecas={pecasDoAmb} />
+
+                                {/* Faixas */}
+                                {faixasDoAmb.length > 0 && (
+                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                        <SecaoLabel icon="solar:ruler-linear" label={`Faixas (${faixasDoAmb.length})`} />
+                                        <div className="flex flex-col gap-1.5">
+                                            {faixasDoAmb.map((f, j) => {
+                                                const area = f.area_m2 != null ? parseFloat(f.area_m2) : null;
+                                                const dim = [f.largura_cm, f.comprimento_cm, f.espessura_cm]
+                                                    .filter(v => v != null)
+                                                    .join('×');
+                                                return (
+                                                    <div key={j} className="font-mono text-[11px] text-zinc-300 flex items-center justify-between gap-2">
+                                                        <span>{dim ? `${dim} cm` : (f.nome ?? `Faixa ${j + 1}`)}</span>
+                                                        {area != null && (
+                                                            <span className="text-yellow-400 font-bold shrink-0">{area} m²</span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Observações de Acesso */}
                                 {obsAcesso && (
