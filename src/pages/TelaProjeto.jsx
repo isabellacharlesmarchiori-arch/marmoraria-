@@ -1812,8 +1812,13 @@ export default function TelaProjetoVendedor() {
                                                                                                 <span className="text-gray-900 dark:text-white font-semibold text-sm">{r.nome ?? 'Peça'}</span>
                                                                                                 <span className="font-mono text-sm text-yellow-400 font-bold">{r.area_liquida_m2 ?? 0} m²</span>
                                                                                             </div>
-                                                                                            {r.espessura_cm && (
-                                                                                                <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 mt-1">esp. {r.espessura_cm} cm</div>
+                                                                                            {Array.isArray(r.segmentos) && r.segmentos.length >= 2 && r.type === 'retangulo' && (() => {
+                                                                                                const medidas = r.segmentos.map(s => parseFloat(s?.medida_cm)).filter(n => Number.isFinite(n) && n > 0);
+                                                                                                if (medidas.length < 2) return null;
+                                                                                                return <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 mt-1">{Math.max(...medidas)} × {Math.min(...medidas)} cm</div>;
+                                                                                            })()}
+                                                                                            {Array.isArray(r.segmentos) && r.segmentos.length >= 2 && r.type !== 'retangulo' && (
+                                                                                                <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 mt-1">{r.segmentos.map(s => s.medida_cm).join(' × ')} cm</div>
                                                                                             )}
                                                                                         </div>
                                                                                     ))}
@@ -1862,20 +1867,25 @@ export default function TelaProjetoVendedor() {
                                                 <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 pt-3 pb-2">[ RECORTES ]</div>
                                                 <div className="flex flex-col gap-2">
                                                     {todosRecortes.map((rc, i) => {
-                                                        const isCircular = rc.type === 'circular';
-                                                        const dim = isCircular
-                                                            ? `∅ ${rc.diameter_cm ?? '?'} cm`
-                                                            : `${rc.dimX_cm ?? '?'} × ${rc.dimY_cm ?? '?'} cm`;
+                                                        const label = rc.funcao_label ?? rc.description ?? rc.funcao
+                                                            ?? (rc.formato === 'circular' || rc.type === 'circular' ? 'Furo circular' : 'Recorte retangular');
+                                                        const hasDim = rc.diametro_cm || rc.diameter_cm || rc.largura_cm || rc.dimX_cm;
+                                                        let dim = null;
+                                                        if (hasDim) {
+                                                            dim = (rc.formato === 'circular' || rc.type === 'circular')
+                                                                ? `∅ ${rc.diametro_cm ?? rc.diameter_cm} cm`
+                                                                : `${rc.largura_cm ?? rc.dimX_cm} × ${rc.altura_cm ?? rc.dimY_cm} cm`;
+                                                        } else if (rc.formato) {
+                                                            dim = rc.formato;
+                                                        }
                                                         return (
                                                             <div key={i} className="bg-gray-100 dark:bg-black border border-gray-100 dark:border-zinc-900 px-4 py-3">
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">
                                                                         <iconify-icon icon="solar:scissors-linear" width="12" className="text-gray-500 dark:text-zinc-500"></iconify-icon>
-                                                                        <span className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">
-                                                                            {rc.description || (isCircular ? 'Furo circular' : 'Recorte retangular')}
-                                                                        </span>
+                                                                        <span className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">{label}</span>
                                                                     </div>
-                                                                    <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">{dim}</span>
+                                                                    {dim && <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">{dim}</span>}
                                                                 </div>
                                                                 <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 mt-1 pl-5">{rc.pecaNome}</div>
                                                             </div>
