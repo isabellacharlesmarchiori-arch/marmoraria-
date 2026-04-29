@@ -24,10 +24,10 @@ function InfoMedicao({ ambientes }) {
     if (!Array.isArray(ambientes) || ambientes.length === 0) return null;
 
     const temInfo = ambientes.some(amb => {
-        const tipo = amb.extras?.tipo_medicao ?? 'producao';
+        const tipo = amb.tipo_medicao ?? amb.extras?.tipo_medicao ?? 'producao';
         const infoAmb = (amb.extras?.info_adicional ?? '').trim();
         const itensComInfo = (amb.itens ?? []).some(it => (it.info_adicional ?? '').trim() !== '');
-        return tipo === 'orcamento' || infoAmb !== '' || itensComInfo;
+        return !!tipo || infoAmb !== '' || itensComInfo;
     });
 
     if (!temInfo) return null;
@@ -40,12 +40,12 @@ function InfoMedicao({ ambientes }) {
 
             <div className="flex flex-col gap-4">
                 {ambientes.map((amb, i) => {
-                    const tipo        = amb.extras?.tipo_medicao ?? 'producao';
+                    const tipo        = amb.tipo_medicao ?? amb.extras?.tipo_medicao ?? 'producao';
                     const infoAmb     = (amb.extras?.info_adicional ?? '').trim();
                     const itensComInfo = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
                     const nomeAmb     = amb.ambiente ?? amb.nome ?? `Ambiente ${i + 1}`;
 
-                    const hasContent = tipo === 'orcamento' || infoAmb !== '' || itensComInfo.length > 0;
+                    const hasContent = !!tipo || infoAmb !== '' || itensComInfo.length > 0;
                     if (!hasContent) return null;
 
                     return (
@@ -1705,6 +1705,38 @@ export default function TelaProjetoVendedor() {
 
                             {/* ── INFORMAÇÕES DA MEDIÇÃO ── */}
                             <InfoMedicao ambientes={painelMedicao?.json_medicao?.ambientes} />
+
+                            {/* ── OBSERVAÇÕES DE ACESSO ── */}
+                            {painelMedicao?.observacoes_acesso && (
+                                <div className="bg-gray-100 dark:bg-black border border-gray-200 dark:border-zinc-900 px-4 py-3">
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        <iconify-icon icon="solar:map-point-linear" width="11" className="text-gray-500 dark:text-zinc-500 shrink-0"></iconify-icon>
+                                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">Observações de Acesso</span>
+                                    </div>
+                                    <p className="text-gray-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{painelMedicao.observacoes_acesso}</p>
+                                </div>
+                            )}
+
+                            {/* ── FOTOS ── */}
+                            {painelMedicao?.fotos && Object.keys(painelMedicao.fotos).length > 0 && (
+                                <div>
+                                    <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-3">
+                                        Fotos
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {Object.entries(painelMedicao.fotos).map(([key, val]) => {
+                                            const src = Array.isArray(val) ? val[0] : val;
+                                            if (!src) return null;
+                                            return (
+                                                <a key={key} href={src} target="_blank" rel="noopener noreferrer"
+                                                    className="border border-gray-300 dark:border-zinc-800 overflow-hidden hover:border-yellow-400/50 transition-colors block">
+                                                    <img src={src} alt={`Foto ${key}`} className="w-full h-24 object-cover" />
+                                                </a>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-1">
                                 Resumo da Medição

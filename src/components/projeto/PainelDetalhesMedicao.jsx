@@ -29,15 +29,14 @@ function formatDataLabel(medicao) {
     });
 }
 
-// ─── InfoMedicao ─────────────────────────────────────────────────────────────
+// ─── InfoMedicao — observações extras por ambiente (sem badge de tipo) ────────
 export function InfoMedicao({ ambientes }) {
     if (!Array.isArray(ambientes) || ambientes.length === 0) return null;
     const temInfo = ambientes.some(amb => {
-        const tipo = amb.tipo_medicao ?? amb.extras?.tipo_medicao ?? 'producao';
-        const infoAmb = (amb.extras?.info_adicional ?? '').trim();
+        const infoAmb     = (amb.extras?.info_adicional ?? '').trim();
         const itensComInfo = (amb.itens ?? []).some(it => (it.info_adicional ?? '').trim() !== '');
         const gruposComInfo = (amb.grupos ?? []).some(g => (g.info ?? '').trim() !== '');
-        return tipo === 'orcamento' || infoAmb !== '' || itensComInfo || gruposComInfo;
+        return infoAmb !== '' || itensComInfo || gruposComInfo;
     });
     if (!temInfo) return null;
     return (
@@ -47,12 +46,11 @@ export function InfoMedicao({ ambientes }) {
             </div>
             <div className="flex flex-col gap-4">
                 {ambientes.map((amb, i) => {
-                    const tipo          = amb.tipo_medicao ?? amb.extras?.tipo_medicao ?? 'producao';
                     const infoAmb       = (amb.extras?.info_adicional ?? '').trim();
                     const itensComInfo  = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
                     const gruposComInfo = (amb.grupos ?? []).filter(g => (g.info ?? '').trim() !== '');
                     const nomeAmb       = amb.ambiente ?? amb.nome ?? `Ambiente ${i + 1}`;
-                    const hasContent    = tipo === 'orcamento' || infoAmb !== '' || itensComInfo.length > 0 || gruposComInfo.length > 0;
+                    const hasContent    = infoAmb !== '' || itensComInfo.length > 0 || gruposComInfo.length > 0;
                     if (!hasContent) return null;
                     return (
                         <div key={i} className="flex flex-col gap-2.5">
@@ -60,20 +58,6 @@ export function InfoMedicao({ ambientes }) {
                                 <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 flex items-center gap-2">
                                     <div className="w-0.5 h-3 bg-yellow-400/50 shrink-0"></div>
                                     {nomeAmb}
-                                </div>
-                            )}
-                            {tipo === 'orcamento' ? (
-                                <div className="flex items-start gap-2.5 px-3 py-2.5 bg-orange-400/10 border border-orange-400/30">
-                                    <iconify-icon icon="solar:danger-triangle-linear" width="13" className="text-orange-400 shrink-0 mt-0.5"></iconify-icon>
-                                    <div>
-                                        <div className="font-mono text-[10px] uppercase tracking-widest text-orange-400 font-semibold leading-none mb-1">Orçamento Preliminar</div>
-                                        <div className="text-[11px] text-orange-300/70">Medição prévia — necessário retornar para medição final</div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-green-400/10 border border-green-400/30">
-                                    <iconify-icon icon="solar:check-circle-linear" width="13" className="text-green-400 shrink-0"></iconify-icon>
-                                    <div className="font-mono text-[10px] uppercase tracking-widest text-green-400 font-semibold">Pronto para Produção</div>
                                 </div>
                             )}
                             {infoAmb !== '' && (
@@ -222,7 +206,26 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                         )}
                     </div>
 
-                    {/* Informações da medição (tipo + observações) */}
+                    {/* Tipo da medição — sempre visível */}
+                    {Array.isArray(ambientes) && ambientes.length > 0 && (() => {
+                        const tipo = ambientes[0].tipo_medicao ?? ambientes[0].extras?.tipo_medicao ?? 'producao';
+                        return tipo === 'orcamento' ? (
+                            <div className="flex items-start gap-2.5 px-3 py-2.5 bg-orange-400/10 border border-orange-400/30">
+                                <iconify-icon icon="solar:danger-triangle-linear" width="13" className="text-orange-400 shrink-0 mt-0.5"></iconify-icon>
+                                <div>
+                                    <div className="font-mono text-[10px] uppercase tracking-widest text-orange-400 font-semibold leading-none mb-1">Orçamento Preliminar</div>
+                                    <div className="text-[11px] text-orange-300/70">Medição prévia — necessário retornar para medição final</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-green-400/10 border border-green-400/30">
+                                <iconify-icon icon="solar:check-circle-linear" width="13" className="text-green-400 shrink-0"></iconify-icon>
+                                <div className="font-mono text-[10px] uppercase tracking-widest text-green-400 font-semibold">Pronto para Produção</div>
+                            </div>
+                        );
+                    })()}
+
+                    {/* Informações extras (obs. ambiente, por item, grupos) */}
                     <InfoMedicao ambientes={ambientes} />
 
                     {/* Observações de acesso */}
@@ -233,6 +236,25 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                 <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Observações de Acesso</span>
                             </div>
                             <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{medicao.observacoes_acesso}</p>
+                        </div>
+                    )}
+
+                    {/* Fotos */}
+                    {medicao?.fotos && Object.keys(medicao.fotos).length > 0 && (
+                        <div>
+                            <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-3">Fotos</div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {Object.entries(medicao.fotos).map(([key, val]) => {
+                                    const src = Array.isArray(val) ? val[0] : val;
+                                    if (!src) return null;
+                                    return (
+                                        <a key={key} href={src} target="_blank" rel="noopener noreferrer"
+                                            className="border border-zinc-800 overflow-hidden hover:border-yellow-400/50 transition-colors block">
+                                            <img src={src} alt={`Foto ${key}`} className="w-full h-24 object-cover" />
+                                        </a>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 

@@ -105,7 +105,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                     ...(isMedidor ? { status: 'concluida' } : {}),
                 })
                 .eq('id', editingMedicaoId)
-                .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, status, json_medicao, svg_url')
+                .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, fotos, status, json_medicao, svg_url')
                 .single();
             if (errUpd) {
                 setErroAgendar(`Erro: ${errUpd.message}`);
@@ -139,7 +139,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                     observacoes_acesso: agObservacoes.trim() || null,
                     status:             'agendada',
                 })
-                .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, status, json_medicao, svg_url')
+                .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, fotos, status, json_medicao, svg_url')
                 .single();
             if (errMed) {
                 setErroAgendar(`Erro: ${errMed.message}`);
