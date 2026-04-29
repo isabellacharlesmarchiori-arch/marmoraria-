@@ -23,10 +23,9 @@ function tipoLabel(json_medicao) {
 function gerarCelulas(mesBase) {
   const ano = mesBase.getFullYear();
   const mes = mesBase.getMonth();
-  const inicioDaSemana = new Date(ano, mes, 1).getDay(); // 0 = Dom
+  const inicioDaSemana = new Date(ano, mes, 1).getDay();
   const totalDias = new Date(ano, mes + 1, 0).getDate();
   const cells = [];
-
   for (let i = 0; i < inicioDaSemana; i++) {
     cells.push({ date: new Date(ano, mes, 1 - (inicioDaSemana - i)), fora: true });
   }
@@ -42,8 +41,26 @@ function gerarCelulas(mesBase) {
   return cells;
 }
 
+async function downloadDesenho(url, medicaoId) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Falha ao baixar');
+    const blob = await res.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = `desenho-medicao-${medicaoId ?? Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(objectUrl);
+  } catch (err) {
+    console.error('[download] Erro ao baixar desenho:', err);
+  }
+}
+
 // ── Painel de medições do dia selecionado ─────────────────────────────────────
-function PainelDia({ diaKey, medicoes, onClose }) {
+function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
   const dataFormatada = new Date(diaKey + 'T12:00:00').toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long',
   });
@@ -64,57 +81,51 @@ function PainelDia({ diaKey, medicoes, onClose }) {
 
       <div className="divide-y divide-zinc-800/60">
         {medicoes.map(m => {
-          const tipo = tipoLabel(m.json_medicao);
-          const hora = formatHora(m.data_enviada);
-          const proj = m.projetos ?? {};
+          const tipo       = tipoLabel(m.json_medicao);
+          const hora       = formatHora(m.data_enviada);
+          const proj       = m.projetos ?? {};
           const isProducao = tipo === 'Produção';
+          const svgUrl     = parseSvgUrl(m.svg_url);
 
           return (
             <div key={m.id} className="px-4 py-3 space-y-2.5">
               {/* Projeto + tipo + hora */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-white truncate">{proj.nome ?? '—'}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest border ${
-                      isProducao
-                        ? 'text-purple-400 border-purple-400/30 bg-purple-400/5'
-                        : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5'
-                    }`}>
-                      {tipo}
-                    </span>
-                    <span className="font-mono text-[10px] text-zinc-600">{hora}</span>
-                  </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-white truncate">{proj.nome ?? '—'}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest border ${
+                    isProducao
+                      ? 'text-purple-400 border-purple-400/30 bg-purple-400/5'
+                      : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5'
+                  }`}>
+                    {tipo}
+                  </span>
+                  <span className="font-mono text-[10px] text-zinc-600">{hora}</span>
                 </div>
               </div>
 
               {/* Ações */}
               <div className="flex gap-2">
-                {/* Ver Desenho */}
-                {(() => {
-                  const svgUrl = parseSvgUrl(m.svg_url);
-                  return svgUrl ? (
-                    <a
-                      href={svgUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
-                    >
-                      <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
-                      Ver Desenho
-                    </a>
-                  ) : (
-                    <span
-                      title="Desenho não disponível"
-                      className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-700 border border-zinc-900 px-2.5 py-1.5 cursor-not-allowed"
-                    >
-                      <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
-                      Ver Desenho
-                    </span>
-                  );
-                })()}
+                {/* Ver Desenho — inline, sem nova aba */}
+                {svgUrl ? (
+                  <button
+                    onClick={() => onVerDesenho(m)}
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
+                  >
+                    <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
+                    Ver Desenho
+                  </button>
+                ) : (
+                  <span
+                    title="Desenho não disponível"
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-700 border border-zinc-900 px-2.5 py-1.5 cursor-not-allowed"
+                  >
+                    <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
+                    Ver Desenho
+                  </span>
+                )}
 
-                {/* Abrir no App */}
+                {/* Abrir no App — deep link Flutter (TODO: tratamento pelo Flutter) */}
                 <button
                   onClick={() => window.open(`smartstone://medicao/${m.id}`, '_blank')}
                   className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
@@ -131,20 +142,135 @@ function PainelDia({ diaKey, medicoes, onClose }) {
   );
 }
 
+// ── Modal de desenho inline ───────────────────────────────────────────────────
+function ModalDesenho({ medicao, onClose }) {
+  const [imgLoading, setImgLoading] = useState(true);
+  const [imgError,   setImgError]   = useState(false);
+  const [imgZoomed,  setImgZoomed]  = useState(false);
+
+  const svgUrl = parseSvgUrl(medicao?.svg_url);
+  const proj   = medicao?.projetos ?? {};
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        onClick={() => { onClose(); setImgZoomed(false); }}
+      />
+
+      {/* Painel lateral */}
+      <div className="fixed right-0 top-0 h-full w-full max-w-[480px] bg-[#0a0a0a] border-l border-zinc-800 z-50 flex flex-col overflow-hidden">
+
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
+          <div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">Desenho Técnico</div>
+            <div className="text-white font-semibold text-sm">{proj.nome ?? '—'}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-zinc-600 hover:text-white transition-colors p-1"
+          >
+            <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
+          </button>
+        </div>
+
+        {/* Corpo */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {svgUrl ? (
+            <div className="flex flex-col gap-3">
+              {/* Imagem com loading + zoom */}
+              <div
+                className="relative border border-zinc-800 bg-black overflow-hidden cursor-zoom-in group"
+                onClick={() => !imgError && setImgZoomed(true)}
+              >
+                {imgLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black z-10 min-h-[160px]">
+                    <div className="w-5 h-5 border-2 border-zinc-700 border-t-yellow-400 rounded-full animate-spin"></div>
+                  </div>
+                )}
+                {imgError ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-2 min-h-[120px]">
+                    <iconify-icon icon="solar:image-broken-linear" width="24" className="text-zinc-700"></iconify-icon>
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Imagem indisponível</span>
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={svgUrl}
+                      alt="Desenho técnico da medição"
+                      className={`w-full h-auto max-h-[320px] object-contain transition-opacity duration-200 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
+                      onLoad={() => setImgLoading(false)}
+                      onError={() => { setImgLoading(false); setImgError(true); }}
+                    />
+                    {!imgLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 pointer-events-none">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-black/80 border border-zinc-700">
+                          <iconify-icon icon="solar:magnifer-zoom-in-linear" width="13" className="text-white"></iconify-icon>
+                          <span className="font-mono text-[9px] uppercase tracking-widest text-white">Ampliar</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Download */}
+              {!imgError && !imgLoading && (
+                <button
+                  onClick={() => downloadDesenho(svgUrl, medicao.id)}
+                  className="flex items-center justify-center gap-2 w-full border border-zinc-700 text-zinc-400 hover:border-white hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
+                >
+                  <iconify-icon icon="solar:download-linear" width="13"></iconify-icon>
+                  Baixar Desenho
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 gap-2 border border-zinc-900 bg-black">
+              <iconify-icon icon="solar:ruler-pen-linear" width="20" className="text-zinc-700"></iconify-icon>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Desenho não disponível</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Zoom overlay (fullscreen) */}
+      {imgZoomed && svgUrl && (
+        <div
+          className="fixed inset-0 z-[60] bg-black flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setImgZoomed(false)}
+        >
+          <img
+            src={svgUrl}
+            alt="Desenho técnico ampliado"
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function MedidorHistorico() {
-  const { session } = useAuth();
+  // Bug 1 fix: usa o loading do AuthContext (session === undefined enquanto auth carrega)
+  // Sem este guard, o componente tenta renderizar antes de session estar disponível.
+  const { session, loading: authLoading } = useAuth();
+
+  const [dataLoading,    setDataLoading]    = useState(true);
   const [medicoes,       setMedicoes]       = useState([]);
-  const [loading,        setLoading]        = useState(true);
   const [mesBase,        setMesBase]        = useState(() => {
     const hoje = new Date();
     return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   });
   const [diaSelecionado, setDiaSelecionado] = useState(null);
+  const [desenhoMedicao, setDesenhoMedicao] = useState(null);
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    setLoading(true);
+    setDataLoading(true);
     supabase
       .from('medicoes')
       .select(`
@@ -157,11 +283,10 @@ export default function MedidorHistorico() {
       .then(({ data, error }) => {
         if (error) console.error('[MedidorHistorico] Erro:', error);
         if (data) setMedicoes(data);
-        setLoading(false);
+        setDataLoading(false);
       });
   }, [session?.user?.id]);
 
-  // Agrupa por chave de dia (usando data_enviada)
   const porDia = useMemo(() => {
     const map = new Map();
     for (const m of medicoes) {
@@ -187,6 +312,7 @@ export default function MedidorHistorico() {
   }
 
   const mesLabel = mesBase.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const mostrarLoading = authLoading || dataLoading;
 
   return (
     <div className="bg-[#050505] text-[#a1a1aa] min-h-screen">
@@ -200,7 +326,7 @@ export default function MedidorHistorico() {
       </div>
 
       <div className="px-4 py-4 max-w-xl mx-auto">
-        {loading ? (
+        {mostrarLoading ? (
           <div className="py-16 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-700 animate-pulse">
             Carregando histórico...
           </div>
@@ -227,8 +353,6 @@ export default function MedidorHistorico() {
 
             {/* Grade do calendário */}
             <div className="border border-zinc-800">
-
-              {/* Cabeçalho dias da semana */}
               <div className="grid grid-cols-7 border-b border-zinc-800">
                 {DIAS_SEMANA.map(d => (
                   <div key={d} className="py-2 text-center font-mono text-[9px] uppercase tracking-widest text-zinc-600">
@@ -237,14 +361,13 @@ export default function MedidorHistorico() {
                 ))}
               </div>
 
-              {/* Células */}
               <div className="grid grid-cols-7">
                 {celulas.map(({ date, fora }, idx) => {
-                  const key        = toDateKey(date);
-                  const count      = porDia.get(key)?.length ?? 0;
-                  const temMedicao = count > 0 && !fora;
-                  const isHoje     = key === hojeKey && !fora;
-                  const isSel      = key === diaSelecionado;
+                  const key         = toDateKey(date);
+                  const count       = porDia.get(key)?.length ?? 0;
+                  const temMedicao  = count > 0 && !fora;
+                  const isHoje      = key === hojeKey && !fora;
+                  const isSel       = key === diaSelecionado;
                   const naoUltLinha = idx < celulas.length - 7;
                   const naoUltCol   = idx % 7 !== 6;
 
@@ -261,24 +384,20 @@ export default function MedidorHistorico() {
                         isSel       ? 'bg-[#1D9E75]/10' : '',
                       ].join(' ')}
                     >
-                      {/* Número do dia */}
                       <span className={[
                         'w-6 h-6 flex items-center justify-center font-mono text-[11px] rounded-full',
-                        fora    ? 'text-zinc-700'
-                          : isHoje  ? 'bg-[#1D9E75] text-white font-bold'
-                          : isSel   ? 'text-white'
+                        fora   ? 'text-zinc-700'
+                          : isHoje ? 'bg-[#1D9E75] text-white font-bold'
+                          : isSel  ? 'text-white'
                           : 'text-zinc-400',
                       ].join(' ')}>
                         {date.getDate()}
                       </span>
 
-                      {/* Badge de contagem */}
                       {temMedicao && (
                         <span className={[
                           'mt-1 font-mono text-[8px] px-1.5 rounded-sm leading-4',
-                          isSel
-                            ? 'bg-[#1D9E75] text-white'
-                            : 'bg-[#1D9E75]/20 text-[#1D9E75]',
+                          isSel ? 'bg-[#1D9E75] text-white' : 'bg-[#1D9E75]/20 text-[#1D9E75]',
                         ].join(' ')}>
                           {count}
                         </span>
@@ -289,7 +408,7 @@ export default function MedidorHistorico() {
               </div>
             </div>
 
-            {/* Contador total do mês visível */}
+            {/* Contador do mês */}
             {(() => {
               const doMes = celulas
                 .filter(c => !c.fora)
@@ -307,6 +426,7 @@ export default function MedidorHistorico() {
                 diaKey={diaSelecionado}
                 medicoes={porDia.get(diaSelecionado)}
                 onClose={() => setDiaSelecionado(null)}
+                onVerDesenho={m => setDesenhoMedicao(m)}
               />
             )}
 
@@ -320,6 +440,14 @@ export default function MedidorHistorico() {
           </>
         )}
       </div>
+
+      {/* Modal de desenho inline */}
+      {desenhoMedicao && (
+        <ModalDesenho
+          medicao={desenhoMedicao}
+          onClose={() => setDesenhoMedicao(null)}
+        />
+      )}
     </div>
   );
 }
