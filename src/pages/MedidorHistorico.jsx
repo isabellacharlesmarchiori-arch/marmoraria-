@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { parseSvgUrl } from '../utils/projetoUtils';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -44,8 +44,6 @@ function gerarCelulas(mesBase) {
 
 // ── Painel de medições do dia selecionado ─────────────────────────────────────
 function PainelDia({ diaKey, medicoes, onClose }) {
-  const navigate = useNavigate();
-
   const dataFormatada = new Date(diaKey + 'T12:00:00').toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long',
   });
@@ -72,29 +70,59 @@ function PainelDia({ diaKey, medicoes, onClose }) {
           const isProducao = tipo === 'Produção';
 
           return (
-            <div key={m.id} className="px-4 py-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-white truncate">{proj.nome ?? '—'}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest border ${
-                    isProducao
-                      ? 'text-purple-400 border-purple-400/30 bg-purple-400/5'
-                      : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5'
-                  }`}>
-                    {tipo}
-                  </span>
-                  <span className="font-mono text-[10px] text-zinc-600">{hora}</span>
+            <div key={m.id} className="px-4 py-3 space-y-2.5">
+              {/* Projeto + tipo + hora */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-white truncate">{proj.nome ?? '—'}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest border ${
+                      isProducao
+                        ? 'text-purple-400 border-purple-400/30 bg-purple-400/5'
+                        : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5'
+                    }`}>
+                      {tipo}
+                    </span>
+                    <span className="font-mono text-[10px] text-zinc-600">{hora}</span>
+                  </div>
                 </div>
               </div>
-              {proj.id && (
+
+              {/* Ações */}
+              <div className="flex gap-2">
+                {/* Ver Desenho */}
+                {(() => {
+                  const svgUrl = parseSvgUrl(m.svg_url);
+                  return svgUrl ? (
+                    <a
+                      href={svgUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
+                    >
+                      <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
+                      Ver Desenho
+                    </a>
+                  ) : (
+                    <span
+                      title="Desenho não disponível"
+                      className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-700 border border-zinc-900 px-2.5 py-1.5 cursor-not-allowed"
+                    >
+                      <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
+                      Ver Desenho
+                    </span>
+                  );
+                })()}
+
+                {/* Abrir no App */}
                 <button
-                  onClick={() => navigate(`/projetos/${proj.id}`)}
-                  className="shrink-0 flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2 py-1.5 transition-colors"
+                  onClick={() => window.open(`smartstone://medicao/${m.id}`, '_blank')}
+                  className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
                 >
-                  Ver projeto
-                  <iconify-icon icon="solar:arrow-right-linear" width="10"></iconify-icon>
+                  <iconify-icon icon="solar:smartphone-linear" width="11"></iconify-icon>
+                  Abrir no App
                 </button>
-              )}
+              </div>
             </div>
           );
         })}
@@ -120,7 +148,7 @@ export default function MedidorHistorico() {
     supabase
       .from('medicoes')
       .select(`
-        id, data_medicao, data_enviada, status, json_medicao,
+        id, data_medicao, data_enviada, status, json_medicao, svg_url,
         projetos(id, nome, clientes(nome))
       `)
       .eq('medidor_id', session.user.id)
