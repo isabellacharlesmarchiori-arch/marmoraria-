@@ -258,19 +258,43 @@ export default function TelaProjetoVendedor() {
     const [imgError,      setImgError]      = useState(false);
     const [imgZoomed,     setImgZoomed]     = useState(false);
 
-    async function handleDownloadDesenho(url, medicaoId) {
+    async function handleDownloadDesenho(url, medicao) {
+        console.log('🔍 [download] medicao:', { id: medicao?.id, projetos: medicao?.projetos, projeto_nome: medicao?.projetos?.nome });
+        const sanitize = (str) => (str || 'sem_nome')
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-zA-Z0-9_]/g, '_')
+            .replace(/_+/g, '_')
+            .toLowerCase();
+        const tipo        = medicao?.json_medicao?.ambientes?.[0]?.tipo_medicao === 'orcamento' ? 'preliminar' : 'producao';
+        const nomeProjeto = sanitize(medicao?.projetos?.nome ?? medicao?.nome_projeto);
+        const filename    = `desenho_${tipo}_${nomeProjeto}_amb1`;
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error('Falha ao baixar');
-            const blob = await response.blob();
-            const objectUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = objectUrl;
-            a.download = `desenho-medicao-${medicaoId ?? Date.now()}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(objectUrl);
+            const svgText = await response.text();
+            const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+            const svgObjectUrl = URL.createObjectURL(svgBlob);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 2400;
+                canvas.height = Math.round(2400 * (img.naturalHeight / img.naturalWidth));
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((pngBlob) => {
+                    const pngUrl = URL.createObjectURL(pngBlob);
+                    const a = document.createElement('a');
+                    a.href = pngUrl;
+                    a.download = `${filename}.png`;
+                    a.click();
+                    URL.revokeObjectURL(pngUrl);
+                    URL.revokeObjectURL(svgObjectUrl);
+                }, 'image/png');
+            };
+            img.src = svgObjectUrl;
         } catch (err) {
             console.error('[download] Erro ao baixar desenho:', err);
         }
@@ -1687,7 +1711,7 @@ export default function TelaProjetoVendedor() {
                                         </div>
                                         {!imgError && !imgLoading && (
                                             <button
-                                                onClick={() => handleDownloadDesenho(parseSvgUrl(painelMedicao.svg_url), painelMedicao.id)}
+                                                onClick={() => handleDownloadDesenho(parseSvgUrl(painelMedicao.svg_url), painelMedicao)}
                                                 className="flex items-center justify-center gap-2 w-full border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
                                             >
                                                 <iconify-icon icon="solar:download-linear" width="13"></iconify-icon>

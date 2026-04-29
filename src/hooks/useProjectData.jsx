@@ -39,7 +39,7 @@ export function useProjectData(projectId, activeTab) {
         if (!projectId) return;
         const { data, error } = await supabase
             .from('medicoes')
-            .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, fotos, status, json_medicao, svg_url')
+            .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, fotos, status, json_medicao, svg_url, projetos(nome)')
             .eq('projeto_id', projectId)
             .order('data_medicao', { ascending: false });
         if (error) { console.error('[medicoes] Erro ao carregar:', error); return; }

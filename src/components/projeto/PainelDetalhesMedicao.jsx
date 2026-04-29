@@ -1,19 +1,47 @@
 import React, { useState } from 'react';
 import { parseSvgUrl, normalizarJsonMedicao } from '../../utils/projetoUtils';
 
-async function downloadDesenho(url, medicaoId) {
+function sanitizeFilename(str) {
+    return (str || 'sem_nome')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9_]/g, '_')
+        .replace(/_+/g, '_')
+        .toLowerCase();
+}
+
+async function downloadDesenho(url, medicao) {
     try {
+        console.log('🔍 [download] medicao:', { id: medicao?.id, projetos: medicao?.projetos, projeto_nome: medicao?.projetos?.nome });
+        const tipo       = medicao?.json_medicao?.ambientes?.[0]?.tipo_medicao === 'orcamento' ? 'preliminar' : 'producao';
+        const nomeProjeto = sanitizeFilename(medicao?.projetos?.nome);
+        const filename   = `desenho_${tipo}_${nomeProjeto}_amb1`;
+
         const res = await fetch(url);
         if (!res.ok) throw new Error('Falha ao baixar');
-        const blob = await res.blob();
-        const objectUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = `desenho-medicao-${medicaoId ?? Date.now()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(objectUrl);
+        const svgText = await res.text();
+        const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+        const svgObjectUrl = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2400;
+            canvas.height = Math.round(2400 * (img.naturalHeight / img.naturalWidth));
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((pngBlob) => {
+                const pngUrl = URL.createObjectURL(pngBlob);
+                const a = document.createElement('a');
+                a.href = pngUrl;
+                a.download = `${filename}.png`;
+                a.click();
+                URL.revokeObjectURL(pngUrl);
+                URL.revokeObjectURL(svgObjectUrl);
+            }, 'image/png');
+        };
+        img.src = svgObjectUrl;
     } catch (err) {
         console.error('[download] Erro ao baixar desenho:', err);
     }
@@ -190,7 +218,7 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                 </div>
                                 {!imgError && !imgLoading && (
                                     <button
-                                        onClick={() => downloadDesenho(svgUrl, medicao.id)}
+                                        onClick={() => downloadDesenho(svgUrl, medicao)}
                                         className="flex items-center justify-center gap-2 w-full border border-zinc-700 text-zinc-400 hover:border-white hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
                                     >
                                         <iconify-icon icon="solar:download-linear" width="13"></iconify-icon>
