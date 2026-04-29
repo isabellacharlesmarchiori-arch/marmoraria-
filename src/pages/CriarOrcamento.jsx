@@ -127,17 +127,25 @@ function fmt(v) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function precoPeca(peca, materialId, todosM) {
+function precoPeca(peca, materialId, todosM, acabamentoSel = null) {
   if (!peca || !materialId) return 0;
   const m = (todosM || []).find(x => x.id === materialId);
   if (!m) return 0;
   const espessura = Number(peca.espessura ?? 2);
   const areaLiq   = Number(peca.area_liq   ?? 0);
-  let preco;
-  if (espessura <= 1)      preco = m.preco_1cm ?? m.preco_2cm ?? 0;
-  else if (espessura <= 2) preco = m.preco_2cm ?? 0;
-  else                     preco = m.preco_3cm ?? m.preco_2cm ?? 0;
-  return areaLiq * preco;
+  const vars      = m.variacoes_precos ?? [];
+  const parseEsp  = s => parseInt(s) || 0;
+
+  // 1. Exato: espessura + acabamento
+  let v = acabamentoSel
+    ? vars.find(x => parseEsp(x.espessura) === espessura && x.acabamento === acabamentoSel)
+    : null;
+  // 2. Fallback: só espessura (primeira variação que bate)
+  if (!v) v = vars.find(x => parseEsp(x.espessura) === espessura);
+  // 3. Fallback final: qualquer variação
+  if (!v) v = vars[0] ?? null;
+
+  return areaLiq * (v?.preco_venda ?? 0);
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -160,6 +168,9 @@ function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, todosM }) {
       {/* Nome */}
       <div className="col-span-3 min-w-0 pr-2">
         <span className="text-sm text-gray-900 dark:text-white font-medium truncate block">{peca.nome}</span>
+        {peca.descricao && (
+          <span className="font-mono text-[9px] text-zinc-500 block">{peca.descricao}</span>
+        )}
         {peca.meia_esquadria_ml > 0 && (
           <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Meia-Esquadria · {peca.meia_esquadria_ml.toFixed(2)}ml</span>
         )}
@@ -223,6 +234,17 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('todos');
   const [sel, setSel] = useState(selecionados);
+  const [acabamentoSel, setAcabamentoSel] = useState(null);
+
+  const variacoesMat = useMemo(() => {
+    if (!single || sel.length === 0) return [];
+    return todosM.find(m => m.id === sel[0])?.variacoes_precos ?? [];
+  }, [single, sel, todosM]);
+
+  const acabamentosUnicos = useMemo(
+    () => [...new Set(variacoesMat.map(v => v.acabamento))],
+    [variacoesMat]
+  );
 
   const filtrados = useMemo(() => todosM.filter(m => {
     const matchBusca = busca === '' || m.nome.toLowerCase().includes(busca.toLowerCase()) || (m.cor ?? '').toLowerCase().includes(busca.toLowerCase());
@@ -233,6 +255,7 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
   function toggle(id) {
     if (single) {
       setSel(prev => prev.includes(id) ? [] : [id]);
+      setAcabamentoSel(null);
     } else {
       setSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     }
@@ -317,10 +340,16 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
                   </div>
                   {/* Preço */}
                   <div className="text-right shrink-0">
-                    <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(m.preco_2cm)}<span className="text-gray-500 dark:text-zinc-600">/m²·2cm</span></div>
-                    {m.preco_3cm && (
-                      <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{fmt(m.preco_3cm)}<span className="text-gray-400 dark:text-zinc-700">/3cm</span></div>
-                    )}
+                    {(() => {
+                      const parseEsp = s => parseInt(s) || 0;
+                      const v2 = m.variacoes_precos?.find(v => parseEsp(v.espessura) === 2);
+                      const v3 = m.variacoes_precos?.find(v => parseEsp(v.espessura) === 3);
+                      return <>
+                        {v2 && <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(v2.preco_venda)}<span className="text-gray-500 dark:text-zinc-600">/m²·2cm</span></div>}
+                        {v3 && <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{fmt(v3.preco_venda)}<span className="text-gray-400 dark:text-zinc-700">/3cm</span></div>}
+                        {!v2 && !v3 && m.variacoes_precos?.[0] && <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(m.variacoes_precos[0].preco_venda)}<span className="text-gray-500 dark:text-zinc-600">/m²</span></div>}
+                      </>;
+                    })()}
                   </div>
                 </div>
               );
@@ -328,11 +357,33 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
           )}
         </div>
 
+        {/* Seleção de acabamento — aparece quando material está selecionado (modo single) */}
+        {single && sel.length > 0 && acabamentosUnicos.length > 0 && (
+          <div className="px-5 py-3 border-t border-gray-300 dark:border-zinc-800">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Acabamento</div>
+            <div className="flex flex-wrap gap-1.5">
+              {acabamentosUnicos.map(ac => (
+                <button
+                  key={ac}
+                  onClick={() => setAcabamentoSel(prev => prev === ac ? null : ac)}
+                  className={`font-mono text-[10px] px-3 py-1 border transition-colors ${
+                    acabamentoSel === ac
+                      ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5'
+                      : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600'
+                  }`}
+                >
+                  {ac}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-300 dark:border-zinc-800 flex items-center gap-3">
           <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 flex-1">
             {single
-              ? (sel.length === 0 ? 'Nenhum selecionado' : '1 selecionado')
+              ? (sel.length === 0 ? 'Nenhum selecionado' : (acabamentoSel ? acabamentoSel : '1 selecionado'))
               : `${sel.length} selecionado${sel.length !== 1 ? 's' : ''}`}
           </span>
           <button
@@ -342,7 +393,7 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
             Cancelar
           </button>
           <button
-            onClick={() => onConfirmar(pecaId, sel)}
+            onClick={() => onConfirmar(pecaId, sel, acabamentoSel)}
             className="bg-yellow-400 text-black font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:bg-yellow-300 transition-colors font-bold"
           >
             Confirmar
@@ -779,6 +830,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
             ambiente_nome: p.ambiente_nome ?? null,
             item_nome: p.item_nome ?? null,
             matId: v.mats[p.id] ?? null,
+            matAcabamento: null,
             area_liq: p.area_liq ?? 0,
             espessura: p.espessura ?? 2,
             meia_esquadria_ml: p.meia_esquadria_ml ?? 0,
@@ -850,13 +902,13 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
     setPainelMatLinear(null);
   }
 
-  function confirmarMatVersao(_, selecionados) {
+  function confirmarMatVersao(_, selecionados, acabamento = null) {
     const matId = selecionados[0] ?? '';
     if (!painelMatVersao) return;
     if (painelMatVersao.itemKey !== null) {
-      editarItemMat(painelMatVersao.amb, painelMatVersao.vId, painelMatVersao.itemKey, matId);
+      editarItemMat(painelMatVersao.amb, painelMatVersao.vId, painelMatVersao.itemKey, matId, acabamento);
     } else {
-      editarPecaMat(painelMatVersao.amb, painelMatVersao.vId, painelMatVersao.uid, matId);
+      editarPecaMat(painelMatVersao.amb, painelMatVersao.vId, painelMatVersao.uid, matId, acabamento);
     }
     setPainelMatVersao(null);
   }
@@ -906,7 +958,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   }
 
   // ── Helpers de item ───────────────────────────────────────────────
-  function editarItemMat(amb, vId, itemKey, matId) {
+  function editarItemMat(amb, vId, itemKey, matId, acabamento = null) {
     setAmbiVersoes(prev => ({
       ...prev,
       [amb]: (prev[amb] ?? []).map(v => {
@@ -914,7 +966,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         // Atualiza matId das pedras do item; zera matLinearId dos acabamentos filhos para re-match
         const comNovoMat = v.pecasList.map(pw => {
           if ((pw.item_nome ?? '__sem_item__') !== itemKey) return pw;
-          if (pw.tipo !== 'acabamento') return { ...pw, matId };
+          if (pw.tipo !== 'acabamento') return { ...pw, matId, matAcabamento: acabamento };
           return { ...pw, matLinearId: null }; // reset para re-match
         });
         return { ...v, pecasList: aplicarAutoMatchNaLista(comNovoMat, todosM, matLineares) };
@@ -996,7 +1048,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
     const tPecas = v.pecasList.reduce((s, pw) => {
       if (pw.tipo === 'acabamento') return s + precoAcabamento(pw.ml, pw.matLinearId, matLineares);
       const pOrig = pecas.find(p => p.id === pw.idBase);
-      return s + precoPeca(pOrig, pw.matId, todosM);
+      return s + precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
     }, 0);
     const tAvulsos = (v.avulsos ?? []).reduce((s, a) => s + a.valorUnit * a.qty, 0);
     return tPecas + tAvulsos;
@@ -1040,6 +1092,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         ambiente_nome: p.ambiente_nome ?? null,
         item_nome: p.item_nome ?? null,
         matId: null,
+        matAcabamento: null,
         area_liq: p.area_liq ?? 0,
         espessura: p.espessura ?? 2,
         meia_esquadria_ml: p.meia_esquadria_ml ?? 0,
@@ -1161,13 +1214,13 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
     setAmbientesAtivos(prev => ({ ...prev, [novoNome]: true }));
   }
 
-  function editarPecaMat(amb, vId, pUid, matId) {
+  function editarPecaMat(amb, vId, pUid, matId, acabamento = null) {
     setAmbiVersoes(prev => ({
       ...prev,
       [amb]: (prev[amb] ?? []).map(v => {
         if (v.id !== vId) return v;
         // Atualiza matId da pedra; em seguida re-aplica auto-match nos acabamentos filhos
-        const comNovoMat = v.pecasList.map(p => p.uid === pUid ? { ...p, matId } : p);
+        const comNovoMat = v.pecasList.map(p => p.uid === pUid ? { ...p, matId, matAcabamento: acabamento } : p);
         // Re-match apenas dos filhos desta pedra (zera para forçar re-match)
         const comReMatch = comNovoMat.map(p =>
           p.tipo === 'acabamento' && p.idPedraUid === pUid ? { ...p, matLinearId: null } : p
@@ -1597,7 +1650,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                   if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   if (!pOrig) return null;
-                                  const sub = precoPeca(pOrig, pw.matId, todosM);
+                                  const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
                                   const isNomePecaEdit = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
                                   return (
                                     <div key={pw.uid} className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group">
@@ -1659,7 +1712,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 const subtotalItem = pwsItem.reduce((s, pw) => {
                                   if (pw.tipo === 'acabamento') return s + precoAcabamento(pw.ml, pw.matLinearId, matLineares);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
-                                  return s + precoPeca(pOrig, pw.matId, todosM);
+                                  return s + precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
                                 }, 0);
                                 const isNomeItemEdit = editandoNomeItem?.amb === amb && editandoNomeItem?.vId === v.id && editandoNomeItem?.itemKey === itemKey;
                                 return (
@@ -1715,7 +1768,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       if (pw.tipo === 'acabamento') return renderAcabamento(pw, true);
                                       const pOrig = pecas.find(p => p.id === pw.idBase);
                                       if (!pOrig) return null;
-                                      const sub = precoPeca(pOrig, pw.matId, todosM);
+                                      const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
                                       const isNomePecaEditItem = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
                                       return (
                                         <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group ${nomeItem ? 'px-7' : 'px-4'}`}>
@@ -2255,7 +2308,7 @@ export default function CriarOrcamento() {
     setMateriais([]);
     supabase
       .from('materiais')
-      .select('id, nome, categoria, preco_1cm, preco_2cm, preco_3cm')
+      .select('id, nome, categoria, variacoes_precos(acabamento, espessura, preco_venda)')
       .eq('empresa_id', profile.empresa_id)
       .eq('ativo', true)
       .order('nome')
@@ -2343,6 +2396,7 @@ export default function CriarOrcamento() {
           setPecas(resumo.map(r => ({
             id:                r.peca_id ?? crypto.randomUUID(),
             nome:              r.nome ?? '—',
+            descricao:         r.descricao ?? null,
             ambiente_nome:     r.ambiente_nome ?? null,
             item_nome:         r.item_nome ?? null,
             area_liq:          Number(r.area_liquida_m2 ?? 0),
@@ -2756,7 +2810,7 @@ export default function CriarOrcamento() {
           const rawMat = pWrapper.matId;
           const matId  = rawMat && typeof rawMat === 'object' ? (rawMat.id ?? null) : (rawMat ?? null);
           const pSrc   = pecas.find(p => p.id === pWrapper.idBase) ?? pWrapper;
-          return s + precoPeca(pSrc, matId, materiais);
+          return s + precoPeca(pSrc, matId, materiais, pWrapper.matAcabamento);
         }, 0);
         const valorAvulsos = produtos.reduce((s, p) => s + p.preco * p.qty, 0);
         const subtotal     = valorPecas + valorAvulsos;
@@ -2804,7 +2858,7 @@ export default function CriarOrcamento() {
               : (typeof rawMat === 'string' ? rawMat : null);
 
             const pSource   = pecas.find(p => p.id === pWrapper.idBase) ?? pWrapper;
-            const valorArea = precoPeca(pSource, materialId, materiais);
+            const valorArea = precoPeca(pSource, materialId, materiais, pWrapper.matAcabamento);
 
             // Agrega acabamentos vinculados a esta pedra
             const filhos = acabamentosPorPedra.get(pWrapper.uid) ?? [];

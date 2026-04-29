@@ -112,6 +112,25 @@ export function normalizarJsonMedicao(json) {
                     pecasDoAmb.push(peca);
                     resumo.push(peca);
                 }
+                // Faixas do ambiente
+                (amb.faixas ?? []).forEach(f => {
+                    const area = parseFloat(f.area_m2) || 0;
+                    if (area <= 0) return;
+                    resumo.push({
+                        nome:            f.nome ?? 'Faixa',
+                        descricao:       `${f.largura_cm ?? '?'}×${f.comprimento_cm ?? '?'}×${f.espessura_cm ?? '?'}cm — ${area.toFixed(3)}m²`,
+                        area_liquida_m2: Math.round(area * 10000) / 10000,
+                        espessura_cm:    f.espessura_cm ?? 2,
+                        ambiente_nome:   nomeAmbiente,
+                        item_nome:       null,
+                        item_id:         null,
+                        type:            'faixa',
+                        recortes_qty:    0,
+                        recortes:        [],
+                        segmentos:       [],
+                        acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
+                    });
+                });
                 // Flutter já calculou o total correto do ambiente — usa quando disponível.
                 // Sem metadados, soma por peça (pode duplicar lados opostos em retângulos).
                 if (meta) {
@@ -189,6 +208,24 @@ export function normalizarJsonMedicao(json) {
                     },
                 });
             }
+            // Faixas do ambiente
+            (amb.faixas ?? []).forEach(f => {
+                const area = parseFloat(f.area_m2) || 0;
+                if (area <= 0) return;
+                resumo.push({
+                    nome:            f.nome ?? 'Faixa',
+                        descricao:       `${f.largura_cm ?? '?'}×${f.comprimento_cm ?? '?'}×${f.espessura_cm ?? '?'}cm — ${area.toFixed(3)}m²`,
+                    area_liquida_m2: Math.round(area * 10000) / 10000,
+                    espessura_cm:    f.espessura_cm ?? 2,
+                    ambiente_nome:   nomeAmbiente,
+                    item_nome:       null,
+                    item_id:         null,
+                    type:            'faixa',
+                    recortes_qty:    0,
+                    recortes:        [],
+                    acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
+                });
+            });
         }
         return { resumo_por_peca: resumo, _fonte: 'flutter' };
     }

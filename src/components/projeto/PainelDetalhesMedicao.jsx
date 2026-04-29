@@ -393,11 +393,10 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                     {rawAmbientes.map((amb, i) => {
                         const ambNome   = amb.nome ?? amb.ambiente ?? `Ambiente ${i + 1}`;
                         const svgUrl    = svgUrls[i] ?? null;
-                        const fotoUrl   = getFotoParaAmbiente(medicao?.fotos, amb.id, ambNome);
+                        const fotoUrl   = getFotoParaAmbiente(medicao?.fotos, amb.ambiente_id ?? amb.id, ambNome);
                         const obsAcesso = parseObsAcesso(medicao?.observacoes_acesso, i, rawAmbientes.length);
                         const infoAmb   = (amb.extras?.info_adicional ?? '').trim();
                         const itensComInfo  = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
-                        const faixasDoAmb   = amb.faixas ?? [];
                         const gruposDoAmb   = (amb.grupos ?? []).filter(g =>
                             (g.info ?? '').trim() !== '' || g.vai_descer || g.vai_embutir
                         );
@@ -436,6 +435,38 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                     </div>
                                 )}
 
+                                {/* Grupos / Observações de campo */}
+                                {gruposDoAmb.length > 0 && (
+                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                        <SecaoLabel icon="solar:chat-round-dots-linear" label="Grupos / Observações" />
+                                        <div className="flex flex-col gap-2">
+                                            {gruposDoAmb.map((g, j) => (
+                                                <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-1">
+                                                    <div className="flex items-center flex-wrap gap-1.5">
+                                                        <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{g.nome}</span>
+                                                        {g.vai_descer && (
+                                                            <span className="font-mono text-[9px] px-1.5 py-0.5 border border-blue-400/40 text-blue-400 bg-blue-400/5">
+                                                                ↓ Vai Descer
+                                                            </span>
+                                                        )}
+                                                        {g.vai_embutir && (
+                                                            <span className="font-mono text-[9px] px-1.5 py-0.5 border border-violet-400/40 text-violet-400 bg-violet-400/5">
+                                                                ⬛ Vai Embutir {g.embutir_cm != null ? `${g.embutir_cm} cm` : ''}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {(g.info ?? '').trim() !== '' && (
+                                                        <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Peças (com recortes inline) */}
+                                <PecasAmbiente pecas={pecasDoAmb} />
+
                                 {/* Observações de Acesso */}
                                 {obsAcesso && (
                                     <div className="bg-black border border-zinc-900 px-4 py-3">
@@ -461,61 +492,6 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                                 <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-0.5">
                                                     <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{item.nome}</span>
                                                     <span className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{item.info_adicional.trim()}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Peças (com recortes inline) */}
-                                <PecasAmbiente pecas={pecasDoAmb} />
-
-                                {/* Faixas */}
-                                {faixasDoAmb.length > 0 && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
-                                        <SecaoLabel icon="solar:ruler-linear" label={`Faixas (${faixasDoAmb.length})`} />
-                                        <div className="flex flex-col gap-1.5">
-                                            {faixasDoAmb.map((f, j) => {
-                                                const area = f.area_m2 != null ? parseFloat(f.area_m2) : null;
-                                                const dim = [f.largura_cm, f.comprimento_cm, f.espessura_cm]
-                                                    .filter(v => v != null)
-                                                    .join('×');
-                                                return (
-                                                    <div key={j} className="font-mono text-[11px] text-zinc-300 flex items-center justify-between gap-2">
-                                                        <span>{dim ? `${dim} cm` : (f.nome ?? `Faixa ${j + 1}`)}</span>
-                                                        {area != null && (
-                                                            <span className="text-yellow-400 font-bold shrink-0">{area} m²</span>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Grupos / Observações de campo */}
-                                {gruposDoAmb.length > 0 && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
-                                        <SecaoLabel icon="solar:chat-round-dots-linear" label="Grupos / Observações" />
-                                        <div className="flex flex-col gap-2">
-                                            {gruposDoAmb.map((g, j) => (
-                                                <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-1">
-                                                    <div className="flex items-center flex-wrap gap-1.5">
-                                                        <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{g.nome}</span>
-                                                        {g.vai_descer && (
-                                                            <span className="font-mono text-[9px] px-1.5 py-0.5 border border-blue-400/40 text-blue-400 bg-blue-400/5">
-                                                                ↓ Vai Descer
-                                                            </span>
-                                                        )}
-                                                        {g.vai_embutir && (
-                                                            <span className="font-mono text-[9px] px-1.5 py-0.5 border border-violet-400/40 text-violet-400 bg-violet-400/5">
-                                                                ⬛ Vai Embutir {g.embutir_cm != null ? `${g.embutir_cm} cm` : ''}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {(g.info ?? '').trim() !== '' && (
-                                                        <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</p>
-                                                    )}
                                                 </div>
                                             ))}
                                         </div>
