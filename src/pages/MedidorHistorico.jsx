@@ -99,9 +99,10 @@ export default function MedidorHistorico() {
         projetos(id, nome, clientes(nome))
       `)
       .eq('medidor_id', session.user.id)
-      .eq('status', 'concluida')
+      .eq('status', 'enviada')
       .order('data_medicao', { ascending: false })
       .then(({ data, error }) => {
+        console.log('🔍 [Histórico] query result:', { data, error, medidor_id: session?.user?.id });
         if (error) console.error('[MedidorHistorico] Erro:', error);
         if (data) setMedicoes(data);
         setLoading(false);
