@@ -56,8 +56,12 @@ export function normalizarJsonMedicao(json) {
 
         if (isFlutter2) {
             const resumo = [];
+            let ambTotalME = 0;
+            let ambTotalRS = 0;
             for (const amb of json.ambientes) {
                 const nomeAmbiente = amb.nome ?? amb.ambiente ?? null;
+                const meta = amb.metadados_ambiente;
+                const pecasDoAmb = [];
                 for (const p of (Array.isArray(amb.pecas) ? amb.pecas : [])) {
                     const area = parseFloat(p.area_m2) || 0;
                     const segs = Array.isArray(p.segmentos) ? p.segmentos : [];
@@ -68,7 +72,7 @@ export function normalizarJsonMedicao(json) {
                         if (s.acabamento === 'RS') reto_simples_ml   += lenM;
                         if (s.acabamento === 'ME') meia_esquadria_ml += lenM;
                     });
-                    resumo.push({
+                    const peca = {
                         nome:            p.nome ?? 'Peça',
                         area_liquida_m2: Math.round(area * 10000) / 10000,
                         espessura_cm:    p.espessura_cm ?? null,
@@ -83,10 +87,30 @@ export function normalizarJsonMedicao(json) {
                             reto_simples_ml:   Math.round(reto_simples_ml   * 100) / 100,
                             meia_esquadria_ml: Math.round(meia_esquadria_ml * 100) / 100,
                         },
+                    };
+                    pecasDoAmb.push(peca);
+                    resumo.push(peca);
+                }
+                // Flutter já calculou o total correto do ambiente — usa quando disponível.
+                // Sem metadados, soma por peça (pode duplicar lados opostos em retângulos).
+                if (meta) {
+                    ambTotalME += parseFloat(meta.meia_esquadria_ml) || 0;
+                    ambTotalRS += parseFloat(meta.reto_simples_ml)   || 0;
+                } else {
+                    pecasDoAmb.forEach(p => {
+                        ambTotalME += p.acabamentos.meia_esquadria_ml;
+                        ambTotalRS += p.acabamentos.reto_simples_ml;
                     });
                 }
             }
-            return { resumo_por_peca: resumo, _fonte: 'flutter2' };
+            return {
+                resumo_por_peca: resumo,
+                _fonte: 'flutter2',
+                totais_acabamentos: {
+                    meia_esquadria_ml: Math.round(ambTotalME * 100) / 100,
+                    reto_simples_ml:   Math.round(ambTotalRS * 100) / 100,
+                },
+            };
         }
 
         // Flutter 1.0 / formato legado

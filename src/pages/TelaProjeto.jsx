@@ -1740,13 +1740,11 @@ export default function TelaProjetoVendedor() {
                                     );
                                 }
 
-                                // Totais de acabamentos somados de todas as peças
-                                const totalME = Math.round(
-                                    pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100
-                                ) / 100;
-                                const totalRS = Math.round(
-                                    pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml ?? 0), 0) * 100
-                                ) / 100;
+                                // Totais de acabamentos: prioriza metadados_ambiente pré-calculados pelo Flutter
+                                const totalME = jsonNorm?.totais_acabamentos?.meia_esquadria_ml
+                                    ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100) / 100;
+                                const totalRS = jsonNorm?.totais_acabamentos?.reto_simples_ml
+                                    ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml ?? 0), 0) * 100) / 100;
 
                                 // Lista plana de recortes de todas as peças
                                 const todosRecortes = pecas.flatMap(p =>

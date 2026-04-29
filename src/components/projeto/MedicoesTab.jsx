@@ -481,8 +481,10 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                         </div>
                                     );
                                 }
-                                const totalME = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100) / 100;
-                                const totalRS = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml ?? 0), 0) * 100) / 100;
+                                const totalME = jsonNorm?.totais_acabamentos?.meia_esquadria_ml
+                                    ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100) / 100;
+                                const totalRS = jsonNorm?.totais_acabamentos?.reto_simples_ml
+                                    ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml ?? 0), 0) * 100) / 100;
                                 const todosRecortes = pecas.flatMap(p => (p.recortes ?? []).map(r => ({ ...r, pecaNome: p.nome })));
                                 return (
                                     <>
