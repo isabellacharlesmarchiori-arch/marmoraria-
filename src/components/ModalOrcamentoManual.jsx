@@ -57,7 +57,7 @@ export default function ModalOrcamentoManual({ projetoId, onClose, onSalvo }) {
           .eq('ativo', true)
           .order('nome'),
         supabase
-          .from('materiais_linear')
+          .from('materiais_lineares')
           .select('id, nome, tipo, precoml')
           .eq('empresa_id', empresaId)
           .eq('ativo', true)

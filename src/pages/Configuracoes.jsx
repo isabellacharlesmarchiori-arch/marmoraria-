@@ -103,7 +103,7 @@ export default function ConfiguracoesPage() {
         .select('*, variacoes_precos(*)')
         .eq('empresa_id', empresaId)
         .order('nome'),
-      supabase.from('materiais_linear')
+      supabase.from('materiais_lineares')
         .select('*')
         .eq('empresa_id', empresaId)
         .order('nome'),
@@ -113,7 +113,7 @@ export default function ConfiguracoesPage() {
     if (area)   setMateriaisArea(area);
     if (linear) setMateriaisLineares(linear);
     const { data: unitarios } = await supabase
-      .from('acabamentos_unitarios')
+      .from('produtos_avulsos')
       .select('*')
       .eq('empresa_id', empresaId)
       .order('nome');
@@ -325,11 +325,11 @@ export default function ConfiguracoesPage() {
     if (type === 'material_linear') {
       const payload = { nome: data.nome, tipo: data.tipo, precoml: Number(data.precoml), empresa_id: profile.empresa_id };
       if (item) {
-        const { data: updated, error } = await supabase.from('materiais_linear').update(payload).eq('id', item.id).select().single();
+        const { data: updated, error } = await supabase.from('materiais_lineares').update(payload).eq('id', item.id).select().single();
         if (error) { alert(error.message); return; }
         setMateriaisLineares(prev => prev.map(m => m.id === item.id ? updated : m));
       } else {
-        const { data: inserted, error } = await supabase.from('materiais_linear').insert({ ...payload, ativo: true }).select().single();
+        const { data: inserted, error } = await supabase.from('materiais_lineares').insert({ ...payload, ativo: true }).select().single();
         if (error) { alert(error.message); return; }
         setMateriaisLineares(prev => [...prev, inserted]);
       }
@@ -397,13 +397,13 @@ export default function ConfiguracoesPage() {
       const nd = { id: novoId, ...data, campos: data.campos.split(',').map(c => c.trim()), ativo: isNew ? true : item.ativo };
       setPagamentos(isNew ? [...pagamentos, nd] : pagamentos.map(p => p.id === item.id ? nd : p));
     } else if (type === 'acabamento_unitario') {
-      const payload = { nome: data.nome, unidade: data.unidade, preco: Number(data.preco), empresa_id: profile.empresa_id };
+      const payload = { nome: data.nome, subcategoria: data.subcategoria, preco_unitario: Number(data.preco_unitario), empresa_id: profile.empresa_id };
       if (item) {
-        const { data: updated, error } = await supabase.from('acabamentos_unitarios').update(payload).eq('id', item.id).select().single();
+        const { data: updated, error } = await supabase.from('produtos_avulsos').update(payload).eq('id', item.id).select().single();
         if (error) { alert(error.message); return; }
         setAcabamentosUnitarios(prev => prev.map(a => a.id === item.id ? updated : a));
       } else {
-        const { data: inserted, error } = await supabase.from('acabamentos_unitarios').insert({ ...payload, ativo: true }).select().single();
+        const { data: inserted, error } = await supabase.from('produtos_avulsos').insert({ ...payload, ativo: true }).select().single();
         if (error) { alert(error.message); return; }
         setAcabamentosUnitarios(prev => [...prev, inserted]);
       }
@@ -503,7 +503,7 @@ export default function ConfiguracoesPage() {
   const handleDeleteMaterialLinear = async (e, id) => {
     e.stopPropagation();
     if (!window.confirm('Excluir este material definitivamente?')) return;
-    const { error } = await supabase.from('materiais_linear').delete().eq('id', id);
+    const { error } = await supabase.from('materiais_lineares').delete().eq('id', id);
     if (error) { alert(error.message); return; }
     setMateriaisLineares(prev => prev.filter(m => m.id !== id));
   };
@@ -1089,7 +1089,7 @@ export default function ConfiguracoesPage() {
                   </div>
                   <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800">
                     <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">
-                      <div>Nome</div><div>Unidade</div><div>Preço</div><div>Status</div><div className="text-right">Ações</div>
+                      <div>Nome</div><div>Subcategoria</div><div>Preço</div><div>Status</div><div className="text-right">Ações</div>
                     </div>
                     {acabamentosUnitarios.length === 0 ? (
                       <div className="p-8 text-center">
@@ -1099,8 +1099,8 @@ export default function ConfiguracoesPage() {
                     ) : acabamentosUnitarios.map(a => (
                       <div key={a.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
                         <div className="text-gray-900 dark:text-white uppercase font-medium">{a.nome}</div>
-                        <div><span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black px-2 py-1 uppercase text-gray-500 dark:text-zinc-400">{a.unidade}</span></div>
-                        <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(a.preco).toFixed(2)}</div>
+                        <div><span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black px-2 py-1 uppercase text-gray-500 dark:text-zinc-400">{a.subcategoria}</span></div>
+                        <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(a.preco_unitario).toFixed(2)}</div>
                         <div>
                           <button onClick={() => handleToggle(setAcabamentosUnitarios, acabamentosUnitarios, a.id)}
                             className={`flex items-center gap-2 text-[10px] font-mono uppercase ${a.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}>
@@ -1116,7 +1116,7 @@ export default function ConfiguracoesPage() {
                           <button onClick={async e => {
                             e.stopPropagation();
                             if (!window.confirm('Excluir este acabamento?')) return;
-                            const { error } = await supabase.from('acabamentos_unitarios').delete().eq('id', a.id);
+                            const { error } = await supabase.from('produtos_avulsos').delete().eq('id', a.id);
                             if (error) { alert(error.message); return; }
                             setAcabamentosUnitarios(prev => prev.filter(x => x.id !== a.id));
                           }} className="text-gray-500 dark:text-zinc-500 hover:text-red-400 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
@@ -1312,17 +1312,14 @@ export default function ConfiguracoesPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Unidade</label>
-                      <select name="unidade" defaultValue={modalState.item?.unidade || 'un'}
-                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
-                        <option value="un">Unidade (un)</option>
-                        <option value="m²">Metro quadrado (m²)</option>
-                        <option value="ml">Metro linear (ml)</option>
-                      </select>
+                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Subcategoria</label>
+                      <input type="text" name="subcategoria" defaultValue={modalState.item?.subcategoria || ''}
+                        placeholder="Ex: Cuba, Soleira, Rodameio"
+                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] uppercase font-mono text-yellow-400">Preço</label>
-                      <input type="number" step="0.01" name="preco" required defaultValue={modalState.item?.preco || ''}
+                      <input type="number" step="0.01" name="preco_unitario" required defaultValue={modalState.item?.preco_unitario || ''}
                         className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
                     </div>
                   </div>

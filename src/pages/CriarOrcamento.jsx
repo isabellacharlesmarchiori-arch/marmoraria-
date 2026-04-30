@@ -22,6 +22,10 @@ const CATEGORIAS = [
 const ACABAMENTO_LABEL = {
   meia_esquadria: 'Meia-Esquadria',
   reto_simples:   'Reto Simples',
+  boleado:        'Boleado',
+  boleado_duplo:  'Boleado Duplo',
+  reto_duplo:     'Reto Duplo',
+  chanfrado:      'Chanfrado',
 };
 
 // Calcula o preço de um acabamento linear
@@ -62,6 +66,62 @@ function criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios = []) {
       item_nome:       p.item_nome ?? null,
     });
   }
+  if ((p.boleado_ml ?? 0) > 0) {
+    rows.push({
+      uid:             `ac-bo-${stoneUid}-${Math.random()}`,
+      idBase:          p.id,
+      idPedraUid:      stoneUid,
+      tipo:            'acabamento',
+      tipoAcabamento:  'boleado',
+      nome:            'Boleado',
+      ml:              p.boleado_ml,
+      matLinearId:     null,
+      ambiente_nome:   p.ambiente_nome ?? null,
+      item_nome:       p.item_nome ?? null,
+    });
+  }
+  if ((p.boleado_duplo_ml ?? 0) > 0) {
+    rows.push({
+      uid:             `ac-bd-${stoneUid}-${Math.random()}`,
+      idBase:          p.id,
+      idPedraUid:      stoneUid,
+      tipo:            'acabamento',
+      tipoAcabamento:  'boleado_duplo',
+      nome:            'Boleado Duplo',
+      ml:              p.boleado_duplo_ml,
+      matLinearId:     null,
+      ambiente_nome:   p.ambiente_nome ?? null,
+      item_nome:       p.item_nome ?? null,
+    });
+  }
+  if ((p.reto_duplo_ml ?? 0) > 0) {
+    rows.push({
+      uid:             `ac-rd-${stoneUid}-${Math.random()}`,
+      idBase:          p.id,
+      idPedraUid:      stoneUid,
+      tipo:            'acabamento',
+      tipoAcabamento:  'reto_duplo',
+      nome:            'Reto Duplo',
+      ml:              p.reto_duplo_ml,
+      matLinearId:     null,
+      ambiente_nome:   p.ambiente_nome ?? null,
+      item_nome:       p.item_nome ?? null,
+    });
+  }
+  if ((p.chanfrado_ml ?? 0) > 0) {
+    rows.push({
+      uid:             `ac-cf-${stoneUid}-${Math.random()}`,
+      idBase:          p.id,
+      idPedraUid:      stoneUid,
+      tipo:            'acabamento',
+      tipoAcabamento:  'chanfrado',
+      nome:            'Chanfrado',
+      ml:              p.chanfrado_ml,
+      matLinearId:     null,
+      ambiente_nome:   p.ambiente_nome ?? null,
+      item_nome:       p.item_nome ?? null,
+    });
+  }
   (p.recortes ?? []).forEach(rc => {
     const acabUnit = acabamentosUnitarios.find(
       a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase()
@@ -84,7 +144,11 @@ function criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios = []) {
 // Palavras-chave de busca por tipoAcabamento no nome do material linear
 const ACABAMENTO_KEYWORDS = {
   meia_esquadria: ['meia esquadria', 'meia-esquadria', 'meia'],
-  reto_simples:   ['reto simples', 'reto-simples', 'reto'],
+  reto_simples:   ['reto simples', 'reto-simples'],
+  boleado:        ['boleado'],
+  boleado_duplo:  ['boleado duplo', 'boleado-duplo'],
+  reto_duplo:     ['reto duplo', 'reto-duplo'],
+  chanfrado:      ['chanfrado'],
 };
 
 // Busca o melhor material linear para um acabamento.
@@ -2470,7 +2534,7 @@ export default function CriarOrcamento() {
   useEffect(() => {
     if (!session || !profile?.empresa_id) return;
     supabase
-      .from('materiais_linear')
+      .from('materiais_lineares')
       .select('id, nome, tipo, precoml')
       .eq('empresa_id', profile.empresa_id)
       .eq('ativo', true)
@@ -2662,16 +2726,19 @@ export default function CriarOrcamento() {
       const gKey  = `${p.ambiente_nome ?? ''}::${gNome ?? '__sem_grupo__'}`;
       if (!map[gKey]) map[gKey] = { amb_nome: p.ambiente_nome ?? '', grupo_nome: gNome, acabamentos: [], furos: [] };
       const g = map[gKey];
-      if ((p.meia_esquadria_ml ?? 0) > 0) {
-        const ex = g.acabamentos.find(a => a.tipo === 'meia_esquadria');
-        if (ex) ex.ml = Math.round((ex.ml + p.meia_esquadria_ml) * 100) / 100;
-        else g.acabamentos.push({ id: crypto.randomUUID(), tipo: 'meia_esquadria', ml: p.meia_esquadria_ml });
-      }
-      if ((p.reto_simples_ml ?? 0) > 0) {
-        const ex = g.acabamentos.find(a => a.tipo === 'reto_simples');
-        if (ex) ex.ml = Math.round((ex.ml + p.reto_simples_ml) * 100) / 100;
-        else g.acabamentos.push({ id: crypto.randomUUID(), tipo: 'reto_simples', ml: p.reto_simples_ml });
-      }
+      [
+        ['meia_esquadria', p.meia_esquadria_ml],
+        ['reto_simples',   p.reto_simples_ml],
+        ['boleado',        p.boleado_ml],
+        ['boleado_duplo',  p.boleado_duplo_ml],
+        ['reto_duplo',     p.reto_duplo_ml],
+        ['chanfrado',      p.chanfrado_ml],
+      ].forEach(([tipo, ml]) => {
+        if ((ml ?? 0) <= 0) return;
+        const ex = g.acabamentos.find(a => a.tipo === tipo);
+        if (ex) ex.ml = Math.round((ex.ml + ml) * 100) / 100;
+        else g.acabamentos.push({ id: crypto.randomUUID(), tipo, ml });
+      });
       (p.recortes ?? []).forEach(rc => {
         g.furos.push({ id: crypto.randomUUID(), tipo: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null });
       });
@@ -3501,6 +3568,10 @@ export default function CriarOrcamento() {
                           >
                             <option value="meia_esquadria">Meia-Esquadria</option>
                             <option value="reto_simples">Reto Simples</option>
+                            <option value="boleado">Boleado</option>
+                            <option value="boleado_duplo">Boleado Duplo</option>
+                            <option value="reto_duplo">Reto Duplo</option>
+                            <option value="chanfrado">Chanfrado</option>
                           </select>
                           <input
                             type="number" step="0.01" min="0"
@@ -3750,6 +3821,10 @@ export default function CriarOrcamento() {
                                 >
                                   <option value="meia_esquadria">Meia Esquadria</option>
                                   <option value="reto_simples">Reto Simples</option>
+                                  <option value="boleado">Boleado</option>
+                                  <option value="boleado_duplo">Boleado Duplo</option>
+                                  <option value="reto_duplo">Reto Duplo</option>
+                                  <option value="chanfrado">Chanfrado</option>
                                 </select>
                                 <div className="flex items-center gap-1">
                                   <input

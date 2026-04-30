@@ -106,6 +106,10 @@ export function normalizarJsonMedicao(json) {
             const resumo = [];
             let ambTotalME = 0;
             let ambTotalRS = 0;
+            let ambTotalBO = 0;
+            let ambTotalBD = 0;
+            let ambTotalRD = 0;
+            let ambTotalCF = 0;
             for (let ambIdx = 0; ambIdx < json.ambientes.length; ambIdx++) {
                 const amb = json.ambientes[ambIdx];
                 const nomeAmbiente = amb.nome ?? amb.ambiente ?? `Ambiente ${ambIdx + 1}`;
@@ -129,8 +133,8 @@ export function normalizarJsonMedicao(json) {
                         recortes_qty:    Array.isArray(p.recortes) ? p.recortes.length : 0,
                         recortes:        Array.isArray(p.recortes) ? p.recortes : [],
                         segmentos:       segs,
-                        // ME/RS zeramos aqui; distribuídos do metadados_ambiente abaixo
-                        acabamentos:     { reto_simples_ml: 0, meia_esquadria_ml: 0 },
+                        // zeramos aqui; distribuídos do metadados_ambiente abaixo
+                        acabamentos:     { reto_simples_ml: 0, meia_esquadria_ml: 0, boleado_ml: 0, boleado_duplo_ml: 0, reto_duplo_ml: 0, chanfrado_ml: 0 },
                     };
                     pecasDoAmb.push(peca);
                     resumo.push(peca);
@@ -156,7 +160,7 @@ export function normalizarJsonMedicao(json) {
                         recortes_qty:    0,
                         recortes:        [],
                         segmentos:       [],
-                        acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
+                        acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0, boleado_ml: 0, boleado_duplo_ml: 0, reto_duplo_ml: 0, chanfrado_ml: 0 },
                     };
                     faixasDoAmb.push(faixa);
                     resumo.push(faixa);
@@ -172,20 +176,35 @@ export function normalizarJsonMedicao(json) {
                     });
                 });
                 // Fonte única: metadados_ambiente calculados pelo Flutter.
-                // Distribui pelo representante do grupo que contém segmentos ME/RS;
+                // Distribui pelo representante do grupo que contém o segmento do tipo;
                 // se nenhum tiver, usa a primeira peça do ambiente.
                 const totalME = parseFloat(meta?.meia_esquadria_ml ?? 0) || 0;
                 const totalRS = parseFloat(meta?.reto_simples_ml   ?? 0) || 0;
-                if (totalME > 0 && pecasDoAmb.length > 0) {
-                    const rep = pecasDoAmb.find(p => (p.segmentos ?? []).some(s => s.acabamento === 'ME')) ?? pecasDoAmb[0];
-                    rep.acabamentos.meia_esquadria_ml = Math.round(totalME * 100) / 100;
-                }
-                if (totalRS > 0 && pecasDoAmb.length > 0) {
-                    const rep = pecasDoAmb.find(p => (p.segmentos ?? []).some(s => s.acabamento === 'RS')) ?? pecasDoAmb[0];
-                    rep.acabamentos.reto_simples_ml = Math.round(totalRS * 100) / 100;
+                const totalBO = parseFloat(meta?.boleado_ml        ?? 0) || 0;
+                const totalBD = parseFloat(meta?.boleado_duplo_ml  ?? 0) || 0;
+                const totalRD = parseFloat(meta?.reto_duplo_ml     ?? 0) || 0;
+                const totalCF = parseFloat(meta?.chanfrado_ml      ?? 0) || 0;
+                const distrib = [
+                    ['ME', 'meia_esquadria_ml', totalME],
+                    ['RS', 'reto_simples_ml',   totalRS],
+                    ['BO', 'boleado_ml',        totalBO],
+                    ['BD', 'boleado_duplo_ml',  totalBD],
+                    ['RD', 'reto_duplo_ml',     totalRD],
+                    ['CF', 'chanfrado_ml',      totalCF],
+                ];
+                if (pecasDoAmb.length > 0) {
+                    distrib.forEach(([code, field, total]) => {
+                        if (total <= 0) return;
+                        const rep = pecasDoAmb.find(p => (p.segmentos ?? []).some(s => s.acabamento === code)) ?? pecasDoAmb[0];
+                        rep.acabamentos[field] = Math.round(total * 100) / 100;
+                    });
                 }
                 ambTotalME += totalME;
                 ambTotalRS += totalRS;
+                ambTotalBO += totalBO;
+                ambTotalBD += totalBD;
+                ambTotalRD += totalRD;
+                ambTotalCF += totalCF;
             }
             return {
                 resumo_por_peca: resumo,
@@ -193,6 +212,10 @@ export function normalizarJsonMedicao(json) {
                 totais_acabamentos: {
                     meia_esquadria_ml: Math.round(ambTotalME * 100) / 100,
                     reto_simples_ml:   Math.round(ambTotalRS * 100) / 100,
+                    boleado_ml:        Math.round(ambTotalBO * 100) / 100,
+                    boleado_duplo_ml:  Math.round(ambTotalBD * 100) / 100,
+                    reto_duplo_ml:     Math.round(ambTotalRD * 100) / 100,
+                    chanfrado_ml:      Math.round(ambTotalCF * 100) / 100,
                 },
             };
         }
@@ -232,10 +255,18 @@ export function normalizarJsonMedicao(json) {
                 }
                 let reto_simples_ml   = 0;
                 let meia_esquadria_ml = 0;
+                let boleado_ml        = 0;
+                let boleado_duplo_ml  = 0;
+                let reto_duplo_ml     = 0;
+                let chanfrado_ml      = 0;
                 acabs.forEach((ac, i) => {
                     const len = arestas[i] ?? 0;
                     if (ac === 'RS') reto_simples_ml   += len;
                     if (ac === 'ME') meia_esquadria_ml += len;
+                    if (ac === 'BO') boleado_ml        += len;
+                    if (ac === 'BD') boleado_duplo_ml  += len;
+                    if (ac === 'RD') reto_duplo_ml     += len;
+                    if (ac === 'CF') chanfrado_ml      += len;
                 });
                 resumo.push({
                     nome:             p.name ?? 'Peça',
@@ -257,6 +288,10 @@ export function normalizarJsonMedicao(json) {
                     acabamentos: {
                         reto_simples_ml:   Math.round(reto_simples_ml   * 100) / 100,
                         meia_esquadria_ml: Math.round(meia_esquadria_ml * 100) / 100,
+                        boleado_ml:        Math.round(boleado_ml        * 100) / 100,
+                        boleado_duplo_ml:  Math.round(boleado_duplo_ml  * 100) / 100,
+                        reto_duplo_ml:     Math.round(reto_duplo_ml     * 100) / 100,
+                        chanfrado_ml:      Math.round(chanfrado_ml      * 100) / 100,
                     },
                 });
             }

@@ -41,8 +41,16 @@ const C = {
 const ACAB_LABEL = {
   meia_esquadria: 'Meia-Esquadria',
   reto_simples:   'Reto Simples',
+  boleado:        'Boleado',
+  boleado_duplo:  'Boleado Duplo',
+  reto_duplo:     'Reto Duplo',
+  chanfrado:      'Chanfrado',
   ME:             'Meia-Esquadria',
   RS:             'Reto Simples',
+  BO:             'Boleado',
+  BD:             'Boleado Duplo',
+  RD:             'Reto Duplo',
+  CF:             'Chanfrado',
 };
 
 // ── Primitivas de desenho ─────────────────────────────────────────────────────

@@ -1042,7 +1042,7 @@ export default function TelaProjetoVendedor() {
                                                                         {(() => {
                                                                             const temItens = pecasGrupo.some(p => p.item_nome);
                                                                             if (!temItens) {
-                                                                                const ACAB_LABELS_F = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', ME: 'Meia-Esquadria', RS: 'Reto Simples' };
+                                                                                const ACAB_LABELS_F = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', boleado: 'Boleado', boleado_duplo: 'Boleado Duplo', reto_duplo: 'Reto Duplo', chanfrado: 'Chanfrado', ME: 'Meia-Esquadria', RS: 'Reto Simples', BO: 'Boleado', BD: 'Boleado Duplo', RD: 'Reto Duplo', CF: 'Chanfrado' };
                                                                                 // Agrega acabamentos de todas as peças
                                                                                 const acabFlatMap = new Map();
                                                                                 pecasGrupo.forEach(p => {
@@ -1094,7 +1094,7 @@ export default function TelaProjetoVendedor() {
                                                                                 if (!itMap.has(k)) { itMap.set(k, []); itOrdem.push(k); }
                                                                                 itMap.get(k).push(p);
                                                                             });
-                                                                            const ACAB_LABELS = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', ME: 'Meia-Esquadria', RS: 'Reto Simples' };
+                                                                            const ACAB_LABELS = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', boleado: 'Boleado', boleado_duplo: 'Boleado Duplo', reto_duplo: 'Reto Duplo', chanfrado: 'Chanfrado', ME: 'Meia-Esquadria', RS: 'Reto Simples', BO: 'Boleado', BD: 'Boleado Duplo', RD: 'Reto Duplo', CF: 'Chanfrado' };
                                                                             return itOrdem.flatMap(itemKey => {
                                                                                 const nomeItem  = itemKey === '__sem_item__' ? null : itemKey;
                                                                                 const pecasItem = itMap.get(itemKey);
