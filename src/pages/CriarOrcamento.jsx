@@ -1870,6 +1870,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 </div>
                               );
 
+                              console.log('[DEBUG pecasList] amb=', amb, '| versao=', v.nome, '| total=', v.pecasList.length, '|', v.pecasList.map(pw => ({ uid: pw.uid?.slice(0, 8), tipo: pw.tipo, nome: pw.nome, idBase: pw.idBase?.slice(0, 8) })));
                               const temItens = v.pecasList.some(pw => pw.item_nome && pw.tipo !== 'acabamento');
                               if (!temItens) {
                                 // Sem itens: lista plana
@@ -1877,7 +1878,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                   if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
                                   if (pw.tipo === 'recorte')    return renderRecorte(pw, false);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
-                                  if (!pOrig) return null;
+                                  if (!pOrig) {
+                                    console.warn('[DEBUG pOrig NULO] nome=', pw.nome, '| idBase=', pw.idBase, '| pecas ids:', pecas.map(p => p.id?.slice(0, 8)));
+                                    return null;
+                                  }
                                   const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
                                   const isNomePecaEdit = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
                                   return (
@@ -1997,7 +2001,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       if (pw.tipo === 'acabamento') return renderAcabamento(pw, true);
                                       if (pw.tipo === 'recorte')    return renderRecorte(pw, true);
                                       const pOrig = pecas.find(p => p.id === pw.idBase);
-                                      if (!pOrig) return null;
+                                      if (!pOrig) {
+                                        console.warn('[DEBUG pOrig NULO item] nome=', pw.nome, '| idBase=', pw.idBase);
+                                        return null;
+                                      }
                                       const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
                                       const isNomePecaEditItem = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
                                       return (

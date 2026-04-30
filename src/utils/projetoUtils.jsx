@@ -78,8 +78,23 @@ const _ACAB_KEYS = {
 // QUANTO canvas.ambientes[i].guarnicoes (per-ambiente), pois o Flutter pode enviar
 // ambas as estruturas simultaneamente.
 function _appendGuarnicoesFromCanvas(json, resumo) {
-    const canvas = json._canvas;
-    if (!canvas) return;
+    const raw = json._canvas;
+    if (!raw) {
+        console.log('[guarnicoes] _canvas ausente no JSON');
+        return;
+    }
+
+    // _canvas pode chegar como string JSON (Flutter serializa como string)
+    let canvas;
+    try {
+        canvas = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch {
+        console.warn('[guarnicoes] _canvas não é JSON válido:', typeof raw, String(raw).slice(0, 80));
+        return;
+    }
+    console.log('[guarnicoes] _canvas tipo original:', typeof raw,
+        '| canvas.ambientes:', canvas?.ambientes?.length ?? 'N/A',
+        '| canvas.guarnicoes:', canvas?.guarnicoes?.length ?? 'N/A');
 
     // Coleta top-level
     const topLevel = Array.isArray(canvas.guarnicoes)
@@ -105,6 +120,7 @@ function _appendGuarnicoesFromCanvas(json, resumo) {
         seen.add(key);
         return true;
     });
+    console.log('[guarnicoes] topLevel:', topLevel.length, '| perAmb:', perAmb.length, '| após dedup:', flat.length);
 
     flat.forEach(g => {
         // Suporta largura_cm/comprimento_cm e aliases width_cm/height_cm
@@ -414,21 +430,27 @@ export function normalizarAmbiente(amb) {
             ? new Date(orc.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
             : '',
         itens_manuais: orc.itens_manuais ?? [],
-        pecas: (orc.orcamento_pecas ?? []).map((op, idx) => ({
-            id:               op.id,
-            nome:             op.pecas?.nome_livre ?? `Peça ${idx + 1}`,
-            material:         'Material Padrão',
-            material_id:      op.material_id ?? '',
-            espessura:        op.pecas?.espessura_cm != null ? `${op.pecas.espessura_cm}` : '—',
-            area:             op.pecas?.area_liquida_m2 != null ? op.pecas.area_liquida_m2 : null,
-            acabamento:       '—',
-            valor:            op.valor_total ?? 0,
-            valor_acabamentos: op.valor_acabamentos ?? 0,
-            recortes:         [],
-            ambiente_id:      op.pecas?.ambiente_id ?? null,
-            item_nome:        op.pecas?.dimensoes?.item_nome ?? null,
-            acabamentos:      op.acabamentos ?? [],
-        })),
+        pecas: (orc.orcamento_pecas ?? []).map((op, idx) => {
+            if (idx === 0) {
+                console.log('[DEBUG acabamentos] orcamento_pecas[0].acabamentos:',
+                    JSON.stringify(op.acabamentos));
+            }
+            return {
+                id:               op.id,
+                nome:             op.pecas?.nome_livre ?? `Peça ${idx + 1}`,
+                material:         'Material Padrão',
+                material_id:      op.material_id ?? '',
+                espessura:        op.pecas?.espessura_cm != null ? `${op.pecas.espessura_cm}` : '—',
+                area:             op.pecas?.area_liquida_m2 != null ? op.pecas.area_liquida_m2 : null,
+                acabamento:       '—',
+                valor:            op.valor_total ?? 0,
+                valor_acabamentos: op.valor_acabamentos ?? 0,
+                recortes:         [],
+                ambiente_id:      op.pecas?.ambiente_id ?? null,
+                item_nome:        op.pecas?.dimensoes?.item_nome ?? null,
+                acabamentos:      op.acabamentos ?? [],
+            };
+        }),
         avulsos: (orc.orcamento_avulsos ?? []).map(av => ({
             id:             av.id,
             nome:           av.produtos_avulsos?.nome ?? av.nome ?? 'Produto',

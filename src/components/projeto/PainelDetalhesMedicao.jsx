@@ -203,6 +203,34 @@ function PecasAmbiente({ pecas }) {
                                         {Array.isArray(r.segmentos) && r.segmentos.length >= 2 && r.type !== 'retangulo' && (
                                             <div className="font-mono text-[10px] text-zinc-500 mt-1">{r.segmentos.map(s => s.medida_cm).join(' × ')} cm</div>
                                         )}
+                                        {/* Acabamentos lineares inline */}
+                                        {r.acabamentos && (() => {
+                                            const ACAB_LABELS = {
+                                                meia_esquadria_ml: 'Meia-Esquadria',
+                                                reto_simples_ml:   'Reto Simples',
+                                                boleado_ml:        'Boleado',
+                                                boleado_duplo_ml:  'Boleado Duplo',
+                                                reto_duplo_ml:     'Reto Duplo',
+                                                chanfrado_ml:      'Chanfrado',
+                                            };
+                                            const linhas = Object.entries(ACAB_LABELS)
+                                                .filter(([k]) => (r.acabamentos[k] ?? 0) > 0)
+                                                .map(([k, label]) => ({ label, ml: r.acabamentos[k] }));
+                                            if (linhas.length === 0) return null;
+                                            return (
+                                                <div className="mt-2 flex flex-col gap-1 pl-2 border-l border-amber-900/40">
+                                                    {linhas.map(({ label, ml }) => (
+                                                        <div key={label} className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <iconify-icon icon="solar:ruler-angular-linear" width="10" className="text-amber-600/70"></iconify-icon>
+                                                                <span className="font-mono text-[10px] text-amber-500/80">{label}</span>
+                                                            </div>
+                                                            <span className="font-mono text-[9px] text-amber-600">{ml} ml</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
                                         {/* Recortes inline */}
                                         {Array.isArray(r.recortes) && r.recortes.length > 0 && (
                                             <div className="mt-2 flex flex-col gap-1 pl-2 border-l border-zinc-800">
@@ -345,7 +373,15 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
     const totalME   = jsonNorm?.totais_acabamentos?.meia_esquadria_ml
         ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100) / 100;
     const totalRS   = jsonNorm?.totais_acabamentos?.reto_simples_ml
-        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml ?? 0), 0) * 100) / 100;
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml   ?? 0), 0) * 100) / 100;
+    const totalBO   = jsonNorm?.totais_acabamentos?.boleado_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_ml        ?? 0), 0) * 100) / 100;
+    const totalBD   = jsonNorm?.totais_acabamentos?.boleado_duplo_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_duplo_ml  ?? 0), 0) * 100) / 100;
+    const totalRD   = jsonNorm?.totais_acabamentos?.reto_duplo_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_duplo_ml     ?? 0), 0) * 100) / 100;
+    const totalCF   = jsonNorm?.totais_acabamentos?.chanfrado_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.chanfrado_ml      ?? 0), 0) * 100) / 100;
 
     function handleClose() { onClose(); setZoomedUrl(null); }
 
@@ -581,18 +617,19 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                     <span className="font-mono text-[11px] text-zinc-300">Área total</span>
                                     <span className="font-mono text-[11px] text-yellow-400 font-bold">{totalArea} m²</span>
                                 </div>
-                                {totalME > 0 && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-mono text-[11px] text-zinc-300">Meia-Esquadria</span>
-                                        <span className="font-mono text-[11px] text-yellow-400 font-bold">{totalME} ml</span>
+                                {[
+                                    { label: 'Meia-Esquadria', val: totalME },
+                                    { label: 'Reto Simples',   val: totalRS },
+                                    { label: 'Boleado',        val: totalBO },
+                                    { label: 'Boleado Duplo',  val: totalBD },
+                                    { label: 'Reto Duplo',     val: totalRD },
+                                    { label: 'Chanfrado',      val: totalCF },
+                                ].filter(({ val }) => val > 0).map(({ label, val }) => (
+                                    <div key={label} className="flex items-center justify-between">
+                                        <span className="font-mono text-[11px] text-zinc-300">{label}</span>
+                                        <span className="font-mono text-[11px] text-yellow-400 font-bold">{val} ml</span>
                                     </div>
-                                )}
-                                {totalRS > 0 && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-mono text-[11px] text-zinc-300">Reto Simples</span>
-                                        <span className="font-mono text-[11px] text-yellow-400 font-bold">{totalRS} ml</span>
-                                    </div>
-                                )}
+                                ))}
                             </div>
                         </div>
                     )}
