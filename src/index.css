@@ -120,30 +120,110 @@ button:not(:disabled):active {
 body { margin: 0; }
 
 /* ══════════════════════════════════════════════════════
-   LIGHT MODE OVERRIDES
+   LIGHT MODE — PALETA COMPLETA (identidade própria)
+   Estratégia: sobrescreve as variáveis CSS do Tailwind v4
+   para gray-* e yellow-*, afetando automaticamente todos
+   os componentes sem alterar o tema escuro.
    ══════════════════════════════════════════════════════ */
 
-/* Skeletons */
-:root:not(.dark) .sk      { background: #e4e4e7; }
-:root:not(.dark) .sk-dark { background: #d4d4d8; }
+/* ── 1. Variáveis semânticas + remap das escalas Tailwind ── */
+:root:not(.dark) {
+  /* Fundos */
+  --bg-app:     #F0F2F5;
+  --bg-sidebar: #FFFFFF;
+  --bg-card:    #FFFFFF;
+  --bg-input:   #FFFFFF;
+  --bg-hover:   #F5F7FA;
 
-/* Scrollbar */
-:root:not(.dark) ::-webkit-scrollbar-track { background: #f4f4f5; }
-:root:not(.dark) ::-webkit-scrollbar-thumb { background: #a1a1aa; }
-:root:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #71717a; }
+  /* Texto */
+  --text-primary:   #1A2033;
+  --text-secondary: #4A5568;
+  --text-tertiary:  #8A94A6;
 
-/* bg-grid — linhas mais sutis no fundo claro */
-:root:not(.dark) .bg-grid {
-  background-image:
-    linear-gradient(to right,  rgba(0,0,0,0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
+  /* Bordas */
+  --border:       #DDE2EC;
+  --border-light: #EEF1F6;
+
+  /* Acento (substitui amarelo no modo claro) */
+  --accent:       #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-light: #EFF6FF;
+  --accent-text:  #FFFFFF;
+
+  /* ── Gray → azul-acinzentado neutro ──────────────────
+     gray-50  = #FFFFFF    → superfícies/cards
+     gray-100 = #F0F2F5    → fundo da aplicação
+     gray-300 = #DDE2EC    → bordas
+     gray-900 = #1A2033    → texto principal          */
+  --color-gray-50:  #FFFFFF;
+  --color-gray-100: #F0F2F5;
+  --color-gray-200: #EEF1F6;
+  --color-gray-300: #DDE2EC;
+  --color-gray-400: #8A94A6;
+  --color-gray-500: #4A5568;
+  --color-gray-600: #3D4A5C;
+  --color-gray-700: #2D3748;
+  --color-gray-800: #1E2A3A;
+  --color-gray-900: #1A2033;
+  --color-gray-950: #111827;
+
+  /* ── Yellow → Blue (acento primário) ─────────────────
+     Toda classe yellow-* no tema claro vira azul.
+     Amber-* (status financeiro) não é afetado.        */
+  --color-yellow-50:  #EFF6FF;
+  --color-yellow-100: #DBEAFE;
+  --color-yellow-200: #BFDBFE;
+  --color-yellow-300: #60A5FA;
+  --color-yellow-400: #2563EB;
+  --color-yellow-500: #2563EB;
+  --color-yellow-600: #1D4ED8;
+  --color-yellow-700: #1D4ED8;
+  --color-yellow-800: #1E40AF;
+  --color-yellow-900: #1E3A8A;
 }
 
-/* Scanline — não faz sentido no modo claro */
+/* ── 2. Cards — sombra sutil (bg-gray-50 = white após o remap) ── */
+:root:not(.dark) .bg-gray-50 {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* ── 3. Força texto branco nos elementos com bg-yellow-400
+        (agora azul — black text em azul escuro tem baixo contraste) ── */
+:root:not(.dark) .bg-yellow-400 { color: #FFFFFF !important; }
+
+/* ── 4. Skeletons ─────────────────────────────────────── */
+:root:not(.dark) .sk      { background: #E2E8F0; }
+:root:not(.dark) .sk-dark { background: #DDE2EC; }
+
+/* ── 5. Scrollbar ─────────────────────────────────────── */
+:root:not(.dark) ::-webkit-scrollbar-track { background: #F0F2F5; }
+:root:not(.dark) ::-webkit-scrollbar-thumb { background: #C4CBD8; }
+:root:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #8A94A6; }
+
+/* ── 6. Grid — removido completamente no modo claro ────── */
+:root:not(.dark) .bg-grid { background-image: none !important; background-size: auto; }
+
+/* ── 7. Scanline — sem sentido no modo claro ───────────── */
 :root:not(.dark) .scanline { display: none; }
 
-/* custom-scrollbar usado em Clientes.jsx */
-:root:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d8; }
+/* ── 8. Modais — fundo branco (bg-gray-100 ficou #F0F2F5) ── */
+:root:not(.dark) .modal-content { background-color: #FFFFFF !important; }
+
+/* ── 9. custom-scrollbar em Clientes.jsx ───────────────── */
+:root:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb { background: #C4CBD8; }
+
+/* ── 10. Checkboxes — acento azul ────────────────────── */
+:root:not(.dark) input[type="checkbox"]          { border-color: #C4CBD8; }
+:root:not(.dark) input[type="checkbox"]:hover    { border-color: #2563EB; }
+:root:not(.dark) input[type="checkbox"]:checked  { background-color: #2563EB; border-color: #2563EB; }
+:root:not(.dark) input[type="checkbox"]:checked::after { border-color: #FFFFFF; }
+
+/* ── 11. Focus ring azul em inputs/selects ─────────────── */
+:root:not(.dark) input:focus-visible,
+:root:not(.dark) select:focus-visible,
+:root:not(.dark) textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
 
 /* ══════════════════════════════════════════════════════
    UI SCALE — denso, legível, profissional
@@ -204,9 +284,9 @@ button.w-4 iconify-icon {
 .text-red-500    { color: #dc2626 !important; }
 
 /* 7. Textos secundários legíveis no tema escuro */
-.text-zinc-500 { color: #a1a1aa !important; }
-.text-zinc-600 { color: #a1a1aa !important; }
-.text-zinc-400 { color: #d4d4d8 !important; }
+.dark .text-zinc-500 { color: #a1a1aa !important; }
+.dark .text-zinc-600 { color: #a1a1aa !important; }
+.dark .text-zinc-400 { color: #d4d4d8 !important; }
 
 /* 8. Line-height profissional */
 tr, .leading-tight { line-height: 1.4 !important; }

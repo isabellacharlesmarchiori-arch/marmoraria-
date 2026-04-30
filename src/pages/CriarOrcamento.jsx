@@ -11,13 +11,6 @@ function isValidUUID(v) {
 
 
 
-const CATEGORIAS = [
-  { key: 'todos',       label: 'Todos'        },
-  { key: 'granito',     label: 'Granito'      },
-  { key: 'marmore',     label: 'Mármore'      },
-  { key: 'quartzito',   label: 'Quartzito'    },
-  { key: 'porcelanato', label: 'Porcelanato'  },
-];
 
 const ACABAMENTO_LABEL = {
   meia_esquadria: 'Meia-Esquadria',
@@ -327,6 +320,11 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
   const [sel, setSel] = useState(selecionados);
   const [acabamentoSel, setAcabamentoSel] = useState(null);
 
+  const categoriasDisponiveis = useMemo(
+    () => [...new Set(todosM.map(m => m.categoria).filter(Boolean))].sort(),
+    [todosM]
+  );
+
   const variacoesMat = useMemo(() => {
     if (!single || sel.length === 0) return [];
     return todosM.find(m => m.id === sel[0])?.variacoes_precos ?? [];
@@ -383,17 +381,17 @@ function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar,
           </div>
           {/* Categorias */}
           <div className="flex gap-1.5 flex-wrap">
-            {CATEGORIAS.map(c => (
+            {['todos', ...categoriasDisponiveis].map(cat => (
               <button
-                key={c.key}
-                onClick={() => setCategoria(c.key)}
+                key={cat}
+                onClick={() => setCategoria(cat)}
                 className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border transition-colors ${
-                  categoria === c.key
+                  categoria === cat
                     ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5'
                     : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400'
                 }`}
               >
-                {c.label}
+                {cat === 'todos' ? 'Todos' : cat}
               </button>
             ))}
           </div>
@@ -3866,7 +3864,10 @@ export default function CriarOrcamento() {
                               </div>
                             )),
                             // Furos / recortes do grupo
-                            ...ge.furos.map(fu => (
+                            ...ge.furos.map(fu => {
+                              const matchFuro = fu.tipo ? acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()) : null;
+                              const naoCadastrado = fu.tipo && !matchFuro;
+                              return (
                               <div key={fu.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/10 border-b border-teal-900/20 group">
                                 <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
                                 <input
@@ -3875,12 +3876,20 @@ export default function CriarOrcamento() {
                                   className="flex-1 bg-transparent border-b border-teal-900/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-teal-500/60 min-w-0"
                                 />
                                 {fu.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{fu.formato}</span>}
-                                <span className="flex-1"></span>
+                                {matchFuro && (
+                                  <span className="font-mono text-[9px] text-teal-400 shrink-0">
+                                    {parseFloat(matchFuro.preco_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un
+                                  </span>
+                                )}
+                                {naoCadastrado && (
+                                  <span className="font-mono text-[9px] text-red-500 shrink-0">não cadastrado</span>
+                                )}
                                 <button onClick={() => removeGrupoFuro(geKey, fu.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                                   <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                 </button>
                               </div>
-                            )),
+                              );
+                            }),
                             // Botões adicionar
                             <div key={`add-${gKey}`} className="flex items-center gap-3 pl-6 pr-4 py-1 bg-zinc-950/20 border-b border-zinc-900/30">
                               <button onClick={() => addGrupoAcabamento(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-amber-800 hover:text-amber-500 transition-colors">

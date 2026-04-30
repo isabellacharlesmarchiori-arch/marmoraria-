@@ -165,13 +165,13 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[220px] bg-gray-100 dark:bg-[#080808] border-r border-gray-300 dark:border-zinc-800 flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-[220px] bg-white dark:bg-[#080808] border-r border-gray-300 dark:border-zinc-800 flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* 1. Logo */}
         <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-300 dark:border-zinc-800 shrink-0">
-          <div className="w-2 h-2 bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.5)]"></div>
+          <div className="w-2 h-2 bg-yellow-400 shadow-[0_0_6px_rgba(37,99,235,0.5)] dark:shadow-[0_0_6px_rgba(250,204,21,0.5)]"></div>
           <span className="font-mono font-bold uppercase tracking-widest text-[11px] text-gray-900 dark:text-white">SmartStone</span>
           <span className="ml-auto font-mono text-[8px] text-gray-400 dark:text-zinc-600 uppercase">v1.0</span>
         </div>
@@ -242,7 +242,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
       <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full overflow-hidden">
 
         {/* Topbar */}
-        <header className="h-12 bg-gray-100 dark:bg-[#050505] border-b border-gray-300 dark:border-zinc-800 px-6 flex items-center justify-between shrink-0">
+        <header className="h-12 bg-white dark:bg-[#050505] border-b border-gray-300 dark:border-zinc-800 px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <button
               className="lg:hidden text-gray-700 dark:text-white flex items-center"
@@ -267,7 +267,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
               </span>
               <input
                 placeholder="Buscar..."
-                className="bg-gray-100 dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono pl-7 pr-3 h-8 w-48 rounded-none outline-none focus:border-yellow-500 dark:focus:border-yellow-400 focus:shadow-[0_0_8px_rgba(250,204,21,0.15)] placeholder:text-gray-400 dark:placeholder:text-zinc-700 transition-all"
+                className="bg-white dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono pl-7 pr-3 h-8 w-48 rounded-none outline-none focus:border-yellow-500 dark:focus:border-yellow-400 dark:focus:shadow-[0_0_8px_rgba(250,204,21,0.15)] placeholder:text-gray-400 dark:placeholder:text-zinc-700 transition-all"
               />
             </div>
 
@@ -283,7 +283,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
             >
               <iconify-icon icon="solar:bell-linear" width="18"></iconify-icon>
               {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-none shadow-[0_0_6px_rgba(250,204,21,0.5)]"></span>
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-none shadow-[0_0_6px_rgba(37,99,235,0.5)] dark:shadow-[0_0_6px_rgba(250,204,21,0.5)]"></span>
               )}
             </button>
 
@@ -311,8 +311,8 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
                 key={t.id}
                 className={`flex items-start gap-3 p-4 border shadow-2xl pointer-events-auto backdrop-blur-sm ${
                   isMedicao
-                    ? 'bg-gray-100 dark:bg-[#0a0a0a] border-green-300 dark:border-green-500/40 border-l-2 border-l-green-500 dark:border-l-green-400'
-                    : 'bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-zinc-700'
+                    ? 'bg-white dark:bg-[#0a0a0a] border-green-300 dark:border-green-500/40 border-l-2 border-l-green-500 dark:border-l-green-400'
+                    : 'bg-white dark:bg-[#0a0a0a] border-gray-300 dark:border-zinc-700'
                 }`}
                 style={{ animation: 'slideIn 0.3s ease' }}
               >
