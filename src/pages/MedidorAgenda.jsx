@@ -133,7 +133,7 @@ export default function MedidorAgenda() {
     const { data, error } = await supabase
       .from('medicoes')
       .select(`
-        id, projeto_id, data_medicao, endereco, observacoes_acesso, status,
+        medicao_id:id, projeto_id, data_medicao, endereco, observacoes_acesso, status,
         projetos(nome, vendedor_id, empresa_id, clientes(nome, telefone))
       `)
       .eq('medidor_id', session.user.id)
@@ -144,7 +144,8 @@ export default function MedidorAgenda() {
       .order('data_medicao', { ascending: true });
 
     if (error) console.error('[MedidorAgenda] Erro:', error);
-    if (data) setMedicoes(data);
+    // Normaliza: garante que m.id = medicoes.id independente de variações do client
+    if (data) setMedicoes(data.map(m => ({ ...m, id: m.medicao_id })));
     setLoading(false);
   }, [session?.user?.id]);
 
@@ -152,7 +153,7 @@ export default function MedidorAgenda() {
 
   // ── Deep link ────────────────────────────────────────────────────────────
   function handleRealizarClick(m) {
-    console.log('[DeepLink] medicao.id=', m.id, '| projeto_id=', m.projeto_id, '| projetos.vendedor_id=', m.projetos?.vendedor_id);
+    console.log('[DeepLink] m.id=', m.id, '| m.medicao_id=', m.medicao_id, '| m.projeto_id=', m.projeto_id);
     window.location.href = `smartstone://medicao?id=${m.id}`;
   }
 
