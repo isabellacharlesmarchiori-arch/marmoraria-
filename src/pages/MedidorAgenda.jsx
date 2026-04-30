@@ -40,12 +40,12 @@ function CardAgenda({ m, onRealizarClick }) {
   const cli  = proj.clientes ?? {};
 
   return (
-    <div className="mb-3 border border-zinc-700 bg-[#0a0a0a]">
+    <div className="mb-3 border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-[#0a0a0a]">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-zinc-800 flex items-start justify-between gap-3">
+      <div className="px-4 py-3 border-b border-gray-300 dark:border-zinc-800 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-semibold text-sm text-white truncate">{proj.nome ?? '—'}</div>
-          <div className="font-mono text-[10px] text-zinc-600 mt-0.5">
+          <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{proj.nome ?? '—'}</div>
+          <div className="font-mono text-[10px] text-gray-400 dark:text-zinc-600 mt-0.5">
             {formatarDataCurta(m.data_medicao)}
           </div>
         </div>
@@ -58,13 +58,13 @@ function CardAgenda({ m, onRealizarClick }) {
       <div className="px-4 py-3 space-y-2.5">
         {cli.nome && (
           <div className="flex items-center gap-2.5">
-            <iconify-icon icon="solar:user-linear" width="13" className="text-zinc-600 shrink-0"></iconify-icon>
-            <span className="text-sm text-zinc-300">{cli.nome}</span>
+            <iconify-icon icon="solar:user-linear" width="13" className="text-gray-400 dark:text-zinc-600 shrink-0"></iconify-icon>
+            <span className="text-sm text-gray-700 dark:text-zinc-300">{cli.nome}</span>
           </div>
         )}
         {cli.telefone && (
           <div className="flex items-center gap-2.5">
-            <iconify-icon icon="solar:phone-linear" width="13" className="text-zinc-600 shrink-0"></iconify-icon>
+            <iconify-icon icon="solar:phone-linear" width="13" className="text-gray-400 dark:text-zinc-600 shrink-0"></iconify-icon>
             <a href={`tel:${cli.telefone}`} className="font-mono text-[11px] text-yellow-400 hover:underline">
               {cli.telefone}
             </a>
@@ -72,12 +72,12 @@ function CardAgenda({ m, onRealizarClick }) {
         )}
         {m.endereco && (
           <div className="flex items-start gap-2.5">
-            <iconify-icon icon="solar:map-point-linear" width="13" className="text-zinc-600 shrink-0 mt-0.5"></iconify-icon>
+            <iconify-icon icon="solar:map-point-linear" width="13" className="text-gray-400 dark:text-zinc-600 shrink-0 mt-0.5"></iconify-icon>
             <a
               href={mapsUrl(m.endereco)}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-[11px] text-blue-400 hover:underline leading-snug"
+              className="font-mono text-[11px] text-blue-600 dark:text-blue-400 hover:underline leading-snug"
             >
               {m.endereco}
               <iconify-icon icon="solar:arrow-right-up-linear" width="10" className="ml-1 inline"></iconify-icon>
@@ -93,7 +93,7 @@ function CardAgenda({ m, onRealizarClick }) {
             <iconify-icon icon="solar:info-circle-bold" width="11"></iconify-icon>
             Observações de Acesso
           </div>
-          <p className="text-xs text-zinc-300 leading-relaxed">{m.observacoes_acesso}</p>
+          <p className="text-xs text-gray-700 dark:text-zinc-300 leading-relaxed">{m.observacoes_acesso}</p>
         </div>
       )}
 
@@ -252,15 +252,15 @@ export default function MedidorAgenda() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-[#050505] text-[#a1a1aa] min-h-screen">
+    <div className="bg-gray-100 dark:bg-[#050505] text-gray-500 dark:text-[#a1a1aa] min-h-screen">
 
       {/* Cabeçalho */}
-      <div className="px-6 pt-6 pb-4 border-b border-zinc-800">
-        <div className="text-[10px] font-mono text-white mb-1 uppercase tracking-widest border border-zinc-800 w-max px-2 py-0.5">
+      <div className="px-6 pt-6 pb-4 border-b border-gray-300 dark:border-zinc-800">
+        <div className="text-[10px] font-mono text-gray-900 dark:text-white mb-1 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-0.5">
           Agenda de Medições
         </div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Agenda</h1>
-        <p className="font-mono text-[10px] text-zinc-600 mt-0.5 capitalize">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">Agenda</h1>
+        <p className="font-mono text-[10px] text-gray-400 dark:text-zinc-600 mt-0.5 capitalize">
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
         </p>
       </div>
@@ -268,13 +268,13 @@ export default function MedidorAgenda() {
       {/* Lista */}
       <div className="px-4 py-4 max-w-xl mx-auto">
         {loading ? (
-          <div className="py-16 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-700 animate-pulse">
+          <div className="py-16 text-center font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 animate-pulse">
             Carregando agenda...
           </div>
         ) : medicoes.length === 0 ? (
           <div className="py-16 text-center">
-            <iconify-icon icon="solar:calendar-mark-linear" width="36" className="text-zinc-800 block mx-auto mb-3"></iconify-icon>
-            <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-700">Nenhuma medição agendada</p>
+            <iconify-icon icon="solar:calendar-mark-linear" width="36" className="text-gray-300 dark:text-zinc-800 block mx-auto mb-3"></iconify-icon>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhuma medição agendada</p>
           </div>
         ) : medicoes.map(m => (
           <CardAgenda key={m.id} m={m} onRealizarClick={handleRealizarClick} />
@@ -285,18 +285,18 @@ export default function MedidorAgenda() {
       {/* ── Modal Realizar Medição ────────────────────────────────────────── */}
       {modalAberto && medicaoAtiva && (
         <div className="modal-backdrop fixed inset-0 z-50 bg-black/80 flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4">
-          <div className="bg-[#0a0a0a] border border-zinc-800 w-full sm:max-w-lg max-h-[94vh] flex flex-col">
+          <div className="modal-content bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full sm:max-w-lg max-h-[94vh] flex flex-col">
 
             {/* Cabeçalho modal */}
-            <div className="px-4 py-3 border-b border-zinc-800 flex items-start justify-between gap-3 shrink-0">
+            <div className="px-4 py-3 border-b border-gray-300 dark:border-zinc-800 flex items-start justify-between gap-3 shrink-0">
               <div>
                 <div className="text-[10px] font-mono text-yellow-400 uppercase tracking-widest mb-0.5">Realizar Medição</div>
-                <div className="text-sm font-semibold text-white">{medicaoAtiva.projetos?.nome}</div>
-                <div className="font-mono text-[10px] text-zinc-600">{medicaoAtiva.projetos?.clientes?.nome}</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">{medicaoAtiva.projetos?.nome}</div>
+                <div className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{medicaoAtiva.projetos?.clientes?.nome}</div>
               </div>
               <button
                 onClick={fecharModal}
-                className="w-8 h-8 flex items-center justify-center border border-zinc-800 text-zinc-500 hover:text-white transition-colors shrink-0"
+                className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-400 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors shrink-0"
               >
                 <iconify-icon icon="solar:close-linear" width="14"></iconify-icon>
               </button>
@@ -308,7 +308,7 @@ export default function MedidorAgenda() {
               {/* Tabela de Medidas */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Medidas</span>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">Medidas</span>
                   <button
                     onClick={addMedida}
                     className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-yellow-400/30 px-2 py-1 hover:bg-yellow-400/10 transition-colors flex items-center gap-1"
@@ -320,19 +320,19 @@ export default function MedidorAgenda() {
 
                 <div className="space-y-2">
                   {medidas.map((row, idx) => (
-                    <div key={row.id} className="border border-zinc-800 bg-zinc-950 p-3 space-y-2">
+                    <div key={row.id} className="border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 p-3 space-y-2">
                       {/* Linha 1: Peça + botão remover */}
                       <div className="flex gap-2 items-center">
                         <input
                           value={row.peca}
                           onChange={e => changeMedida(row.id, 'peca', e.target.value)}
                           placeholder={`Peça ${idx + 1} (ex: Bancada Cozinha)`}
-                          className="flex-1 bg-transparent border border-zinc-800 text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-400 placeholder:text-zinc-700"
+                          className="flex-1 bg-white dark:bg-transparent border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 placeholder:text-gray-400 dark:placeholder:text-zinc-700"
                         />
                         <button
                           onClick={() => removeMedida(row.id)}
                           disabled={medidas.length === 1}
-                          className="w-7 h-[30px] flex items-center justify-center border border-zinc-800 text-zinc-700 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-30"
+                          className="w-7 h-[30px] flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-400 dark:text-zinc-700 hover:text-red-500 dark:hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-30"
                         >
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon>
                         </button>
@@ -346,12 +346,12 @@ export default function MedidorAgenda() {
                           { field: 'qtd',     label: 'Qtd' },
                         ].map(({ field, label }) => (
                           <div key={field}>
-                            <div className="font-mono text-[8px] uppercase tracking-widest text-zinc-700 mb-1">{label}</div>
+                            <div className="font-mono text-[8px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 mb-1">{label}</div>
                             <input
                               value={row[field]}
                               onChange={e => changeMedida(row.id, field, e.target.value)}
                               placeholder={field === 'qtd' ? '1' : '0,00 m'}
-                              className="w-full bg-transparent border border-zinc-800 text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-400 placeholder:text-zinc-700 text-center"
+                              className="w-full bg-white dark:bg-transparent border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 placeholder:text-gray-400 dark:placeholder:text-zinc-700 text-center"
                             />
                           </div>
                         ))}
@@ -360,22 +360,22 @@ export default function MedidorAgenda() {
                       {/* Linha 3: Acabamento + Espessura */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <div className="font-mono text-[8px] uppercase tracking-widest text-zinc-700 mb-1">Acabamento de face</div>
+                          <div className="font-mono text-[8px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 mb-1">Acabamento de face</div>
                           <select
                             value={row.acabamento}
                             onChange={e => changeMedida(row.id, 'acabamento', e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-800 text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-400 appearance-none"
+                            className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 appearance-none"
                           >
                             <option value="">— Selecionar —</option>
                             {ACABAMENTOS.map(a => <option key={a} value={a}>{a}</option>)}
                           </select>
                         </div>
                         <div>
-                          <div className="font-mono text-[8px] uppercase tracking-widest text-zinc-700 mb-1">Espessura</div>
+                          <div className="font-mono text-[8px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 mb-1">Espessura</div>
                           <select
                             value={row.espessura}
                             onChange={e => changeMedida(row.id, 'espessura', e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-800 text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-400 appearance-none"
+                            className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-mono px-2 py-1.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 appearance-none"
                           >
                             <option value="">— Selecionar —</option>
                             {ESPESSURAS.map(e => <option key={e} value={e}>{e}</option>)}
@@ -389,7 +389,7 @@ export default function MedidorAgenda() {
 
               {/* Notas Técnicas */}
               <div>
-                <label className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 block mb-2">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 block mb-2">
                   Notas Técnicas
                 </label>
                 <textarea
@@ -397,7 +397,7 @@ export default function MedidorAgenda() {
                   onChange={e => setNotas(e.target.value)}
                   rows={3}
                   placeholder="Ex: Parede fora de prumo, tomada no meio da bancada..."
-                  className="w-full bg-zinc-950 border border-zinc-800 text-white text-xs font-mono px-3 py-2.5 outline-none focus:border-yellow-400 placeholder:text-zinc-700 resize-none"
+                  className="w-full bg-white dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-mono px-3 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 placeholder:text-gray-400 dark:placeholder:text-zinc-700 resize-none"
                 />
               </div>
 
@@ -409,11 +409,11 @@ export default function MedidorAgenda() {
             </div>
 
             {/* Rodapé */}
-            <div className="px-4 py-3 border-t border-zinc-800 flex gap-2 shrink-0">
+            <div className="px-4 py-3 border-t border-gray-300 dark:border-zinc-800 flex gap-2 shrink-0">
               <button
                 onClick={fecharModal}
                 disabled={salvando}
-                className="flex-1 py-3 font-mono text-[10px] uppercase tracking-widest border border-zinc-800 text-zinc-500 hover:text-white transition-colors disabled:opacity-40"
+                className="flex-1 py-3 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-40"
               >
                 Cancelar
               </button>

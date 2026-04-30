@@ -49,20 +49,20 @@ function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
   });
 
   return (
-    <div className="mt-4 border border-zinc-700 bg-[#0a0a0a]">
-      <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 capitalize">
+    <div className="mt-4 border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-[#0a0a0a]">
+      <div className="px-4 py-3 border-b border-gray-300 dark:border-zinc-800 flex items-center justify-between">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-400 capitalize">
           {dataFormatada} · {medicoes.length} medição{medicoes.length !== 1 ? 'ões' : ''}
         </span>
         <button
           onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-white transition-colors"
+          className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           <iconify-icon icon="solar:close-linear" width="13"></iconify-icon>
         </button>
       </div>
 
-      <div className="divide-y divide-zinc-800/60">
+      <div className="divide-y divide-gray-200 dark:divide-zinc-800/60">
         {medicoes.map(m => {
           const tipo       = tipoLabel(m.json_medicao);
           const hora       = formatHora(m.data_enviada);
@@ -74,16 +74,16 @@ function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
             <div key={m.id} className="px-4 py-3 space-y-2.5">
               {/* Projeto + tipo + hora */}
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-white truncate">{proj.nome ?? '—'}</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{proj.nome ?? '—'}</div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest border ${
                     isProducao
-                      ? 'text-purple-400 border-purple-400/30 bg-purple-400/5'
+                      ? 'text-purple-600 dark:text-purple-400 border-purple-400/30 bg-purple-400/5'
                       : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5'
                   }`}>
                     {tipo}
                   </span>
-                  <span className="font-mono text-[10px] text-zinc-600">{hora}</span>
+                  <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{hora}</span>
                 </div>
               </div>
 
@@ -93,7 +93,7 @@ function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
                 {svgUrl ? (
                   <button
                     onClick={() => onVerDesenho(m)}
-                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-zinc-800 hover:border-gray-400 dark:hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
                   >
                     <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
                     Ver Desenho
@@ -101,7 +101,7 @@ function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
                 ) : (
                   <span
                     title="Desenho não disponível"
-                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-700 border border-zinc-900 px-2.5 py-1.5 cursor-not-allowed"
+                    className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-gray-300 dark:text-zinc-700 border border-gray-200 dark:border-zinc-900 px-2.5 py-1.5 cursor-not-allowed"
                   >
                     <iconify-icon icon="solar:map-linear" width="11"></iconify-icon>
                     Ver Desenho
@@ -111,7 +111,7 @@ function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
                 {/* Abrir no App — deep link Flutter */}
                 <button
                   onClick={() => { window.location.href = `smartstone://medicao?id=${m.id}`; }}
-                  className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
+                  className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-zinc-800 hover:border-gray-400 dark:hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
                 >
                   <iconify-icon icon="solar:smartphone-linear" width="11"></iconify-icon>
                   Abrir no App
@@ -187,19 +187,19 @@ export default function MedidorHistorico() {
   const mostrarLoading = authLoading || dataLoading;
 
   return (
-    <div className="bg-[#050505] text-[#a1a1aa] min-h-screen">
+    <div className="bg-gray-100 dark:bg-[#050505] text-gray-500 dark:text-[#a1a1aa] min-h-screen">
 
       {/* Cabeçalho */}
-      <div className="px-6 pt-6 pb-4 border-b border-zinc-800">
-        <div className="text-[10px] font-mono text-white mb-1 uppercase tracking-widest border border-zinc-800 w-max px-2 py-0.5">
+      <div className="px-6 pt-6 pb-4 border-b border-gray-300 dark:border-zinc-800">
+        <div className="text-[10px] font-mono text-gray-900 dark:text-white mb-1 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-0.5">
           Histórico
         </div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Medições Realizadas</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">Medições Realizadas</h1>
       </div>
 
       <div className="px-4 py-4 max-w-xl mx-auto">
         {mostrarLoading ? (
-          <div className="py-16 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-700 animate-pulse">
+          <div className="py-16 text-center font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 animate-pulse">
             Carregando histórico...
           </div>
         ) : (
@@ -208,26 +208,26 @@ export default function MedidorHistorico() {
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => navMes(-1)}
-                className="w-8 h-8 flex items-center justify-center border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors"
+                className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-zinc-600 transition-colors"
               >
                 <iconify-icon icon="solar:alt-arrow-left-linear" width="14"></iconify-icon>
               </button>
-              <span className="font-mono text-xs uppercase tracking-widest text-zinc-300 capitalize">
+              <span className="font-mono text-xs uppercase tracking-widest text-gray-700 dark:text-zinc-300 capitalize">
                 {mesLabel}
               </span>
               <button
                 onClick={() => navMes(1)}
-                className="w-8 h-8 flex items-center justify-center border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors"
+                className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-zinc-600 transition-colors"
               >
                 <iconify-icon icon="solar:alt-arrow-right-linear" width="14"></iconify-icon>
               </button>
             </div>
 
             {/* Grade do calendário */}
-            <div className="border border-zinc-800">
-              <div className="grid grid-cols-7 border-b border-zinc-800">
+            <div className="border border-gray-300 dark:border-zinc-800">
+              <div className="grid grid-cols-7 border-b border-gray-300 dark:border-zinc-800">
                 {DIAS_SEMANA.map(d => (
-                  <div key={d} className="py-2 text-center font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+                  <div key={d} className="py-2 text-center font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">
                     {d}
                   </div>
                 ))}
@@ -250,18 +250,18 @@ export default function MedidorHistorico() {
                       disabled={!temMedicao}
                       className={[
                         'relative flex flex-col items-center justify-start pt-2 pb-2 min-h-[52px] transition-colors',
-                        naoUltLinha ? 'border-b border-zinc-800' : '',
-                        naoUltCol   ? 'border-r border-zinc-800' : '',
-                        temMedicao  ? 'cursor-pointer hover:bg-white/[0.02]' : 'cursor-default',
+                        naoUltLinha ? 'border-b border-gray-300 dark:border-zinc-800' : '',
+                        naoUltCol   ? 'border-r border-gray-300 dark:border-zinc-800' : '',
+                        temMedicao  ? 'cursor-pointer hover:bg-gray-200/60 dark:hover:bg-white/[0.02]' : 'cursor-default',
                         isSel       ? 'bg-[#1D9E75]/10' : '',
                       ].join(' ')}
                     >
                       <span className={[
                         'w-6 h-6 flex items-center justify-center font-mono text-[11px] rounded-full',
-                        fora   ? 'text-zinc-700'
+                        fora   ? 'text-gray-300 dark:text-zinc-700'
                           : isHoje ? 'bg-[#1D9E75] text-white font-bold'
-                          : isSel  ? 'text-white'
-                          : 'text-zinc-400',
+                          : isSel  ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-500 dark:text-zinc-400',
                       ].join(' ')}>
                         {date.getDate()}
                       </span>
@@ -286,7 +286,7 @@ export default function MedidorHistorico() {
                 .filter(c => !c.fora)
                 .reduce((acc, c) => acc + (porDia.get(toDateKey(c.date))?.length ?? 0), 0);
               return doMes > 0 ? (
-                <div className="mt-2 font-mono text-[10px] text-zinc-700 text-right">
+                <div className="mt-2 font-mono text-[10px] text-gray-400 dark:text-zinc-700 text-right">
                   {doMes} medição{doMes !== 1 ? 'ões' : ''} em {mesLabel}
                 </div>
               ) : null;
@@ -305,8 +305,8 @@ export default function MedidorHistorico() {
             {/* Estado vazio */}
             {medicoes.length === 0 && (
               <div className="py-12 text-center">
-                <iconify-icon icon="solar:history-linear" width="36" className="text-zinc-800 block mx-auto mb-3"></iconify-icon>
-                <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-700">Nenhuma medição enviada ainda</p>
+                <iconify-icon icon="solar:history-linear" width="36" className="text-gray-200 dark:text-zinc-800 block mx-auto mb-3"></iconify-icon>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhuma medição enviada ainda</p>
               </div>
             )}
           </>
