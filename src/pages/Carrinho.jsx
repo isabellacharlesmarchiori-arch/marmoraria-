@@ -659,7 +659,7 @@ export default function Carrinho() {
     if (isMock(ambId)) return;
     setLoadingAmbId(ambId);
     try {
-      const { error } = await supabase.from('ambientes').delete().eq('id', ambId);
+      const { error } = await supabase.from('ambientes').delete().eq('id', ambId).eq('empresa_id', profile.empresa_id);
       if (error) setErro(error.message);
     } catch (err) { setErro(err.message); }
     finally { setLoadingAmbId(null); }
@@ -709,7 +709,7 @@ export default function Carrinho() {
     if (isMock(versaoId) || isMock(ambId)) return;
     setLoadingVersaoId(versaoId);
     try {
-      const { error } = await supabase.from('orcamentos').delete().eq('id', versaoId);
+      const { error } = await supabase.from('orcamentos').delete().eq('id', versaoId).eq('empresa_id', profile.empresa_id);
       if (error) setErro(error.message);
     } catch (err) { setErro(err.message); }
     finally { setLoadingVersaoId(null); }

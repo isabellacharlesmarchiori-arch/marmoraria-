@@ -351,8 +351,8 @@ export default function FinanceiroLancamentos() {
     fetchMissing();
   }, [lancamentos, profile?.empresa_id]); // lookupsRef é lido via ref, não como dep
 
-  // ── guard de perfil ──────────────────────────────────────────────────────
-  if (profile?.perfil === 'medidor') {
+  // ── guard de perfil — apenas admin ──────────────────────────────────────
+  if (profile?.perfil !== 'admin') {
     return (
       <div className="p-6">
         <p className="text-gray-500 dark:text-zinc-500 font-mono text-sm">Acesso restrito.</p>

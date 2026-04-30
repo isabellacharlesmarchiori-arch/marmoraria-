@@ -89,9 +89,14 @@ export function AuthProvider({ children }) {
           setProfile(perfilNormalizado)
 
           if (perfilNormalizado.empresa_id) {
+            // dados_bancarios só é carregado para admin — nunca expor a vendedor/medidor
+            const camposEmpresa = 'id, nome, cnpj, inscricao_estadual, telefone, whatsapp, email, email_contato, endereco, website, logo_url'
+            const selectEmpresa = perfilNormalizado.perfil === 'admin'
+              ? camposEmpresa + ', dados_bancarios'
+              : camposEmpresa
             const { data: emp, error: errEmp } = await supabase
               .from('empresas')
-              .select('id, nome, cnpj, inscricao_estadual, telefone, whatsapp, email, email_contato, endereco, website, logo_url, dados_bancarios')
+              .select(selectEmpresa)
               .eq('id', perfilNormalizado.empresa_id)
               .single()
 
@@ -126,9 +131,10 @@ export function AuthProvider({ children }) {
     if (data) setProfile(prev => ({ ...prev, ...data, perfil: data.perfil, role: data.perfil }))
   }, [session?.user?.id])
 
-  // loading = true enquanto getSession ainda não respondeu (session === undefined)
-  // RequireAuth aguarda loading=false antes de decidir redirecionar ou não
-  const loading = session === undefined
+  // loading = true enquanto sessão ou perfil ainda não foram resolvidos.
+  // Garante que RequireAdmin/RequireMedidor não redirecionem prematuramente
+  // durante o carregamento inicial após um refresh de página.
+  const loading = session === undefined || (session !== null && profileLoading)
 
   return (
     <AuthContext.Provider value={{ session, profile, empresa, loading, profileLoading, refreshProfile }}>

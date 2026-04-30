@@ -56,7 +56,7 @@ function PageLoader() {
   )
 }
 
-// ── Guard de autenticação ───────────────────────────────────────────────────
+// ── Guards de autenticação e perfil ────────────────────────────────────────
 
 function RequireAuth() {
   const { session, loading } = useAuth()
@@ -88,6 +88,24 @@ function RequireAuth() {
   return <Outlet />
 }
 
+// Só admin passa — qualquer outro perfil volta para /dashboard
+function RequireAdmin() {
+  const { profile, profileLoading } = useAuth()
+  if (profileLoading) return null
+  if (profile?.perfil !== 'admin') return <Navigate to="/dashboard" replace />
+  return <Outlet />
+}
+
+// Só perfis com acesso de medidor passam — vendedor puro volta para /dashboard
+function RequireMedidor() {
+  const { profile, profileLoading } = useAuth()
+  if (profileLoading) return null
+  const perfil = profile?.perfil ?? ''
+  const temAcesso = ['medidor', 'admin_medidor', 'vendedor_medidor', 'admin'].includes(perfil)
+  if (!temAcesso) return <Navigate to="/dashboard" replace />
+  return <Outlet />
+}
+
 // ── App ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -110,26 +128,31 @@ export default function App() {
               <Route path="/notificacoes"                element={<Notificacoes />} />
               <Route path="/projetos/:id/orcamento/novo" element={<CriarOrcamento />} />
               <Route path="/projetos/:id/carrinho"       element={<Carrinho />} />
-              <Route path="/admin"                       element={<Admin />} />
               <Route path="/admin/projetos"              element={<ProjetosAdminV2 />} />
               <Route path="/admin/clientes"              element={<Clientes />} />
-              <Route path="/admin/financeiro" element={<Financeiro />}>
-                <Route index                    element={<FinanceiroDashboard />} />
-                <Route path="dashboard"         element={<FinanceiroDashboard />} />
-                <Route path="lancamentos"       element={<FinanceiroLancamentos />} />
-                <Route path="contas"            element={<FinanceiroContas />} />
-                <Route path="cheques"           element={<FinanceiroCheques />} />
-                <Route path="relatorios"        element={<FinanceiroRelatorios />} />
+              {/* ── Rotas exclusivas de admin ── */}
+              <Route element={<RequireAdmin />}>
+                <Route path="/admin"                    element={<Admin />} />
+                <Route path="/admin/financeiro" element={<Financeiro />}>
+                  <Route index                    element={<FinanceiroDashboard />} />
+                  <Route path="dashboard"         element={<FinanceiroDashboard />} />
+                  <Route path="lancamentos"       element={<FinanceiroLancamentos />} />
+                  <Route path="contas"            element={<FinanceiroContas />} />
+                  <Route path="cheques"           element={<FinanceiroCheques />} />
+                  <Route path="relatorios"        element={<FinanceiroRelatorios />} />
+                </Route>
+                <Route path="/admin/configuracoes" element={<Configuracoes />} />
+                <Route path="/admin/mensagens"     element={<AdminMensagens />} />
+                <Route path="/admin/notificacoes"  element={<AdminNotificacoes />} />
               </Route>
-              <Route path="/admin/configuracoes"  element={<Configuracoes />} />
-              <Route path="/admin/mensagens"      element={<AdminMensagens />} />
-              <Route path="/admin/notificacoes"   element={<AdminNotificacoes />} />
               <Route path="/agenda"                      element={<Agenda />} />
-              {/* ── Rotas do Medidor ── */}
-              <Route path="/medidor"                     element={<PainelMedidor />} />
-              <Route path="/medidor/agenda"              element={<MedidorAgenda />} />
-              <Route path="/medidor/historico"           element={<MedidorHistorico />} />
-              <Route path="/medidor/notificacoes"        element={<MedidorNotificacoes />} />
+              {/* ── Rotas exclusivas de medidor ── */}
+              <Route element={<RequireMedidor />}>
+                <Route path="/medidor"                   element={<PainelMedidor />} />
+                <Route path="/medidor/agenda"            element={<MedidorAgenda />} />
+                <Route path="/medidor/historico"         element={<MedidorHistorico />} />
+                <Route path="/medidor/notificacoes"      element={<MedidorNotificacoes />} />
+              </Route>
             </Route>
           </Route>
         </Route>

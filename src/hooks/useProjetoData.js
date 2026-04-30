@@ -118,26 +118,31 @@ export function useProjetoData(projetoId, { session, profile, activeTab }) {
 
     // Medidores
     useEffect(() => {
-        let query = supabase.from('usuarios').select('id, nome').in('perfil', ['medidor', 'vendedor_medidor', 'admin_medidor']).eq('ativo', true).order('nome');
-        if (profile?.empresa_id) query = query.eq('empresa_id', profile.empresa_id);
-        query.then(({ data, error }) => {
-            if (error) console.error('[medidores] Erro ao buscar:', error);
-            if (data) setMedidores(data);
-        });
+        if (!profile?.empresa_id) return;
+        supabase.from('usuarios').select('id, nome')
+            .in('perfil', ['medidor', 'vendedor_medidor', 'admin_medidor'])
+            .eq('ativo', true)
+            .eq('empresa_id', profile.empresa_id)
+            .order('nome')
+            .then(({ data, error }) => {
+                if (error) console.error('[medidores] Erro ao buscar:', error);
+                if (data) setMedidores(data);
+            });
     }, [profile?.empresa_id]);
 
     // Pedido fechado + recarregar ao abrir aba carrinho
     useEffect(() => {
-        if (activeTab !== 'carrinho' || !projetoId) return;
+        if (activeTab !== 'carrinho' || !projetoId || !profile?.empresa_id) return;
         recarregarAmbientes();
         supabase.from('pedidos_fechados')
             .select('*')
             .eq('projeto_id', projetoId)
+            .eq('empresa_id', profile.empresa_id)
             .eq('status', 'FECHADO')
             .order('created_at', { ascending: false })
             .limit(1)
             .then(({ data }) => { if (data?.[0]) setPedidoFechado(data[0]); });
-    }, [activeTab, projetoId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab, projetoId, profile?.empresa_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return {
         projeto, setProjeto,

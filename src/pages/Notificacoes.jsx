@@ -80,11 +80,12 @@ export default function Notificacoes() {
   }
 
   async function marcarTodasLidas() {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !profile?.empresa_id) return;
     const { error } = await supabase
       .from('notificacoes')
       .update({ lida: true })
       .eq('usuario_id', session.user.id)
+      .eq('empresa_id', profile.empresa_id)
       .eq('lida', false);
     if (error) { console.error(error); return; }
     setNotifs(prev => prev.map(n => ({ ...n, lida: true })));

@@ -150,16 +150,17 @@ export function useProjectData(projectId, activeTab) {
 
     // Ao abrir aba Carrinho: recarrega ambientes + busca pedido fechado ativo
     useEffect(() => {
-        if (activeTab !== 'carrinho' || !projectId) return;
+        if (activeTab !== 'carrinho' || !projectId || !profile?.empresa_id) return;
         recarregarAmbientes();
         supabase.from('pedidos_fechados')
             .select('*')
             .eq('projeto_id', projectId)
+            .eq('empresa_id', profile.empresa_id)
             .eq('status', 'FECHADO')
             .order('created_at', { ascending: false })
             .limit(1)
             .then(({ data }) => { if (data?.[0]) setPedidoFechado(data[0]); });
-    }, [activeTab, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab, projectId, profile?.empresa_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Lazy load de peças ───────────────────────────────────────────────────
     // Chamado por toggleCarrinhoDetalhes quando o card expande e ainda não tem peças.

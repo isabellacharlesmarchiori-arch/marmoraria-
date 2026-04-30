@@ -439,8 +439,10 @@ function TabClientes({ empresaId, session, isAdmin }) {
               {[
                 { label: 'Telefone',   value: selected.telefone },
                 { label: 'Email',      value: selected.email },
-                { label: 'CPF',        value: selected.cpf },
-                { label: 'RG',         value: selected.rg },
+                ...(isAdmin ? [
+                  { label: 'CPF',        value: selected.cpf },
+                  { label: 'RG',         value: selected.rg },
+                ] : []),
                 { label: 'Nascimento', value: selected.data_nascimento },
               ].map(({ label, value }) => (
                 <div key={label} className="p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
@@ -799,8 +801,10 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
               {[
                 { label: 'Telefone',   value: selected.telefone },
                 { label: 'Email',      value: selected.email },
-                { label: 'CPF',        value: selected.cpf },
-                { label: 'RG',         value: selected.rg },
+                ...(isAdmin ? [
+                  { label: 'CPF',        value: selected.cpf },
+                  { label: 'RG',         value: selected.rg },
+                ] : []),
                 { label: 'Nascimento', value: selected.data_nascimento },
               ].map(({ label, value }) => (
                 <div key={label} className="p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
@@ -812,7 +816,7 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
                 <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">Endereço</div>
                 <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs">{selected.endereco || '—'}</div>
               </div>
-              {selected.dados_pagamento_pix && (
+              {isAdmin && selected.dados_pagamento_pix && (
                 <div className="col-span-2 p-3 border border-green-300/40 dark:border-green-900/40 bg-green-50/50 dark:bg-green-400/5">
                   <div className="text-[9px] font-mono text-green-700 dark:text-green-600 uppercase mb-1">PIX / Dados Bancários</div>
                   <div className="text-green-800 dark:text-green-300 font-mono text-xs">{selected.dados_pagamento_pix}</div>

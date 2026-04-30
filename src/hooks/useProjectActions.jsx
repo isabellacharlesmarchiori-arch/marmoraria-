@@ -705,7 +705,7 @@ export function useProjectActions(projectId, {
         if (!pedidoFechado?.id) return;
         if (!window.confirm('Reverter pedido para status de orçamento? Os cenários descartados ainda dentro do prazo de 7 dias serão restaurados.')) return;
         try {
-            await supabase.from('pedidos_fechados').update({ status: 'REVERTIDO' }).eq('id', pedidoFechado.id);
+            await supabase.from('pedidos_fechados').update({ status: 'REVERTIDO' }).eq('id', pedidoFechado.id).eq('empresa_id', profile.empresa_id);
             await supabase.from('projetos').update({ status_pedido: 'ORCAMENTO' }).eq('id', projectId);
             const ambIds = ambientes.map(a => a.id);
             if (ambIds.length) {
