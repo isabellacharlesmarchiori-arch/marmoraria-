@@ -69,7 +69,9 @@ export default function AdminNotificacoes() {
   const naoLidas = notifs.filter(n => !n.lida).length;
 
   async function marcarLida(id) {
+    const eraLida = notifs.find(n => n.id === id)?.lida ?? true;
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
+    if (!eraLida) window.dispatchEvent(new CustomEvent('notif-lida'));
     const { error } = await supabase
       .from('notificacoes')
       .update({ lida: true })
@@ -87,6 +89,7 @@ export default function AdminNotificacoes() {
       .eq('lida', false);
     if (error) { console.error(error); return; }
     setNotifs(prev => prev.map(n => ({ ...n, lida: true })));
+    window.dispatchEvent(new CustomEvent('notif-todas-lidas'));
   }
 
   async function handleClick(notif) {

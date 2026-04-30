@@ -131,10 +131,11 @@ export function AuthProvider({ children }) {
     if (data) setProfile(prev => ({ ...prev, ...data, perfil: data.perfil, role: data.perfil }))
   }, [session?.user?.id])
 
-  // loading = true enquanto sessão ou perfil ainda não foram resolvidos.
-  // Garante que RequireAdmin/RequireMedidor não redirecionem prematuramente
-  // durante o carregamento inicial após um refresh de página.
-  const loading = session === undefined || (session !== null && profileLoading)
+  // loading = true apenas enquanto não sabemos se existe sessão (getSession ainda não respondeu).
+  // profileLoading é gerenciado separadamente por RequireAdmin/RequireMedidor com `return null`,
+  // então NÃO incluímos profileLoading aqui — isso impede que RequireAuth desmonte o AppShell
+  // (e junto com ele o canal Realtime) cada vez que o perfil começa/termina de carregar.
+  const loading = session === undefined
 
   return (
     <AuthContext.Provider value={{ session, profile, empresa, loading, profileLoading, refreshProfile }}>

@@ -19,7 +19,6 @@ import {
 
 export default function TelaProjetoVendedor() {
     const { id } = useParams();
-    console.log('ID do Projeto recebido:', id);
     const navigate = useNavigate();
     const { session, profile, empresa: empresaCtx, loading: authLoading, profileLoading } = useAuth();
     const isAdmin = profile?.perfil === 'admin' || profile?.role === 'admin';

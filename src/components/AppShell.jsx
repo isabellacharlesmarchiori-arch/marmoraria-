@@ -72,6 +72,17 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     return () => { supabase.removeChannel(channel); };
   }, [session?.user?.id]);
 
+  useEffect(() => {
+    const handleLida      = () => setNotifCount(c => Math.max(0, c - 1));
+    const handleTodasLidas = () => setNotifCount(0);
+    window.addEventListener('notif-lida',       handleLida);
+    window.addEventListener('notif-todas-lidas', handleTodasLidas);
+    return () => {
+      window.removeEventListener('notif-lida',       handleLida);
+      window.removeEventListener('notif-todas-lidas', handleTodasLidas);
+    };
+  }, []);
+
   const menuVendedor = [
     { path: '/dashboard', label: 'Início', icon: 'solar:home-linear', subtitle: 'Dashboard pessoal' },
     { path: '/projetos', label: 'Projetos', icon: 'solar:layers-linear', subtitle: 'Gerenciamento de projetos' },

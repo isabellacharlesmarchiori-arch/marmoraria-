@@ -29,6 +29,9 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Cache API only supports GET — skip everything else (HEAD, POST, PATCH, DELETE…)
+  if (event.request.method !== 'GET') return;
+
   // Navigation requests (HTML pages): network first, fallback to cached index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
