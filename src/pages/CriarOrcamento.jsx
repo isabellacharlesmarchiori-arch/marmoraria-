@@ -133,7 +133,7 @@ function criarAcabamentosParaPeca(p, stoneUid, acabamentosUnitarios = []) {
       tipo:          'recorte',
       nome:          rc.funcao_label ?? rc.funcao ?? 'Recorte',
       formato:       rc.formato ?? null,
-      precoUnit:     acabUnit ? parseFloat(acabUnit.preco) : 0,
+      precoUnit:     acabUnit ? parseFloat(acabUnit.preco_unitario) : 0,
       ambiente_nome: p.ambiente_nome ?? null,
       item_nome:     p.item_nome ?? null,
     });
@@ -186,17 +186,18 @@ function autoMatchLinear(tipoAcabamento, pedraMatId, todosM, matLineares) {
   return candidatos[0].id; // fallback: primeiro candidato
 }
 
-// Aplica auto-match de matLinearId em todos os acabamentos com matLinearId === null
-// dentro de uma pecasList. Não sobrescreve seleções manuais (matLinearId !== null).
-function aplicarAutoMatchNaLista(pecasList, todosM, matLineares) {
+// Aplica auto-match de matLinearId em todos os acabamentos com matLinearId === null.
+// Usa comparação de nome exato (case-insensitive) — os nomes no banco coincidem com
+// os nomes do Flutter ("Boleado", "Boleado Duplo", etc.).
+function aplicarAutoMatchNaLista(pecasList, _todosM, matLineares) {
+  if (matLineares.length === 0) return pecasList;
   let changed = false;
   const nova = pecasList.map(pw => {
     if (pw.tipo !== 'acabamento' || pw.matLinearId !== null) return pw;
-    const pedra = pecasList.find(p => p.uid === pw.idPedraUid);
-    const match = autoMatchLinear(pw.tipoAcabamento, pedra?.matId ?? null, todosM, matLineares);
+    const match = matLineares.find(m => m.nome.toLowerCase() === pw.nome.toLowerCase());
     if (!match) return pw;
     changed = true;
-    return { ...pw, matLinearId: match };
+    return { ...pw, matLinearId: match.id };
   });
   return changed ? nova : pecasList;
 }
@@ -958,7 +959,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                 tipo: 'recorte',
                 nome: fu.tipo,
                 formato: fu.formato ?? null,
-                precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0,
+                precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0,
                 ambiente_nome: amb,
                 item_nome: grupoNomeVal,
               });
@@ -971,7 +972,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
             if (totalRS > 0) pecasList.push({ uid: `ac-rs-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'reto_simples', nome: 'Reto Simples', ml: totalRS, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
             pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => {
               const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase());
-              pecasList.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0, ambiente_nome: amb, item_nome: grupoNomeVal });
+              pecasList.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal });
             });
           }
         });
@@ -1035,14 +1036,6 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   const [editandoNomeItem, setEditandoNomeItem] = useState(null); // { amb, vId, itemKey, novo }
   const [editandoNomePeca, setEditandoNomePeca] = useState(null); // { amb, vId, uid, novo }
   const [painelMatVersao, setPainelMatVersao] = useState(null);  // { amb, vId, uid|null, itemKey|null, atual: matId|null, label }
-  const [painelMatLinear, setPainelMatLinear] = useState(null);  // { amb, vId, uid, atual: matLinearId|null, label }
-
-  function confirmarMatLinear(matLinearId) {
-    if (!painelMatLinear) return;
-    editarAcabamentoMat(painelMatLinear.amb, painelMatLinear.vId, painelMatLinear.uid, matLinearId || null);
-    setPainelMatLinear(null);
-  }
-
   function confirmarMatVersao(_, selecionados, acabamento = null) {
     const matId = selecionados[0] ?? '';
     if (!painelMatVersao) return;
@@ -1273,13 +1266,13 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
       const ge = grupoExtras[geKey];
       if (ge) {
         (ge.acabamentos ?? []).forEach(ac => { pecasListRaw.push({ uid: `ac-g-${ac.tipo === 'meia_esquadria' ? 'me' : 'rs'}-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: ac.tipo, nome: ac.tipo === 'meia_esquadria' ? 'Meia Esquadria' : 'Reto Simples', ml: ac.ml, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal }); });
-        (ge.furos ?? []).forEach(fu => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: fu.tipo, formato: fu.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
+        (ge.furos ?? []).forEach(fu => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: fu.tipo, formato: fu.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
       } else {
         const totalME = pcsGroup.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0);
         const totalRS = pcsGroup.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0);
         if (totalME > 0) pecasListRaw.push({ uid: `ac-me-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'meia_esquadria', nome: 'Meia Esquadria', ml: totalME, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
         if (totalRS > 0) pecasListRaw.push({ uid: `ac-rs-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'reto_simples', nome: 'Reto Simples', ml: totalRS, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
-        pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
+        pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
       }
     });
     const nova = { id: `v-${amb}-${Date.now()}`, nome: `Versão ${existentes.length + 1}`, pecasList: aplicarAutoMatchNaLista(pecasListRaw, todosM, matLineares), avulsos: [] };
@@ -1797,17 +1790,16 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       />
                                       <span className="font-mono text-[10px] text-amber-700">ml</span>
                                     </div>
-                                    <button
-                                      onClick={() => setPainelMatLinear({ amb, vId: v.id, uid: pw.uid, atual: pw.matLinearId, label: pw.nome })}
-                                      className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
-                                        pw.matLinearId
-                                          ? 'border-amber-600/40 text-amber-400 hover:bg-amber-600/10'
-                                          : 'border-orange-600/60 text-orange-500 hover:bg-orange-700/10 animate-pulse'
-                                      }`}
-                                    >
-                                      <iconify-icon icon="solar:ruler-angular-linear" width="9"></iconify-icon>
-                                      {pw.matLinearId ? (matLineares.find(m => m.id === pw.matLinearId)?.nome?.split(' ').slice(0, 2).join(' ') ?? 'Linear') : 'Definir material'}
-                                    </button>
+                                    {pw.matLinearId
+                                      ? <span className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-amber-600/40 text-amber-400 shrink-0 flex items-center gap-1">
+                                          <iconify-icon icon="solar:ruler-angular-linear" width="9"></iconify-icon>
+                                          {matLineares.find(m => m.id === pw.matLinearId)?.nome ?? 'Linear'}
+                                        </span>
+                                      : <span className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-red-600/50 text-red-400 shrink-0 flex items-center gap-1">
+                                          <iconify-icon icon="solar:danger-triangle-linear" width="9"></iconify-icon>
+                                          não cadastrado
+                                        </span>
+                                    }
                                     <span className="flex-1"></span>
                                     <span className="font-mono text-[11px] text-amber-400 shrink-0 w-20 text-right font-semibold">{subAc > 0 ? fmt(subAc) : '—'}</span>
                                     <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -2268,16 +2260,6 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         />
       )}
 
-      {/* Painel lateral: selecionar material linear (acabamentos) */}
-      {painelMatLinear && (
-        <PainelMaterialLinear
-          label={painelMatLinear.label ?? 'Acabamento'}
-          selecionado={painelMatLinear.atual ?? null}
-          onConfirmar={confirmarMatLinear}
-          onFechar={() => setPainelMatLinear(null)}
-          matLineares={matLineares}
-        />
-      )}
     </div>
   );
 }
@@ -2535,7 +2517,7 @@ export default function CriarOrcamento() {
     if (!session || !profile?.empresa_id) return;
     supabase
       .from('materiais_lineares')
-      .select('id, nome, tipo, precoml')
+      .select('id, nome, precoml')
       .eq('empresa_id', profile.empresa_id)
       .eq('ativo', true)
       .order('nome')
@@ -2545,16 +2527,16 @@ export default function CriarOrcamento() {
       });
   }, [session, profile?.empresa_id]);
 
-  // Busca acabamentos unitários (furos, recortes com preço fixo por unidade)
+  // Busca produtos avulsos (furos, recortes com preço fixo por unidade)
   useEffect(() => {
     if (!session || !profile?.empresa_id) return;
     supabase
-      .from('acabamentos_unitarios')
-      .select('id, nome, unidade, preco')
+      .from('produtos_avulsos')
+      .select('id, nome, subcategoria, preco_unitario')
       .eq('empresa_id', profile.empresa_id)
       .eq('ativo', true)
       .then(({ data, error }) => {
-        if (error) { console.error('[CriarOrcamento] acabamentosUnitarios:', error.message); return; }
+        if (error) { console.error('[CriarOrcamento] produtosAvulsos:', error.message); return; }
         if (data) setAcabamentosUnitarios(data);
       });
   }, [session, profile?.empresa_id]);
@@ -2628,6 +2610,10 @@ export default function CriarOrcamento() {
             espessura:         Number(r.espessura_cm    ?? 2),
             meia_esquadria_ml: Number(r.acabamentos?.meia_esquadria_ml ?? 0),
             reto_simples_ml:   Number(r.acabamentos?.reto_simples_ml   ?? 0),
+            boleado_ml:        Number(r.acabamentos?.boleado_ml        ?? 0),
+            boleado_duplo_ml:  Number(r.acabamentos?.boleado_duplo_ml  ?? 0),
+            reto_duplo_ml:     Number(r.acabamentos?.reto_duplo_ml     ?? 0),
+            chanfrado_ml:      Number(r.acabamentos?.chanfrado_ml      ?? 0),
             cortes:            Number(r.recortes_qty ?? 0),
             recortes:          r.recortes ?? [],
             incluida:          true,

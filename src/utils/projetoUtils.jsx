@@ -63,6 +63,73 @@ export function MedicaoPill({ status }) {
 
 // ─── Normalização ─────────────────────────────────────────────────────────────
 
+// Normaliza string de acabamento para a chave do campo (suporta código curto, snake_case e nome completo)
+const _normAcab = ac => (ac ?? '').toLowerCase().replace(/[\s\-]+/g, '_');
+const _ACAB_KEYS = {
+    'rs':             'reto_simples_ml',   'reto_simples':   'reto_simples_ml',
+    'me':             'meia_esquadria_ml', 'meia_esquadria': 'meia_esquadria_ml',
+    'bo':             'boleado_ml',        'boleado':        'boleado_ml',
+    'bd':             'boleado_duplo_ml',  'boleado_duplo':  'boleado_duplo_ml',
+    'rd':             'reto_duplo_ml',     'reto_duplo':     'reto_duplo_ml',
+    'cf':             'chanfrado_ml',      'chanfrado':      'chanfrado_ml',
+};
+
+// Lê guarnicoes de json._canvas — verifica TANTO canvas.guarnicoes (top-level)
+// QUANTO canvas.ambientes[i].guarnicoes (per-ambiente), pois o Flutter pode enviar
+// ambas as estruturas simultaneamente.
+function _appendGuarnicoesFromCanvas(json, resumo) {
+    const canvas = json._canvas;
+    if (!canvas) return;
+
+    // Coleta top-level
+    const topLevel = Array.isArray(canvas.guarnicoes)
+        ? canvas.guarnicoes.map(g => ({ ...g, _ambNome: null, _ambIdx: 0 }))
+        : [];
+
+    // Coleta por ambiente
+    const perAmb = Array.isArray(canvas.ambientes)
+        ? canvas.ambientes.flatMap((ca, idx) =>
+            (ca.guarnicoes ?? []).map(g => ({ ...g, _ambNome: ca.nome ?? `Ambiente ${idx + 1}`, _ambIdx: idx })))
+        : [];
+
+    // Deduplica por id (evita contar duas vezes se o Flutter enviar nas duas estruturas)
+    const seen = new Set();
+    const flat = [...topLevel, ...perAmb].filter(g => {
+        const key = g.id ?? JSON.stringify(g);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    flat.forEach(g => {
+        // Suporta largura_cm/comprimento_cm e aliases width_cm/height_cm
+        const larg = g.largura_cm ?? g.width_cm ?? 0;
+        const comp = g.comprimento_cm ?? g.height_cm ?? g.comprimento ?? 0;
+        const area = parseFloat(g.area_m2 ?? g.area ?? 0) ||
+            (larg && comp ? (larg * comp) / 10000 : 0);
+        if (area <= 0) return;
+        resumo.push({
+            nome:            'Guarnição',
+            peca_id:         g.id ?? null,
+            descricao:       `${larg || '?'}×${comp || '?'}×${g.espessura_cm ?? '?'}cm — ${area.toFixed(3)}m²`,
+            area_liquida_m2: Math.round(area * 10000) / 10000,
+            espessura_cm:    g.espessura_cm ?? 2,
+            ambiente_nome:   g._ambNome,
+            ambiente_index:  g._ambIdx,
+            grupo_nome:      null,
+            grupo_index:     null,
+            item_nome:       null,
+            item_id:         null,
+            type:            'guarnicao',
+            recortes_qty:    0,
+            recortes:        [],
+            segmentos:       g.segmentos ?? [],
+            acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0, boleado_ml: 0, boleado_duplo_ml: 0, reto_duplo_ml: 0, chanfrado_ml: 0 },
+            polimento_face_interna: g.polimento_face_interna ?? true,
+        });
+    });
+}
+
 export function normalizarJsonMedicao(json) {
     if (!json) return null;
 
@@ -185,17 +252,19 @@ export function normalizarJsonMedicao(json) {
                 const totalRD = parseFloat(meta?.reto_duplo_ml     ?? 0) || 0;
                 const totalCF = parseFloat(meta?.chanfrado_ml      ?? 0) || 0;
                 const distrib = [
-                    ['ME', 'meia_esquadria_ml', totalME],
-                    ['RS', 'reto_simples_ml',   totalRS],
-                    ['BO', 'boleado_ml',        totalBO],
-                    ['BD', 'boleado_duplo_ml',  totalBD],
-                    ['RD', 'reto_duplo_ml',     totalRD],
-                    ['CF', 'chanfrado_ml',      totalCF],
+                    ['meia_esquadria_ml', totalME],
+                    ['reto_simples_ml',   totalRS],
+                    ['boleado_ml',        totalBO],
+                    ['boleado_duplo_ml',  totalBD],
+                    ['reto_duplo_ml',     totalRD],
+                    ['chanfrado_ml',      totalCF],
                 ];
                 if (pecasDoAmb.length > 0) {
-                    distrib.forEach(([code, field, total]) => {
+                    distrib.forEach(([field, total]) => {
                         if (total <= 0) return;
-                        const rep = pecasDoAmb.find(p => (p.segmentos ?? []).some(s => s.acabamento === code)) ?? pecasDoAmb[0];
+                        const rep = pecasDoAmb.find(p =>
+                            (p.segmentos ?? []).some(s => _ACAB_KEYS[_normAcab(s.acabamento)] === field)
+                        ) ?? pecasDoAmb[0];
                         rep.acabamentos[field] = Math.round(total * 100) / 100;
                     });
                 }
@@ -206,6 +275,7 @@ export function normalizarJsonMedicao(json) {
                 ambTotalRD += totalRD;
                 ambTotalCF += totalCF;
             }
+            _appendGuarnicoesFromCanvas(json, resumo);
             return {
                 resumo_por_peca: resumo,
                 _fonte: 'flutter2',
@@ -261,12 +331,13 @@ export function normalizarJsonMedicao(json) {
                 let chanfrado_ml      = 0;
                 acabs.forEach((ac, i) => {
                     const len = arestas[i] ?? 0;
-                    if (ac === 'RS') reto_simples_ml   += len;
-                    if (ac === 'ME') meia_esquadria_ml += len;
-                    if (ac === 'BO') boleado_ml        += len;
-                    if (ac === 'BD') boleado_duplo_ml  += len;
-                    if (ac === 'RD') reto_duplo_ml     += len;
-                    if (ac === 'CF') chanfrado_ml      += len;
+                    const field = _ACAB_KEYS[_normAcab(ac)];
+                    if (field === 'reto_simples_ml')   reto_simples_ml   += len;
+                    if (field === 'meia_esquadria_ml') meia_esquadria_ml += len;
+                    if (field === 'boleado_ml')        boleado_ml        += len;
+                    if (field === 'boleado_duplo_ml')  boleado_duplo_ml  += len;
+                    if (field === 'reto_duplo_ml')     reto_duplo_ml     += len;
+                    if (field === 'chanfrado_ml')      chanfrado_ml      += len;
                 });
                 resumo.push({
                     nome:             p.name ?? 'Peça',
@@ -311,10 +382,11 @@ export function normalizarJsonMedicao(json) {
                     type:            'faixa',
                     recortes_qty:    0,
                     recortes:        [],
-                    acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0 },
+                    acabamentos:     { meia_esquadria_ml: 0, reto_simples_ml: 0, boleado_ml: 0, boleado_duplo_ml: 0, reto_duplo_ml: 0, chanfrado_ml: 0 },
                 });
             });
         }
+        _appendGuarnicoesFromCanvas(json, resumo);
         return { resumo_por_peca: resumo, _fonte: 'flutter' };
     }
 
