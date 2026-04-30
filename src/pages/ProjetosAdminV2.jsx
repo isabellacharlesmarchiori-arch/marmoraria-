@@ -297,11 +297,14 @@ export default function Projetos() {
       let clienteIdReal = novoClienteId;
       if (clienteTemp && novoClienteId === 'temp') {
         const { id: _id, isTemporario: _t, ...dadosCliente } = clienteTemp;
+        const payload = { ...dadosCliente, empresa_id: profile.empresa_id };
+        console.log('[INSERT cliente] payload:', payload);
         const { data: cliSalvo, error: errCli } = await supabase
           .from('clientes')
-          .insert({ ...dadosCliente, empresa_id: profile.empresa_id })
+          .insert(payload)
           .select('id, nome')
           .single();
+        console.log('[INSERT cliente] resultado:', { cliSalvo, errCli });
         if (errCli) throw errCli;
         clienteIdReal = cliSalvo.id;
         setClientes(prev => [...prev, cliSalvo].sort((a, b) => a.nome.localeCompare(b.nome)));

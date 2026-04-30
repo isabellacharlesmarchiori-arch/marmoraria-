@@ -14,6 +14,9 @@ const MedicoesTab = React.memo(function MedicoesTab({
 }) {
     const [painelMedicao, setPainelMedicao] = useState(null);
 
+    const perfilAtual = profile?.role || profile?.perfil || '';
+    const isVendedorMedidor = perfilAtual === 'vendedor_medidor';
+
     const [modalAgendar,     setModalAgendar]     = useState(false);
     const [editingMedicaoId, setEditingMedicaoId] = useState(null);
     const [agMedidor,        setAgMedidor]        = useState('');
@@ -24,6 +27,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
     const [agCidade,         setAgCidade]         = useState('');
     const [agObservacoes,    setAgObservacoes]    = useState('');
     const [agendando,        setAgendando]        = useState(false);
+    const [iniciando,        setIniciando]        = useState(false);
     const [erroAgendar,      setErroAgendar]      = useState('');
     const [endSugestoes,     setEndSugestoes]     = useState([]);
     const [endBuscando,      setEndBuscando]      = useState(false);
@@ -153,6 +157,27 @@ const MedicoesTab = React.memo(function MedicoesTab({
         closeAll();
     }
 
+    async function handleIniciarMedicao() {
+        setIniciando(true);
+        const EMPRESA_ID_FALLBACK = 'a1b2c3d4-0000-0000-0000-000000000001';
+        const empresaId = profile?.empresa_id ?? EMPRESA_ID_FALLBACK;
+        const { data: med, error } = await supabase
+            .from('medicoes')
+            .insert({
+                projeto_id:   id,
+                empresa_id:   empresaId,
+                medidor_id:   session?.user?.id,
+                responsavel:  profile?.nome ?? '',
+                data_medicao: new Date().toISOString(),
+                status:       'agendada',
+            })
+            .select('id')
+            .single();
+        setIniciando(false);
+        if (error) { alert(`Erro ao criar medição: ${error.message}`); return; }
+        window.location.href = `smartstone://medicao?id=${med.id}`;
+    }
+
     return (
         <>
             {/* ── Tabela de Medições ────────────────────────────── */}
@@ -161,13 +186,25 @@ const MedicoesTab = React.memo(function MedicoesTab({
                     <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
                         01 // Medições
                     </div>
-                    <button
-                        onClick={() => setModalAgendar(true)}
-                        className="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
-                    >
-                        <iconify-icon icon="solar:calendar-add-linear" width="14"></iconify-icon>
-                        Agendar medição
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {isVendedorMedidor && (
+                            <button
+                                onClick={handleIniciarMedicao}
+                                disabled={iniciando}
+                                className="flex items-center gap-2 border border-[#1D9E75] text-[#1D9E75] text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 hover:bg-[#1D9E75]/10 disabled:opacity-40 transition-all"
+                            >
+                                <iconify-icon icon="solar:ruler-pen-linear" width="14"></iconify-icon>
+                                {iniciando ? 'Criando...' : 'Iniciar minha medição'}
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setModalAgendar(true)}
+                            className="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
+                        >
+                            <iconify-icon icon="solar:calendar-add-linear" width="14"></iconify-icon>
+                            Agendar medição
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-[#0a0a0a] border border-zinc-800">
@@ -221,6 +258,15 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                         >
                                             <iconify-icon icon="solar:eye-linear" width="12"></iconify-icon>
                                             Ver Dados
+                                        </button>
+                                    )}
+                                    {isVendedorMedidor && m?.medidor_id === session?.user?.id && (m?.status === 'agendada' || m?.status === 'pendente') && (
+                                        <button
+                                            onClick={() => { window.location.href = `smartstone://medicao?id=${m.id}`; }}
+                                            className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border border-[#1D9E75]/50 text-[#1D9E75] hover:border-[#1D9E75] hover:bg-[#1D9E75]/10"
+                                        >
+                                            <iconify-icon icon="solar:smartphone-linear" width="12"></iconify-icon>
+                                            Abrir no App
                                         </button>
                                     )}
                                     {!isViewOnlyAdmin && (

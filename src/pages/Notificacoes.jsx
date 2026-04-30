@@ -96,7 +96,11 @@ export default function Notificacoes() {
 
   async function handleClick(notif) {
     await marcarLida(notif.id);
-    if (notif.projeto_id) navigate(`/projetos/${notif.projeto_id}`);
+    if (notif.tipo === 'medicao_agendada') {
+      navigate('/medidor/agenda');
+    } else if (notif.projeto_id) {
+      navigate(`/projetos/${notif.projeto_id}`);
+    }
   }
 
   return (
