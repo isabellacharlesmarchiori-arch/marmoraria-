@@ -28,11 +28,21 @@ const ACABAMENTO_LABEL = {
   chanfrado:      'Chanfrado',
 };
 
+// Nome exato do acabamento conforme banco (materiais_lineares.nome)
+const ACAB_TIPO_NOME = {
+  meia_esquadria: 'Meia Esquadria',
+  reto_simples:   'Reto Simples',
+  boleado:        'Boleado',
+  boleado_duplo:  'Boleado Duplo',
+  reto_duplo:     'Reto Duplo',
+  chanfrado:      'Chanfrado',
+};
+
 // Calcula o preço de um acabamento linear
 function precoAcabamento(ml, matLinearId, matLineares) {
   if (!ml || !matLinearId) return 0;
   const m = matLineares.find(x => x.id === matLinearId);
-  return Number(ml) * Number(m?.precoml ?? 0);
+  return Number(ml) * Number(m?.preco_ml ?? 0);
 }
 
 // Gera as linhas de acabamento derivadas de uma peça de pedra
@@ -540,7 +550,7 @@ function PainelMaterialLinear({ label, selecionado, onConfirmar, onFechar, matLi
                   <div className="text-xs text-gray-900 dark:text-white font-medium truncate">{m.nome}</div>
                   <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{m.tipo?.replace('_', ' ')}</div>
                 </div>
-                <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300 shrink-0">{fmt(m.precoml)}<span className="text-gray-500 dark:text-zinc-600">/ml</span></div>
+                <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300 shrink-0">{fmt(m.preco_ml)}<span className="text-gray-500 dark:text-zinc-600">/ml</span></div>
               </div>
             );
           })}
@@ -928,7 +938,11 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
               area_liq: p.area_liq ?? 0,
               espessura: p.espessura ?? 2,
               meia_esquadria_ml: p.meia_esquadria_ml ?? 0,
-              reto_simples_ml: p.reto_simples_ml ?? 0,
+              reto_simples_ml:   p.reto_simples_ml   ?? 0,
+              boleado_ml:        p.boleado_ml        ?? 0,
+              boleado_duplo_ml:  p.boleado_duplo_ml  ?? 0,
+              reto_duplo_ml:     p.reto_duplo_ml     ?? 0,
+              chanfrado_ml:      p.chanfrado_ml      ?? 0,
               cortes: p.cortes ?? 0,
             });
           });
@@ -937,13 +951,14 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
           const ge = grupoExtras[geKey];
           if (ge) {
             (ge.acabamentos ?? []).forEach(ac => {
+              const nomeAcab = ACAB_TIPO_NOME[ac.tipo] ?? ac.tipo;
               pecasList.push({
-                uid: `ac-g-${ac.tipo === 'meia_esquadria' ? 'me' : 'rs'}-${firstStoneUid}-${Math.random()}`,
+                uid: `ac-g-${ac.tipo}-${firstStoneUid}-${Math.random()}`,
                 idBase: pcsGroup[0]?.id ?? null,
                 idPedraUid: firstStoneUid,
                 tipo: 'acabamento',
                 tipoAcabamento: ac.tipo,
-                nome: ac.tipo === 'meia_esquadria' ? 'Meia Esquadria' : 'Reto Simples',
+                nome: nomeAcab,
                 ml: ac.ml,
                 matLinearId: null,
                 ambiente_nome: amb,
@@ -965,11 +980,18 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
               });
             });
           } else {
-            // Fallback: agrega das peças (sem grupoExtras)
-            const totalME = pcsGroup.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0);
-            const totalRS = pcsGroup.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0);
-            if (totalME > 0) pecasList.push({ uid: `ac-me-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'meia_esquadria', nome: 'Meia Esquadria', ml: totalME, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
-            if (totalRS > 0) pecasList.push({ uid: `ac-rs-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'reto_simples', nome: 'Reto Simples', ml: totalRS, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+            // Fallback: agrega das peças (sem grupoExtras) — todos os 6 tipos
+            const ac6 = [
+              ['meia_esquadria', pcsGroup.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0)],
+              ['reto_simples',   pcsGroup.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0)],
+              ['boleado',        pcsGroup.reduce((s, p) => s + (p.boleado_ml        ?? 0), 0)],
+              ['boleado_duplo',  pcsGroup.reduce((s, p) => s + (p.boleado_duplo_ml  ?? 0), 0)],
+              ['reto_duplo',     pcsGroup.reduce((s, p) => s + (p.reto_duplo_ml     ?? 0), 0)],
+              ['chanfrado',      pcsGroup.reduce((s, p) => s + (p.chanfrado_ml      ?? 0), 0)],
+            ];
+            ac6.forEach(([tipo, total]) => {
+              if (total > 0) pecasList.push({ uid: `ac-${tipo}-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: tipo, nome: ACAB_TIPO_NOME[tipo], ml: total, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+            });
             pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => {
               const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase());
               pecasList.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal });
@@ -1260,18 +1282,26 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
       pcsGroup.forEach((p, idx) => {
         const stoneUid = `${p.id}-${Math.random()}`;
         if (idx === 0) firstStoneUid = stoneUid;
-        pecasListRaw.push({ uid: stoneUid, idBase: p.id, tipo: 'pedra', nome: p.nome, ambiente_nome: p.ambiente_nome ?? null, item_nome: grupoNomeVal, matId: null, matAcabamento: null, area_liq: p.area_liq ?? 0, espessura: p.espessura ?? 2, meia_esquadria_ml: p.meia_esquadria_ml ?? 0, reto_simples_ml: p.reto_simples_ml ?? 0, cortes: p.cortes ?? 0 });
+        pecasListRaw.push({ uid: stoneUid, idBase: p.id, tipo: 'pedra', nome: p.nome, ambiente_nome: p.ambiente_nome ?? null, item_nome: grupoNomeVal, matId: null, matAcabamento: null, area_liq: p.area_liq ?? 0, espessura: p.espessura ?? 2, meia_esquadria_ml: p.meia_esquadria_ml ?? 0, reto_simples_ml: p.reto_simples_ml ?? 0, boleado_ml: p.boleado_ml ?? 0, boleado_duplo_ml: p.boleado_duplo_ml ?? 0, reto_duplo_ml: p.reto_duplo_ml ?? 0, chanfrado_ml: p.chanfrado_ml ?? 0, cortes: p.cortes ?? 0 });
       });
       const geKey = `${amb}::${gKey}`;
       const ge = grupoExtras[geKey];
       if (ge) {
-        (ge.acabamentos ?? []).forEach(ac => { pecasListRaw.push({ uid: `ac-g-${ac.tipo === 'meia_esquadria' ? 'me' : 'rs'}-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: ac.tipo, nome: ac.tipo === 'meia_esquadria' ? 'Meia Esquadria' : 'Reto Simples', ml: ac.ml, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal }); });
+        (ge.acabamentos ?? []).forEach(ac => { const nomeAcab = ACAB_TIPO_NOME[ac.tipo] ?? ac.tipo; pecasListRaw.push({ uid: `ac-g-${ac.tipo}-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: ac.tipo, nome: nomeAcab, ml: ac.ml, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal }); });
         (ge.furos ?? []).forEach(fu => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: fu.tipo, formato: fu.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
       } else {
-        const totalME = pcsGroup.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0);
-        const totalRS = pcsGroup.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0);
-        if (totalME > 0) pecasListRaw.push({ uid: `ac-me-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'meia_esquadria', nome: 'Meia Esquadria', ml: totalME, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
-        if (totalRS > 0) pecasListRaw.push({ uid: `ac-rs-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: 'reto_simples', nome: 'Reto Simples', ml: totalRS, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+        // Fallback: agrega das peças — todos os 6 tipos
+        const ac6 = [
+          ['meia_esquadria', pcsGroup.reduce((s, p) => s + (p.meia_esquadria_ml ?? 0), 0)],
+          ['reto_simples',   pcsGroup.reduce((s, p) => s + (p.reto_simples_ml   ?? 0), 0)],
+          ['boleado',        pcsGroup.reduce((s, p) => s + (p.boleado_ml        ?? 0), 0)],
+          ['boleado_duplo',  pcsGroup.reduce((s, p) => s + (p.boleado_duplo_ml  ?? 0), 0)],
+          ['reto_duplo',     pcsGroup.reduce((s, p) => s + (p.reto_duplo_ml     ?? 0), 0)],
+          ['chanfrado',      pcsGroup.reduce((s, p) => s + (p.chanfrado_ml      ?? 0), 0)],
+        ];
+        ac6.forEach(([tipo, total]) => {
+          if (total > 0) pecasListRaw.push({ uid: `ac-${tipo}-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: tipo, nome: ACAB_TIPO_NOME[tipo], ml: total, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal });
+        });
         pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
       }
     });
@@ -2517,12 +2547,13 @@ export default function CriarOrcamento() {
     if (!session || !profile?.empresa_id) return;
     supabase
       .from('materiais_lineares')
-      .select('id, nome, precoml')
+      .select('id, nome, preco_ml')
       .eq('empresa_id', profile.empresa_id)
       .eq('ativo', true)
       .order('nome')
       .then(({ data, error }) => {
-        if (error) { console.error('[CriarOrcamento] matLineares:', error.message); return; }
+        if (error) { console.error('[CriarOrcamento] matLineares ERRO:', error.message); return; }
+        console.log('[DEBUG] matLineares retornou:', data?.length, 'itens', data?.map(m => m.nome));
         if (data) setMatLineares(data);
       });
   }, [session, profile?.empresa_id]);

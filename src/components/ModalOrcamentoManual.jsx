@@ -58,7 +58,7 @@ export default function ModalOrcamentoManual({ projetoId, onClose, onSalvo }) {
           .order('nome'),
         supabase
           .from('materiais_lineares')
-          .select('id, nome, tipo, precoml')
+          .select('id, nome, tipo, preco_ml')
           .eq('empresa_id', empresaId)
           .eq('ativo', true)
           .order('nome'),
@@ -91,7 +91,7 @@ export default function ModalOrcamentoManual({ projetoId, onClose, onSalvo }) {
       const variacao  = variacoes.find(v => v.acabamento === next.acabamento && v.espessura === next.espessura);
       next.preco_unitario = variacao?.preco_venda ?? 0;
     } else {
-      next.preco_unitario = (lins ?? matLineares).find(m => m.id === next.material_id)?.precoml ?? 0;
+      next.preco_unitario = (lins ?? matLineares).find(m => m.id === next.material_id)?.preco_ml ?? 0;
     }
     next.total = (parseFloat(next.quantidade) || 0) * next.preco_unitario;
     return next;

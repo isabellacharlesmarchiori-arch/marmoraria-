@@ -86,10 +86,15 @@ function _appendGuarnicoesFromCanvas(json, resumo) {
         ? canvas.guarnicoes.map(g => ({ ...g, _ambNome: null, _ambIdx: 0 }))
         : [];
 
-    // Coleta por ambiente
+    // Coleta por ambiente — usa nome do json.ambientes[idx] para garantir que bate com o resto
     const perAmb = Array.isArray(canvas.ambientes)
-        ? canvas.ambientes.flatMap((ca, idx) =>
-            (ca.guarnicoes ?? []).map(g => ({ ...g, _ambNome: ca.nome ?? `Ambiente ${idx + 1}`, _ambIdx: idx })))
+        ? canvas.ambientes.flatMap((ca, idx) => {
+            const nomeReal = json.ambientes?.[idx]?.nome
+                ?? json.ambientes?.[idx]?.ambiente
+                ?? ca.nome
+                ?? `Ambiente ${idx + 1}`;
+            return (ca.guarnicoes ?? []).map(g => ({ ...g, _ambNome: nomeReal, _ambIdx: idx }));
+          })
         : [];
 
     // Deduplica por id (evita contar duas vezes se o Flutter enviar nas duas estruturas)

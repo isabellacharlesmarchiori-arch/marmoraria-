@@ -323,7 +323,7 @@ export default function ConfiguracoesPage() {
     const { type, item } = modalState;
 
     if (type === 'material_linear') {
-      const payload = { nome: data.nome, tipo: data.tipo, precoml: Number(data.precoml), empresa_id: profile.empresa_id };
+      const payload = { nome: data.nome, tipo: data.tipo, preco_ml: Number(data.preco_ml), empresa_id: profile.empresa_id };
       if (item) {
         const { data: updated, error } = await supabase.from('materiais_lineares').update(payload).eq('id', item.id).select().single();
         if (error) { alert(error.message); return; }
@@ -1054,7 +1054,7 @@ export default function ConfiguracoesPage() {
                       <div key={m.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
                         <div className="text-gray-900 dark:text-white uppercase font-medium">{m.nome}</div>
                         <div><span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black px-2 py-1 uppercase text-gray-500 dark:text-zinc-400">{m.tipo?.replace('_', ' ')}</span></div>
-                        <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(m.precoml).toFixed(2)}</div>
+                        <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(m.preco_ml).toFixed(2)}</div>
                         <div>
                           <button onClick={() => handleToggle(setMateriaisLineares, materiaisLineares, m.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}>
                             <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
@@ -1277,7 +1277,7 @@ export default function ConfiguracoesPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] uppercase font-mono text-yellow-400">Preço / metro linear</label>
-                      <input type="number" step="0.01" name="precoml" required defaultValue={modalState.item?.precoml || ''} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                      <input type="number" step="0.01" name="preco_ml" required defaultValue={modalState.item?.preco_ml || ''} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
                     </div>
                   </div>
                 </>
