@@ -152,9 +152,7 @@ export default function MedidorAgenda() {
 
   // ── Deep link ────────────────────────────────────────────────────────────
   function handleRealizarClick(m) {
-    const a = document.createElement('a');
-    a.href = `smartstone://medicao?id=${m.id}`;
-    a.click();
+    window.location.href = `smartstone://medicao?id=${m.id}`;
   }
 
   // ── Modal ─────────────────────────────────────────────────────────────────
@@ -206,20 +204,43 @@ export default function MedidorAgenda() {
       return;
     }
 
-    // Notifica o vendedor
+    // Notifica vendedor e admins sobre medição enviada para orçamento
     const vendedorId     = medicaoAtiva.projetos?.vendedor_id;
     const usuarioAtualId = session?.user?.id;
+    const empresaId      = medicaoAtiva.projetos?.empresa_id ?? EMPRESA_ID_FALLBACK;
+    const projetoId      = medicaoAtiva.projetos?.id ?? null;
+    const projetoNome    = medicaoAtiva.projetos?.nome ?? '';
+
     if (vendedorId && vendedorId !== usuarioAtualId) {
-      const empresaId = medicaoAtiva.projetos?.empresa_id ?? EMPRESA_ID_FALLBACK;
       await supabase.from('notificacoes').insert({
         empresa_id: empresaId,
         usuario_id: vendedorId,
-        projeto_id: medicaoAtiva.projetos?.id ?? null,
-        tipo:       'medicao_concluida',
-        titulo:     'Medição aprovada',
-        descricao:  `A medição do projeto "${medicaoAtiva.projetos?.nome ?? ''}" foi finalizada e está aguardando orçamento.`,
+        projeto_id: projetoId,
+        tipo:       'medicao_processada',
+        titulo:     'Medição enviada para orçamento',
+        corpo:      `A medição do projeto "${projetoNome}" foi finalizada e está aguardando orçamento.`,
         lida:       false,
       });
+    }
+
+    const { data: admins } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('empresa_id', empresaId)
+      .eq('perfil', 'admin')
+      .eq('ativo', true);
+    if (admins?.length) {
+      await supabase.from('notificacoes').insert(
+        admins.map(a => ({
+          empresa_id: empresaId,
+          usuario_id: a.id,
+          projeto_id: projetoId,
+          tipo:       'medicao_processada',
+          titulo:     'Medição enviada para orçamento',
+          corpo:      `O medidor enviou os dados do projeto "${projetoNome}". Aguardando orçamento do vendedor.`,
+          lida:       false,
+        }))
+      );
     }
 
     await fetchMedicoes();

@@ -108,9 +108,9 @@ function PainelDia({ diaKey, medicoes, onClose, onVerDesenho }) {
                   </span>
                 )}
 
-                {/* Abrir no App — deep link Flutter (TODO: tratamento pelo Flutter) */}
+                {/* Abrir no App — deep link Flutter */}
                 <button
-                  onClick={() => window.open(`smartstone://medicao/${m.id}`, '_blank')}
+                  onClick={() => { window.location.href = `smartstone://medicao?id=${m.id}`; }}
                   className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-2.5 py-1.5 transition-colors"
                 >
                   <iconify-icon icon="solar:smartphone-linear" width="11"></iconify-icon>

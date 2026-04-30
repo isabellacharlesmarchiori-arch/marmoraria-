@@ -328,7 +328,7 @@ function DashboardContent() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className={`text-sm font-medium mb-0.5 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors ${n.lida ? 'text-gray-600 dark:text-zinc-300' : 'text-gray-900 dark:text-white'}`}>{n.titulo}</div>
-                                                <div className="font-mono text-[10px] text-gray-400 dark:text-zinc-600 truncate">{n.descricao}</div>
+                                                <div className="font-mono text-[10px] text-gray-400 dark:text-zinc-600 truncate">{n.corpo}</div>
                                             </div>
                                             {!n.lida && (
                                                 <span className="w-1.5 h-1.5 bg-yellow-500 dark:bg-yellow-400 rounded-full flex-shrink-0 mt-1 shadow-[0_0_6px_rgba(250,204,21,0.5)]"></span>

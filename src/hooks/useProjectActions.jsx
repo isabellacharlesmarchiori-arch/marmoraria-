@@ -106,14 +106,16 @@ export function useProjectActions(projectId, {
                 if (errUpd) { setErroAgendar(`Erro: ${errUpd.message}`); return; }
                 setMedicoes(prev => prev.map(m => m.id === editingMedicaoId ? formatarParaLista(updated) : m));
                 if (isMedidor) {
+                    // Medidor concluiu via web — notifica vendedor como medicao_processada
                     const vendedorId = projeto?.vendedor_id;
                     if (vendedorId && vendedorId !== session?.user?.id) {
                         await supabase.from('notificacoes').insert({
                             empresa_id: projeto?.empresa_id ?? EMPRESA_ID_FALLBACK,
                             usuario_id: vendedorId,
-                            tipo:       'medicao_agendada',
-                            titulo:     'Medição concluída',
-                            descricao:  `A medição do projeto ${projeto?.nome ?? ''} foi finalizada e já está disponível para orçamento.`,
+                            projeto_id: projectId,
+                            tipo:       'medicao_processada',
+                            titulo:     'Medição enviada para orçamento',
+                            corpo:      `A medição do projeto "${projeto?.nome ?? ''}" foi finalizada e está disponível para orçamento.`,
                             lida:       false,
                         });
                     }
@@ -135,6 +137,18 @@ export function useProjectActions(projectId, {
                     .single();
                 if (errMed) { setErroAgendar(`Erro: ${errMed.message}`); return; }
                 setMedicoes(prev => [formatarParaLista(med), ...prev]);
+                // Notifica o medidor atribuído sobre a nova medição na agenda
+                if (agMedidor && agMedidor !== session?.user?.id) {
+                    await supabase.from('notificacoes').insert({
+                        empresa_id: empresaId,
+                        usuario_id: agMedidor,
+                        projeto_id: projectId,
+                        tipo:       'medicao_agendada',
+                        titulo:     'Nova medição agendada',
+                        corpo:      `Você tem uma medição agendada para o projeto "${projeto?.nome ?? ''}".`,
+                        lida:       false,
+                    });
+                }
             }
             closeAll();
         } finally {
@@ -665,23 +679,6 @@ export function useProjectActions(projectId, {
                 if (eDesc) console.error('[FecharPedido] Soft delete:', eDesc.message);
             }
 
-            const clienteNome  = projeto?.clientes?.nome ?? projeto?.nome ?? '';
-            const vendedorNome = profile?.nome ?? 'Vendedor';
-            const { data: admins } = await supabase.from('usuarios')
-                .select('id').eq('empresa_id', profile?.empresa_id).in('perfil', ['admin']).eq('ativo', true);
-            if (admins?.length) {
-                await supabase.from('notificacoes').insert(
-                    admins.filter(a => a.id !== session?.user?.id).map(a => ({
-                        empresa_id: profile?.empresa_id,
-                        usuario_id: a.id,
-                        tipo:       'pedido_fechado',
-                        titulo:     'Novo pedido fechado',
-                        descricao:  `Cliente: ${clienteNome} · Vendedor: ${vendedorNome} · Valor: ${fmtBRL(totalSel)}`,
-                        lida:       false,
-                    }))
-                );
-            }
-
             setPedidoFechado({
                 id: pedido.id,
                 forma_pagamento,
@@ -718,16 +715,6 @@ export function useProjectActions(projectId, {
                     .in('ambiente_id', ambIds)
                     .not('descartado_em', 'is', null)
                     .gt('descartado_em', limite);
-            }
-            if (pedidoFechado.vendedor_id && pedidoFechado.vendedor_id !== session?.user?.id) {
-                await supabase.from('notificacoes').insert({
-                    empresa_id: profile?.empresa_id,
-                    usuario_id: pedidoFechado.vendedor_id,
-                    tipo:       'pedido_revertido',
-                    titulo:     'Pedido revertido para orçamento',
-                    descricao:  `O pedido do projeto ${projeto?.nome ?? ''} foi revertido para status de orçamento pelo admin.`,
-                    lida:       false,
-                });
             }
             setPedidoFechado(null);
             await recarregarAmbientes();

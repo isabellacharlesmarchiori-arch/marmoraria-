@@ -28,6 +28,7 @@ const Configuracoes        = lazy(() => import('./pages/Configuracoes'))
 const Admin                = lazy(() => import('./pages/Admin'))
 const Notificacoes         = lazy(() => import('./pages/Notificacoes'))
 const AdminNotificacoes    = lazy(() => import('./pages/AdminNotificacoes'))
+const AdminMensagens       = lazy(() => import('./pages/AdminMensagens'))
 const PainelMedidor        = lazy(() => import('./pages/PainelMedidor'))
 const MedidorAgenda        = lazy(() => import('./pages/MedidorAgenda'))
 const MedidorHistorico     = lazy(() => import('./pages/MedidorHistorico'))
@@ -120,8 +121,9 @@ export default function App() {
                 <Route path="cheques"           element={<FinanceiroCheques />} />
                 <Route path="relatorios"        element={<FinanceiroRelatorios />} />
               </Route>
-              <Route path="/admin/configuracoes"         element={<Configuracoes />} />
-              <Route path="/admin/notificacoes"         element={<AdminNotificacoes />} />
+              <Route path="/admin/configuracoes"  element={<Configuracoes />} />
+              <Route path="/admin/mensagens"      element={<AdminMensagens />} />
+              <Route path="/admin/notificacoes"   element={<AdminNotificacoes />} />
               <Route path="/agenda"                      element={<Agenda />} />
               {/* ── Rotas do Medidor ── */}
               <Route path="/medidor"                     element={<PainelMedidor />} />

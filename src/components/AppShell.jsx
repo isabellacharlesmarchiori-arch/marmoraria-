@@ -57,7 +57,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
         addToast({
           tipo: n?.tipo ?? '',
           titulo: n?.titulo ?? 'Nova notificação',
-          descricao: n?.descricao ?? '',
+          corpo: n?.corpo ?? '',
           projeto_id: n?.projeto_id ?? null,
         });
       })
@@ -84,8 +84,9 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: '/admin/projetos', label: 'Projetos', icon: 'solar:layers-linear', subtitle: 'Visão global de projetos' },
     { path: '/admin/clientes', label: 'Clientes', icon: 'solar:users-group-two-rounded-linear', subtitle: 'Base de clientes geral' },
     { path: '/admin/financeiro', label: 'Financeiro', icon: 'solar:wallet-money-linear', subtitle: 'Controle financeiro' },
-    { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear', subtitle: 'Ajustes do sistema' },
-    { path: '/admin/notificacoes', label: 'Notificações',  icon: 'solar:bell-linear',     subtitle: 'Avisos do sistema', badge: true }
+    { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear',  subtitle: 'Ajustes do sistema' },
+    { path: '/admin/mensagens',    label: 'Mensagens',     icon: 'solar:chat-line-linear', subtitle: 'Enviar avisos ao time' },
+    { path: '/admin/notificacoes', label: 'Notificações',  icon: 'solar:bell-linear',      subtitle: 'Avisos do sistema', badge: true }
   ];
 
   const menuMedidor = [
@@ -261,7 +262,14 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
 
             <ThemeToggle />
 
-            <button className="text-gray-400 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors relative flex items-center">
+            <button
+              onClick={() => navigate(
+                perfilBase === 'admin'   ? '/admin/notificacoes' :
+                perfilBase === 'medidor' ? '/medidor/notificacoes' :
+                '/notificacoes'
+              )}
+              className="text-gray-400 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors relative flex items-center"
+            >
               <iconify-icon icon="solar:bell-linear" width="18"></iconify-icon>
               {notifCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-none shadow-[0_0_6px_rgba(250,204,21,0.5)]"></span>
@@ -302,7 +310,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-gray-900 dark:text-white text-xs font-semibold mb-0.5">{t.titulo}</div>
-                  {t.descricao && <div className="text-gray-500 dark:text-zinc-500 text-[10px] font-mono leading-snug">{t.descricao}</div>}
+                  {t.corpo && <div className="text-gray-500 dark:text-zinc-500 text-[10px] font-mono leading-snug">{t.corpo}</div>}
                   {t.projeto_id && (
                     <button
                       onClick={() => { navigate(`/projetos/${t.projeto_id}`); dismissToast(t.id); }}

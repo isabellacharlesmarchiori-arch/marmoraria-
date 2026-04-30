@@ -4,16 +4,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const TIPO_CONFIG = {
-  medicao_processada: { icon: 'solar:ruler-pen-linear',      cor: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20' },
-  medicao_agendada:   { icon: 'solar:calendar-linear',       cor: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
-  medicao_concluida:  { icon: 'solar:check-square-linear',   cor: 'text-green-400',  bg: 'bg-green-400/10',  border: 'border-green-400/20'  },
-  projeto_aprovado:   { icon: 'solar:check-circle-linear',   cor: 'text-green-400',  bg: 'bg-green-400/10',  border: 'border-green-400/20'  },
-  status_atualizado:  { icon: 'solar:layers-linear',         cor: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
-  novo_fechamento:    { icon: 'solar:wallet-money-linear',   cor: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
-  projeto_perdido:    { icon: 'solar:close-circle-linear',   cor: 'text-red-400',    bg: 'bg-red-400/10',    border: 'border-red-400/20'    },
-  novo_orcamento:     { icon: 'solar:document-add-linear',   cor: 'text-amber-400',  bg: 'bg-amber-400/10',  border: 'border-amber-400/20'  },
-  pedido_fechado:     { icon: 'solar:wallet-money-linear',   cor: 'text-green-400',  bg: 'bg-green-400/10',  border: 'border-green-400/20'  },
-  producao_iniciada:  { icon: 'solar:settings-linear',       cor: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20' },
+  medicao_processada: { icon: 'solar:ruler-pen-linear',    cor: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20' },
+  pedido_fechado:     { icon: 'solar:wallet-money-linear', cor: 'text-green-400',  bg: 'bg-green-400/10',  border: 'border-green-400/20'  },
+  projeto_perdido:    { icon: 'solar:close-circle-linear', cor: 'text-red-400',    bg: 'bg-red-400/10',    border: 'border-red-400/20'    },
+  mensagem_admin:     { icon: 'solar:chat-line-linear',    cor: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
+  status_atualizado:  { icon: 'solar:layers-linear',       cor: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
 };
 
 function formatarData(isoString) {
@@ -74,12 +69,12 @@ export default function AdminNotificacoes() {
   const naoLidas = notifs.filter(n => !n.lida).length;
 
   async function marcarLida(id) {
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
     const { error } = await supabase
       .from('notificacoes')
       .update({ lida: true })
       .eq('id', id);
-    if (error) { console.error(error); return; }
-    setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
+    if (error) console.error(error);
   }
 
   async function marcarTodasLidas() {
@@ -94,9 +89,9 @@ export default function AdminNotificacoes() {
     setNotifs(prev => prev.map(n => ({ ...n, lida: true })));
   }
 
-  function handleClick(notif) {
-    marcarLida(notif.id);
-    if (notif.projeto_id) navigate(`/admin/projetos/${notif.projeto_id}`);
+  async function handleClick(notif) {
+    await marcarLida(notif.id);
+    if (notif.projeto_id) navigate(`/projetos/${notif.projeto_id}`);
   }
 
   return (
@@ -157,7 +152,7 @@ export default function AdminNotificacoes() {
                     <div className={`text-sm font-medium mb-0.5 group-hover:text-yellow-400 transition-colors ${n.lida ? 'text-gray-600 dark:text-zinc-300' : 'text-gray-900 dark:text-white'}`}>
                       {n.titulo}
                     </div>
-                    <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 truncate">{n.descricao}</div>
+                    <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 truncate">{n.corpo}</div>
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
