@@ -117,7 +117,7 @@ export default function ConfiguracoesPage() {
     if (linear) setMateriaisLineares(linear);
     const { data: precos } = await supabase
       .from('acabamento_precos_material')
-      .select('id, material_linear_id, categoria, preco_ml')
+      .select('id, material_linear_id, categoria, preco_ml, material_id, materiais(nome)')
       .eq('empresa_id', empresaId);
     const grouped = {};
     for (const p of precos ?? []) {
@@ -531,18 +531,37 @@ export default function ConfiguracoesPage() {
 
   const handleAddPrecoMaterial = async (materialLinearId) => {
     const form = novoPrecosForm[materialLinearId] ?? {};
-    if (!form.categoria || !form.preco) return;
-    const { data, error } = await supabase
-      .from('acabamento_precos_material')
-      .insert({ empresa_id: empresaId, material_linear_id: materialLinearId, categoria: form.categoria, preco_ml: Number(form.preco) })
-      .select('id, material_linear_id, categoria, preco_ml')
-      .single();
-    if (error) { alert(error.message); return; }
-    setPrecosMaterial(prev => ({
-      ...prev,
-      [materialLinearId]: [...(prev[materialLinearId] ?? []), data],
-    }));
-    setNovoPrecosForm(prev => ({ ...prev, [materialLinearId]: { categoria: '', preco: '' } }));
+    if (!form.preco) return;
+
+    if (form.modo === 'material') {
+      if (!form.materialId) return;
+      const mat = materiaisArea.find(m => m.id === form.materialId);
+      const { data, error } = await supabase
+        .from('acabamento_precos_material')
+        .insert({ empresa_id: empresaId, material_linear_id: materialLinearId, material_id: form.materialId, categoria: null, preco_ml: Number(form.preco) })
+        .select('id, material_linear_id, categoria, preco_ml, material_id, materiais(nome)')
+        .single();
+      if (error) { alert(error.message); return; }
+      setPrecosMaterial(prev => ({
+        ...prev,
+        [materialLinearId]: [...(prev[materialLinearId] ?? []), data],
+      }));
+    } else {
+      const cats = form.categorias ?? [];
+      if (cats.length === 0) return;
+      const rows = cats.map(cat => ({ empresa_id: empresaId, material_linear_id: materialLinearId, categoria: cat, material_id: null, preco_ml: Number(form.preco) }));
+      const { data, error } = await supabase
+        .from('acabamento_precos_material')
+        .insert(rows)
+        .select('id, material_linear_id, categoria, preco_ml, material_id, materiais(nome)');
+      if (error) { alert(error.message); return; }
+      setPrecosMaterial(prev => ({
+        ...prev,
+        [materialLinearId]: [...(prev[materialLinearId] ?? []), ...(data ?? [])],
+      }));
+    }
+
+    setNovoPrecosForm(prev => ({ ...prev, [materialLinearId]: { modo: form.modo, categorias: [], preco: '', materialId: '' } }));
   };
 
   const handleRemovePrecoMaterial = async (materialLinearId, precoId) => {
@@ -1099,7 +1118,7 @@ export default function ConfiguracoesPage() {
                     ) : materiaisLineares.map(m => {
                       const isExpanded = expandedAcabamentos.has(m.id);
                       const precos = precosMaterial[m.id] ?? [];
-                      const form = novoPrecosForm[m.id] ?? { categoria: '', preco: '' };
+                      const form = novoPrecosForm[m.id] ?? { modo: 'categoria', categorias: [], preco: '', materialId: '' };
                       return (
                         <div key={m.id} className="border-b border-gray-200/50 dark:border-zinc-800/50">
                           <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
@@ -1131,14 +1150,23 @@ export default function ConfiguracoesPage() {
                           </div>
                           {isExpanded && (
                             <div className="border-t border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/40 px-6 py-4">
-                              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-3">Preços por material específico</p>
+                              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-3">Preços especiais por material</p>
                               {precos.length === 0 && (
                                 <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mb-3">Nenhum preço especial. Usando preço base para todos os materiais.</p>
                               )}
                               <div className="space-y-1 mb-4">
                                 {precos.map(p => (
                                   <div key={p.id} className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-zinc-800/60 text-sm">
-                                    <span className="text-gray-700 dark:text-zinc-300 uppercase font-mono text-xs">{p.categoria}</span>
+                                    <div className="flex items-center gap-2">
+                                      {p.material_id ? (
+                                        <span className="text-[9px] font-mono uppercase bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5">mat</span>
+                                      ) : (
+                                        <span className="text-[9px] font-mono uppercase bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 px-1.5 py-0.5">cat</span>
+                                      )}
+                                      <span className="text-gray-700 dark:text-zinc-300 uppercase font-mono text-xs">
+                                        {p.material_id ? (p.materiais?.nome ?? p.material_id) : p.categoria}
+                                      </span>
+                                    </div>
                                     <div className="flex items-center gap-3">
                                       <span className="font-mono text-gray-600 dark:text-zinc-400 text-xs">R$ {Number(p.preco_ml).toFixed(2)}/ml</span>
                                       <button onClick={() => handleRemovePrecoMaterial(m.id, p.id)} className="text-gray-400 hover:text-red-400 transition-colors">
@@ -1148,17 +1176,56 @@ export default function ConfiguracoesPage() {
                                   </div>
                                 ))}
                               </div>
-                              <div className="flex gap-2 items-center">
+
+                              {/* Mode toggle */}
+                              <div className="flex gap-px mb-3">
+                                <button
+                                  onClick={() => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, modo: 'categoria' } }))}
+                                  className={`text-[10px] font-mono uppercase px-3 py-1.5 border transition-colors ${form.modo === 'categoria' ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-gray-50 dark:bg-black text-gray-500 dark:text-zinc-500 border-gray-300 dark:border-zinc-700 hover:text-gray-900 dark:hover:text-white'}`}
+                                >Por categoria</button>
+                                <button
+                                  onClick={() => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, modo: 'material' } }))}
+                                  className={`text-[10px] font-mono uppercase px-3 py-1.5 border transition-colors ${form.modo === 'material' ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-gray-50 dark:bg-black text-gray-500 dark:text-zinc-500 border-gray-300 dark:border-zinc-700 hover:text-gray-900 dark:hover:text-white'}`}
+                                >Material específico</button>
+                              </div>
+
+                              {form.modo === 'categoria' ? (
+                                <div className="grid grid-cols-2 gap-1 mb-3">
+                                  {CATEGORIAS.map(cat => {
+                                    const jaExiste = precos.some(p => p.categoria === cat && !p.material_id);
+                                    const checked = (form.categorias ?? []).includes(cat);
+                                    return (
+                                      <label key={cat} className={`flex items-center gap-2 text-xs font-mono cursor-pointer select-none py-1 px-2 rounded ${jaExiste ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-zinc-800'}`}>
+                                        <input
+                                          type="checkbox"
+                                          disabled={jaExiste}
+                                          checked={checked}
+                                          onChange={e => {
+                                            const next = e.target.checked
+                                              ? [...(form.categorias ?? []), cat]
+                                              : (form.categorias ?? []).filter(c => c !== cat);
+                                            setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, categorias: next } }));
+                                          }}
+                                        />
+                                        <span className={jaExiste ? 'text-gray-400 dark:text-zinc-600' : 'text-gray-700 dark:text-zinc-300'}>{cat}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
                                 <select
-                                  value={form.categoria}
-                                  onChange={e => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, categoria: e.target.value } }))}
-                                  className="flex-1 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white px-3 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400"
+                                  value={form.materialId}
+                                  onChange={e => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, materialId: e.target.value } }))}
+                                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white px-3 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400 mb-3"
                                 >
-                                  <option value="">Selecionar categoria...</option>
-                                  {CATEGORIAS.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
+                                  <option value="">Selecionar material...</option>
+                                  {materiaisArea.filter(mat => !precos.some(p => p.material_id === mat.id)).map(mat => (
+                                    <option key={mat.id} value={mat.id}>{mat.nome}</option>
                                   ))}
                                 </select>
+                              )}
+
+                              <div className="flex gap-2 items-center">
                                 <input
                                   type="number"
                                   step="0.01"
@@ -1170,10 +1237,11 @@ export default function ConfiguracoesPage() {
                                 />
                                 <button
                                   onClick={() => handleAddPrecoMaterial(m.id)}
-                                  disabled={!form.categoria || !form.preco}
+                                  disabled={!form.preco || (form.modo === 'categoria' ? (form.categorias ?? []).length === 0 : !form.materialId)}
                                   className="bg-yellow-400 text-black text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                                 >
-                                  <iconify-icon icon="solar:add-square-linear" width="14"></iconify-icon> Adicionar
+                                  <iconify-icon icon="solar:add-square-linear" width="14"></iconify-icon>
+                                  {form.modo === 'categoria' && (form.categorias ?? []).length > 1 ? `Adicionar (${form.categorias.length})` : 'Adicionar'}
                                 </button>
                               </div>
                             </div>

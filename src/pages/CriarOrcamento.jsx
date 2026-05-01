@@ -207,21 +207,29 @@ function aplicarAutoMatchNaLista(pecasList, todosM, matLineares, precosCatMateri
       if (match) { updated = { ...updated, matLinearId: match.id }; changed = true; }
     }
 
-    // Compute precoMlOverride from parent stone's categoria
+    // Compute precoMlOverride: material-specific has priority over category
     if (updated.matLinearId && updated.idPedraUid && precosCatMaterial.length > 0) {
       const parentStone = pecasList.find(s => s.uid === updated.idPedraUid && s.tipo === 'pedra');
-      const categoria = parentStone?.matId
-        ? (todosM.find(m => m.id === parentStone.matId)?.categoria ?? null)
+      const parentMatId = parentStone?.matId ?? null;
+      const categoria = parentMatId
+        ? (todosM.find(m => m.id === parentMatId)?.categoria ?? null)
         : null;
-      if (categoria) {
-        const override = precosCatMaterial.find(
-          p => p.material_linear_id === updated.matLinearId && p.categoria === categoria
-        );
-        const novoOverride = override ? Number(override.preco_ml) : null;
-        if (updated.precoMlOverride !== novoOverride) {
-          updated = { ...updated, precoMlOverride: novoOverride };
-          changed = true;
-        }
+
+      // 1. Material-specific price (highest priority)
+      const overrideMat = parentMatId
+        ? precosCatMaterial.find(p => p.material_linear_id === updated.matLinearId && p.material_id === parentMatId)
+        : null;
+      // 2. Category fallback
+      const overrideCat = categoria && !overrideMat
+        ? precosCatMaterial.find(p => p.material_linear_id === updated.matLinearId && p.categoria === categoria && !p.material_id)
+        : null;
+
+      const novoOverride = overrideMat ? Number(overrideMat.preco_ml)
+        : overrideCat ? Number(overrideCat.preco_ml)
+        : null;
+      if (updated.precoMlOverride !== novoOverride) {
+        updated = { ...updated, precoMlOverride: novoOverride };
+        changed = true;
       }
     }
 
@@ -2787,7 +2795,7 @@ export default function CriarOrcamento() {
     if (!session || !profile?.empresa_id) return;
     supabase
       .from('acabamento_precos_material')
-      .select('material_linear_id, categoria, preco_ml')
+      .select('material_linear_id, categoria, preco_ml, material_id')
       .eq('empresa_id', profile.empresa_id)
       .then(({ data }) => { if (data) setPrecosCatMaterial(data); });
   }, [session, profile?.empresa_id]);
