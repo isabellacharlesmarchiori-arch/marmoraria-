@@ -22,6 +22,8 @@ export default function TelaProjetoVendedor() {
     const navigate = useNavigate();
     const { session, profile, empresa: empresaCtx, loading: authLoading, profileLoading } = useAuth();
     const isAdmin = profile?.perfil === 'admin' || profile?.role === 'admin';
+    const perfilAtual = profile?.perfil ?? profile?.role ?? '';
+    const isMedidorCombinado = perfilAtual === 'admin_medidor' || perfilAtual === 'vendedor_medidor';
 
     const [activeTab, setActiveTab] = useState('medicoes');
 
@@ -397,13 +399,24 @@ export default function TelaProjetoVendedor() {
                             <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
                                 01 // Medições
                             </div>
-                            <button
-                                onClick={handleAbrirNovoAgendamento}
-                                className="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
-                            >
-                                <iconify-icon icon="solar:calendar-add-linear" width="14"></iconify-icon>
-                                Agendar medição
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {isMedidorCombinado && projeto?.vendedor_id === session?.user?.id && (
+                                    <button
+                                        onClick={() => actions.handleFazerMedicao()}
+                                        className="flex items-center gap-2 bg-gray-900 dark:bg-zinc-800 text-yellow-400 text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 border border-yellow-400/40 hover:border-yellow-400 hover:shadow-[0_0_12px_rgba(250,204,21,0.2)] transition-all"
+                                    >
+                                        <iconify-icon icon="solar:ruler-pen-bold" width="14"></iconify-icon>
+                                        Fazer Medição
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleAbrirNovoAgendamento}
+                                    className="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
+                                >
+                                    <iconify-icon icon="solar:calendar-add-linear" width="14"></iconify-icon>
+                                    Agendar medição
+                                </button>
+                            </div>
                         </div>
 
                         <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">

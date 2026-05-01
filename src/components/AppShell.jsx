@@ -16,7 +16,12 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
                    : perfil === 'vendedor_medidor' ? 'vendedor'
                    : perfil;
 
-  const temMedidor = perfil === 'medidor' || perfil === 'admin_medidor' || perfil === 'vendedor_medidor';
+  const temMedidor  = perfil === 'medidor' || perfil === 'admin_medidor' || perfil === 'vendedor_medidor';
+  const isCombinado = perfil === 'admin_medidor'  || perfil === 'vendedor_medidor';
+  const notifPath   = isCombinado             ? '/notificacoes'
+                    : perfilBase === 'admin'  ? '/admin/notificacoes'
+                    : perfilBase === 'medidor'? '/medidor/notificacoes'
+                    : '/notificacoes';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(notifCountProp);
   const [toasts, setToasts] = useState([]);
@@ -97,7 +102,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: '/admin/financeiro', label: 'Financeiro', icon: 'solar:wallet-money-linear', subtitle: 'Controle financeiro' },
     { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear',  subtitle: 'Ajustes do sistema' },
     { path: '/admin/mensagens',    label: 'Mensagens',     icon: 'solar:chat-line-linear', subtitle: 'Enviar avisos ao time' },
-    { path: '/admin/notificacoes', label: 'Notificações',  icon: 'solar:bell-linear',      subtitle: 'Avisos do sistema', badge: true }
+    { path: notifPath, label: 'Notificações',  icon: 'solar:bell-linear',      subtitle: 'Avisos do sistema', badge: true }
   ];
 
   const menuMedidor = [
@@ -113,7 +118,6 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
   const itensMedidor = [
     { path: '/medidor/agenda',       label: 'Minha Agenda', icon: 'solar:calendar-linear', subtitle: 'Medições agendadas'  },
     { path: '/medidor/historico',    label: 'Histórico',    icon: 'solar:history-linear',  subtitle: 'Medições concluídas' },
-    { path: '/medidor/notificacoes', label: 'Avisos',       icon: 'solar:bell-linear',     subtitle: 'Notificações', badge: true },
   ];
 
   const currentMenu = (temMedidor && perfilBase !== 'medidor')
@@ -274,11 +278,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
             <ThemeToggle />
 
             <button
-              onClick={() => navigate(
-                perfilBase === 'admin'   ? '/admin/notificacoes' :
-                perfilBase === 'medidor' ? '/medidor/notificacoes' :
-                '/notificacoes'
-              )}
+              onClick={() => navigate(notifPath)}
               className="text-gray-400 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors relative flex items-center"
             >
               <iconify-icon icon="solar:bell-linear" width="18"></iconify-icon>

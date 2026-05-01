@@ -55,6 +55,37 @@ export function useProjectActions(projectId, {
 
     // ── MEDIÇÕES ──────────────────────────────────────────────────────────────
 
+    async function handleFazerMedicao() {
+        const { data, error } = await supabase
+            .from('medicoes')
+            .insert({
+                projeto_id:  projectId,
+                empresa_id:  profile?.empresa_id,
+                medidor_id:  session?.user?.id,
+                responsavel: profile?.nome ?? '',
+                data_medicao: new Date().toISOString(),
+                status:      'agendada',
+            })
+            .select('id')
+            .single();
+        if (error) { alert(`Erro ao criar medição: ${error.message}`); return; }
+        await supabase.from('medicoes').select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
+            .eq('projeto_id', projectId)
+            .order('data_medicao', { ascending: false })
+            .then(({ data: meds }) => {
+                if (!meds) return;
+                const fmt = (m) => ({
+                    ...m,
+                    data: new Date(m.data_medicao).toLocaleString('pt-BR', {
+                        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                    }),
+                    medidor: m.responsavel ?? '—',
+                });
+                setMedicoes(meds.map(fmt));
+            });
+        window.location.href = `smartstone://medicao?id=${data.id}`;
+    }
+
     async function handleExcluirMedicao(m) {
         if (!window.confirm(`Excluir a medição de ${m.data}? Esta ação não pode ser desfeita.`)) return;
         await supabase.from('ambientes').delete().eq('medicao_id', m.id);
@@ -859,6 +890,7 @@ export function useProjectActions(projectId, {
 
     return {
         // Medições
+        handleFazerMedicao,
         handleExcluirMedicao,
         handleAgendarMedicao,
         // Ambientes
