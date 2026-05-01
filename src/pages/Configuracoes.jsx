@@ -117,12 +117,12 @@ export default function ConfiguracoesPage() {
     if (linear) setMateriaisLineares(linear);
     const { data: precos } = await supabase
       .from('acabamento_precos_material')
-      .select('id, material_linear_id, material_id, preco_ml, materiais(nome)')
+      .select('id, material_linear_id, categoria, preco_ml')
       .eq('empresa_id', empresaId);
     const grouped = {};
     for (const p of precos ?? []) {
       if (!grouped[p.material_linear_id]) grouped[p.material_linear_id] = [];
-      grouped[p.material_linear_id].push({ ...p, material_nome: p.materiais?.nome });
+      grouped[p.material_linear_id].push(p);
     }
     setPrecosMaterial(grouped);
     const { data: unitarios } = await supabase
@@ -531,18 +531,18 @@ export default function ConfiguracoesPage() {
 
   const handleAddPrecoMaterial = async (materialLinearId) => {
     const form = novoPrecosForm[materialLinearId] ?? {};
-    if (!form.materialId || !form.preco) return;
+    if (!form.categoria || !form.preco) return;
     const { data, error } = await supabase
       .from('acabamento_precos_material')
-      .insert({ empresa_id: empresaId, material_linear_id: materialLinearId, material_id: form.materialId, preco_ml: Number(form.preco) })
-      .select('id, material_linear_id, material_id, preco_ml, materiais(nome)')
+      .insert({ empresa_id: empresaId, material_linear_id: materialLinearId, categoria: form.categoria, preco_ml: Number(form.preco) })
+      .select('id, material_linear_id, categoria, preco_ml')
       .single();
     if (error) { alert(error.message); return; }
     setPrecosMaterial(prev => ({
       ...prev,
-      [materialLinearId]: [...(prev[materialLinearId] ?? []), { ...data, material_nome: data.materiais?.nome }],
+      [materialLinearId]: [...(prev[materialLinearId] ?? []), data],
     }));
-    setNovoPrecosForm(prev => ({ ...prev, [materialLinearId]: { materialId: '', preco: '' } }));
+    setNovoPrecosForm(prev => ({ ...prev, [materialLinearId]: { categoria: '', preco: '' } }));
   };
 
   const handleRemovePrecoMaterial = async (materialLinearId, precoId) => {
@@ -1099,7 +1099,7 @@ export default function ConfiguracoesPage() {
                     ) : materiaisLineares.map(m => {
                       const isExpanded = expandedAcabamentos.has(m.id);
                       const precos = precosMaterial[m.id] ?? [];
-                      const form = novoPrecosForm[m.id] ?? { materialId: '', preco: '' };
+                      const form = novoPrecosForm[m.id] ?? { categoria: '', preco: '' };
                       return (
                         <div key={m.id} className="border-b border-gray-200/50 dark:border-zinc-800/50">
                           <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
@@ -1138,7 +1138,7 @@ export default function ConfiguracoesPage() {
                               <div className="space-y-1 mb-4">
                                 {precos.map(p => (
                                   <div key={p.id} className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-zinc-800/60 text-sm">
-                                    <span className="text-gray-700 dark:text-zinc-300 uppercase font-mono text-xs">{p.material_nome}</span>
+                                    <span className="text-gray-700 dark:text-zinc-300 uppercase font-mono text-xs">{p.categoria}</span>
                                     <div className="flex items-center gap-3">
                                       <span className="font-mono text-gray-600 dark:text-zinc-400 text-xs">R$ {Number(p.preco_ml).toFixed(2)}/ml</span>
                                       <button onClick={() => handleRemovePrecoMaterial(m.id, p.id)} className="text-gray-400 hover:text-red-400 transition-colors">
@@ -1150,13 +1150,13 @@ export default function ConfiguracoesPage() {
                               </div>
                               <div className="flex gap-2 items-center">
                                 <select
-                                  value={form.materialId}
-                                  onChange={e => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, materialId: e.target.value } }))}
+                                  value={form.categoria}
+                                  onChange={e => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, categoria: e.target.value } }))}
                                   className="flex-1 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white px-3 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400"
                                 >
-                                  <option value="">Selecionar material...</option>
-                                  {materiaisArea.map(mat => (
-                                    <option key={mat.id} value={mat.id}>{mat.nome}</option>
+                                  <option value="">Selecionar categoria...</option>
+                                  {CATEGORIAS.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
                                   ))}
                                 </select>
                                 <input
@@ -1170,7 +1170,7 @@ export default function ConfiguracoesPage() {
                                 />
                                 <button
                                   onClick={() => handleAddPrecoMaterial(m.id)}
-                                  disabled={!form.materialId || !form.preco}
+                                  disabled={!form.categoria || !form.preco}
                                   className="bg-yellow-400 text-black text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                                 >
                                   <iconify-icon icon="solar:add-square-linear" width="14"></iconify-icon> Adicionar

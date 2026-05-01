@@ -1180,6 +1180,26 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
     }));
   }
 
+  function editarRecorteTipoPreco(amb, vId, nome, precoUnit) {
+    setAmbiVersoes(prev => ({
+      ...prev,
+      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
+        ...v,
+        pecasList: v.pecasList.map(pw => pw.tipo === 'recorte' && pw.nome === nome ? { ...pw, precoUnit } : pw),
+      }),
+    }));
+  }
+
+  function excluirRecorteTipo(amb, vId, nome) {
+    setAmbiVersoes(prev => ({
+      ...prev,
+      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
+        ...v,
+        pecasList: v.pecasList.filter(pw => !(pw.tipo === 'recorte' && pw.nome === nome)),
+      }),
+    }));
+  }
+
   function editarNomeItem(amb, vId, oldKey, novoNome) {
     setAmbiVersoes(prev => ({
       ...prev,
@@ -1856,13 +1876,31 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                     }
                                     <span className="flex-1"></span>
                                     {isEditingPM ? (
-                                      <input
-                                        type="number" autoFocus min="0" step="0.01"
-                                        defaultValue={pw.precoManual ?? subAcComputed}
-                                        onBlur={e => { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
-                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
-                                        className="w-20 bg-gray-50 dark:bg-black border border-amber-500/60 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
-                                      />
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <input
+                                          type="number" autoFocus min="0" step="0.01"
+                                          value={editandoPrecoManual.precoMl}
+                                          onChange={e => {
+                                            const ml = parseFloat(e.target.value) || 0;
+                                            setEditandoPrecoManual(prev => ({ ...prev, precoMl: e.target.value, total: (ml * pw.ml).toFixed(2) }));
+                                          }}
+                                          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); } }}
+                                          placeholder="R$/ml"
+                                          className="w-14 bg-gray-50 dark:bg-black border border-amber-500/60 text-amber-200 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                        />
+                                        <span className="font-mono text-[8px] text-amber-800">/ml</span>
+                                        <input
+                                          type="number" min="0" step="0.01"
+                                          value={editandoPrecoManual.total}
+                                          onChange={e => {
+                                            const tot = parseFloat(e.target.value) || 0;
+                                            setEditandoPrecoManual(prev => ({ ...prev, total: e.target.value, precoMl: pw.ml > 0 ? (tot / pw.ml).toFixed(2) : '0' }));
+                                          }}
+                                          onBlur={() => { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); }}
+                                          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); } }}
+                                          className="w-16 bg-gray-50 dark:bg-black border border-amber-500/60 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                        />
+                                      </div>
                                     ) : (
                                       <span className={`font-mono text-[11px] shrink-0 w-20 text-right font-semibold ${pw.precoManual != null ? 'text-yellow-400' : 'text-amber-400'}`}>
                                         {subAc > 0 ? fmt(subAc) : '—'}{pw.precoManual != null ? ' *' : ''}
@@ -1870,7 +1908,11 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                     )}
                                     <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0 gap-0.5">
                                       {!isEditingPM && (
-                                        <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-colors">
+                                        <button onClick={() => {
+                                          const currentTotal = pw.precoManual ?? subAcComputed;
+                                          const currentMl = pw.ml > 0 ? currentTotal / pw.ml : 0;
+                                          setEditandoPrecoManual({ uid: pw.uid, precoMl: currentMl.toFixed(2), total: currentTotal.toFixed(2) });
+                                        }} title="Alterar preço" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-colors">
                                           <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
                                         </button>
                                       )}
@@ -1922,13 +1964,56 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 </div>
                               );
 
+                              const renderRecortesGrupados = (recortes, indent = false) => {
+                                const tiposMap = new Map();
+                                recortes.forEach(pw => {
+                                  if (!tiposMap.has(pw.nome)) tiposMap.set(pw.nome, []);
+                                  tiposMap.get(pw.nome).push(pw);
+                                });
+                                return Array.from(tiposMap.entries()).map(([nome, group]) => {
+                                  const count = group.length;
+                                  const firstPw = group[0];
+                                  const precoUnit = firstPw?.precoUnit ?? 0;
+                                  const total = precoUnit * count;
+                                  return (
+                                    <div key={`rc-g-${nome}`} className={`flex items-center gap-2 py-2 border-b border-teal-900/20 last:border-b-0 bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                      <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
+                                        <div className="w-px h-2 bg-teal-600/30"></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-teal-600/50"></div>
+                                      </div>
+                                      <iconify-icon icon="solar:scissors-linear" width="12" className="text-teal-500/70 shrink-0"></iconify-icon>
+                                      <span className="font-mono text-[10px] text-teal-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{nome}</span>
+                                      {firstPw?.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{firstPw.formato}</span>}
+                                      <span className="font-mono text-[10px] text-teal-600 shrink-0">×{count}</span>
+                                      <span className="flex-1"></span>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <span className="font-mono text-[10px] text-teal-700">R$</span>
+                                        <input
+                                          type="number" min="0" step="0.01"
+                                          value={precoUnit}
+                                          onChange={e => editarRecorteTipoPreco(amb, v.id, nome, parseFloat(e.target.value) || 0)}
+                                          className="w-16 bg-gray-50 dark:bg-black border border-teal-900/40 text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
+                                        />
+                                      </div>
+                                      <span className="font-mono text-[11px] text-teal-400 shrink-0 w-20 text-right font-semibold">{total > 0 ? fmt(total) : '—'}</span>
+                                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                        <button onClick={() => excluirRecorteTipo(amb, v.id, nome)} title="Remover furo" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
+                                          <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                });
+                              };
+
                               console.log('[DEBUG pecasList] amb=', amb, '| versao=', v.nome, '| total=', v.pecasList.length, '|', v.pecasList.map(pw => ({ uid: pw.uid?.slice(0, 8), tipo: pw.tipo, nome: pw.nome, idBase: pw.idBase?.slice(0, 8) })));
                               const temItens = v.pecasList.some(pw => pw.item_nome && pw.tipo !== 'acabamento');
                               if (!temItens) {
                                 // Sem itens: lista plana
-                                return v.pecasList.map(pw => {
+                                const recortesFlat = v.pecasList.filter(pw => pw.tipo === 'recorte');
+                                return [
+                                  ...v.pecasList.filter(pw => pw.tipo !== 'recorte').map(pw => {
                                   if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
-                                  if (pw.tipo === 'recorte')    return renderRecorte(pw, false);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   if (!pOrig) {
                                     console.warn('[DEBUG pOrig NULO] nome=', pw.nome, '| idBase=', pw.idBase, '| pecas ids:', pecas.map(p => p.id?.slice(0, 8)));
@@ -1994,7 +2079,9 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       </div>
                                     </div>
                                   );
-                                });
+                                  }),
+                                  ...renderRecortesGrupados(recortesFlat, false),
+                                ];
                               }
                               // Com itens: agrupar por item_nome
                               const itMap = new Map();
@@ -2066,9 +2153,8 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       </div>
                                     )}
                                     {/* Peças do item */}
-                                    {pwsItem.map(pw => {
+                                    {pwsItem.filter(pw => pw.tipo !== 'recorte').map(pw => {
                                       if (pw.tipo === 'acabamento') return renderAcabamento(pw, true);
-                                      if (pw.tipo === 'recorte')    return renderRecorte(pw, true);
                                       const pOrig = pecas.find(p => p.id === pw.idBase);
                                       if (!pOrig) {
                                         console.warn('[DEBUG pOrig NULO item] nome=', pw.nome, '| idBase=', pw.idBase);
@@ -2138,6 +2224,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                         </div>
                                       );
                                     })}
+                                    {renderRecortesGrupados(pwsItem.filter(pw => pw.tipo === 'recorte'), true)}
                                   </div>
                                 );
                               });
