@@ -2635,7 +2635,7 @@ export default function CriarOrcamento() {
           resumo = normalizado?.resumo_por_peca ?? [];
 
           setPecas(resumo.map(r => ({
-            id:                r.peca_id ?? crypto.randomUUID(),
+            id:                isValidUUID(r.peca_id) ? r.peca_id : crypto.randomUUID(),
             nome:              r.nome ?? '—',
             descricao:         r.descricao ?? null,
             ambiente_nome:     r.ambiente_nome ?? null,
@@ -2991,7 +2991,7 @@ export default function CriarOrcamento() {
   //
   // Suporta nova estrutura Flutter com item_nome (salvo em dimensoes).
   async function garantirPecasNoBanco(versao, ambMapping, empresaId) {
-    const fallbackAmbId = Object.values(ambMapping).find(isValidUUID) ?? null;
+    const fallbackAmbId = Object.values(ambMapping)[0] ?? null;
 
     // 1. Monta linhas a garantir (apenas peças de pedra; acabamentos/recortes não têm linha própria no banco)
     const todasRows = versao.pecasList
