@@ -1937,8 +1937,8 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                           const currentTotal = pw.precoManual ?? subAcComputed;
                                           const currentMl = pw.ml > 0 ? currentTotal / pw.ml : 0;
                                           setEditandoPrecoManual({ uid: pw.uid, precoMl: currentMl.toFixed(2), total: currentTotal.toFixed(2) });
-                                        }} title="Alterar preço" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-colors">
-                                          <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
+                                        }} title="Alterar preço" className="p-2 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-colors">
+                                          <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
                                         </button>
                                       )}
                                       <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover acabamento" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">

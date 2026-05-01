@@ -58,6 +58,11 @@
 .sk      { background: #111113; animation: sk-pulse 2s ease-in-out infinite; border-radius: 2px; }
 .sk-dark { background: #1a1a1e; animation: sk-pulse 2s ease-in-out infinite; border-radius: 2px; }
 
+/* ── Remove setas nativas de inputs number ───────── */
+input[type=number] { -moz-appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
 /* ── Interatividade global de botões ─────────────── */
 /* transition já definido no Tailwind; active adiciona feedback físico */
 button:not(:disabled):active {
