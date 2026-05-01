@@ -961,10 +961,12 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                 matLinearId: null,
                 ambiente_nome: amb,
                 item_nome: grupoNomeVal,
+                precoManual: ac.precoManual ?? null,
               });
             });
             (ge.furos ?? []).forEach(fu => {
               const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase());
+              const fuPreco = fu.precoManual != null ? fu.precoManual : (acabUnit ? parseFloat(acabUnit.preco_unitario) : 0);
               pecasList.push({
                 uid: `rc-g-${firstStoneUid}-${Math.random()}`,
                 idBase: pcsGroup[0]?.id ?? null,
@@ -972,7 +974,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                 tipo: 'recorte',
                 nome: fu.tipo,
                 formato: fu.formato ?? null,
-                precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0,
+                precoUnit: fuPreco,
                 ambiente_nome: amb,
                 item_nome: grupoNomeVal,
               });
@@ -1056,6 +1058,8 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
   const [editandoNomeItem, setEditandoNomeItem] = useState(null); // { amb, vId, itemKey, novo }
   const [editandoNomePeca, setEditandoNomePeca] = useState(null); // { amb, vId, uid, novo }
   const [painelMatVersao, setPainelMatVersao] = useState(null);  // { amb, vId, uid|null, itemKey|null, atual: matId|null, label }
+  const [painelLinearVersao, setPainelLinearVersao] = useState(null); // { amb, vId, uid }
+  const [editandoPrecoManual, setEditandoPrecoManual] = useState(null); // { uid }
   function confirmarMatVersao(_, selecionados, acabamento = null) {
     const matId = selecionados[0] ?? '';
     if (!painelMatVersao) return;
@@ -1228,10 +1232,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
     const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
     if (!v) return 0;
     const tPecas = v.pecasList.reduce((s, pw) => {
-      if (pw.tipo === 'acabamento') return s + precoAcabamento(pw.ml, pw.matLinearId, matLineares);
+      if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares));
       if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
       const pOrig = pecas.find(p => p.id === pw.idBase);
-      return s + precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
+      return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
     }, 0);
     const tAvulsos = (v.avulsos ?? []).reduce((s, a) => s + a.valorUnit * a.qty, 0);
     return tPecas + tAvulsos;
@@ -1285,8 +1289,8 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
       const geKey = `${amb}::${gKey}`;
       const ge = grupoExtras[geKey];
       if (ge) {
-        (ge.acabamentos ?? []).forEach(ac => { const nomeAcab = ACAB_TIPO_NOME[ac.tipo] ?? ac.tipo; pecasListRaw.push({ uid: `ac-g-${ac.tipo}-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: ac.tipo, nome: nomeAcab, ml: ac.ml, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal }); });
-        (ge.furos ?? []).forEach(fu => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: fu.tipo, formato: fu.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
+        (ge.acabamentos ?? []).forEach(ac => { const nomeAcab = ACAB_TIPO_NOME[ac.tipo] ?? ac.tipo; pecasListRaw.push({ uid: `ac-g-${ac.tipo}-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'acabamento', tipoAcabamento: ac.tipo, nome: nomeAcab, ml: ac.ml, matLinearId: null, ambiente_nome: amb, item_nome: grupoNomeVal, precoManual: ac.precoManual ?? null }); });
+        (ge.furos ?? []).forEach(fu => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()); const fuPreco = fu.precoManual != null ? fu.precoManual : (acabUnit ? parseFloat(acabUnit.preco_unitario) : 0); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: fu.tipo, formato: fu.formato ?? null, precoUnit: fuPreco, ambiente_nome: amb, item_nome: grupoNomeVal }); });
       } else {
         // Fallback: agrega das peças — todos os 6 tipos
         const ac6 = [
@@ -1423,6 +1427,26 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
           p.tipo === 'acabamento' && p.idPedraUid === pUid ? { ...p, matLinearId: null } : p
         );
         return { ...v, pecasList: aplicarAutoMatchNaLista(comReMatch, todosM, matLineares) };
+      }),
+    }));
+  }
+
+  function editarPrecoManual(amb, vId, uid, precoManual) {
+    const val = precoManual !== '' && precoManual != null ? Number(precoManual) : null;
+    setAmbiVersoes(prev => ({
+      ...prev,
+      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
+        ...v,
+        pecasList: v.pecasList.map(pw => pw.uid === uid ? { ...pw, precoManual: val } : pw),
+      }),
+    }));
+  }
+  function editarRecorteTipo(amb, vId, uid, novoTipo, novoPreco) {
+    setAmbiVersoes(prev => ({
+      ...prev,
+      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
+        ...v,
+        pecasList: v.pecasList.map(pw => pw.uid === uid ? { ...pw, nome: novoTipo, precoUnit: novoPreco } : pw),
       }),
     }));
   }
@@ -1799,7 +1823,9 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                             {(() => {
                               // Helper: renderiza uma linha de acabamento linear
                               const renderAcabamento = (pw, indent = false) => {
-                                const subAc = precoAcabamento(pw.ml, pw.matLinearId, matLineares);
+                                const subAcComputed = precoAcabamento(pw.ml, pw.matLinearId, matLineares);
+                                const subAc = pw.precoManual != null ? pw.precoManual : subAcComputed;
+                                const isEditingPM = editandoPrecoManual?.uid === pw.uid;
                                 return (
                                   <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-900/20 last:border-b-0 bg-amber-950/20 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
                                     {/* Conector visual "filho da peça acima" */}
@@ -1819,18 +1845,35 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       <span className="font-mono text-[10px] text-amber-700">ml</span>
                                     </div>
                                     {pw.matLinearId
-                                      ? <span className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-amber-600/40 text-amber-400 shrink-0 flex items-center gap-1">
+                                      ? <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-amber-600/40 text-amber-400 shrink-0 flex items-center gap-1 hover:bg-amber-400/10 transition-colors">
                                           <iconify-icon icon="solar:ruler-angular-linear" width="9"></iconify-icon>
                                           {matLineares.find(m => m.id === pw.matLinearId)?.nome ?? 'Linear'}
-                                        </span>
-                                      : <span className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-red-600/50 text-red-400 shrink-0 flex items-center gap-1">
+                                        </button>
+                                      : <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-red-600/50 text-red-400 shrink-0 flex items-center gap-1 hover:bg-red-400/10 transition-colors">
                                           <iconify-icon icon="solar:danger-triangle-linear" width="9"></iconify-icon>
                                           não cadastrado
-                                        </span>
+                                        </button>
                                     }
                                     <span className="flex-1"></span>
-                                    <span className="font-mono text-[11px] text-amber-400 shrink-0 w-20 text-right font-semibold">{subAc > 0 ? fmt(subAc) : '—'}</span>
-                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    {isEditingPM ? (
+                                      <input
+                                        type="number" autoFocus min="0" step="0.01"
+                                        defaultValue={pw.precoManual ?? subAcComputed}
+                                        onBlur={e => { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
+                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
+                                        className="w-20 bg-gray-50 dark:bg-black border border-amber-500/60 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                      />
+                                    ) : (
+                                      <span className={`font-mono text-[11px] shrink-0 w-20 text-right font-semibold ${pw.precoManual != null ? 'text-yellow-400' : 'text-amber-400'}`}>
+                                        {subAc > 0 ? fmt(subAc) : '—'}{pw.precoManual != null ? ' *' : ''}
+                                      </span>
+                                    )}
+                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0 gap-0.5">
+                                      {!isEditingPM && (
+                                        <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-colors">
+                                          <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
+                                        </button>
+                                      )}
                                       <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover acabamento" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
                                         <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                       </button>
@@ -1847,7 +1890,18 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                     <div className="w-1.5 h-1.5 rounded-full bg-teal-600/50"></div>
                                   </div>
                                   <iconify-icon icon="solar:scissors-linear" width="12" className="text-teal-500/70 shrink-0"></iconify-icon>
-                                  <span className="font-mono text-[10px] text-teal-400/80 min-w-[90px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
+                                  {acabamentosUnitarios.length > 0 ? (
+                                    <select
+                                      value={pw.nome}
+                                      onChange={e => { const sel = acabamentosUnitarios.find(a => a.nome === e.target.value); editarRecorteTipo(amb, v.id, pw.uid, e.target.value, sel?.preco_unitario ?? pw.precoUnit); }}
+                                      className="font-mono text-[10px] text-teal-400/80 min-w-[90px] uppercase tracking-wide bg-transparent border border-teal-900/40 px-1 py-0.5 outline-none focus:border-teal-500/60 shrink-0"
+                                    >
+                                      {acabamentosUnitarios.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)}
+                                      {!acabamentosUnitarios.find(a => a.nome === pw.nome) && <option value={pw.nome}>{pw.nome}</option>}
+                                    </select>
+                                  ) : (
+                                    <span className="font-mono text-[10px] text-teal-400/80 min-w-[90px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
+                                  )}
                                   {pw.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{pw.formato}</span>}
                                   <span className="flex-1"></span>
                                   <div className="flex items-center gap-1 shrink-0">
@@ -1880,8 +1934,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                     console.warn('[DEBUG pOrig NULO] nome=', pw.nome, '| idBase=', pw.idBase, '| pecas ids:', pecas.map(p => p.id?.slice(0, 8)));
                                     return null;
                                   }
-                                  const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
+                                  const subComputed = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
+                                  const sub = pw.precoManual != null ? pw.precoManual : subComputed;
                                   const isNomePecaEdit = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
+                                  const isEditingPMPedra = editandoPrecoManual?.uid === pw.uid;
                                   return (
                                     <div key={pw.uid} className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group">
                                       <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
@@ -1909,10 +1965,25 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                         <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
                                         {pw.matId ? (todosM.find(m => m.id === pw.matId)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
                                       </button>
-                                      <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400 shrink-0 w-16 text-right">{sub > 0 ? fmt(sub) : '—'}</span>
+                                      {isEditingPMPedra ? (
+                                        <input
+                                          type="number" autoFocus min="0" step="0.01"
+                                          defaultValue={pw.precoManual ?? subComputed}
+                                          onBlur={e => { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
+                                          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
+                                          className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                        />
+                                      ) : (
+                                        <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
+                                          {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
+                                        </span>
+                                      )}
                                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                         <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                           <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
+                                        </button>
+                                        <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                          <iconify-icon icon="solar:dollar-minimalistic-linear" width="11"></iconify-icon>
                                         </button>
                                         <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                           <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
@@ -1940,10 +2011,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 const matIdItem = pwsItem.find(pw => pw.tipo === 'pedra')?.matId ?? '';
                                 // Subtotal inclui pedras + acabamentos + recortes
                                 const subtotalItem = pwsItem.reduce((s, pw) => {
-                                  if (pw.tipo === 'acabamento') return s + precoAcabamento(pw.ml, pw.matLinearId, matLineares);
+                                  if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares));
                                   if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
-                                  return s + precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
+                                  return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
                                 }, 0);
                                 const isNomeItemEdit = editandoNomeItem?.amb === amb && editandoNomeItem?.vId === v.id && editandoNomeItem?.itemKey === itemKey;
                                 return (
@@ -2003,8 +2074,10 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                         console.warn('[DEBUG pOrig NULO item] nome=', pw.nome, '| idBase=', pw.idBase);
                                         return null;
                                       }
-                                      const sub = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
+                                      const subComputedItem = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
+                                      const sub = pw.precoManual != null ? pw.precoManual : subComputedItem;
                                       const isNomePecaEditItem = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
+                                      const isEditingPMItem = editandoPrecoManual?.uid === pw.uid;
                                       return (
                                         <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group ${nomeItem ? 'px-7' : 'px-4'}`}>
                                           <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
@@ -2035,10 +2108,25 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                             <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
                                             {pw.matId ? (todosM.find(m => m.id === pw.matId)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
                                           </button>
-                                          <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400 shrink-0 w-16 text-right">{sub > 0 ? fmt(sub) : '—'}</span>
+                                          {isEditingPMItem ? (
+                                            <input
+                                              type="number" autoFocus min="0" step="0.01"
+                                              defaultValue={pw.precoManual ?? subComputedItem}
+                                              onBlur={e => { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
+                                              onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
+                                              className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                            />
+                                          ) : (
+                                            <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
+                                              {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
+                                            </span>
+                                          )}
                                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                             <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                               <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
+                                            </button>
+                                            <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                              <iconify-icon icon="solar:dollar-minimalistic-linear" width="11"></iconify-icon>
                                             </button>
                                             <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                               <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
@@ -2292,6 +2380,24 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
           onFechar={() => setPainelMatVersao(null)}
           todosM={todosM}
           single
+        />
+      )}
+
+      {/* Painel lateral: selecionar material linear para acabamento (versões) */}
+      {painelLinearVersao && (
+        <PainelMaterialLinear
+          label={(() => {
+            const v = (ambiVersoes[painelLinearVersao.amb] ?? []).find(x => x.id === painelLinearVersao.vId);
+            const pw = v?.pecasList.find(p => p.uid === painelLinearVersao.uid);
+            return pw?.nome ?? 'Acabamento';
+          })()}
+          selecionado={(() => {
+            const v = (ambiVersoes[painelLinearVersao.amb] ?? []).find(x => x.id === painelLinearVersao.vId);
+            return v?.pecasList.find(p => p.uid === painelLinearVersao.uid)?.matLinearId ?? null;
+          })()}
+          onConfirmar={sel => { editarAcabamentoMat(painelLinearVersao.amb, painelLinearVersao.vId, painelLinearVersao.uid, sel); setPainelLinearVersao(null); }}
+          onFechar={() => setPainelLinearVersao(null)}
+          matLineares={matLineares}
         />
       )}
 
@@ -2773,6 +2879,8 @@ export default function CriarOrcamento() {
   const [modalVersoes, setModalVersoes] = useState(false);
   const [versoesCriadas, setVersoesCriadas] = useState(null);
   const [salvandoOrc, setSalvandoOrc] = useState(false);
+  const [addFuroMenuKey, setAddFuroMenuKey] = useState(null);
+  const [editandoPrecoGrupo, setEditandoPrecoGrupo] = useState(null); // { geKey, itemType: 'acab'|'furo', id?, tipo? }
 
   // Estado para ações por ambiente
   const [editandoAmbNome, setEditandoAmbNome] = useState(null);     // { amb: string, novo: string }
@@ -2877,6 +2985,28 @@ export default function CriarOrcamento() {
   }
   function updateGrupoFuro(geKey, fuId, field, value) {
     setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], furos: (prev[geKey]?.furos ?? []).map(f => f.id === fuId ? { ...f, [field]: value } : f) } }));
+  }
+  function addGrupoFuroTipo(geKey, tipo) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...(prev[geKey] ?? { acabamentos: [], furos: [] }), furos: [...(prev[geKey]?.furos ?? []), { id: crypto.randomUUID(), tipo, formato: null }] } }));
+  }
+  function removeGrupoFuroTipo(geKey, tipo) {
+    setGrupoExtras(prev => {
+      const furos = prev[geKey]?.furos ?? [];
+      const idx = furos.map((f, i) => f.tipo === tipo ? i : -1).filter(i => i >= 0).pop();
+      if (idx == null) return prev;
+      return { ...prev, [geKey]: { ...prev[geKey], furos: furos.filter((_, i) => i !== idx) } };
+    });
+  }
+  function removeGrupoFuroTipoAll(geKey, tipo) {
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], furos: (prev[geKey]?.furos ?? []).filter(f => f.tipo !== tipo) } }));
+  }
+  function updateGrupoFuroPrecoManual(geKey, tipo, precoManual) {
+    const val = precoManual !== '' && precoManual != null ? Number(precoManual) : null;
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], furos: (prev[geKey]?.furos ?? []).map(f => f.tipo === tipo ? { ...f, precoManual: val } : f) } }));
+  }
+  function updateGrupoAcabamentoPrecoManual(geKey, acId, precoManual) {
+    const val = precoManual !== '' && precoManual != null ? Number(precoManual) : null;
+    setGrupoExtras(prev => ({ ...prev, [geKey]: { ...prev[geKey], acabamentos: (prev[geKey]?.acabamentos ?? []).map(a => a.id === acId ? { ...a, precoManual: val } : a) } }));
   }
 
   function removerProduto(idx) {
@@ -3113,12 +3243,12 @@ export default function CriarOrcamento() {
           });
 
         const valorPecas = versao.pecasList.reduce((s, pWrapper) => {
-          if (pWrapper.tipo === 'acabamento') return s + precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares);
+          if (pWrapper.tipo === 'acabamento') return s + (pWrapper.precoManual != null ? pWrapper.precoManual : precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares));
           if (pWrapper.tipo === 'recorte')    return s + (pWrapper.precoUnit ?? 0);
           const rawMat = pWrapper.matId;
           const matId  = rawMat && typeof rawMat === 'object' ? (rawMat.id ?? null) : (rawMat ?? null);
           const pSrc   = pecas.find(p => p.id === pWrapper.idBase) ?? pWrapper;
-          return s + precoPeca(pSrc, matId, materiais, pWrapper.matAcabamento);
+          return s + (pWrapper.precoManual != null ? pWrapper.precoManual : precoPeca(pSrc, matId, materiais, pWrapper.matAcabamento));
         }, 0);
         const valorAvulsos = produtos.reduce((s, p) => s + p.preco * p.qty, 0);
         const subtotal     = valorPecas + valorAvulsos;
@@ -3166,7 +3296,7 @@ export default function CriarOrcamento() {
               : (typeof rawMat === 'string' ? rawMat : null);
 
             const pSource   = pecas.find(p => p.id === pWrapper.idBase) ?? pWrapper;
-            const valorArea = precoPeca(pSource, materialId, materiais, pWrapper.matAcabamento);
+            const valorArea = pWrapper.precoManual != null ? pWrapper.precoManual : precoPeca(pSource, materialId, materiais, pWrapper.matAcabamento);
 
             // Agrega acabamentos vinculados a esta pedra
             const filhos = acabamentosPorPedra.get(pWrapper.uid) ?? [];
@@ -3176,7 +3306,7 @@ export default function CriarOrcamento() {
               tipo:         ac.tipoAcabamento,
               ml:           ac.ml,
               mat_linear_id: ac.matLinearId,
-              valor:        precoAcabamento(ac.ml, ac.matLinearId, matLineares),
+              valor:        ac.precoManual != null ? ac.precoManual : precoAcabamento(ac.ml, ac.matLinearId, matLineares),
             }));
 
             // Agrega recortes vinculados a esta pedra
@@ -3833,7 +3963,11 @@ export default function CriarOrcamento() {
                               <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} todosM={materiais} />
                             )),
                             // Acabamentos lineares do grupo
-                            ...ge.acabamentos.map(ac => (
+                            ...ge.acabamentos.map(ac => {
+                              const matchAcab = matLineares.find(m => m.nome.toLowerCase() === (ACAB_TIPO_NOME[ac.tipo] ?? ac.tipo).toLowerCase());
+                              const acPreco = ac.precoManual != null ? ac.precoManual : (matchAcab ? ac.ml * matchAcab.preco_ml : 0);
+                              const isEditingAcab = editandoPrecoGrupo?.geKey === geKey && editandoPrecoGrupo?.itemType === 'acab' && editandoPrecoGrupo?.id === ac.id;
+                              return (
                               <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-950/20 border-b border-amber-900/20 group">
                                 <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
                                 <select
@@ -3858,48 +3992,114 @@ export default function CriarOrcamento() {
                                   <span className="font-mono text-[9px] text-amber-700">ml</span>
                                 </div>
                                 <span className="flex-1"></span>
+                                {isEditingAcab ? (
+                                  <input
+                                    type="number" autoFocus min="0" step="0.01"
+                                    defaultValue={ac.precoManual ?? acPreco}
+                                    onBlur={e => { updateGrupoAcabamentoPrecoManual(geKey, ac.id, e.target.value); setEditandoPrecoGrupo(null); }}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { updateGrupoAcabamentoPrecoManual(geKey, ac.id, e.target.value); setEditandoPrecoGrupo(null); } }}
+                                    className="w-20 bg-transparent border border-amber-500/60 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                  />
+                                ) : (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className={`font-mono text-[9px] shrink-0 ${ac.precoManual != null ? 'text-yellow-400' : 'text-amber-600'}`}>
+                                      {acPreco > 0 ? acPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}{ac.precoManual != null ? ' *' : ''}
+                                    </span>
+                                    <button onClick={() => setEditandoPrecoGrupo({ geKey, itemType: 'acab', id: ac.id })} className="p-0.5 text-zinc-700 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100">
+                                      <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
+                                    </button>
+                                  </div>
+                                )}
                                 <button onClick={() => removeGrupoAcabamento(geKey, ac.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
-                                  <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
-                                </button>
-                              </div>
-                            )),
-                            // Furos / recortes do grupo
-                            ...ge.furos.map(fu => {
-                              const matchFuro = fu.tipo ? acabamentosUnitarios.find(a => a.nome.toLowerCase() === fu.tipo.toLowerCase()) : null;
-                              const naoCadastrado = fu.tipo && !matchFuro;
-                              return (
-                              <div key={fu.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/10 border-b border-teal-900/20 group">
-                                <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
-                                <input
-                                  value={fu.tipo}
-                                  onChange={e => updateGrupoFuro(geKey, fu.id, 'tipo', e.target.value)}
-                                  className="flex-1 bg-transparent border-b border-teal-900/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-teal-500/60 min-w-0"
-                                />
-                                {fu.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{fu.formato}</span>}
-                                {matchFuro && (
-                                  <span className="font-mono text-[9px] text-teal-400 shrink-0">
-                                    {parseFloat(matchFuro.preco_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un
-                                  </span>
-                                )}
-                                {naoCadastrado && (
-                                  <span className="font-mono text-[9px] text-red-500 shrink-0">não cadastrado</span>
-                                )}
-                                <button onClick={() => removeGrupoFuro(geKey, fu.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                                   <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                 </button>
                               </div>
                               );
                             }),
+                            // Furos / recortes do grupo — agrupados por tipo
+                            ...(() => {
+                              const tiposMap = new Map();
+                              ge.furos.forEach(fu => {
+                                if (!tiposMap.has(fu.tipo)) tiposMap.set(fu.tipo, []);
+                                tiposMap.get(fu.tipo).push(fu);
+                              });
+                              return Array.from(tiposMap.entries()).map(([tipo, furosTipo]) => {
+                                const count = furosTipo.length;
+                                const matchFuro = tipo ? acabamentosUnitarios.find(a => a.nome.toLowerCase() === tipo.toLowerCase()) : null;
+                                const firstFuro = furosTipo[0];
+                                const fuPrecoUnit = matchFuro ? parseFloat(matchFuro.preco_unitario) : 0;
+                                const fuPreco = firstFuro?.precoManual != null ? firstFuro.precoManual : fuPrecoUnit;
+                                const isEditingFuro = editandoPrecoGrupo?.geKey === geKey && editandoPrecoGrupo?.itemType === 'furo' && editandoPrecoGrupo?.tipo === tipo;
+                                return (
+                                  <div key={`furo-tipo-${tipo}`} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/10 border-b border-teal-900/20 group">
+                                    <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
+                                    <span className="font-mono text-[9px] text-teal-400 uppercase tracking-widest shrink-0 min-w-[80px]">{tipo}</span>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button onClick={() => removeGrupoFuroTipo(geKey, tipo)} className="w-5 h-5 flex items-center justify-center border border-teal-900/40 text-teal-600 hover:text-teal-300 font-mono text-[11px] transition-colors">−</button>
+                                      <span className="font-mono text-[10px] text-teal-300 w-5 text-center">{count}</span>
+                                      <button onClick={() => addGrupoFuroTipo(geKey, tipo)} className="w-5 h-5 flex items-center justify-center border border-teal-900/40 text-teal-600 hover:text-teal-300 font-mono text-[11px] transition-colors">+</button>
+                                    </div>
+                                    <span className="flex-1"></span>
+                                    {isEditingFuro ? (
+                                      <input
+                                        type="number" autoFocus min="0" step="0.01"
+                                        defaultValue={firstFuro?.precoManual ?? fuPrecoUnit}
+                                        onBlur={e => { updateGrupoFuroPrecoManual(geKey, tipo, e.target.value); setEditandoPrecoGrupo(null); }}
+                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { updateGrupoFuroPrecoManual(geKey, tipo, e.target.value); setEditandoPrecoGrupo(null); } }}
+                                        className="w-20 bg-transparent border border-teal-500/60 text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {matchFuro || firstFuro?.precoManual != null ? (
+                                          <span className={`font-mono text-[9px] shrink-0 ${firstFuro?.precoManual != null ? 'text-yellow-400' : 'text-teal-400'}`}>
+                                            {fuPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un{firstFuro?.precoManual != null ? ' *' : ''}
+                                          </span>
+                                        ) : (
+                                          <span className="font-mono text-[9px] text-red-500 shrink-0">não cadastrado</span>
+                                        )}
+                                        <button onClick={() => setEditandoPrecoGrupo({ geKey, itemType: 'furo', tipo })} className="p-0.5 text-zinc-700 hover:text-teal-400 transition-colors opacity-0 group-hover:opacity-100">
+                                          <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
+                                        </button>
+                                      </div>
+                                    )}
+                                    <button onClick={() => removeGrupoFuroTipoAll(geKey, tipo)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                                      <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
+                                    </button>
+                                  </div>
+                                );
+                              });
+                            })(),
                             // Botões adicionar
-                            <div key={`add-${gKey}`} className="flex items-center gap-3 pl-6 pr-4 py-1 bg-zinc-950/20 border-b border-zinc-900/30">
-                              <button onClick={() => addGrupoAcabamento(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-amber-800 hover:text-amber-500 transition-colors">
-                                <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
-                                Acabamento
-                              </button>
-                              <button onClick={() => addGrupoFuro(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-teal-800 hover:text-teal-500 transition-colors">
-                                <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
-                                Furo
-                              </button>
+                            <div key={`add-${gKey}`} className="flex flex-col gap-0">
+                              <div className="flex items-center gap-3 pl-6 pr-4 py-1 bg-zinc-950/20 border-b border-zinc-900/30">
+                                <button onClick={() => addGrupoAcabamento(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-amber-800 hover:text-amber-500 transition-colors">
+                                  <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
+                                  Acabamento
+                                </button>
+                                <button onClick={() => setAddFuroMenuKey(addFuroMenuKey === geKey ? null : geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-teal-800 hover:text-teal-500 transition-colors">
+                                  <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
+                                  Furo
+                                </button>
+                              </div>
+                              {addFuroMenuKey === geKey && (
+                                <div className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/20 border-b border-teal-900/20">
+                                  <iconify-icon icon="solar:scissors-linear" width="10" className="text-teal-600 shrink-0"></iconify-icon>
+                                  <select
+                                    defaultValue=""
+                                    onChange={e => { if (e.target.value) { addGrupoFuroTipo(geKey, e.target.value); setAddFuroMenuKey(null); } }}
+                                    className="flex-1 bg-transparent border border-teal-900/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-teal-500/60"
+                                  >
+                                    <option value="">— Selecionar tipo de furo —</option>
+                                    {acabamentosUnitarios.length > 0
+                                      ? acabamentosUnitarios.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)
+                                      : <option value="Recorte">Recorte</option>
+                                    }
+                                  </select>
+                                  <button onClick={() => setAddFuroMenuKey(null)} className="p-0.5 text-zinc-700 hover:text-red-400 transition-colors shrink-0">
+                                    <iconify-icon icon="solar:close-circle-linear" width="11"></iconify-icon>
+                                  </button>
+                                </div>
+                              )}
                             </div>,
                           ];
                         });

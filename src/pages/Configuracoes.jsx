@@ -93,6 +93,9 @@ export default function ConfiguracoesPage() {
   const [matFiltroCategoria, setMatFiltroCategoria] = useState('');
   const [acabamentosUnitarios, setAcabamentosUnitarios] = useState([]);
   const [acabamentoSubAba,     setAcabamentoSubAba]     = useState('lineares');
+  const [precosMaterial,       setPrecosMaterial]       = useState({});
+  const [expandedAcabamentos,  setExpandedAcabamentos]  = useState(new Set());
+  const [novoPrecosForm,       setNovoPrecosForm]       = useState({});
 
   // ── Fetch materiais ──
   const fetchMateriais = useCallback(async () => {
@@ -112,6 +115,16 @@ export default function ConfiguracoesPage() {
     if (errLinear) console.error('Erro materiais lineares:', errLinear);
     if (area)   setMateriaisArea(area);
     if (linear) setMateriaisLineares(linear);
+    const { data: precos } = await supabase
+      .from('acabamento_precos_material')
+      .select('id, material_linear_id, material_id, preco_ml, materiais(nome)')
+      .eq('empresa_id', empresaId);
+    const grouped = {};
+    for (const p of precos ?? []) {
+      if (!grouped[p.material_linear_id]) grouped[p.material_linear_id] = [];
+      grouped[p.material_linear_id].push({ ...p, material_nome: p.materiais?.nome });
+    }
+    setPrecosMaterial(grouped);
     const { data: unitarios } = await supabase
       .from('produtos_avulsos')
       .select('*')
@@ -506,6 +519,39 @@ export default function ConfiguracoesPage() {
     const { error } = await supabase.from('materiais_lineares').delete().eq('id', id);
     if (error) { alert(error.message); return; }
     setMateriaisLineares(prev => prev.filter(m => m.id !== id));
+    setPrecosMaterial(prev => { const next = { ...prev }; delete next[id]; return next; });
+  };
+
+  const toggleExpandAcabamento = (id) =>
+    setExpandedAcabamentos(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const handleAddPrecoMaterial = async (materialLinearId) => {
+    const form = novoPrecosForm[materialLinearId] ?? {};
+    if (!form.materialId || !form.preco) return;
+    const { data, error } = await supabase
+      .from('acabamento_precos_material')
+      .insert({ empresa_id: empresaId, material_linear_id: materialLinearId, material_id: form.materialId, preco_ml: Number(form.preco) })
+      .select('id, material_linear_id, material_id, preco_ml, materiais(nome)')
+      .single();
+    if (error) { alert(error.message); return; }
+    setPrecosMaterial(prev => ({
+      ...prev,
+      [materialLinearId]: [...(prev[materialLinearId] ?? []), { ...data, material_nome: data.materiais?.nome }],
+    }));
+    setNovoPrecosForm(prev => ({ ...prev, [materialLinearId]: { materialId: '', preco: '' } }));
+  };
+
+  const handleRemovePrecoMaterial = async (materialLinearId, precoId) => {
+    const { error } = await supabase.from('acabamento_precos_material').delete().eq('id', precoId);
+    if (error) { alert(error.message); return; }
+    setPrecosMaterial(prev => ({
+      ...prev,
+      [materialLinearId]: (prev[materialLinearId] ?? []).filter(p => p.id !== precoId),
+    }));
   };
 
   // ── Helpers variação ──
@@ -1050,27 +1096,91 @@ export default function ConfiguracoesPage() {
                     </div>
                     {loadingMateriais ? (
                       <div className="p-8 text-center font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700 animate-pulse">Carregando...</div>
-                    ) : materiaisLineares.map(m => (
-                      <div key={m.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
-                        <div className="text-gray-900 dark:text-white uppercase font-medium">{m.nome}</div>
-                        <div><span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black px-2 py-1 uppercase text-gray-500 dark:text-zinc-400">{m.tipo?.replace('_', ' ')}</span></div>
-                        <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(m.preco_ml).toFixed(2)}</div>
-                        <div>
-                          <button onClick={() => handleToggle(setMateriaisLineares, materiaisLineares, m.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}>
-                            <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
-                            {m.ativo ? 'Ativo' : 'Oculto'}
-                          </button>
+                    ) : materiaisLineares.map(m => {
+                      const isExpanded = expandedAcabamentos.has(m.id);
+                      const precos = precosMaterial[m.id] ?? [];
+                      const form = novoPrecosForm[m.id] ?? { materialId: '', preco: '' };
+                      return (
+                        <div key={m.id} className="border-b border-gray-200/50 dark:border-zinc-800/50">
+                          <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] gap-4 p-4 items-center hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 transition-colors text-sm">
+                            <div className="text-gray-900 dark:text-white uppercase font-medium">{m.nome}</div>
+                            <div><span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black px-2 py-1 uppercase text-gray-500 dark:text-zinc-400">{m.tipo?.replace('_', ' ')}</span></div>
+                            <div className="font-mono text-gray-600 dark:text-zinc-300">R$ {Number(m.preco_ml).toFixed(2)}</div>
+                            <div>
+                              <button onClick={() => handleToggle(setMateriaisLineares, materiaisLineares, m.id)} className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}>
+                                <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
+                                {m.ativo ? 'Ativo' : 'Oculto'}
+                              </button>
+                            </div>
+                            <div className="text-right flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => toggleExpandAcabamento(m.id)}
+                                title="Preços por material"
+                                className={`text-[10px] font-mono uppercase flex items-center gap-1 border px-3 py-1 transition-colors ${isExpanded ? 'bg-yellow-400 text-black border-yellow-400' : 'text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border-gray-300 dark:border-zinc-800'}`}
+                              >
+                                <iconify-icon icon="solar:layers-minimalistic-linear" width="14"></iconify-icon>
+                                {precos.length > 0 && <span>{precos.length}</span>}
+                              </button>
+                              <button onClick={() => openModal('material_linear', m)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
+                                <iconify-icon icon="solar:pen-linear"></iconify-icon>
+                              </button>
+                              <button onClick={e => handleDeleteMaterialLinear(e, m.id)} className="text-gray-500 dark:text-zinc-500 hover:text-red-400 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
+                                <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
+                              </button>
+                            </div>
+                          </div>
+                          {isExpanded && (
+                            <div className="border-t border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/40 px-6 py-4">
+                              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-3">Preços por material específico</p>
+                              {precos.length === 0 && (
+                                <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mb-3">Nenhum preço especial. Usando preço base para todos os materiais.</p>
+                              )}
+                              <div className="space-y-1 mb-4">
+                                {precos.map(p => (
+                                  <div key={p.id} className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-zinc-800/60 text-sm">
+                                    <span className="text-gray-700 dark:text-zinc-300 uppercase font-mono text-xs">{p.material_nome}</span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-mono text-gray-600 dark:text-zinc-400 text-xs">R$ {Number(p.preco_ml).toFixed(2)}/ml</span>
+                                      <button onClick={() => handleRemovePrecoMaterial(m.id, p.id)} className="text-gray-400 hover:text-red-400 transition-colors">
+                                        <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                <select
+                                  value={form.materialId}
+                                  onChange={e => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, materialId: e.target.value } }))}
+                                  className="flex-1 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white px-3 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400"
+                                >
+                                  <option value="">Selecionar material...</option>
+                                  {materiaisArea.map(mat => (
+                                    <option key={mat.id} value={mat.id}>{mat.nome}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={form.preco}
+                                  onChange={e => setNovoPrecosForm(prev => ({ ...prev, [m.id]: { ...form, preco: e.target.value } }))}
+                                  placeholder="Preço/ml"
+                                  className="w-28 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white px-3 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400"
+                                />
+                                <button
+                                  onClick={() => handleAddPrecoMaterial(m.id)}
+                                  disabled={!form.materialId || !form.preco}
+                                  className="bg-yellow-400 text-black text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                                >
+                                  <iconify-icon icon="solar:add-square-linear" width="14"></iconify-icon> Adicionar
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right flex items-center justify-end gap-2">
-                          <button onClick={() => openModal('material_linear', m)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
-                            <iconify-icon icon="solar:pen-linear"></iconify-icon>
-                          </button>
-                          <button onClick={e => handleDeleteMaterialLinear(e, m.id)} className="text-gray-500 dark:text-zinc-500 hover:text-red-400 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
-                            <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}
