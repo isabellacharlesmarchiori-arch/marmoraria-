@@ -32,10 +32,12 @@ const ACAB_TIPO_NOME = {
 };
 
 // Calcula o preço de um acabamento linear
-function precoAcabamento(ml, matLinearId, matLineares) {
-  if (!ml || !matLinearId) return 0;
-  const m = matLineares.find(x => x.id === matLinearId);
-  return Number(ml) * Number(m?.preco_ml ?? 0);
+function precoAcabamento(ml, matLinearId, matLineares, precoMlOverride = null) {
+  if (!ml) return 0;
+  const rate = precoMlOverride != null
+    ? precoMlOverride
+    : (matLinearId ? Number(matLineares.find(x => x.id === matLinearId)?.preco_ml ?? 0) : 0);
+  return Number(ml) * rate;
 }
 
 // Gera as linhas de acabamento derivadas de uma peça de pedra
@@ -192,15 +194,38 @@ function autoMatchLinear(tipoAcabamento, pedraMatId, todosM, matLineares) {
 // Aplica auto-match de matLinearId em todos os acabamentos com matLinearId === null.
 // Usa comparação de nome exato (case-insensitive) — os nomes no banco coincidem com
 // os nomes do Flutter ("Boleado", "Boleado Duplo", etc.).
-function aplicarAutoMatchNaLista(pecasList, _todosM, matLineares) {
+function aplicarAutoMatchNaLista(pecasList, todosM, matLineares, precosCatMaterial = []) {
   if (matLineares.length === 0) return pecasList;
   let changed = false;
   const nova = pecasList.map(pw => {
-    if (pw.tipo !== 'acabamento' || pw.matLinearId !== null) return pw;
-    const match = matLineares.find(m => m.nome.toLowerCase() === pw.nome.toLowerCase());
-    if (!match) return pw;
-    changed = true;
-    return { ...pw, matLinearId: match.id };
+    if (pw.tipo !== 'acabamento') return pw;
+    let updated = pw;
+
+    // Match matLinearId by name when not yet set
+    if (updated.matLinearId === null) {
+      const match = matLineares.find(m => m.nome.toLowerCase() === updated.nome.toLowerCase());
+      if (match) { updated = { ...updated, matLinearId: match.id }; changed = true; }
+    }
+
+    // Compute precoMlOverride from parent stone's categoria
+    if (updated.matLinearId && updated.idPedraUid && precosCatMaterial.length > 0) {
+      const parentStone = pecasList.find(s => s.uid === updated.idPedraUid && s.tipo === 'pedra');
+      const categoria = parentStone?.matId
+        ? (todosM.find(m => m.id === parentStone.matId)?.categoria ?? null)
+        : null;
+      if (categoria) {
+        const override = precosCatMaterial.find(
+          p => p.material_linear_id === updated.matLinearId && p.categoria === categoria
+        );
+        const novoOverride = override ? Number(override.preco_ml) : null;
+        if (updated.precoMlOverride !== novoOverride) {
+          updated = { ...updated, precoMlOverride: novoOverride };
+          changed = true;
+        }
+      }
+    }
+
+    return updated;
   });
   return changed ? nova : pecasList;
 }
@@ -878,7 +903,7 @@ function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
   );
 }
 
-function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, onSalvar, onVoltar, todosM, matLineares = [], acabamentosUnitarios = [], salvando = false, grupoExtras = {} }) {
+function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, onSalvar, onVoltar, todosM, matLineares = [], precosCatMaterial = [], acabamentosUnitarios = [], salvando = false, grupoExtras = {} }) {
 
   // ── Lista de ambientes (mutável: suporta rename/delete/duplicate) ─
   const [listaAmbientes, setListaAmbientes] = useState(() => {
@@ -1001,7 +1026,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         return {
           id: `v-${amb}-${Date.now()}-${vIdx}`,
           nome: v.nome,
-          pecasList: aplicarAutoMatchNaLista(pecasList, todosM, matLineares),
+          pecasList: aplicarAutoMatchNaLista(pecasList, todosM, matLineares, precosCatMaterial),
           avulsos: [],
         };
       });
@@ -1036,7 +1061,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
       const next = {};
       Object.keys(prev).forEach(amb => {
         next[amb] = prev[amb].map(v => {
-          const novaLista = aplicarAutoMatchNaLista(v.pecasList, todosM, matLineares);
+          const novaLista = aplicarAutoMatchNaLista(v.pecasList, todosM, matLineares, precosCatMaterial);
           if (novaLista !== v.pecasList) anyChanged = true;
           return novaLista !== v.pecasList ? { ...v, pecasList: novaLista } : v;
         });
@@ -1145,7 +1170,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
           if (pw.tipo === 'acabamento') return { ...pw, matLinearId: null };
           return pw;
         });
-        return { ...v, pecasList: aplicarAutoMatchNaLista(comNovoMat, todosM, matLineares) };
+        return { ...v, pecasList: aplicarAutoMatchNaLista(comNovoMat, todosM, matLineares, precosCatMaterial) };
       }),
     }));
   }
@@ -1252,7 +1277,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
     const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
     if (!v) return 0;
     const tPecas = v.pecasList.reduce((s, pw) => {
-      if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares));
+      if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
       if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
       const pOrig = pecas.find(p => p.id === pw.idBase);
       return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
@@ -1327,7 +1352,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         pcsGroup.flatMap(p => p.recortes ?? []).forEach(rc => { const acabUnit = acabamentosUnitarios.find(a => a.nome.toLowerCase() === (rc.funcao_label ?? '').toLowerCase()); pecasListRaw.push({ uid: `rc-g-${firstStoneUid}-${Math.random()}`, idBase: pcsGroup[0]?.id ?? null, idPedraUid: firstStoneUid, tipo: 'recorte', nome: rc.funcao_label ?? rc.funcao ?? 'Recorte', formato: rc.formato ?? null, precoUnit: acabUnit ? parseFloat(acabUnit.preco_unitario) : 0, ambiente_nome: amb, item_nome: grupoNomeVal }); });
       }
     });
-    const nova = { id: `v-${amb}-${Date.now()}`, nome: `Versão ${existentes.length + 1}`, pecasList: aplicarAutoMatchNaLista(pecasListRaw, todosM, matLineares), avulsos: [] };
+    const nova = { id: `v-${amb}-${Date.now()}`, nome: `Versão ${existentes.length + 1}`, pecasList: aplicarAutoMatchNaLista(pecasListRaw, todosM, matLineares, precosCatMaterial), avulsos: [] };
     setAmbiVersoes(prev => ({ ...prev, [amb]: [...(prev[amb] ?? []), nova] }));
   }
 
@@ -1350,7 +1375,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         : p
       );
       // Preenche acabamentos sem match (caso a fonte tivesse nulls)
-      clone.pecasList = aplicarAutoMatchNaLista(clone.pecasList, todosM, matLineares);
+      clone.pecasList = aplicarAutoMatchNaLista(clone.pecasList, todosM, matLineares, precosCatMaterial);
       clone.avulsos = (clone.avulsos ?? []).map(a => ({ ...a, uid: `av-${Math.random()}` }));
       const novaLista = [...lista];
       novaLista.splice(idx + 1, 0, clone);
@@ -1446,7 +1471,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
         const comReMatch = comNovoMat.map(p =>
           p.tipo === 'acabamento' && p.idPedraUid === pUid ? { ...p, matLinearId: null } : p
         );
-        return { ...v, pecasList: aplicarAutoMatchNaLista(comReMatch, todosM, matLineares) };
+        return { ...v, pecasList: aplicarAutoMatchNaLista(comReMatch, todosM, matLineares, precosCatMaterial) };
       }),
     }));
   }
@@ -1843,7 +1868,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                             {(() => {
                               // Helper: renderiza uma linha de acabamento linear
                               const renderAcabamento = (pw, indent = false) => {
-                                const subAcComputed = precoAcabamento(pw.ml, pw.matLinearId, matLineares);
+                                const subAcComputed = precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null);
                                 const subAc = pw.precoManual != null ? pw.precoManual : subAcComputed;
                                 const isEditingPM = editandoPrecoManual?.uid === pw.uid;
                                 return (
@@ -2098,7 +2123,7 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 const matIdItem = pwsItem.find(pw => pw.tipo === 'pedra')?.matId ?? '';
                                 // Subtotal inclui pedras + acabamentos + recortes
                                 const subtotalItem = pwsItem.reduce((s, pw) => {
-                                  if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares));
+                                  if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
                                   if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
@@ -2505,6 +2530,7 @@ export default function CriarOrcamento() {
   const [loadingPecas, setLoadingPecas] = useState(true);
   const [materiais, setMateriais] = useState([]);
   const [matLineares, setMatLineares] = useState([]);
+  const [precosCatMaterial, setPrecosCatMaterial] = useState([]);
   const [acabamentosUnitarios, setAcabamentosUnitarios] = useState([]);
   const [produtos, setProdutos] = useState([]);     // itens avulsos adicionados pelo usuário no passo 1
   const [produtosCatalogo, setProdutosCatalogo] = useState([]); // catálogo bruto do Supabase
@@ -2754,6 +2780,16 @@ export default function CriarOrcamento() {
         console.log('[DEBUG] matLineares retornou:', data?.length, 'itens', data?.map(m => m.nome));
         if (data) setMatLineares(data);
       });
+  }, [session, profile?.empresa_id]);
+
+  // Busca preços de acabamento por categoria de material
+  useEffect(() => {
+    if (!session || !profile?.empresa_id) return;
+    supabase
+      .from('acabamento_precos_material')
+      .select('material_linear_id, categoria, preco_ml')
+      .eq('empresa_id', profile.empresa_id)
+      .then(({ data }) => { if (data) setPrecosCatMaterial(data); });
   }, [session, profile?.empresa_id]);
 
   // Busca produtos avulsos (furos, recortes com preço fixo por unidade)
@@ -3330,7 +3366,7 @@ export default function CriarOrcamento() {
           });
 
         const valorPecas = versao.pecasList.reduce((s, pWrapper) => {
-          if (pWrapper.tipo === 'acabamento') return s + (pWrapper.precoManual != null ? pWrapper.precoManual : precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares));
+          if (pWrapper.tipo === 'acabamento') return s + (pWrapper.precoManual != null ? pWrapper.precoManual : precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares, pWrapper.precoMlOverride ?? null));
           if (pWrapper.tipo === 'recorte')    return s + (pWrapper.precoUnit ?? 0);
           const rawMat = pWrapper.matId;
           const matId  = rawMat && typeof rawMat === 'object' ? (rawMat.id ?? null) : (rawMat ?? null);
@@ -3388,12 +3424,12 @@ export default function CriarOrcamento() {
             // Agrega acabamentos vinculados a esta pedra
             const filhos = acabamentosPorPedra.get(pWrapper.uid) ?? [];
             const valorAcabamentosTotal = filhos.reduce((s, ac) =>
-              s + precoAcabamento(ac.ml, ac.matLinearId, matLineares), 0);
+              s + precoAcabamento(ac.ml, ac.matLinearId, matLineares, ac.precoMlOverride ?? null), 0);
             const acabamentosJson = filhos.map(ac => ({
               tipo:         ac.tipoAcabamento,
               ml:           ac.ml,
               mat_linear_id: ac.matLinearId,
-              valor:        ac.precoManual != null ? ac.precoManual : precoAcabamento(ac.ml, ac.matLinearId, matLineares),
+              valor:        ac.precoManual != null ? ac.precoManual : precoAcabamento(ac.ml, ac.matLinearId, matLineares, ac.precoMlOverride ?? null),
             }));
 
             // Agrega recortes vinculados a esta pedra
@@ -3459,6 +3495,7 @@ export default function CriarOrcamento() {
         onVoltar={() => setVersoesCriadas(null)}
         todosM={materiais}
         matLineares={matLineares}
+        precosCatMaterial={precosCatMaterial}
         acabamentosUnitarios={acabamentosUnitarios}
         salvando={salvandoOrc}
         grupoExtras={grupoExtras}
@@ -4050,11 +4087,7 @@ export default function CriarOrcamento() {
                               <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} todosM={materiais} />
                             )),
                             // Acabamentos lineares do grupo
-                            ...ge.acabamentos.map(ac => {
-                              const matchAcab = matLineares.find(m => m.nome.toLowerCase() === (ACAB_TIPO_NOME[ac.tipo] ?? ac.tipo).toLowerCase());
-                              const acPreco = ac.precoManual != null ? ac.precoManual : (matchAcab ? ac.ml * matchAcab.preco_ml : 0);
-                              const isEditingAcab = editandoPrecoGrupo?.geKey === geKey && editandoPrecoGrupo?.itemType === 'acab' && editandoPrecoGrupo?.id === ac.id;
-                              return (
+                            ...ge.acabamentos.map(ac => (
                               <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-950/20 border-b border-amber-900/20 group">
                                 <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
                                 <select
@@ -4079,30 +4112,11 @@ export default function CriarOrcamento() {
                                   <span className="font-mono text-[9px] text-amber-700">ml</span>
                                 </div>
                                 <span className="flex-1"></span>
-                                {isEditingAcab ? (
-                                  <input
-                                    type="number" autoFocus min="0" step="0.01"
-                                    defaultValue={ac.precoManual ?? acPreco}
-                                    onBlur={e => { updateGrupoAcabamentoPrecoManual(geKey, ac.id, e.target.value); setEditandoPrecoGrupo(null); }}
-                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { updateGrupoAcabamentoPrecoManual(geKey, ac.id, e.target.value); setEditandoPrecoGrupo(null); } }}
-                                    className="w-20 bg-transparent border border-amber-500/60 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
-                                  />
-                                ) : (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <span className={`font-mono text-[9px] shrink-0 ${ac.precoManual != null ? 'text-yellow-400' : 'text-amber-600'}`}>
-                                      {acPreco > 0 ? acPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}{ac.precoManual != null ? ' *' : ''}
-                                    </span>
-                                    <button onClick={() => setEditandoPrecoGrupo({ geKey, itemType: 'acab', id: ac.id })} className="p-0.5 text-zinc-700 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100">
-                                      <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
-                                    </button>
-                                  </div>
-                                )}
                                 <button onClick={() => removeGrupoAcabamento(geKey, ac.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                                   <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                 </button>
                               </div>
-                              );
-                            }),
+                            )),
                             // Furos / recortes do grupo — agrupados por tipo
                             ...(() => {
                               const tiposMap = new Map();
@@ -4112,11 +4126,6 @@ export default function CriarOrcamento() {
                               });
                               return Array.from(tiposMap.entries()).map(([tipo, furosTipo]) => {
                                 const count = furosTipo.length;
-                                const matchFuro = tipo ? acabamentosUnitarios.find(a => a.nome.toLowerCase() === tipo.toLowerCase()) : null;
-                                const firstFuro = furosTipo[0];
-                                const fuPrecoUnit = matchFuro ? parseFloat(matchFuro.preco_unitario) : 0;
-                                const fuPreco = firstFuro?.precoManual != null ? firstFuro.precoManual : fuPrecoUnit;
-                                const isEditingFuro = editandoPrecoGrupo?.geKey === geKey && editandoPrecoGrupo?.itemType === 'furo' && editandoPrecoGrupo?.tipo === tipo;
                                 return (
                                   <div key={`furo-tipo-${tipo}`} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/10 border-b border-teal-900/20 group">
                                     <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
@@ -4127,28 +4136,6 @@ export default function CriarOrcamento() {
                                       <button onClick={() => addGrupoFuroTipo(geKey, tipo)} className="w-5 h-5 flex items-center justify-center border border-teal-900/40 text-teal-600 hover:text-teal-300 font-mono text-[11px] transition-colors">+</button>
                                     </div>
                                     <span className="flex-1"></span>
-                                    {isEditingFuro ? (
-                                      <input
-                                        type="number" autoFocus min="0" step="0.01"
-                                        defaultValue={firstFuro?.precoManual ?? fuPrecoUnit}
-                                        onBlur={e => { updateGrupoFuroPrecoManual(geKey, tipo, e.target.value); setEditandoPrecoGrupo(null); }}
-                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { updateGrupoFuroPrecoManual(geKey, tipo, e.target.value); setEditandoPrecoGrupo(null); } }}
-                                        className="w-20 bg-transparent border border-teal-500/60 text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
-                                      />
-                                    ) : (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {matchFuro || firstFuro?.precoManual != null ? (
-                                          <span className={`font-mono text-[9px] shrink-0 ${firstFuro?.precoManual != null ? 'text-yellow-400' : 'text-teal-400'}`}>
-                                            {fuPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/un{firstFuro?.precoManual != null ? ' *' : ''}
-                                          </span>
-                                        ) : (
-                                          <span className="font-mono text-[9px] text-red-500 shrink-0">não cadastrado</span>
-                                        )}
-                                        <button onClick={() => setEditandoPrecoGrupo({ geKey, itemType: 'furo', tipo })} className="p-0.5 text-zinc-700 hover:text-teal-400 transition-colors opacity-0 group-hover:opacity-100">
-                                          <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
-                                        </button>
-                                      </div>
-                                    )}
                                     <button onClick={() => removeGrupoFuroTipoAll(geKey, tipo)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                                       <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                     </button>
