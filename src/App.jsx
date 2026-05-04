@@ -33,6 +33,7 @@ const PainelMedidor        = lazy(() => import('./pages/PainelMedidor'))
 const MedidorAgenda        = lazy(() => import('./pages/MedidorAgenda'))
 const MedidorHistorico     = lazy(() => import('./pages/MedidorHistorico'))
 const MedidorNotificacoes  = lazy(() => import('./pages/MedidorNotificacoes'))
+const SuperAdmin           = lazy(() => import('./pages/SuperAdmin'))
 
 // Fallback de Suspense — fundo escuro sem piscar
 function PageLoader() {
@@ -96,6 +97,14 @@ function RequireAdmin() {
   return <Outlet />
 }
 
+// Só superadmin passa — qualquer outro perfil volta para /dashboard
+function RequireSuperAdmin() {
+  const { actualProfile, profileLoading } = useAuth()
+  if (profileLoading) return null
+  if (actualProfile?.perfil !== 'superadmin') return <Navigate to="/dashboard" replace />
+  return <Outlet />
+}
+
 // Só perfis com acesso de medidor passam — vendedor puro volta para /dashboard
 function RequireMedidor() {
   const { profile, profileLoading } = useAuth()
@@ -128,10 +137,10 @@ export default function App() {
               <Route path="/notificacoes"                element={<Notificacoes />} />
               <Route path="/projetos/:id/orcamento/novo" element={<CriarOrcamento />} />
               <Route path="/projetos/:id/carrinho"       element={<Carrinho />} />
-              <Route path="/admin/projetos"              element={<ProjetosAdminV2 />} />
-              <Route path="/admin/clientes"              element={<Clientes />} />
               {/* ── Rotas exclusivas de admin ── */}
               <Route element={<RequireAdmin />}>
+                <Route path="/admin/projetos"           element={<ProjetosAdminV2 />} />
+                <Route path="/admin/clientes"           element={<Clientes />} />
                 <Route path="/admin"                    element={<Admin />} />
                 <Route path="/admin/financeiro" element={<Financeiro />}>
                   <Route index                    element={<FinanceiroDashboard />} />
@@ -146,6 +155,10 @@ export default function App() {
                 <Route path="/admin/notificacoes"  element={<AdminNotificacoes />} />
               </Route>
               <Route path="/agenda"                      element={<Agenda />} />
+              {/* ── Rotas exclusivas de superadmin ── */}
+              <Route element={<RequireSuperAdmin />}>
+                <Route path="/superadmin" element={<SuperAdmin />} />
+              </Route>
               {/* ── Rotas exclusivas de medidor ── */}
               <Route element={<RequireMedidor />}>
                 <Route path="/medidor"                   element={<PainelMedidor />} />

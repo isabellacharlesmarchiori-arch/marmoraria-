@@ -4,19 +4,44 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import ThemeToggle from './ThemeToggle';
 
+function ImpersonationBanner() {
+  const { impersonation, exitImpersonation, isSuperAdmin } = useAuth();
+  const navigate = useNavigate();
+  if (!isSuperAdmin || !impersonation) return null;
+  return (
+    <div className="flex items-center justify-between px-6 py-1.5 bg-yellow-400 text-black shrink-0 z-30">
+      <span className="font-mono text-[9px] uppercase tracking-widest font-bold">
+        MODO TESTE — Perfil: {impersonation.perfil}
+        {impersonation.empresaId ? ' · Empresa impersonada' : ''}
+      </span>
+      <button
+        onClick={() => { exitImpersonation(); navigate('/superadmin'); }}
+        className="font-mono text-[9px] uppercase tracking-widest underline hover:no-underline"
+      >
+        Sair do modo
+      </button>
+    </div>
+  );
+}
+
 const AppShell = ({ notifCount: notifCountProp = 0 }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const auth = useAuth();
   const profile = auth?.profile ?? null;
   const session = auth?.session ?? null;
+  const isSuperAdmin = auth?.isSuperAdmin ?? false;
   const perfil = profile?.role || profile?.perfil || 'vendedor';
 
   const perfilBase = perfil === 'admin_medidor'    ? 'admin'
                    : perfil === 'vendedor_medidor' ? 'vendedor'
+                   : perfil === 'superadmin'       ? 'superadmin'
                    : perfil;
 
-  const temMedidor  = perfil === 'medidor' || perfil === 'admin_medidor' || perfil === 'vendedor_medidor';
+  const impersonation = auth?.impersonation ?? null;
+  const temMedidor = isSuperAdmin && impersonation
+    ? ['medidor', 'admin_medidor', 'vendedor_medidor'].includes(impersonation.perfil)
+    : perfil === 'medidor' || perfil === 'admin_medidor' || perfil === 'vendedor_medidor';
   const isCombinado = perfil === 'admin_medidor'  || perfil === 'vendedor_medidor';
   const notifPath   = isCombinado             ? '/notificacoes'
                     : perfilBase === 'admin'  ? '/admin/notificacoes'
@@ -105,14 +130,19 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: notifPath, label: 'Notificações',  icon: 'solar:bell-linear',      subtitle: 'Avisos do sistema', badge: true }
   ];
 
+  const menuSuperAdmin = [
+    { path: '/superadmin', label: 'Sistema', icon: 'solar:settings-linear', subtitle: 'Painel de administração global' },
+  ];
+
   const menuMedidor = [
     { path: '/medidor/agenda',        label: 'Agenda',        icon: 'solar:calendar-linear', subtitle: 'Medições agendadas'  },
     { path: '/medidor/notificacoes',  label: 'Notificações',  icon: 'solar:bell-linear',     subtitle: 'Meus avisos', badge: true },
     { path: '/medidor/historico',     label: 'Histórico',     icon: 'solar:history-linear',  subtitle: 'Medições concluídas' },
   ];
 
-  const menuBase = perfilBase === 'admin'   ? menuAdmin
-                 : perfilBase === 'medidor' ? menuMedidor
+  const menuBase = perfilBase === 'superadmin' ? menuSuperAdmin
+                 : perfilBase === 'admin'      ? menuAdmin
+                 : perfilBase === 'medidor'    ? menuMedidor
                  : menuVendedor;
 
   const itensMedidor = [
@@ -139,15 +169,17 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     navigate('/login');
   };
 
-  const badgeColor = perfilBase === 'vendedor' ? 'bg-yellow-400 text-black'
-                   : perfilBase === 'admin'    ? 'bg-gray-900 text-white dark:bg-gray-50 dark:text-black'
+  const badgeColor = perfilBase === 'superadmin' ? 'bg-purple-600 text-white'
+                   : perfilBase === 'vendedor'   ? 'bg-yellow-400 text-black'
+                   : perfilBase === 'admin'      ? 'bg-gray-900 text-white dark:bg-gray-50 dark:text-black'
                    : 'bg-gray-200 text-gray-700 dark:bg-zinc-700 dark:text-white';
 
-  const perfilLabel = perfil === 'admin'           ? 'Administrador'
-                    : perfil === 'vendedor'         ? 'Vendedor'
-                    : perfil === 'medidor'          ? 'Medidor'
-                    : perfil === 'admin_medidor'    ? 'Admin + Medidor'
-                    : perfil === 'vendedor_medidor' ? 'Vendedor + Medidor'
+  const perfilLabel = perfil === 'superadmin'       ? 'SuperAdmin'
+                    : perfil === 'admin'             ? 'Administrador'
+                    : perfil === 'vendedor'          ? 'Vendedor'
+                    : perfil === 'medidor'           ? 'Medidor'
+                    : perfil === 'admin_medidor'     ? 'Admin + Medidor'
+                    : perfil === 'vendedor_medidor'  ? 'Vendedor + Medidor'
                     : 'Usuário';
   const userName = profile?.nome ?? 'Usuário';
   const userInitials = userName.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -294,6 +326,9 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
             </div>
           </div>
         </header>
+
+        {/* Banner modo de teste — superadmin */}
+        <ImpersonationBanner />
 
         {/* Content Slot */}
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">

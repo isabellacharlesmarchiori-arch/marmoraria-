@@ -431,7 +431,6 @@ export default function ConfiguracoesPage() {
     const espessuras = ESPESSURAS_POR_CATEGORIA[categoria];
     const defaultEsp = Array.isArray(espessuras) ? espessuras[0] : '';
 
-    console.log('abrirMatModal →', { id: item?.id, nome: item?.nome, categoria, variacoes: item?.variacoes_precos?.length });
 
     setMatItem(item);
     setMatNome(item?.nome ?? '');
@@ -461,9 +460,10 @@ export default function ConfiguracoesPage() {
 
   async function handleSalvarMaterial() {
     if (!matNome.trim()) { alert('Informe o nome do material.'); return; }
+    if (!profile?.empresa_id) { alert('Sessão inválida. Recarregue a página.'); return; }
     setMatSalvando(true);
     try {
-      const eId = profile?.empresa_id ?? 'a1b2c3d4-0000-0000-0000-000000000001';
+      const eId = profile.empresa_id;
       let materialId;
 
       if (matItem) {

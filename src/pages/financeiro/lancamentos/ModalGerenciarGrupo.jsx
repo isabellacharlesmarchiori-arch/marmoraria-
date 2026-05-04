@@ -97,7 +97,8 @@ export default function ModalGerenciarGrupo({
       const { error } = await supabase
         .from('financeiro_lancamentos')
         .update({ status: 'cancelado' })
-        .in('id', ids);
+        .in('id', ids)
+        .eq('empresa_id', profile.empresa_id);
       if (error) throw error;
       toast.success(`${ids.length} ${ids.length === 1 ? 'parcela cancelada' : 'parcelas canceladas'}.`);
       await carregarParcelas();
@@ -115,7 +116,8 @@ export default function ModalGerenciarGrupo({
       const { error } = await supabase
         .from('financeiro_lancamentos')
         .update({ status: 'pendente', valor_pago: 0, data_pagamento: null, conta_id: null })
-        .in('id', ids);
+        .in('id', ids)
+        .eq('empresa_id', profile.empresa_id);
       if (error) throw error;
       toast.success(`${ids.length} ${ids.length === 1 ? 'pagamento estornado' : 'pagamentos estornados'}.`);
       await carregarParcelas();

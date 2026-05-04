@@ -88,7 +88,6 @@ export default function Projetos() {
   // Fetch projetos e clientes
   useEffect(() => {
     const empresaId = profile?.empresa_id;
-    console.log('[Projetos] useEffect — session?.user?.id:', session?.user?.id, '| empresaId:', empresaId);
     if (!session || !empresaId) { setLoadingProjetos(false); return; }
 
     let isMounted = true;
@@ -147,9 +146,6 @@ export default function Projetos() {
               : '—',
           };
         }) : null;
-
-        console.log('[Projetos] dados chegaram — projetos:', projetosNormalizados?.length ?? 0,
-                    '| clientes:', dataClientes?.length ?? 0);
 
         if (projetosNormalizados) setProjetos(projetosNormalizados);
         if (dataClientes)         setClientes(dataClientes);
@@ -298,13 +294,11 @@ export default function Projetos() {
       if (clienteTemp && novoClienteId === 'temp') {
         const { id: _id, isTemporario: _t, ...dadosCliente } = clienteTemp;
         const payload = { ...dadosCliente, empresa_id: profile.empresa_id };
-        console.log('[INSERT cliente] payload:', payload);
         const { data: cliSalvo, error: errCli } = await supabase
           .from('clientes')
           .insert(payload)
           .select('id, nome')
           .single();
-        console.log('[INSERT cliente] resultado:', { cliSalvo, errCli });
         if (errCli) throw errCli;
         clienteIdReal = cliSalvo.id;
         setClientes(prev => [...prev, cliSalvo].sort((a, b) => a.nome.localeCompare(b.nome)));

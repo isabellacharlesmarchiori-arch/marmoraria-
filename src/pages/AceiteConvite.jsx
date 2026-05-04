@@ -3,11 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export default function AceiteConvite() {
-  console.log('🚀 AceiteConvite montado');
-  console.log('📍 URL:', window.location.href);
-  console.log('📍 Hash:', window.location.hash);
-  console.log('📍 Pathname:', window.location.pathname);
-
   const navigate = useNavigate();
   const [password,        setPassword]        = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,46 +17,29 @@ export default function AceiteConvite() {
   const [sessionReady,    setSessionReady]    = useState(false); // false = ainda verificando
 
   useEffect(() => {
-    console.log('⚡ useEffect executando');
-
     async function verificarSessao() {
-      console.log('🔍 1. Processando token da URL...');
-
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const token = hashParams.get('access_token');
       const type  = hashParams.get('type');
 
-      console.log('🔍 2. Token extraído:', token ? 'presente' : 'ausente');
-      console.log('🔍 3. Type:', type);
-
       const tiposValidos = ['recovery', 'magiclink'];
       if (!token || !tiposValidos.includes(type)) {
-        console.log('❌ Token não encontrado ou tipo inválido');
         setErrorMsg('Link inválido ou expirado. Solicite um novo convite ao administrador.');
         setSessionReady(true);
         return;
       }
-
-      console.log('🔍 4. Chamando verifyOtp...');
 
       const { data, error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type,
       });
 
-      console.log('🔍 5. Resultado verifyOtp:');
-      console.log('   - data:', data);
-      console.log('   - error:', error);
-
       if (error || !data.session?.user) {
-        console.error('❌ Erro ao verificar token:', error);
+        console.error('Erro ao verificar token de convite:', error);
         setErrorMsg('Link inválido ou expirado. Solicite um novo convite ao administrador.');
         setSessionReady(true);
         return;
       }
-
-      console.log('✅ SESSÃO CRIADA com sucesso!');
-      console.log('👤 User ID:', data.session.user.id);
 
       setUserEmail(data.session.user.email ?? '');
 

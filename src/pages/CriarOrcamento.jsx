@@ -2039,7 +2039,6 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                 });
                               };
 
-                              console.log('[DEBUG pecasList] amb=', amb, '| versao=', v.nome, '| total=', v.pecasList.length, '|', v.pecasList.map(pw => ({ uid: pw.uid?.slice(0, 8), tipo: pw.tipo, nome: pw.nome, idBase: pw.idBase?.slice(0, 8) })));
                               const temItens = v.pecasList.some(pw => pw.item_nome && pw.tipo !== 'acabamento');
                               if (!temItens) {
                                 // Sem itens: lista plana
@@ -2049,7 +2048,6 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                   if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   if (!pOrig) {
-                                    console.warn('[DEBUG pOrig NULO] nome=', pw.nome, '| idBase=', pw.idBase, '| pecas ids:', pecas.map(p => p.id?.slice(0, 8)));
                                     return null;
                                   }
                                   const subComputed = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
@@ -2190,7 +2188,6 @@ function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalog
                                       if (pw.tipo === 'acabamento') return renderAcabamento(pw, true);
                                       const pOrig = pecas.find(p => p.id === pw.idBase);
                                       if (!pOrig) {
-                                        console.warn('[DEBUG pOrig NULO item] nome=', pw.nome, '| idBase=', pw.idBase);
                                         return null;
                                       }
                                       const subComputedItem = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
@@ -2785,7 +2782,6 @@ export default function CriarOrcamento() {
       .order('nome')
       .then(({ data, error }) => {
         if (error) { console.error('[CriarOrcamento] matLineares ERRO:', error.message); return; }
-        console.log('[DEBUG] matLineares retornou:', data?.length, 'itens', data?.map(m => m.nome));
         if (data) setMatLineares(data);
       });
   }, [session, profile?.empresa_id]);
@@ -2852,11 +2848,9 @@ export default function CriarOrcamento() {
 
         // ── Caminho A: medicao_id veio na URL ────────────────────────────────
         if (medicaoId) {
-          const { data: medRow, error: medErr } = await supabase
-            .from('medicoes')
-            .select('id, json_medicao')
-            .eq('id', medicaoId)
-            .single();
+          let qMed = supabase.from('medicoes').select('id, json_medicao').eq('id', medicaoId);
+          if (profile?.empresa_id) qMed = qMed.eq('empresa_id', profile.empresa_id);
+          const { data: medRow, error: medErr } = await qMed.single();
 
           if (medErr || !medRow) {
             setPecas([]);
@@ -2896,14 +2890,11 @@ export default function CriarOrcamento() {
         }
 
         // ── Caminho B: sem medicao_id na URL — fallback via tabela `pecas` ──
-        const { data: medData, error: medError } = await supabase
-          .from('medicoes')
-          .select('id')
-          .eq('projeto_id', projetoId)
+        let qMedB = supabase.from('medicoes').select('id').eq('projeto_id', projetoId)
           .in('status', ['processada', 'enviada', 'concluida', 'aprovada'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .order('created_at', { ascending: false }).limit(1);
+        if (profile?.empresa_id) qMedB = qMedB.eq('empresa_id', profile.empresa_id);
+        const { data: medData, error: medError } = await qMedB.single();
 
         if (medError || !medData) {
           setPecas([]);
@@ -2912,10 +2903,9 @@ export default function CriarOrcamento() {
 
         setProcessedMedicaoId(medData.id);
 
-        const { data: ambData, error: ambError } = await supabase
-          .from('ambientes')
-          .select('id')
-          .eq('medicao_id', medData.id);
+        let qAmb = supabase.from('ambientes').select('id').eq('medicao_id', medData.id);
+        if (profile?.empresa_id) qAmb = qAmb.eq('empresa_id', profile.empresa_id);
+        const { data: ambData, error: ambError } = await qAmb;
 
         if (ambError || !ambData?.length) {
           setPecas([]);
@@ -2928,6 +2918,7 @@ export default function CriarOrcamento() {
           .from('pecas')
           .select('id, nome_livre, area_liquida_m2, espessura_cm, dimensoes, arestas, recortes')
           .in('ambiente_id', ambienteIds)
+          .eq('empresa_id', profile.empresa_id)
           .eq('incluida', true)
           .order('created_at');
 

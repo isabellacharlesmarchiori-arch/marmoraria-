@@ -37,11 +37,12 @@ export function useProjectData(projectId, activeTab) {
     // ── Fetch de medições ────────────────────────────────────────────────────
     const recarregarMedicoes = useCallback(async () => {
         if (!projectId) return;
-        const { data, error } = await supabase
+        let q = supabase
             .from('medicoes')
             .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, fotos, status, json_medicao, svg_url, projetos(nome)')
-            .eq('projeto_id', projectId)
-            .order('data_medicao', { ascending: false });
+            .eq('projeto_id', projectId);
+        if (profile?.empresa_id) q = q.eq('empresa_id', profile.empresa_id);
+        const { data, error } = await q.order('data_medicao', { ascending: false });
         if (error) { console.error('[medicoes] Erro ao carregar:', error); return; }
         if (data) setMedicoes(data.map(m => ({
             ...m,
@@ -58,18 +59,14 @@ export function useProjectData(projectId, activeTab) {
     // ── Fetch de ambientes + orçamentos ────────────────────────────────────
     const recarregarAmbientes = useCallback(async () => {
         if (!session || !projectId) return;
-        const { data, error } = await supabase
-            .from('ambientes')
-            .select(AMBIENTES_SELECT)
-            .eq('projeto_id', projectId)
-            .order('created_at');
+        let q = supabase.from('ambientes').select(AMBIENTES_SELECT).eq('projeto_id', projectId);
+        if (profile?.empresa_id) q = q.eq('empresa_id', profile.empresa_id);
+        const { data, error } = await q.order('created_at');
         if (error) {
             console.error('Erro ao recarregar ambientes:', error.message, error.details);
-            const { data: fb, error: fbErr } = await supabase
-                .from('ambientes')
-                .select(AMBIENTES_SELECT_FALLBACK)
-                .eq('projeto_id', projectId)
-                .order('created_at');
+            let qFb = supabase.from('ambientes').select(AMBIENTES_SELECT_FALLBACK).eq('projeto_id', projectId);
+            if (profile?.empresa_id) qFb = qFb.eq('empresa_id', profile.empresa_id);
+            const { data: fb, error: fbErr } = await qFb.order('created_at');
             if (fbErr) { console.error('Erro no fallback:', fbErr.message); return; }
             if (fb) setAmbientes(fb.map(normalizarAmbiente));
             return;
@@ -85,22 +82,24 @@ export function useProjectData(projectId, activeTab) {
         async function loadData() {
             setLoadingProjeto(true);
             try {
+                const empresaId = profile?.empresa_id;
+                let qProj = supabase.from('projetos')
+                    .select('*, clientes(id, nome, telefone, email, endereco), arquitetos(id, nome), rt_padrao_percentual')
+                    .eq('id', projectId);
+                if (empresaId) qProj = qProj.eq('empresa_id', empresaId);
+                let qAmb = supabase.from('ambientes').select(AMBIENTES_SELECT).eq('projeto_id', projectId);
+                if (empresaId) qAmb = qAmb.eq('empresa_id', empresaId);
                 const [resP, resA] = await Promise.all([
-                    supabase.from('projetos')
-                        .select('*, clientes(id, nome, telefone, email, endereco), arquitetos(id, nome), rt_padrao_percentual')
-                        .eq('id', projectId).single(),
-                    supabase.from('ambientes')
-                        .select(AMBIENTES_SELECT)
-                        .eq('projeto_id', projectId).order('created_at'),
+                    qProj.single(),
+                    qAmb.order('created_at'),
                 ]);
                 if (resP.error) console.error('[TelaProjeto] Erro projeto:', resP.error.message);
                 if (resP.data) setProjeto(resP.data);
                 if (resA.error) {
                     console.error('[TelaProjeto] Erro ao carregar ambientes:', resA.error.message, resA.error.details);
-                    const { data: fb, error: fbErr } = await supabase
-                        .from('ambientes')
-                        .select(AMBIENTES_SELECT_FALLBACK)
-                        .eq('projeto_id', projectId).order('created_at');
+                    let qFb = supabase.from('ambientes').select(AMBIENTES_SELECT_FALLBACK).eq('projeto_id', projectId);
+                    if (empresaId) qFb = qFb.eq('empresa_id', empresaId);
+                    const { data: fb, error: fbErr } = await qFb.order('created_at');
                     if (fbErr) console.error('[TelaProjeto] Erro no fallback:', fbErr.message);
                     setAmbientes(Array.isArray(fb) ? fb.map(normalizarAmbiente) : []);
                 } else {

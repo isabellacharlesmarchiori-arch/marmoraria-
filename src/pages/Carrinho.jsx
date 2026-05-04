@@ -129,19 +129,17 @@ export default function Carrinho() {
     (async () => {
       setLoading(true); setErro('');
       try {
-        const { data: proj } = await supabase
-          .from('projetos').select('id, nome, clientes(id, nome)')
-          .eq('id', projetoId).single();
+        let qProj = supabase.from('projetos').select('id, nome, clientes(id, nome)').eq('id', projetoId);
+        if (profile?.empresa_id) qProj = qProj.eq('empresa_id', profile.empresa_id);
+        const { data: proj } = await qProj.single();
         if (mounted && proj) setProjeto(proj);
 
         // fetch iniciado
 
         // 1. Busca ambientes do projeto
-        const { data: ambRaw, error: e1 } = await supabase
-          .from('ambientes')
-          .select('id, nome, created_at, medicao_id')
-          .eq('projeto_id', projetoId)
-          .order('created_at', { ascending: true });
+        let qAmb = supabase.from('ambientes').select('id, nome, created_at, medicao_id').eq('projeto_id', projetoId);
+        if (profile?.empresa_id) qAmb = qAmb.eq('empresa_id', profile.empresa_id);
+        const { data: ambRaw, error: e1 } = await qAmb.order('created_at', { ascending: true });
         if (e1) console.error('[Carrinho] Erro ambientes:', e1.message);
 
         let ambientes_lista = ambRaw || [];
@@ -153,15 +151,14 @@ export default function Carrinho() {
         let orcData, e2;
 
         if (ambIds.length) {
-          ({ data: orcData, error: e2 } = await supabase
-            .from('orcamentos')
+          let qOrc = supabase.from('orcamentos')
             .select('id, nome_versao, valor_total, created_at, ambiente_id, itens_manuais')
-            .in('ambiente_id', ambIds)
-            .order('created_at', { ascending: true }));
+            .in('ambiente_id', ambIds);
+          if (profile?.empresa_id) qOrc = qOrc.eq('empresa_id', profile.empresa_id);
+          ({ data: orcData, error: e2 } = await qOrc.order('created_at', { ascending: true }));
           if (e2) console.error('[Carrinho] Erro orcamentos:', e2.message);
         } else {
           // Nenhum ambiente encontrado para este projeto — tenta via join direto
-          console.warn('[Carrinho] Nenhum ambiente com projeto_id =', projetoId, '— tentando via join');
           ({ data: orcData, error: e2 } = await supabase
             .from('orcamentos')
             .select('id, nome_versao, valor_total, created_at, ambiente_id, itens_manuais, ambientes!inner(id, nome, projeto_id)')
@@ -391,7 +388,7 @@ export default function Carrinho() {
         supabase.from('orcamento_pecas')
           .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total')
           .in('orcamento_id', orcIds),
-        supabase.from('orcamentos').select('id, itens_manuais').in('id', orcIds),
+        supabase.from('orcamentos').select('id, itens_manuais').in('id', orcIds).eq('empresa_id', profile.empresa_id),
       ]);
       if (ep) throw new Error(ep.message);
       if (eo) throw new Error(eo.message);
@@ -527,7 +524,7 @@ export default function Carrinho() {
             supabase.from('orcamento_pecas')
               .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total')
               .in('orcamento_id', orcIdsGrupo),
-            supabase.from('orcamentos').select('id, itens_manuais').in('id', orcIdsGrupo),
+            supabase.from('orcamentos').select('id, itens_manuais').in('id', orcIdsGrupo).eq('empresa_id', profile.empresa_id),
           ]);
           pecasDB = pDB || [];
           itensManuais = (orcsData || []).flatMap(o => Array.isArray(o.itens_manuais) ? o.itens_manuais : []);

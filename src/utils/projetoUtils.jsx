@@ -79,22 +79,15 @@ const _ACAB_KEYS = {
 // ambas as estruturas simultaneamente.
 function _appendGuarnicoesFromCanvas(json, resumo) {
     const raw = json._canvas;
-    if (!raw) {
-        console.log('[guarnicoes] _canvas ausente no JSON');
-        return;
-    }
+    if (!raw) return;
 
     // _canvas pode chegar como string JSON (Flutter serializa como string)
     let canvas;
     try {
         canvas = typeof raw === 'string' ? JSON.parse(raw) : raw;
     } catch {
-        console.warn('[guarnicoes] _canvas não é JSON válido:', typeof raw, String(raw).slice(0, 80));
         return;
     }
-    console.log('[guarnicoes] _canvas tipo original:', typeof raw,
-        '| canvas.ambientes:', canvas?.ambientes?.length ?? 'N/A',
-        '| canvas.guarnicoes:', canvas?.guarnicoes?.length ?? 'N/A');
 
     // Coleta top-level
     const topLevel = Array.isArray(canvas.guarnicoes)
@@ -120,8 +113,6 @@ function _appendGuarnicoesFromCanvas(json, resumo) {
         seen.add(key);
         return true;
     });
-    console.log('[guarnicoes] topLevel:', topLevel.length, '| perAmb:', perAmb.length, '| após dedup:', flat.length);
-
     flat.forEach(g => {
         // Suporta largura_cm/comprimento_cm e aliases width_cm/height_cm
         const larg = g.largura_cm ?? g.width_cm ?? 0;
@@ -431,10 +422,6 @@ export function normalizarAmbiente(amb) {
             : '',
         itens_manuais: orc.itens_manuais ?? [],
         pecas: (orc.orcamento_pecas ?? []).map((op, idx) => {
-            if (idx === 0) {
-                console.log('[DEBUG acabamentos] orcamento_pecas[0].acabamentos:',
-                    JSON.stringify(op.acabamentos));
-            }
             return {
                 id:               op.id,
                 nome:             op.pecas?.nome_livre ?? `Peça ${idx + 1}`,

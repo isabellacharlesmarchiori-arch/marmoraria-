@@ -4,9 +4,12 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const ROLE_HOME = {
-  vendedor: '/dashboard',
-  admin:    '/admin',
-  medidor:  '/agenda',
+  vendedor:          '/dashboard',
+  admin:             '/admin',
+  medidor:           '/agenda',
+  superadmin:        '/superadmin',
+  admin_medidor:     '/admin',
+  vendedor_medidor:  '/dashboard',
 };
 
 export default function Login() {

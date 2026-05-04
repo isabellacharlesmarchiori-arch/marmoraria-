@@ -153,7 +153,6 @@ export default function MedidorAgenda() {
 
   // ── Deep link ────────────────────────────────────────────────────────────
   function handleRealizarClick(m) {
-    console.log('[DeepLink] m.id=', m.id, '| m.medicao_id=', m.medicao_id, '| m.projeto_id=', m.projeto_id);
     window.location.href = `smartstone://medicao?id=${m.id}`;
   }
 

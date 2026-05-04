@@ -92,8 +92,6 @@ function DashboardContent() {
 
     const isReady = !loading && !profileLoading && !!session && !!profile;
 
-    console.log('[Dashboard] loading:', loading, '| profileLoading:', profileLoading,
-                '| session:', !!session, '| profile:', !!profile, '| isReady:', isReady);
 
     useEffect(() => {
         if (!isReady) return;
@@ -157,9 +155,6 @@ function DashboardContent() {
                 const notifData = notifRes.status === 'fulfilled' ? notifRes.value.data  : null;
                 const medData   = medRes.status   === 'fulfilled' ? medRes.value.data    : null;
 
-                console.log('[Dashboard] dados chegaram — projetos:', projData?.length ?? 0,
-                            '| notifs:', notifData?.length ?? 0, '| medicoes:', medData?.length ?? 0);
-
                 if (projData)  setProjetos(projData);
                 if (notifData) setNotifs(notifData);
                 if (medData)   setMedicoesPendentes(medData);
@@ -194,7 +189,8 @@ function DashboardContent() {
     if (!isReady) return <SkeletonDashboard />;
 
     const perfil = profile?.role || profile?.perfil;
-    if (perfil === 'medidor') return <Navigate to="/medidor/agenda" replace />;
+    if (perfil === 'superadmin') return <Navigate to="/superadmin" replace />;
+    if (perfil === 'medidor')    return <Navigate to="/medidor/agenda" replace />;
 
     return (
         <div className="page-enter bg-gray-100 dark:bg-[#050505] text-gray-700 dark:text-[#a1a1aa] selection:bg-gray-900 selection:text-white dark:selection:bg-gray-50 dark:selection:text-black antialiased relative min-h-screen overflow-x-hidden font-sans">

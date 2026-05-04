@@ -122,7 +122,8 @@ export default function FinanceiroLancamentos() {
           const { error } = await supabase
             .from('financeiro_lancamentos')
             .update({ status: 'cancelado' })
-            .eq('id', lancamento.id);
+            .eq('id', lancamento.id)
+            .eq('empresa_id', profile.empresa_id);
           if (error) throw error;
           toast.success('Lançamento cancelado.');
           carregarLancamentos();
@@ -149,7 +150,8 @@ export default function FinanceiroLancamentos() {
               data_pagamento: null, conta_id: null,
               forma_pagamento: null, taxa_percentual: 0,
             })
-            .eq('id', lancamento.id);
+            .eq('id', lancamento.id)
+            .eq('empresa_id', profile.empresa_id);
           if (error) throw error;
           toast.success('Pagamento estornado.');
           carregarLancamentos();

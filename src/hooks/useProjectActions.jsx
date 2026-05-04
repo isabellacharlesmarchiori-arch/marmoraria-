@@ -69,9 +69,10 @@ export function useProjectActions(projectId, {
             .select('id')
             .single();
         if (error) { alert(`Erro ao criar medição: ${error.message}`); return; }
-        await supabase.from('medicoes').select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
-            .eq('projeto_id', projectId)
-            .order('data_medicao', { ascending: false })
+        let qRefetch = supabase.from('medicoes').select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
+            .eq('projeto_id', projectId);
+        if (profile?.empresa_id) qRefetch = qRefetch.eq('empresa_id', profile.empresa_id);
+        await qRefetch.order('data_medicao', { ascending: false })
             .then(({ data: meds }) => {
                 if (!meds) return;
                 const fmt = (m) => ({
@@ -88,8 +89,12 @@ export function useProjectActions(projectId, {
 
     async function handleExcluirMedicao(m) {
         if (!window.confirm(`Excluir a medição de ${m.data}? Esta ação não pode ser desfeita.`)) return;
-        await supabase.from('ambientes').delete().eq('medicao_id', m.id);
-        const { error } = await supabase.from('medicoes').delete().eq('id', m.id);
+        let qAmb = supabase.from('ambientes').delete().eq('medicao_id', m.id);
+        if (profile?.empresa_id) qAmb = qAmb.eq('empresa_id', profile.empresa_id);
+        await qAmb;
+        let qMed = supabase.from('medicoes').delete().eq('id', m.id);
+        if (profile?.empresa_id) qMed = qMed.eq('empresa_id', profile.empresa_id);
+        const { error } = await qMed;
         if (error) { alert(`Erro ao excluir: ${error.message}`); return; }
         setMedicoes(prev => prev.filter(item => item.id !== m.id));
     }
@@ -102,9 +107,9 @@ export function useProjectActions(projectId, {
         if (!agMedidor) { alert('Erro: Selecione um medidor na lista antes de salvar.'); return; }
         if (!agData)    { setErroAgendar('Selecione a data e hora da medição.'); return; }
         if (!projectId) { setErroAgendar('ID do projeto inválido. Recarregue a página.'); return; }
+        if (!profile?.empresa_id) { setErroAgendar('Sessão inválida. Recarregue a página.'); return; }
 
-        const EMPRESA_ID_FALLBACK = 'a1b2c3d4-0000-0000-0000-000000000001';
-        const empresaId        = profile?.empresa_id ?? EMPRESA_ID_FALLBACK;
+        const empresaId        = profile.empresa_id;
         const dataAgendadaISO  = new Date(agData).toISOString();
         const medidorSel       = medidores.find(m => m.id === agMedidor);
         const nomeResponsavel  = medidorSel?.nome ?? '';
@@ -139,9 +144,9 @@ export function useProjectActions(projectId, {
                 if (isMedidor) {
                     // Medidor concluiu via web — notifica vendedor como medicao_processada
                     const vendedorId = projeto?.vendedor_id;
-                    if (vendedorId && vendedorId !== session?.user?.id) {
+                    if (vendedorId && vendedorId !== session?.user?.id && projeto?.empresa_id) {
                         await supabase.from('notificacoes').insert({
-                            empresa_id: projeto?.empresa_id ?? EMPRESA_ID_FALLBACK,
+                            empresa_id: projeto.empresa_id,
                             usuario_id: vendedorId,
                             projeto_id: projectId,
                             tipo:       'medicao_processada',

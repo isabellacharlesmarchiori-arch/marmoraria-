@@ -76,7 +76,6 @@ const txt = (doc, text, x, y, size, rgb, style = 'normal', opts = {}, cs = 0) =>
 // ── Carregamento de logo (dupla estratégia) ───────────────────────────────────
 async function loadLogoBase64(url) {
   if (!url) return null;
-  console.log('[PDF] carregando logo:', url);
 
   // Estratégia 1: fetch → FileReader → Image (dimensões)
   try {
@@ -96,7 +95,6 @@ async function loadLogoBase64(url) {
       img.src = dataUrl;
     });
     const fmt = blob.type.includes('png') ? 'PNG' : 'JPEG';
-    console.log('[PDF] logo OK (fetch) — dimensões:', w, '×', h, fmt);
     return { data: dataUrl, format: fmt, aspectRatio: w / h };
   } catch (e1) {
     console.warn('[PDF] fetch falhou:', e1.message, '→ tentando canvas…');
@@ -115,7 +113,6 @@ async function loadLogoBase64(url) {
         const isPng = url.toLowerCase().includes('.png');
         const mime  = isPng ? 'image/png' : 'image/jpeg';
         const data  = canvas.toDataURL(mime, 0.92);
-        console.log('[PDF] logo OK (canvas)');
         resolve({
           data,
           format:      isPng ? 'PNG' : 'JPEG',
@@ -184,19 +181,6 @@ async function buildOrcamentoPdf(
   { orc, projeto, ambientes, catMateriais = [], empresa = {}, vendedorNome, prazoEntrega = null, template = null },
   modo,
 ) {
-  // ── Diagnóstico obrigatório ────────────────────────────────────────────────
-  console.log('[PDF] empresa:', JSON.stringify({
-    nome:      empresa.nome,
-    logo_url:  empresa.logo_url,
-    cnpj:      empresa.cnpj,
-    telefone:  empresa.telefone,
-    email_contato: empresa.email_contato,
-    endereco:  empresa.endereco,
-  }));
-  console.log('[PDF] pecas:', (orc.pecas ?? []).length,
-              '| itens_manuais:', (orc.itens_manuais ?? []).length);
-  console.log('[PDF] template:', JSON.stringify({ tipo: template?.tipo, cor: template?.cor_primaria }));
-
   const isPedido = modo === 'pedido';
   const isColor  = modo === 'color' || isPedido;
 

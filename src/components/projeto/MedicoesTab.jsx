@@ -81,9 +81,9 @@ const MedicoesTab = React.memo(function MedicoesTab({
         if (!agMedidor) { alert('Selecione um medidor na lista antes de salvar.'); return; }
         if (!agData)    { setErroAgendar('Selecione a data e hora da medição.'); return; }
         if (!id)        { setErroAgendar('ID do projeto inválido. Recarregue a página.'); return; }
+        if (!profile?.empresa_id) { setErroAgendar('Sessão inválida. Recarregue a página.'); return; }
 
-        const EMPRESA_ID_FALLBACK = 'a1b2c3d4-0000-0000-0000-000000000001';
-        const empresaId = profile?.empresa_id ?? EMPRESA_ID_FALLBACK;
+        const empresaId = profile.empresa_id;
         const dataAgendadaISO = new Date(agData).toISOString();
         const medidorSelecionado = medidores.find(m => m.id === agMedidor);
         const nomeResponsavel = medidorSelecionado?.nome ?? '';
@@ -119,9 +119,9 @@ const MedicoesTab = React.memo(function MedicoesTab({
             setMedicoes(prev => prev.map(m => m.id === editingMedicaoId ? formatarParaLista(updated) : m));
             if (isMedidor) {
                 const vendedorId = projeto?.vendedor_id;
-                if (vendedorId && vendedorId !== session?.user?.id) {
+                if (vendedorId && vendedorId !== session?.user?.id && projeto?.empresa_id) {
                     await supabase.from('notificacoes').insert({
-                        empresa_id: projeto?.empresa_id ?? EMPRESA_ID_FALLBACK,
+                        empresa_id: projeto.empresa_id,
                         usuario_id: vendedorId,
                         tipo:       'medicao_agendada',
                         titulo:     'Medição concluída',
@@ -159,8 +159,8 @@ const MedicoesTab = React.memo(function MedicoesTab({
 
     async function handleIniciarMedicao() {
         setIniciando(true);
-        const EMPRESA_ID_FALLBACK = 'a1b2c3d4-0000-0000-0000-000000000001';
-        const empresaId = profile?.empresa_id ?? EMPRESA_ID_FALLBACK;
+        if (!profile?.empresa_id) { alert('Sessão inválida. Recarregue a página.'); setIniciando(false); return; }
+        const empresaId = profile.empresa_id;
         const { data: med, error } = await supabase
             .from('medicoes')
             .insert({

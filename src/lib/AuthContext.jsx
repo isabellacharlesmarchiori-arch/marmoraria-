@@ -18,6 +18,12 @@ export function AuthProvider({ children }) {
   const [empresa,        setEmpresa]        = useState(null)
   const [profileLoading, setProfileLoading] = useState(false)
 
+  // Impersonação: superadmin assume empresa/perfil de outro usuário para teste
+  const [impersonation, setImpersonationState] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('sa_impersonate') ?? 'null') }
+    catch { return null }
+  })
+
   // ── 1. Limpa apenas cache de dados do app (NUNCA as chaves sb- do Supabase) ─
   useEffect(() => {
     try {
@@ -30,8 +36,20 @@ export function AuthProvider({ children }) {
         }
       }
       keysToRemove.forEach(k => localStorage.removeItem(k))
-      if (keysToRemove.length) console.log('[Auth] Cache de dados limpo:', keysToRemove.length, 'chaves')
     } catch { /* ignora */ }
+  }, [])
+
+  const isSuperAdmin = profile?.perfil === 'superadmin'
+
+  const enterImpersonation = useCallback((empresaId, perfilAlvo = 'admin') => {
+    const val = { empresaId, perfil: perfilAlvo }
+    sessionStorage.setItem('sa_impersonate', JSON.stringify(val))
+    setImpersonationState(val)
+  }, [])
+
+  const exitImpersonation = useCallback(() => {
+    sessionStorage.removeItem('sa_impersonate')
+    setImpersonationState(null)
   }, [])
 
   // ── 2. Detecta sessão inicial e escuta mudanças de auth ──────────────────────
@@ -87,25 +105,6 @@ export function AuthProvider({ children }) {
           }
 
           setProfile(perfilNormalizado)
-
-          if (perfilNormalizado.empresa_id) {
-            // dados_bancarios só é carregado para admin — nunca expor a vendedor/medidor
-            const camposEmpresa = 'id, nome, cnpj, inscricao_estadual, telefone, whatsapp, email, email_contato, endereco, website, logo_url'
-            const selectEmpresa = perfilNormalizado.perfil === 'admin'
-              ? camposEmpresa + ', dados_bancarios'
-              : camposEmpresa
-            const { data: emp, error: errEmp } = await supabase
-              .from('empresas')
-              .select(selectEmpresa)
-              .eq('id', perfilNormalizado.empresa_id)
-              .single()
-
-            if (errEmp) {
-              console.warn('[Auth] Erro ao buscar empresa:', errEmp.message)
-            } else {
-              setEmpresa(emp ?? null)
-            }
-          }
         }
       } catch (err) {
         console.error('[Auth] Exceção inesperada ao carregar perfil')
@@ -120,6 +119,27 @@ export function AuthProvider({ children }) {
     carregarPerfil()
   }, [userId])
 
+  // ── 4. Carrega empresa separadamente — responde tanto a profile quanto a impersonação ──
+  const empresaIdToLoad = isSuperAdmin && impersonation?.empresaId
+    ? impersonation.empresaId
+    : profile?.empresa_id ?? null
+
+  useEffect(() => {
+    if (!empresaIdToLoad) { setEmpresa(null); return }
+
+    const camposBase = 'id, nome, cnpj, inscricao_estadual, telefone, whatsapp, email, email_contato, endereco, website, logo_url'
+    const perfilEfetivo = impersonation?.perfil ?? profile?.perfil
+    const sel = (perfilEfetivo === 'admin' || isSuperAdmin)
+      ? camposBase + ', dados_bancarios'
+      : camposBase
+
+    supabase.from('empresas').select(sel).eq('id', empresaIdToLoad).single()
+      .then(({ data, error }) => {
+        if (error) console.warn('[Auth] Erro ao buscar empresa:', error.message)
+        else setEmpresa(data ?? null)
+      })
+  }, [empresaIdToLoad, isSuperAdmin, impersonation?.perfil, profile?.perfil])
+
   const refreshProfile = useCallback(async () => {
     const uid = session?.user?.id
     if (!uid) return
@@ -131,6 +151,11 @@ export function AuthProvider({ children }) {
     if (data) setProfile(prev => ({ ...prev, ...data, perfil: data.perfil, role: data.perfil }))
   }, [session?.user?.id])
 
+  // Perfil efetivo: sobrescreve empresa_id e perfil quando superadmin está impersonando
+  const effectiveProfile = isSuperAdmin && impersonation
+    ? { ...profile, empresa_id: impersonation.empresaId, perfil: impersonation.perfil, role: impersonation.perfil }
+    : profile
+
   // loading = true apenas enquanto não sabemos se existe sessão (getSession ainda não respondeu).
   // profileLoading é gerenciado separadamente por RequireAdmin/RequireMedidor com `return null`,
   // então NÃO incluímos profileLoading aqui — isso impede que RequireAuth desmonte o AppShell
@@ -138,7 +163,19 @@ export function AuthProvider({ children }) {
   const loading = session === undefined
 
   return (
-    <AuthContext.Provider value={{ session, profile, empresa, loading, profileLoading, refreshProfile }}>
+    <AuthContext.Provider value={{
+      session,
+      profile: effectiveProfile,
+      actualProfile: profile,
+      empresa,
+      loading,
+      profileLoading,
+      refreshProfile,
+      isSuperAdmin,
+      impersonation,
+      enterImpersonation,
+      exitImpersonation,
+    }}>
       {children}
     </AuthContext.Provider>
   )

@@ -13,18 +13,20 @@ import ModalConfirmacao from './contas/ModalConfirmacao';
 function hoje() { return new Date().toISOString().split('T')[0]; }
 
 // Reverte lançamento para 'pendente' se estava 'pago'
-async function estornarLancamentoSeNecessario(lancamentoId) {
+async function estornarLancamentoSeNecessario(lancamentoId, empresaId) {
   if (!lancamentoId) return;
   const { data: lanc } = await supabase
     .from('financeiro_lancamentos')
     .select('id, status')
     .eq('id', lancamentoId)
+    .eq('empresa_id', empresaId)
     .single();
   if (lanc?.status === 'pago') {
     const { error } = await supabase
       .from('financeiro_lancamentos')
       .update({ status: 'pendente', valor_pago: 0, data_pagamento: null, conta_id: null })
-      .eq('id', lancamentoId);
+      .eq('id', lancamentoId)
+      .eq('empresa_id', empresaId);
     if (error) throw error;
   }
 }
@@ -237,7 +239,8 @@ export default function FinanceiroCheques() {
       const { error: errCheque } = await supabase
         .from('financeiro_cheques')
         .update({ status: 'compensado' })
-        .eq('id', cheque.id);
+        .eq('id', cheque.id)
+        .eq('empresa_id', profile.empresa_id);
       if (errCheque) throw errCheque;
 
       const { error: errLanc } = await supabase
@@ -248,7 +251,8 @@ export default function FinanceiroCheques() {
           conta_id:        cheque.conta_deposito_id,
           data_pagamento:  hoje(),
         })
-        .eq('id', cheque.lancamento_id);
+        .eq('id', cheque.lancamento_id)
+        .eq('empresa_id', profile.empresa_id);
       if (errLanc) throw errLanc;
 
       toast.success('Cheque compensado, saldo atualizado');
@@ -264,10 +268,11 @@ export default function FinanceiroCheques() {
       const { error } = await supabase
         .from('financeiro_cheques')
         .update({ status: 'devolvido' })
-        .eq('id', cheque.id);
+        .eq('id', cheque.id)
+        .eq('empresa_id', profile.empresa_id);
       if (error) throw error;
 
-      await estornarLancamentoSeNecessario(cheque.lancamento_id);
+      await estornarLancamentoSeNecessario(cheque.lancamento_id, profile.empresa_id);
 
       toast.success('Cheque marcado como devolvido');
       buscarCheques();
@@ -282,10 +287,11 @@ export default function FinanceiroCheques() {
       const { error } = await supabase
         .from('financeiro_cheques')
         .update({ status: 'cancelado' })
-        .eq('id', cheque.id);
+        .eq('id', cheque.id)
+        .eq('empresa_id', profile.empresa_id);
       if (error) throw error;
 
-      await estornarLancamentoSeNecessario(cheque.lancamento_id);
+      await estornarLancamentoSeNecessario(cheque.lancamento_id, profile.empresa_id);
 
       toast.success('Cheque cancelado');
       buscarCheques();
