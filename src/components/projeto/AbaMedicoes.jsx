@@ -1,5 +1,6 @@
 import React from 'react';
 import { MedicaoPill } from '../../utils/projetoUtils';
+import { formatarEndereco } from '../../utils/endereco';
 
 export default function AbaMedicoes({
     medicoes,
@@ -70,7 +71,7 @@ export default function AbaMedicoes({
                                         <span className="font-mono text-[9px] text-green-500/70 uppercase tracking-widest">Aguardando orçamento</span>
                                     )}
                                     {!isAprovada && m?.endereco && (
-                                        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 truncate max-w-[140px]">{m.endereco}</span>
+                                        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 truncate max-w-[140px]">{formatarEndereco(m.endereco)}</span>
                                     )}
                                 </div>
                             </div>

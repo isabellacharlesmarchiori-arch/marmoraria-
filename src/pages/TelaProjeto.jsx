@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
+import { parseEndereco } from '../utils/endereco';
 import ModalOrcamentoManual from '../components/ModalOrcamentoManual';
 import PdfOptionsModal from '../components/PdfOptionsModal';
 import CamposParcelamento from './financeiro/lancamentos/CamposParcelamento';
@@ -264,15 +265,7 @@ export default function TelaProjetoVendedor() {
     };
 
     function parseEnderecoCliente(str) {
-        if (!str?.trim()) return { rua: '', numero: '', bairro: '', cidade: '' };
-        // Tenta separar "Rua Nome, 123, Bairro, Cidade" (campos separados por vírgula)
-        const partes = str.split(',').map(s => s.trim());
-        return {
-            rua:    partes[0] || '',
-            numero: partes[1] || '',
-            bairro: partes[2] || '',
-            cidade: partes[3] || '',
-        };
+        return parseEndereco(str);
     }
 
     function handleAbrirNovoAgendamento() {

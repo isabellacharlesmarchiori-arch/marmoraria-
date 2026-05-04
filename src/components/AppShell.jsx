@@ -187,9 +187,9 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-[#050505] text-gray-900 dark:text-white font-sans selection:bg-gray-900 selection:text-white dark:selection:bg-gray-50 dark:selection:text-black">
       {/* Background patterns — only visible in dark mode */}
-      <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
-      <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
+      <div className="fixed inset-0 pointer-events-none z-[-1] opacity-100 bg-grid"></div>
+      <div className="fixed inset-0 pointer-events-none z-[-1] scanline mix-blend-overlay"></div>
+      <div className="fixed inset-0 pointer-events-none z-[-1] hidden dark:block opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
 
       {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
@@ -201,7 +201,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[220px] bg-white dark:bg-[#080808] border-r border-gray-300 dark:border-zinc-800 flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 lg:z-auto w-[220px] bg-white dark:bg-[#080808] border-r border-gray-300 dark:border-zinc-800 flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -275,7 +275,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 relative z-10 w-full overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 relative w-full overflow-hidden">
 
         {/* Topbar */}
         <header className="h-12 bg-white dark:bg-[#050505] border-b border-gray-300 dark:border-zinc-800 px-6 flex items-center justify-between shrink-0">

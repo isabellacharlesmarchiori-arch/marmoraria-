@@ -320,7 +320,7 @@ export default function AbaMateriaisArea({
           MODAL — Material de Área (controlado, com matriz de preços)
       ════════════════════════════════════════════════════════════════════════ */}
       {matModal && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="modal-backdrop fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={fecharMatModal}></div>
           <div className="relative bg-gray-50 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 border-t-2 border-t-yellow-400 w-full max-w-3xl z-10 shadow-2xl flex flex-col max-h-[92vh]">
 

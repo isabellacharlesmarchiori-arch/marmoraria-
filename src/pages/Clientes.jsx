@@ -644,6 +644,8 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [arqEnd, setArqEnd] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
+  const [loadingCepArq, setLoadingCepArq] = useState(false);
 
   useEffect(() => {
     if (!session || !empresaId) return;
@@ -676,8 +678,26 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const filteredPage = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
-  const openModal = (arq = null) => { setEditing(arq); setIsModalOpen(true); };
+  const openModal = (arq = null) => {
+    setEditing(arq);
+    setArqEnd(arq ? parseAddress(arq.endereco) : { cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
+    setIsModalOpen(true);
+  };
   const closeModal = () => { setEditing(null); setIsModalOpen(false); };
+
+  const buscarCepArq = async (cep) => {
+    const limpo = cep.replace(/\D/g, '');
+    if (limpo.length !== 8) return;
+    setLoadingCepArq(true);
+    try {
+      const res  = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setArqEnd(prev => ({ ...prev, rua: data.logradouro || prev.rua, bairro: data.bairro || prev.bairro, cidade: data.localidade || prev.cidade, estado: data.uf || prev.estado }));
+      }
+    } catch {}
+    setLoadingCepArq(false);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -688,7 +708,7 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
       rg:                  fd.get('rg') || null,
       telefone:            fd.get('telefone') || null,
       email:               fd.get('email') || null,
-      endereco:            fd.get('endereco') || null,
+      endereco:            JSON.stringify(arqEnd),
       data_nascimento:     fd.get('data_nascimento') || null,
       dados_pagamento_pix: fd.get('dados_pagamento_pix') || null,
       empresa_id:          empresaId,
@@ -814,7 +834,7 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
               ))}
               <div className="col-span-2 p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
                 <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">Endereço</div>
-                <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs">{selected.endereco || '—'}</div>
+                <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs">{formatAddressDisplay(selected.endereco) || '—'}</div>
               </div>
               {isAdmin && selected.dados_pagamento_pix && (
                 <div className="col-span-2 p-3 border border-green-300/40 dark:border-green-900/40 bg-green-50/50 dark:bg-green-400/5">
@@ -855,7 +875,45 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
               <MaskedField label="Telefone" name="telefone" maskFn={maskPhone} defaultValue={editing?.telefone} />
               <Field label="Email" name="email" type="email" defaultValue={editing?.email} />
               <Field label="Data de Nascimento" name="data_nascimento" type="date" defaultValue={editing?.data_nascimento} />
-              <Field label="Endereço" name="endereco" span2 textarea defaultValue={editing?.endereco} />
+              {/* Endereço com busca por CEP */}
+              <div className="col-span-2">
+                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-3 border-b border-gray-200 dark:border-zinc-800">Endereço</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
+                      CEP {loadingCepArq && <span className="text-[8px] text-yellow-500 animate-pulse normal-case tracking-normal">buscando...</span>}
+                    </label>
+                    <input value={arqEnd.cep} onChange={e => { const v = maskCEP(e.target.value); setArqEnd(p => ({ ...p, cep: v })); buscarCepArq(v); }} placeholder="00000-000" className={FIELD_CLS} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Número</label>
+                    <input value={arqEnd.numero} onChange={e => setArqEnd(p => ({ ...p, numero: e.target.value }))} placeholder="123" className={FIELD_CLS} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Rua / Logradouro</label>
+                    <input value={arqEnd.rua} onChange={e => setArqEnd(p => ({ ...p, rua: e.target.value }))} className={FIELD_CLS} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Complemento</label>
+                    <input value={arqEnd.complemento} onChange={e => setArqEnd(p => ({ ...p, complemento: e.target.value }))} placeholder="Apto, Bloco..." className={FIELD_CLS} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Bairro</label>
+                    <input value={arqEnd.bairro} onChange={e => setArqEnd(p => ({ ...p, bairro: e.target.value }))} className={FIELD_CLS} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Cidade</label>
+                    <input value={arqEnd.cidade} onChange={e => setArqEnd(p => ({ ...p, cidade: e.target.value }))} className={FIELD_CLS} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Estado</label>
+                    <select value={arqEnd.estado} onChange={e => setArqEnd(p => ({ ...p, estado: e.target.value }))} className={FIELD_CLS + ' cursor-pointer'}>
+                      <option value="">—</option>
+                      {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
               <div className="col-span-2">
                 <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">PIX / Dados Bancários</label>
                 <input name="dados_pagamento_pix" defaultValue={editing?.dados_pagamento_pix || ''}

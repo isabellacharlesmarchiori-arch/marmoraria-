@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import { supabase } from '../lib/supabase';
 import 'react-calendar/dist/Calendar.css';
+import { formatarEndereco } from '../utils/endereco';
 
 function formatHora(isoStr) {
   if (!isoStr) return '—';
@@ -175,7 +176,7 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
                       <div className="flex flex-col gap-0.5 min-w-0">
                         <span className="text-sm text-white font-medium truncate">{nome}</span>
                         {m.endereco && (
-                          <span className="font-mono text-[10px] text-zinc-600 truncate">{m.endereco}</span>
+                          <span className="font-mono text-[10px] text-zinc-600 truncate">{formatarEndereco(m.endereco)}</span>
                         )}
                       </div>
                     </div>

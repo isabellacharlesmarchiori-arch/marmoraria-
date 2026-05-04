@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { MedicaoPill, parseSvgUrl } from '../../utils/projetoUtils';
 import AgendaMedidor from '../AgendaMedidor';
 import { PainelDetalhesMedicao } from './PainelDetalhesMedicao';
+import { formatarEndereco } from '../../utils/endereco';
 
 const MedicoesTab = React.memo(function MedicoesTab({
     medicoes, setMedicoes,
@@ -238,7 +239,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                             <span className="font-mono text-[9px] text-green-500/70 uppercase tracking-widest">Aguardando orçamento</span>
                                         )}
                                         {!isAprovada && m?.endereco && (
-                                            <span className="font-mono text-[9px] text-zinc-600 truncate max-w-[140px]">{m.endereco}</span>
+                                            <span className="font-mono text-[9px] text-zinc-600 truncate max-w-[140px]">{formatarEndereco(m.endereco)}</span>
                                         )}
                                     </div>
                                 </div>

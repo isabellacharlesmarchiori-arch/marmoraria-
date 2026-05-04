@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { formatarEndereco } from '../utils/endereco';
 
 /*
   MIGRAÇÃO — execute no Supabase SQL Editor (uma vez):
@@ -79,7 +80,7 @@ function CardAgenda({ m, onRealizarClick }) {
               rel="noopener noreferrer"
               className="font-mono text-[11px] text-blue-600 dark:text-blue-400 hover:underline leading-snug"
             >
-              {m.endereco}
+              {formatarEndereco(m.endereco)}
               <iconify-icon icon="solar:arrow-right-up-linear" width="10" className="ml-1 inline"></iconify-icon>
             </a>
           </div>
