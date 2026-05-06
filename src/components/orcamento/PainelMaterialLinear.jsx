@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { fmt } from '../../utils/orcamentoUtils';
 
 export default function PainelMaterialLinear({ label, selecionado, onConfirmar, onFechar, matLineares }) {
   const [busca, setBusca] = useState('');

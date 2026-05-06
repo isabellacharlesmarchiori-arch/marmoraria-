@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { fmt } from '../../utils/orcamentoUtils';
 
 export default function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar, todosM, single = false }) {
   const [busca, setBusca] = useState('');
