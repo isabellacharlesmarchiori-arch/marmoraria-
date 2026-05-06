@@ -125,6 +125,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: '/admin/projetos', label: 'Projetos', icon: 'solar:layers-linear', subtitle: 'Visão global de projetos' },
     { path: '/admin/clientes', label: 'Clientes', icon: 'solar:users-group-two-rounded-linear', subtitle: 'Base de clientes geral' },
     { path: '/admin/financeiro', label: 'Financeiro', icon: 'solar:wallet-money-linear', subtitle: 'Controle financeiro' },
+    { path: '/admin/ia',            label: 'IA',            icon: 'solar:stars-linear',     subtitle: 'Assistente inteligente' },
     { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear',  subtitle: 'Ajustes do sistema' },
     { path: '/admin/mensagens',    label: 'Mensagens',     icon: 'solar:chat-line-linear', subtitle: 'Enviar avisos ao time' },
     { path: notifPath, label: 'Notificações',  icon: 'solar:bell-linear',      subtitle: 'Avisos do sistema', badge: true }
