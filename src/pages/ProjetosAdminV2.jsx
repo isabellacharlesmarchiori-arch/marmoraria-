@@ -440,7 +440,7 @@ export default function Projetos() {
 
             {projetosFiltrados.length === 0 ? (
               <div className="py-20 text-center flex flex-col items-center gap-3 border-b border-gray-100 dark:border-zinc-900">
-                <iconify-icon icon="solar:box-linear" width="32" className="text-gray-200 dark:text-zinc-800"></iconify-icon>
+                <iconify-icon icon="solar:box-linear" width="32" className="text-gray-300 dark:text-zinc-800"></iconify-icon>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Nenhum projeto encontrado</span>
               </div>
             ) : (
@@ -493,7 +493,7 @@ export default function Projetos() {
                       </button>
                     )}
                     <span className="w-px h-4 bg-gray-200 dark:bg-zinc-800 mx-1"></span>
-                    <iconify-icon icon="solar:arrow-right-linear" width="14" className="text-gray-300 dark:text-zinc-800 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                    <iconify-icon icon="solar:arrow-right-linear" width="14" className="text-gray-400 dark:text-zinc-800 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
                   </div>
                 </div>
               ))
@@ -503,7 +503,7 @@ export default function Projetos() {
               <div className="px-4 py-3 border-t border-gray-300 dark:border-zinc-800 flex items-center justify-between">
                 <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">
                   Página {currentPage + 1} de {totalPages}
-                  <span className="text-gray-300 dark:text-zinc-800 mx-2">·</span>
+                  <span className="text-gray-400 dark:text-zinc-800 mx-2">·</span>
                   {projetosFiltrados.length} projetos
                 </span>
                 <div className="flex items-center gap-2">
@@ -575,7 +575,7 @@ export default function Projetos() {
               </div>
               <div>
                 <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500 mb-1.5 block">
-                  Arquiteto Parceiro <span className="text-gray-300 dark:text-zinc-700">(opcional)</span>
+                  Arquiteto Parceiro <span className="text-gray-400 dark:text-zinc-700">(opcional)</span>
                 </label>
                 <select
                   value={novoArquitetoId}
@@ -588,7 +588,7 @@ export default function Projetos() {
               </div>
               <div>
                 <label className="text-[9px] font-mono uppercase text-gray-500 dark:text-zinc-500 mb-1.5 block">
-                  % RT Padrão <span className="text-gray-300 dark:text-zinc-700">(opcional — preenchido automaticamente no orçamento)</span>
+                  % RT Padrão <span className="text-gray-400 dark:text-zinc-700">(opcional — preenchido automaticamente no orçamento)</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <input

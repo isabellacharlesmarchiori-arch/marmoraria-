@@ -205,19 +205,19 @@ function DashboardContent() {
                     <div className="text-[10px] font-mono text-gray-900 dark:text-white mb-2 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">01 // Métricas do mês</div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
                         <div className="bg-gray-100 dark:bg-[#0a0a0a] p-5 hover:-translate-y-0.5 transition-all relative group">
-                            <iconify-icon icon="solar:document-text-linear" width="16" className="text-gray-200 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
+                            <iconify-icon icon="solar:document-text-linear" width="16" className="text-gray-300 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Orçamentos</div>
                             <div className="text-3xl font-bold text-gray-900 dark:text-white tracking-tighter mb-1">—</div>
                             <div className="font-mono text-[9px] text-gray-400 dark:text-zinc-600">Em breve</div>
                         </div>
                         <div className="bg-gray-100 dark:bg-[#0a0a0a] p-5 hover:-translate-y-0.5 transition-all relative group">
-                            <iconify-icon icon="solar:check-square-linear" width="16" className="text-gray-200 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
+                            <iconify-icon icon="solar:check-square-linear" width="16" className="text-gray-300 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Fechados</div>
                             <div className="text-3xl font-bold text-gray-900 dark:text-white tracking-tighter mb-1">—</div>
                             <div className="font-mono text-[9px] text-gray-400 dark:text-zinc-600">Em breve</div>
                         </div>
                         <div className="bg-gray-100 dark:bg-[#0a0a0a] p-5 hover:-translate-y-0.5 transition-all relative group">
-                            <iconify-icon icon="solar:chart-linear" width="16" className="text-gray-200 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
+                            <iconify-icon icon="solar:chart-linear" width="16" className="text-gray-300 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Taxa de Fechamento</div>
                             <div className="text-3xl font-bold tracking-tighter mb-1 flex items-baseline">
                                 <span className="text-gray-400 dark:text-zinc-600">—</span>
@@ -252,8 +252,8 @@ function DashboardContent() {
                                 </div>
                             ) : projetos.length === 0 ? (
                                 <div className="px-4 py-10 text-center">
-                                    <iconify-icon icon="solar:layers-linear" width="32" className="text-gray-200 dark:text-zinc-800 mb-3 block mx-auto"></iconify-icon>
-                                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-300 dark:text-zinc-700">Nenhum projeto ainda</p>
+                                    <iconify-icon icon="solar:layers-linear" width="32" className="text-gray-300 dark:text-zinc-800 mb-3 block mx-auto"></iconify-icon>
+                                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum projeto ainda</p>
                                 </div>
                             ) : projetos.map((p, i) => {
                                 const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.orcado;
@@ -273,7 +273,7 @@ function DashboardContent() {
                                                 <span className={`w-1 h-1 ${cfg.dot} rounded-full`}></span>
                                                 {cfg.label}
                                             </span>
-                                            <iconify-icon icon="solar:arrow-right-linear" width="13" className="text-gray-300 dark:text-zinc-700 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                                            <iconify-icon icon="solar:arrow-right-linear" width="13" className="text-gray-400 dark:text-zinc-700 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
                                         </div>
                                     </div>
                                 );
@@ -307,8 +307,8 @@ function DashboardContent() {
                                     </div>
                                 ) : notifs.length === 0 ? (
                                     <div className="px-4 py-10 text-center">
-                                        <iconify-icon icon="solar:bell-linear" width="32" className="text-gray-200 dark:text-zinc-800 mb-3 block mx-auto"></iconify-icon>
-                                        <p className="font-mono text-[10px] uppercase tracking-widest text-gray-300 dark:text-zinc-700">Sem notificações</p>
+                                        <iconify-icon icon="solar:bell-linear" width="32" className="text-gray-300 dark:text-zinc-800 mb-3 block mx-auto"></iconify-icon>
+                                        <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Sem notificações</p>
                                     </div>
                                 ) : notifs.map((n, i) => {
                                     const cfg = TIPO_CONFIG[n.tipo] || TIPO_CONFIG.status_atualizado;
@@ -400,7 +400,7 @@ function DashboardContent() {
                                                 {isEnviada ? 'Enviada' : 'Processada'}
                                             </span>
                                             <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{dataStr}</span>
-                                            <iconify-icon icon="solar:arrow-right-linear" width="13" className="text-gray-300 dark:text-zinc-700 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                                            <iconify-icon icon="solar:arrow-right-linear" width="13" className="text-gray-400 dark:text-zinc-700 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
                                         </div>
                                     </div>
                                 );

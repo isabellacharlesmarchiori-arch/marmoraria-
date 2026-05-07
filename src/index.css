@@ -230,7 +230,21 @@ body { margin: 0; }
   box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
 }
 
-/* ── 12. Avisos financeiros amber — suaves no modo claro ─── */
+/* ── 12. Inputs de data/select — color-scheme correto no claro ────────────────
+   Impede que [color-scheme:dark] hardcoded em componentes force o picker
+   nativo a renderizar no tema escuro quando o app está em light mode.      */
+:root:not(.dark) input[type="date"],
+:root:not(.dark) input[type="datetime-local"],
+:root:not(.dark) input[type="month"],
+:root:not(.dark) input[type="time"],
+:root:not(.dark) select {
+  color-scheme: light !important;
+}
+
+/* ── 13. Placeholders — contraste mínimo no modo claro ────────────────────── */
+:root:not(.dark) ::placeholder { color: #6B7280 !important; opacity: 1; }
+
+/* ── 14. Avisos financeiros amber — suaves no modo claro ─── */
 :root:not(.dark) .border-amber-900,
 :root:not(.dark) .border-amber-800 {
   border-color: #FED7AA !important;

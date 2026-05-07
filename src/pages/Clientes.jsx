@@ -103,11 +103,11 @@ function MaskedField({ label, name, maskFn, defaultValue = '', required = false,
 
 // ── STATUS ────────────────────────────────────────────────────────────────────
 const statusColors = {
-  orcado:     'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 border-gray-300 dark:border-zinc-700',
-  aprovado:   'bg-gray-100 dark:bg-[#020202] text-gray-900 dark:text-white border-gray-400 dark:border-white',
-  produzindo: 'bg-gray-100 dark:bg-zinc-900 text-yellow-700 dark:text-yellow-400 border-yellow-500 dark:border-yellow-400',
-  entregue:   'bg-gray-100 dark:bg-[#050505] text-gray-500 dark:text-zinc-400 border-gray-400 dark:border-zinc-600',
-  perdido:    'bg-gray-100 dark:bg-zinc-950 text-gray-400 dark:text-zinc-500 border-gray-300 dark:border-zinc-800 line-through',
+  orcado:     'bg-[#FEF9C3] dark:bg-zinc-800 text-[#854D0E] dark:text-zinc-300 border-[#DEB87A] dark:border-zinc-700',
+  aprovado:   'bg-green-50 dark:bg-[#020202] text-green-700 dark:text-white border-green-300 dark:border-white',
+  produzindo: 'bg-violet-50 dark:bg-zinc-900 text-violet-700 dark:text-yellow-400 border-violet-300 dark:border-yellow-400',
+  entregue:   'bg-blue-50 dark:bg-[#050505] text-blue-700 dark:text-zinc-400 border-blue-300 dark:border-zinc-600',
+  perdido:    'bg-red-50 dark:bg-zinc-950 text-red-700 dark:text-zinc-500 border-red-200 dark:border-zinc-800 line-through',
 };
 const statusLabels = { orcado: 'Orçado', aprovado: 'Aprovado', produzindo: 'Produzindo', entregue: 'Entregue', perdido: 'Perdido' };
 

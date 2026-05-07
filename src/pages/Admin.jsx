@@ -81,7 +81,7 @@ function FaturamentoChart({ meses, valores }) {
     if (!hasData) return (
         <div className="w-full h-full flex items-center justify-center">
             <div className="text-center">
-                <iconify-icon icon="solar:chart-linear" width="28" className="text-gray-200 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
+                <iconify-icon icon="solar:chart-linear" width="28" className="text-gray-300 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
                 <p className="font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700">Sem dados no período</p>
             </div>
         </div>
@@ -306,7 +306,7 @@ export default function DashboardAdmin() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-800">
                             {metricas.map((m, i) => (
                                 <div key={i} className="bg-gray-50 dark:bg-[#0a0a0a] p-5 hover:-translate-y-0.5 transition-all relative group">
-                                    <iconify-icon icon={m.icon} width="16" className="text-gray-200 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
+                                    <iconify-icon icon={m.icon} width="16" className="text-gray-300 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
                                     <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">{m.label}</div>
                                     <div className="text-3xl font-bold tracking-tighter mb-1 flex items-baseline gap-1">
                                         <span className={m.destaque ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-900 dark:text-white'}>{m.valor}</span>
@@ -342,15 +342,15 @@ export default function DashboardAdmin() {
                                 </div>
                             ) : ranking.length === 0 ? (
                                 <div className="py-12 text-center">
-                                    <iconify-icon icon="solar:users-group-two-rounded-linear" width="28" className="text-gray-200 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
-                                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-300 dark:text-zinc-700">Nenhum dado disponível</p>
+                                    <iconify-icon icon="solar:users-group-two-rounded-linear" width="28" className="text-gray-300 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
+                                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum dado disponível</p>
                                 </div>
                             ) : (
                                 <>
                                     {ranking.map((r, i) => (
                                         <div key={r.id} className={`grid grid-cols-12 items-center px-4 py-3 hover:bg-black/[0.02] dark:hover:bg-white/[0.015] transition-colors ${i < ranking.length - 1 ? 'border-b border-gray-100 dark:border-zinc-900' : ''}`}>
                                             <div className="col-span-4 flex items-center gap-2.5">
-                                                <span className={`font-mono text-[9px] w-4 text-right shrink-0 ${i === 0 ? 'text-yellow-600 dark:text-yellow-400 font-bold' : 'text-gray-300 dark:text-zinc-700'}`}>{i + 1}</span>
+                                                <span className={`font-mono text-[9px] w-4 text-right shrink-0 ${i === 0 ? 'text-yellow-600 dark:text-yellow-400 font-bold' : 'text-gray-400 dark:text-zinc-700'}`}>{i + 1}</span>
                                                 <div className="w-6 h-6 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 flex items-center justify-center font-mono text-[8px] text-gray-500 dark:text-zinc-400 shrink-0">{r.iniciais}</div>
                                                 <span className="text-sm text-gray-900 dark:text-white font-medium truncate">{r.nome}</span>
                                             </div>
@@ -454,8 +454,8 @@ export default function DashboardAdmin() {
                             </div>
                         ) : ultimosFechamentos.length === 0 ? (
                             <div className="py-12 text-center">
-                                <iconify-icon icon="solar:check-circle-linear" width="28" className="text-gray-200 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
-                                <p className="font-mono text-[10px] uppercase tracking-widest text-gray-300 dark:text-zinc-700">Nenhum fechamento registrado</p>
+                                <iconify-icon icon="solar:check-circle-linear" width="28" className="text-gray-300 dark:text-zinc-800 block mx-auto mb-2"></iconify-icon>
+                                <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum fechamento registrado</p>
                             </div>
                         ) : (
                             ultimosFechamentos.map((f, i) => (

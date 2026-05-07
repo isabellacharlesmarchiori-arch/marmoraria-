@@ -18,10 +18,10 @@ const STATUS_LABEL = {
 };
 
 const STATUS_COR = {
-  aprovado:   'text-yellow-400 border-yellow-400/40',
-  produzindo: 'text-blue-400  border-blue-400/40',
-  entregue:   'text-green-400 border-green-400/40',
-  perdido:    'text-red-400   border-red-400/40',
+  aprovado:   'text-yellow-700 dark:text-yellow-400 border-yellow-500 dark:border-yellow-400/40',
+  produzindo: 'text-blue-700  dark:text-blue-400   border-blue-400   dark:border-blue-400/40',
+  entregue:   'text-green-700 dark:text-green-400  border-green-500  dark:border-green-400/40',
+  perdido:    'text-red-700   dark:text-red-400    border-red-400    dark:border-red-400/40',
 };
 
 const ESTADO_INICIAL = {
@@ -313,14 +313,14 @@ export default function FinanceiroDashboard() {
               <label className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 block mb-1.5">Período — início</label>
               <div className="relative">
                 <iconify-icon icon="solar:calendar-linear" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-600 pointer-events-none" width="13"></iconify-icon>
-                <input type="date" value={periodoInicio} onChange={e => setPeriodoInicio(e.target.value)} style={{ colorScheme: 'dark' }} className={inputCls + ' pl-8'} />
+                <input type="date" value={periodoInicio} onChange={e => setPeriodoInicio(e.target.value)} style={{ colorScheme: undefined }} className={inputCls + ' pl-8'} />
               </div>
             </div>
             <div>
               <label className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 block mb-1.5">Período — fim</label>
               <div className="relative">
                 <iconify-icon icon="solar:calendar-linear" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-600 pointer-events-none" width="13"></iconify-icon>
-                <input type="date" value={periodoFim} onChange={e => setPeriodoFim(e.target.value)} style={{ colorScheme: 'dark' }} className={inputCls + ' pl-8'} />
+                <input type="date" value={periodoFim} onChange={e => setPeriodoFim(e.target.value)} style={{ colorScheme: undefined }} className={inputCls + ' pl-8'} />
               </div>
             </div>
             <div>
@@ -383,8 +383,8 @@ export default function FinanceiroDashboard() {
             <div className="text-3xl font-bold tracking-tighter mb-1 flex items-baseline gap-2">
               {loadingProjetos ? <div className="h-9 w-16 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded"></div> : (
                 <>
-                  <span className="text-yellow-400">{showFechados ? nFechamentos : 0}</span>
-                  {showPerdidos && <span className="text-base font-normal text-red-400 font-mono">{perdidosFiltrados.length} perd.</span>}
+                  <span className="text-yellow-600 dark:text-yellow-400">{showFechados ? nFechamentos : 0}</span>
+                  {showPerdidos && <span className="text-base font-normal text-red-600 dark:text-red-400 font-mono">{perdidosFiltrados.length} perd.</span>}
                 </>
               )}
             </div>

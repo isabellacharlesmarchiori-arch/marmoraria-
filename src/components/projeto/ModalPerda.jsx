@@ -8,7 +8,7 @@ export default function ModalPerda({ modalPerda, closeAll, projetoNome, motivoPe
             <div className="relative bg-gray-100 dark:bg-[#0a0a0a] border border-red-500/30 w-full max-w-[440px] z-10">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 dark:border-zinc-800">
                     <div>
-                        <div className="text-[10px] font-mono uppercase tracking-widest text-red-400/70 mb-0.5">[ MARCAR_COMO_PERDIDO ]</div>
+                        <div className="text-[10px] font-mono uppercase tracking-widest text-red-600 dark:text-red-400/70 mb-0.5">[ MARCAR_COMO_PERDIDO ]</div>
                         <div className="text-gray-900 dark:text-white font-semibold">Confirmar perda do projeto</div>
                     </div>
                     <button onClick={closeAll} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors p-1">

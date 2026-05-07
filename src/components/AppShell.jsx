@@ -320,7 +320,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
               )}
             </button>
 
-            <span className="text-gray-200 dark:text-zinc-800 hidden sm:inline">|</span>
+            <span className="text-gray-300 dark:text-zinc-800 hidden sm:inline">|</span>
 
             <div className="w-7 h-7 bg-gray-100 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 hidden sm:flex items-center justify-center font-mono text-[10px] text-yellow-600 dark:text-yellow-400 font-bold shrink-0">
               {userInitials}
