@@ -1452,7 +1452,7 @@ export default function CriarOrcamento() {
         {/* ══ Peças da medição ══════════════════════════════════════ */}
         <div className="sys-reveal sys-delay-100 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+            <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
               01 // Peças da medição
             </div>
             <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 border border-gray-200 dark:border-zinc-900 px-2 py-0.5">
@@ -1690,7 +1690,7 @@ export default function CriarOrcamento() {
         {/* ══ Produtos avulsos ══════════════════════════════════════ */}
         <div className="sys-reveal sys-delay-200">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+            <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
               02 // Produtos avulsos
             </div>
             <button

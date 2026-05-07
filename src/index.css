@@ -146,8 +146,8 @@ body { margin: 0; }
   --text-tertiary:  #8A94A6;
 
   /* Bordas */
-  --border:       #DDE2EC;
-  --border-light: #EEF1F6;
+  --border:       #C8CDD6;
+  --border-light: #DDE2EC;
 
   /* Acento (substitui amarelo no modo claro) */
   --accent:       #2563EB;
@@ -163,7 +163,7 @@ body { margin: 0; }
   --color-gray-50:  #FFFFFF;
   --color-gray-100: #F0F2F5;
   --color-gray-200: #EEF1F6;
-  --color-gray-300: #DDE2EC;
+  --color-gray-300: #C8CDD6;
   --color-gray-400: #8A94A6;
   --color-gray-500: #4A5568;
   --color-gray-600: #3D4A5C;
@@ -228,6 +228,20 @@ body { margin: 0; }
 :root:not(.dark) select:focus-visible,
 :root:not(.dark) textarea:focus-visible {
   box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+/* ── 12. Avisos financeiros amber — suaves no modo claro ─── */
+:root:not(.dark) .border-amber-900,
+:root:not(.dark) .border-amber-800 {
+  border-color: #FED7AA !important;
+}
+:root:not(.dark) .bg-amber-950\/20,
+:root:not(.dark) .bg-amber-950\/30,
+:root:not(.dark) .bg-amber-950\/15 {
+  background-color: #FFF7ED !important;
+}
+:root:not(.dark) .text-amber-400 {
+  color: #92400E !important;
 }
 
 /* ══════════════════════════════════════════════════════

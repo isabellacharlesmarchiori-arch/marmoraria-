@@ -797,7 +797,7 @@ export default function Carrinho() {
         <section className="mb-6">
           <div className="bg-[#0a0a0a] border border-zinc-800 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-0.5 mb-2">
+              <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-0.5 mb-2">
                 11 // Carrinho
               </div>
               <h1 className="text-xl font-bold text-white tracking-tight">Gerar Orçamento</h1>
@@ -814,7 +814,7 @@ export default function Carrinho() {
         </section>
 
         {/* Label seção */}
-        <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-4">
+        <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-4">
           02 // Ambientes e Versões
         </div>
 

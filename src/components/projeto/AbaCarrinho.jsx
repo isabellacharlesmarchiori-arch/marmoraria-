@@ -67,12 +67,12 @@ export default function AbaCarrinho({
 
             {/* Badge pedido fechado */}
             {pedidoFechado && (
-                <div className="mb-4 bg-green-950/40 border border-green-700/40 px-4 py-3">
+                <div className="mb-4 bg-green-100 dark:bg-green-950/40 border border-green-300 dark:border-green-700/40 px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                            <iconify-icon icon="solar:check-circle-bold" width="16" className="text-green-400 shrink-0"></iconify-icon>
+                            <iconify-icon icon="solar:check-circle-bold" width="16" className="text-green-700 dark:text-green-400 shrink-0"></iconify-icon>
                             <div className="min-w-0">
-                                <div className="font-mono text-[10px] text-green-400 uppercase tracking-widest font-bold">Pedido Fechado</div>
+                                <div className="font-mono text-[10px] text-green-900 dark:text-green-400 uppercase tracking-widest font-bold">Pedido Fechado</div>
                                 <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 mt-0.5 truncate">
                                     {pedidoFechado.forma_pagamento}
                                     {pedidoFechado.parcelas ? ` · ${pedidoFechado.parcelas}x` : ''}
@@ -98,7 +98,7 @@ export default function AbaCarrinho({
 
             {/* Cabeçalho da aba */}
             <div className="flex items-center justify-between mb-5">
-                <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+                <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
                     02 // Carrinho
                 </div>
                 <div className="flex items-center gap-2">
@@ -382,7 +382,7 @@ export default function AbaCarrinho({
                                                 const msg = encodeURIComponent(`Olá! Segue o orçamento "${nomeAtual}" — ${orc.ambiente_nome}: ${fmtBRL(ajustes.totalVenda)}`);
                                                 window.open(`https://wa.me/${telefone.replace(/\D/g,'')}?text=${msg}`, '_blank');
                                             }}
-                                            className="flex items-center gap-1 border border-green-800/50 text-green-600 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-green-600 hover:text-green-400 transition-colors"
+                                            className="flex items-center gap-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-gray-500 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300 transition-colors"
                                         >
                                             <iconify-icon icon="solar:chat-round-linear" width="11"></iconify-icon>
                                             WA
@@ -397,7 +397,7 @@ export default function AbaCarrinho({
                                                 prev?.id === orc.id ? null
                                                 : { id: orc.id, majoramento: String(orc.majoramento_percentual ?? 0), rt: String(orc.rt_percentual ?? projeto?.rt_padrao_percentual ?? 0), rtNome: orc.rt_arquiteto_nome || projeto?.arquitetos?.nome || '', frete: String(orc.valor_frete ?? 0) }
                                             )}
-                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 rounded border transition-colors ${carrinhoEditandoAjustes?.id === orc.id ? 'border-blue-500 text-blue-300 bg-blue-500/15' : 'border-blue-700/40 text-blue-500/80 bg-blue-500/5 hover:bg-blue-500/15 hover:border-blue-500/70'}`}
+                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${carrinhoEditandoAjustes?.id === orc.id ? 'border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15' : 'border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:border-gray-500 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300'}`}
                                         >
                                             <iconify-icon icon="solar:percent-square-linear" width="11"></iconify-icon>
                                             Ajustes
@@ -409,7 +409,7 @@ export default function AbaCarrinho({
                                                 prev?.id === orc.id ? null
                                                 : { id: orc.id, valor: '', tipo: '%' }
                                             )}
-                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 rounded border transition-colors ${carrinhoEditandoDesconto?.id === orc.id ? 'border-purple-500 text-purple-300 bg-purple-500/15' : 'border-purple-700/40 text-purple-400/80 bg-purple-500/5 hover:bg-purple-500/15 hover:border-purple-500/70'}`}
+                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${carrinhoEditandoDesconto?.id === orc.id ? 'border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15' : 'border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:border-gray-500 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300'}`}
                                         >
                                             <iconify-icon icon="solar:tag-price-linear" width="11"></iconify-icon>
                                             {orc.desconto_total > 0 ? 'Desc.' : 'Desc.'}
@@ -446,7 +446,7 @@ export default function AbaCarrinho({
                                                 </div>
                                             )}
                                             <div className="flex gap-2 pb-0.5">
-                                                <button onClick={() => actions.salvarDescontoCarrinho(orc.id, carrinhoEditandoDesconto.valor, carrinhoEditandoDesconto.tipo, () => setCarrinhoEditandoDesconto(null))} className="font-mono text-[10px] border border-yellow-400/40 text-yellow-400 px-3 py-1.5 hover:bg-yellow-400/10 transition-colors uppercase tracking-widest">Salvar</button>
+                                                <button onClick={() => actions.salvarDescontoCarrinho(orc.id, carrinhoEditandoDesconto.valor, carrinhoEditandoDesconto.tipo, () => setCarrinhoEditandoDesconto(null))} className="font-mono text-[10px] bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-500 transition-colors uppercase tracking-widest">Salvar</button>
                                                 <button onClick={() => setCarrinhoEditandoDesconto(null)} className="font-mono text-[10px] border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 px-3 py-1.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors">✕</button>
                                             </div>
                                         </div>
@@ -478,7 +478,7 @@ export default function AbaCarrinho({
                                                 <input type="text" value={carrinhoEditandoAjustes.rtNome} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, rtNome: e.target.value }))} className="bg-gray-100 dark:bg-black border border-orange-700/50 text-gray-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-orange-500/70 w-full" placeholder="Nome do arquiteto" />
                                             </div>
                                             <div className="flex gap-2 pb-0.5">
-                                                <button onClick={() => actions.salvarAjustesCarrinho(orc.id, carrinhoEditandoAjustes.majoramento, carrinhoEditandoAjustes.rt, carrinhoEditandoAjustes.rtNome, carrinhoEditandoAjustes.frete, () => setCarrinhoEditandoAjustes(null))} className="font-mono text-[10px] border border-yellow-400/40 text-yellow-400 px-3 py-1.5 hover:bg-yellow-400/10 transition-colors uppercase tracking-widest">Salvar</button>
+                                                <button onClick={() => actions.salvarAjustesCarrinho(orc.id, carrinhoEditandoAjustes.majoramento, carrinhoEditandoAjustes.rt, carrinhoEditandoAjustes.rtNome, carrinhoEditandoAjustes.frete, () => setCarrinhoEditandoAjustes(null))} className="font-mono text-[10px] bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-500 transition-colors uppercase tracking-widest">Salvar</button>
                                                 <button onClick={() => setCarrinhoEditandoAjustes(null)} className="font-mono text-[10px] border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 px-3 py-1.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors">✕</button>
                                             </div>
                                         </div>

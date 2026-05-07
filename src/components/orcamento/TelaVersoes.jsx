@@ -1422,7 +1422,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
           {cenarios.length > 0 && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+                <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
                   Cenários criados
                 </div>
                 <div className="flex-1 h-px bg-gray-100 dark:bg-zinc-900"></div>
