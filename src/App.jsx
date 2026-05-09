@@ -35,6 +35,7 @@ const MedidorHistorico     = lazy(() => import('./pages/MedidorHistorico'))
 const MedidorNotificacoes  = lazy(() => import('./pages/MedidorNotificacoes'))
 const SuperAdmin           = lazy(() => import('./pages/SuperAdmin'))
 const AdminIA              = lazy(() => import('./pages/AdminIA'))
+const ImportarPDFPage      = lazy(() => import('./pages/ImportarPDFPage'))
 
 // Fallback de Suspense — fundo escuro sem piscar
 function PageLoader() {
@@ -129,6 +130,12 @@ export default function App() {
 
         {/* ── Rotas protegidas (auth + shell + code splitting) ── */}
         <Route element={<RequireAuth />}>
+          {/* Rota fullscreen — sem AppShell */}
+          <Route
+            path="/projetos/:id/importar-pdf"
+            element={<Suspense fallback={<PageLoader />}><ImportarPDFPage /></Suspense>}
+          />
+
           <Route element={<AppShell />}>
             <Route element={<Suspense fallback={<PageLoader />}><Outlet /></Suspense>}>
               <Route path="/dashboard"                   element={<Dashboard />} />

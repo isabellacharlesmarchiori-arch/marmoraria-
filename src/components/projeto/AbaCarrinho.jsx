@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_CONFIG, fmtBRL, calcDataFinalDiasUteis, calcParcelas } from '../../utils/projetoUtils';
 import CamposParcelamento from '../../pages/financeiro/lancamentos/CamposParcelamento';
+import ModalImportarPDF from './ModalImportarPDF';
 
 export default function AbaCarrinho({
     ambientes,
@@ -28,6 +29,7 @@ export default function AbaCarrinho({
 }) {
     const navigate = useNavigate();
     const id = projetoId;
+    const [modalPdf, setModalPdf] = useState(false);
 
     function toggleCarrinhoDetalhes(orcId) {
         setCarrinhoExpandido(prev => {
@@ -186,13 +188,22 @@ export default function AbaCarrinho({
                         </button>
                     )}
                     {!isViewOnlyAdmin && !modoAtivo && (
-                        <button
-                            onClick={() => navigate(`/projetos/${id}/orcamento/novo?modo=manual`)}
-                            className="flex items-center gap-1.5 bg-yellow-400 text-black text-sm font-bold uppercase tracking-widest px-3 py-1 hover:shadow-[0_0_10px_rgba(250,204,21,0.25)] transition-all"
-                        >
-                            <iconify-icon icon="solar:add-linear" width="13"></iconify-icon>
-                            Criar orçamento
-                        </button>
+                        <>
+                            <button
+                                onClick={() => setModalPdf(true)}
+                                className="flex items-center gap-1.5 border border-zinc-600 text-zinc-300 text-sm font-mono uppercase tracking-widest px-3 py-1 hover:border-zinc-400 hover:text-white transition-colors"
+                            >
+                                <iconify-icon icon="solar:file-text-linear" width="13"></iconify-icon>
+                                Orçamento por PDF
+                            </button>
+                            <button
+                                onClick={() => navigate(`/projetos/${id}/orcamento/novo?modo=manual`)}
+                                className="flex items-center gap-1.5 bg-yellow-400 text-black text-sm font-bold uppercase tracking-widest px-3 py-1 hover:shadow-[0_0_10px_rgba(250,204,21,0.25)] transition-all"
+                            >
+                                <iconify-icon icon="solar:add-linear" width="13"></iconify-icon>
+                                Criar orçamento
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
@@ -1032,6 +1043,10 @@ export default function AbaCarrinho({
                     </div>
                 );
         })()}
+
+        {modalPdf && (
+            <ModalImportarPDF projetoId={id} onClose={() => setModalPdf(false)} />
+        )}
         </>
     );
 }

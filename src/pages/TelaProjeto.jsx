@@ -375,8 +375,8 @@ export default function TelaProjetoVendedor() {
                 {/* ── Tabs ──────────────────────────────────────────────── */}
                 <div className="sys-reveal sys-delay-100 flex border-b border-gray-300 dark:border-zinc-800 mb-6">
                     {[
-                        { id: 'medicoes',   label: 'Medições',  icon: 'solar:ruler-pen-linear'              },
-                        { id: 'carrinho',   label: 'Carrinho',  icon: 'solar:cart-large-minimalistic-linear' },
+                        { id: 'medicoes', label: 'Medições',  icon: 'solar:ruler-pen-linear'              },
+                        { id: 'carrinho', label: 'Carrinho',  icon: 'solar:cart-large-minimalistic-linear' },
                     ].map(tab => (
                         <button
                             key={tab.id}

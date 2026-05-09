@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const GEMINI_API_KEY  = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-const MODEL           = 'gemini-2.0-flash';
-const STORAGE_KEY     = 'smartstone_ia_history';
+const GROQ_API_KEY  = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+const MODEL         = 'llama-3.3-70b-versatile';
+const STORAGE_KEY   = 'smartstone_ia_history';
 const MAX_SAVED_CONVS = 30;
 
 const WRITE_TOOLS = new Set([
@@ -29,13 +29,13 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_projetos',
-      description: 'Busca projetos da empresa. Filtra por status e/ou nome do cliente.',
+      description: 'Lista projetos da empresa com filtro de status e/ou cliente.',
       parameters: {
         type: 'object',
         properties: {
-          status: { type: 'string', enum: ['orcado','aprovado','produzindo','entregue','perdido'], description: 'Filtrar por status.' },
-          cliente_nome: { type: 'string', description: 'Filtrar por nome parcial do cliente.' },
-          limite: { type: 'number', description: 'Máximo de projetos (padrão 20, máx 50).' },
+          status:       { type: 'string', enum: ['orcado','aprovado','produzindo','entregue','perdido'] },
+          cliente_nome: { type: 'string' },
+          limite:       { type: 'number' },
         },
       },
     },
@@ -48,8 +48,8 @@ const ALL_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          nome:  { type: 'string', description: 'Filtrar por nome (parcial).' },
-          email: { type: 'string', description: 'Filtrar por e-mail (parcial).' },
+          nome:  { type: 'string' },
+          email: { type: 'string' },
         },
       },
     },
@@ -58,11 +58,11 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_orcamento',
-      description: 'Retorna orçamentos de um projeto com ambientes e valores.',
+      description: 'Retorna orçamentos de um projeto.',
       parameters: {
         type: 'object',
         properties: {
-          projeto_id: { type: 'string', description: 'UUID do projeto.' },
+          projeto_id: { type: 'string' },
         },
         required: ['projeto_id'],
       },
@@ -72,11 +72,12 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_materiais',
-      description: 'Lista materiais de área e lineares da empresa.',
+      description: 'Lista materiais com preços. IMPORTANTE: o campo "nome" é só o nome base do material SEM a categoria e SEM acabamento/espessura (ex: "Preto São Gabriel", não "Granito Preto São Gabriel Polido 2cm"). Use "categoria" para filtrar por tipo (Granito, Mármore, Quartzito etc). Preços ficam em variacoes_precos com acabamento e espessura.',
       parameters: {
         type: 'object',
         properties: {
-          nome: { type: 'string', description: 'Filtrar por nome (parcial).' },
+          nome:      { type: 'string', description: 'Nome base do material, sem categoria e sem acabamento/espessura.' },
+          categoria: { type: 'string', description: 'Tipo do material: Granito, Mármore, Quartzito, Lâmina Ultra Compacta, Quartzo, etc.' },
         },
       },
     },
@@ -85,11 +86,11 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_financeiro',
-      description: 'Resumo do mês: fechamentos, contas, lançamentos e categorias. Retorna categoria_id e conta_id necessários para lançamentos. Apenas admin.',
+      description: 'Resumo financeiro do mês: contas, lançamentos, categorias. Apenas admin.',
       parameters: {
         type: 'object',
         properties: {
-          mes: { type: 'string', description: 'Período YYYY-MM. Padrão: mês atual.' },
+          mes: { type: 'string', description: 'YYYY-MM' },
         },
       },
     },
@@ -98,11 +99,11 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_medicoes',
-      description: 'Busca medições de um projeto.',
+      description: 'Lista medições de um projeto.',
       parameters: {
         type: 'object',
         properties: {
-          projeto_id: { type: 'string', description: 'UUID do projeto.' },
+          projeto_id: { type: 'string' },
         },
         required: ['projeto_id'],
       },
@@ -112,7 +113,7 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_usuarios',
-      description: 'Lista usuários. Admin vê todos; vendedor vê apenas medidores (necessário para agendar_medicao).',
+      description: 'Lista usuários da empresa.',
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -120,14 +121,14 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'cadastrar_cliente',
-      description: 'Cadastra novo cliente. Exige nome, telefone e endereço completo. Se faltar algum dado, pergunte antes de chamar.',
+      description: 'Cadastra cliente. Colete nome, telefone e endereço ANTES de chamar.',
       parameters: {
         type: 'object',
         properties: {
-          nome:     { type: 'string', description: 'Nome completo do cliente.' },
-          telefone: { type: 'string', description: 'Telefone com DDD. Ex: (11) 99999-9999.' },
-          email:    { type: 'string', description: 'E-mail (opcional).' },
-          endereco: { type: 'string', description: 'Endereço completo: Rua, Número, Bairro, Cidade - UF.' },
+          nome:     { type: 'string' },
+          telefone: { type: 'string' },
+          email:    { type: 'string' },
+          endereco: { type: 'string' },
         },
         required: ['nome', 'telefone', 'endereco'],
       },
@@ -137,12 +138,12 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'cadastrar_projeto',
-      description: 'Cria um novo projeto. Use buscar_clientes para obter cliente_id antes.',
+      description: 'Cria projeto. Use buscar_clientes para obter cliente_id.',
       parameters: {
         type: 'object',
         properties: {
-          nome:       { type: 'string', description: 'Nome do projeto.' },
-          cliente_id: { type: 'string', description: 'UUID do cliente.' },
+          nome:       { type: 'string' },
+          cliente_id: { type: 'string' },
         },
         required: ['nome', 'cliente_id'],
       },
@@ -152,12 +153,12 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'atualizar_status_projeto',
-      description: 'Atualiza o status de um projeto.',
+      description: 'Muda o status de um projeto.',
       parameters: {
         type: 'object',
         properties: {
-          projeto_id: { type: 'string', description: 'UUID do projeto.' },
-          status: { type: 'string', enum: ['orcado','aprovado','produzindo','entregue','perdido'], description: 'Novo status.' },
+          projeto_id: { type: 'string' },
+          status:     { type: 'string', enum: ['orcado','aprovado','produzindo','entregue','perdido'] },
         },
         required: ['projeto_id', 'status'],
       },
@@ -171,8 +172,8 @@ const ALL_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          projeto_id:  { type: 'string', description: 'UUID do projeto.' },
-          valor_total: { type: 'number', description: 'Valor estimado (opcional).' },
+          projeto_id:  { type: 'string' },
+          valor_total: { type: 'number' },
         },
         required: ['projeto_id'],
       },
@@ -186,12 +187,12 @@ const ALL_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          tipo:            { type: 'string', enum: ['entrada','saida'], description: 'Tipo.' },
-          valor:           { type: 'number', description: 'Valor previsto em reais.' },
-          descricao:       { type: 'string', description: 'Descrição.' },
-          data_vencimento: { type: 'string', description: 'Vencimento YYYY-MM-DD.' },
-          categoria_id:    { type: 'string', description: 'UUID da categoria.' },
-          conta_id:        { type: 'string', description: 'UUID da conta bancária (opcional).' },
+          tipo:            { type: 'string', enum: ['entrada','saida'] },
+          valor:           { type: 'number' },
+          descricao:       { type: 'string' },
+          data_vencimento: { type: 'string', description: 'YYYY-MM-DD' },
+          categoria_id:    { type: 'string' },
+          conta_id:        { type: 'string' },
         },
         required: ['tipo', 'valor', 'descricao', 'data_vencimento', 'categoria_id'],
       },
@@ -201,11 +202,11 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_arquitetos',
-      description: 'Lista arquitetos parceiros da empresa. Use para consultar quem pode receber RT.',
+      description: 'Lista arquitetos da empresa.',
       parameters: {
         type: 'object',
         properties: {
-          nome: { type: 'string', description: 'Filtrar por nome (parcial).' },
+          nome: { type: 'string' },
         },
       },
     },
@@ -214,12 +215,12 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_parceiros',
-      description: 'Lista fornecedores e funcionários (parceiros) da empresa. Apenas admin. Use para obter parceiro_id antes de lançamentos.',
+      description: 'Lista fornecedores/funcionários. Apenas admin.',
       parameters: {
         type: 'object',
         properties: {
-          nome: { type: 'string', description: 'Filtrar por nome (parcial).' },
-          tipo: { type: 'string', enum: ['fornecedor','funcionario','terceiro'], description: 'Filtrar por tipo.' },
+          nome: { type: 'string' },
+          tipo: { type: 'string', enum: ['fornecedor','funcionario','terceiro'] },
         },
       },
     },
@@ -228,12 +229,12 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_fechamentos',
-      description: 'Lista fechamentos de projetos com valor pago e data.',
+      description: 'Lista fechamentos de projetos.',
       parameters: {
         type: 'object',
         properties: {
-          projeto_id: { type: 'string', description: 'UUID do projeto (opcional).' },
-          limite:     { type: 'number', description: 'Máximo de resultados (padrão 20).' },
+          projeto_id: { type: 'string' },
+          limite:     { type: 'number' },
         },
       },
     },
@@ -242,11 +243,11 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_notificacoes',
-      description: 'Lista notificações do usuário atual.',
+      description: 'Lista notificações do usuário.',
       parameters: {
         type: 'object',
         properties: {
-          apenas_nao_lidas: { type: 'boolean', description: 'Se true, retorna apenas não lidas.' },
+          apenas_nao_lidas: { type: 'boolean' },
         },
       },
     },
@@ -255,15 +256,15 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_lancamentos_periodo',
-      description: 'Lista lançamentos com filtros de tipo, status e data. Apenas admin. Retorna IDs para baixa/cancelamento.',
+      description: 'Lista lançamentos financeiros por período/tipo/status. Retorna IDs para baixa. Apenas admin.',
       parameters: {
         type: 'object',
         properties: {
-          tipo:        { type: 'string', enum: ['entrada','saida'], description: 'Filtrar por tipo.' },
-          status:      { type: 'string', enum: ['pendente','pago','parcial','atrasado','cancelado'], description: 'Filtrar por status.' },
-          data_inicio: { type: 'string', description: 'Data inicial YYYY-MM-DD.' },
-          data_fim:    { type: 'string', description: 'Data final YYYY-MM-DD.' },
-          limite:      { type: 'number', description: 'Máximo de resultados (padrão 30, máx 100).' },
+          tipo:        { type: 'string', enum: ['entrada','saida'] },
+          status:      { type: 'string', enum: ['pendente','pago','parcial','atrasado','cancelado'] },
+          data_inicio: { type: 'string', description: 'YYYY-MM-DD' },
+          data_fim:    { type: 'string', description: 'YYYY-MM-DD' },
+          limite:      { type: 'number' },
         },
       },
     },
@@ -272,14 +273,14 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'atualizar_cliente',
-      description: 'Atualiza telefone, email ou endereço de um cliente. Use buscar_clientes antes para obter cliente_id.',
+      description: 'Atualiza dados de um cliente. Use buscar_clientes para obter cliente_id.',
       parameters: {
         type: 'object',
         properties: {
-          cliente_id: { type: 'string', description: 'UUID do cliente.' },
-          telefone:   { type: 'string', description: 'Novo telefone.' },
-          email:      { type: 'string', description: 'Novo e-mail.' },
-          endereco:   { type: 'string', description: 'Novo endereço completo.' },
+          cliente_id: { type: 'string' },
+          telefone:   { type: 'string' },
+          email:      { type: 'string' },
+          endereco:   { type: 'string' },
         },
         required: ['cliente_id'],
       },
@@ -289,15 +290,15 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'agendar_medicao',
-      description: 'Agenda uma medição para um projeto. Use buscar_usuarios para obter medidor_id.',
+      description: 'Agenda medição. Chame buscar_usuarios primeiro para obter medidor_id.',
       parameters: {
         type: 'object',
         properties: {
-          projeto_id:   { type: 'string', description: 'UUID do projeto.' },
-          medidor_id:   { type: 'string', description: 'UUID do usuário medidor.' },
-          data_medicao: { type: 'string', description: 'Data/hora ISO 8601. Ex: 2026-05-10T09:00:00.' },
-          endereco:     { type: 'string', description: 'Endereço do local (opcional).' },
-          observacoes:  { type: 'string', description: 'Observações de acesso (opcional).' },
+          projeto_id:   { type: 'string' },
+          medidor_id:   { type: 'string' },
+          data_medicao: { type: 'string', description: 'ISO 8601' },
+          endereco:     { type: 'string' },
+          observacoes:  { type: 'string' },
         },
         required: ['projeto_id', 'medidor_id', 'data_medicao'],
       },
@@ -307,15 +308,15 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'marcar_lancamento_pago',
-      description: 'Baixa total ou parcial de um lançamento. Apenas admin. Use buscar_lancamentos_periodo para o ID.',
+      description: 'Registra pagamento de um lançamento. Use buscar_lancamentos_periodo para o ID. Apenas admin.',
       parameters: {
         type: 'object',
         properties: {
-          lancamento_id:   { type: 'string', description: 'UUID do lançamento.' },
-          valor_pago:      { type: 'number', description: 'Valor pago nesta baixa.' },
-          data_pagamento:  { type: 'string', description: 'Data do pagamento YYYY-MM-DD.' },
-          forma_pagamento: { type: 'string', enum: ['pix','boleto','cartao_credito','cartao_debito','dinheiro','cheque','transferencia','outro'], description: 'Forma de pagamento.' },
-          conta_id:        { type: 'string', description: 'UUID da conta bancária (opcional).' },
+          lancamento_id:   { type: 'string' },
+          valor_pago:      { type: 'number' },
+          data_pagamento:  { type: 'string', description: 'YYYY-MM-DD' },
+          forma_pagamento: { type: 'string', enum: ['pix','boleto','cartao_credito','cartao_debito','dinheiro','cheque','transferencia','outro'] },
+          conta_id:        { type: 'string' },
         },
         required: ['lancamento_id', 'valor_pago', 'data_pagamento', 'forma_pagamento'],
       },
@@ -325,12 +326,12 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'cancelar_lancamento',
-      description: 'Cancela (soft-delete) um lançamento financeiro. Apenas admin. O registro permanece com status "cancelado".',
+      description: 'Cancela um lançamento (soft-delete). Apenas admin.',
       parameters: {
         type: 'object',
         properties: {
-          lancamento_id: { type: 'string', description: 'UUID do lançamento.' },
-          motivo:        { type: 'string', description: 'Motivo do cancelamento (opcional).' },
+          lancamento_id: { type: 'string' },
+          motivo:        { type: 'string' },
         },
         required: ['lancamento_id'],
       },
@@ -344,11 +345,11 @@ const ALL_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          nome:      { type: 'string', description: 'Nome do parceiro.' },
-          tipos:     { type: 'array', items: { type: 'string', enum: ['fornecedor','funcionario','terceiro'] }, description: 'Tipos do parceiro (ao menos um).' },
-          telefone:  { type: 'string', description: 'Telefone (opcional).' },
-          email:     { type: 'string', description: 'E-mail (opcional).' },
-          documento: { type: 'string', description: 'CPF ou CNPJ (opcional).' },
+          nome:      { type: 'string' },
+          tipos:     { type: 'array', items: { type: 'string', enum: ['fornecedor','funcionario','terceiro'] } },
+          telefone:  { type: 'string' },
+          email:     { type: 'string' },
+          documento: { type: 'string' },
         },
         required: ['nome', 'tipos'],
       },
@@ -356,46 +357,22 @@ const ALL_TOOLS = [
   },
 ];
 
-// ── Gemini tool conversion ────────────────────────────────────────────────────
-
-function toGeminiSchema(schema) {
-  if (!schema || typeof schema !== 'object') return schema;
-  const out = {};
-  if (schema.type)        out.type        = schema.type.toUpperCase();
-  if (schema.description) out.description = schema.description;
-  if (schema.enum)        out.enum        = schema.enum;
-  if (schema.required)    out.required    = schema.required;
-  if (schema.properties) {
-    out.properties = {};
-    for (const [k, v] of Object.entries(schema.properties)) out.properties[k] = toGeminiSchema(v);
-  }
-  if (schema.items) out.items = toGeminiSchema(schema.items);
-  return out;
-}
-
-function toGeminiTools(tools) {
-  return [{
-    function_declarations: tools.map(t => ({
-      name:        t.function.name,
-      description: t.function.description,
-      parameters:  toGeminiSchema(t.function.parameters),
-    })),
-  }];
-}
-
 function getToolsForPerfil(perfil) {
+  let tools;
   if (perfil === 'medidor') {
-    return ALL_TOOLS.filter(t => ['buscar_projetos', 'buscar_medicoes', 'buscar_notificacoes'].includes(t.function.name));
-  }
-  if (perfil === 'vendedor') {
+    tools = ALL_TOOLS.filter(t => ['buscar_projetos', 'buscar_medicoes', 'buscar_notificacoes'].includes(t.function.name));
+  } else if (perfil === 'vendedor') {
     const adminOnly = new Set([
       'buscar_financeiro', 'adicionar_lancamento_financeiro',
       'buscar_parceiros', 'buscar_lancamentos_periodo',
       'marcar_lancamento_pago', 'cancelar_lancamento', 'cadastrar_parceiro',
-    ]); // buscar_usuarios está disponível ao vendedor mas retorna apenas medidores
-    return ALL_TOOLS.filter(t => !adminOnly.has(t.function.name));
+    ]);
+    tools = ALL_TOOLS.filter(t => !adminOnly.has(t.function.name));
+  } else {
+    tools = ALL_TOOLS;
   }
-  return ALL_TOOLS;
+  console.log(`[IA] tools para ${perfil}: ${tools.length} — ${tools.map(t => t.function.name).join(', ')}`);
+  return tools;
 }
 
 // ── Supabase executors ────────────────────────────────────────────────────────
@@ -460,18 +437,35 @@ async function executeTool(name, args, empresaId, userId, perfil) {
       }
 
       case 'buscar_materiais': {
-        let q = supabase.from('materiais').select('id, nome, categoria')
-          .eq('empresa_id', empresaId).order('nome').limit(50);
-        if (args.nome) q = q.ilike('nome', `%${args.nome}%`);
-        const [{ data: area, error: errA }, { data: lin }] = await Promise.all([
+        // materiais são globais (empresa_id = null) — NÃO filtrar por empresa_id.
+        // Os preços ficam em variacoes_precos, que é filtrada por empresa via RLS.
+        let q = supabase.from('materiais')
+          .select('id, nome, categoria, variacoes_precos(acabamento, espessura, preco_venda)')
+          .eq('ativo', true).order('nome').limit(50);
+        if (args.nome)      q = q.ilike('nome',      `%${args.nome}%`);
+        if (args.categoria) q = q.ilike('categoria', `%${args.categoria}%`);
+        const [{ data: area, error: errA }, { data: lin, error: errL }] = await Promise.all([
           q,
-          supabase.from('materiais_lineares').select('id, nome, unidade')
-            .eq('empresa_id', empresaId).order('nome').limit(30),
+          supabase.from('materiais_lineares').select('id, nome, tipo, preco_ml')
+            .eq('empresa_id', empresaId).eq('ativo', true).order('nome').limit(30),
         ]);
         if (errA) return { erro: errA.message };
+        if (errL) return { erro: errL.message };
         return {
-          materiais_area:     { total: area.length,      lista: area },
-          materiais_lineares: { total: lin?.length ?? 0, lista: lin ?? [] },
+          aviso: 'nome é o nome base (ex: "Preto São Gabriel"), categoria é o tipo (ex: "Granito"). Preços estão em precos_variacoes com acabamento e espessura.',
+          materiais_area: {
+            total: area?.length ?? 0,
+            lista: (area ?? []).map(m => ({
+              nome: m.nome, categoria: m.categoria,
+              precos: (m.variacoes_precos ?? []).map(v => ({
+                acabamento: v.acabamento, espessura: v.espessura, preco_venda: v.preco_venda,
+              })),
+            })),
+          },
+          materiais_lineares: {
+            total: lin?.length ?? 0,
+            lista: (lin ?? []).map(m => ({ nome: m.nome, tipo: m.tipo, preco_ml: m.preco_ml })),
+          },
         };
       }
 
@@ -784,6 +778,19 @@ async function executeTool(name, args, empresaId, userId, perfil) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function sanitizeModelText(text) {
+  return text
+    // Remove function-call markup that the model sometimes generates as plain text
+    .replace(/<function=[^>]*>/g, '')
+    .replace(/<\/function>/g, '')
+    .replace(/<function_calls>[\s\S]*?<\/function_calls>/g, '')
+    // Remove "Aguardo a resposta..." filler lines
+    .replace(/Aguardo a resposta\.{0,3}/gi, '')
+    // Collapse excessive blank lines left after removal
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function humanizeTool(name, args) {
   const brl = n => `R$ ${Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
   switch (name) {
@@ -814,26 +821,16 @@ function humanizeTool(name, args) {
 
 function buildSystemPrompt(perfil, nome, nomeEmpresa) {
   const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const perfilLabel = { admin: 'Administrador', vendedor: 'Vendedor', medidor: 'Medidor', superadmin: 'Superadmin' }[perfil] ?? perfil;
-  const restricoes = perfil === 'medidor'
-    ? 'Este usuário é Medidor — ajude com projetos, medições e notificações.'
+  const acesso = perfil === 'medidor'
+    ? 'projetos, medições, notificações'
     : perfil === 'vendedor'
-    ? 'Este usuário é Vendedor — acesso a projetos, clientes (consultar e atualizar), orçamentos, materiais, arquitetos, fechamentos, agendamento de medições e notificações. SEM acesso a financeiro, parceiros ou usuários.'
-    : 'Este usuário é Administrador — acesso completo: projetos, clientes, orçamentos, materiais, arquitetos, parceiros, financeiro (lançamentos, contas, plano de contas, baixa, cancelamento), usuários e notificações.';
+    ? 'projetos, clientes, orçamentos, materiais, arquitetos, fechamentos, medições'
+    : 'tudo: projetos, clientes, orçamentos, materiais, financeiro, parceiros, usuários';
   return [
-    `Você é o assistente do sistema SmartStone da empresa "${nomeEmpresa}". Hoje é ${hoje}.`,
-    `Usuário: ${nome} (${perfilLabel}). ${restricoes}`,
-    '',
-    'Regras:',
-    '- Responda sempre em português, de forma objetiva e direta.',
-    '- Seja proativo: ao falar de um projeto, busque também orçamentos e medições associados.',
-    '- Para cadastrar_cliente: OBRIGATÓRIO coletar nome, telefone E endereço completo (rua, número, bairro, cidade, estado) ANTES de chamar a ferramenta. Se faltar algum dado, pergunte ao usuário primeiro.',
-    '- Para atualizar_cliente: use buscar_clientes primeiro para obter o cliente_id.',
-    '- Para agendar_medicao: chame buscar_usuarios PRIMEIRO para obter o medidor_id (vendedor vê apenas medidores).',
-    '- Para lançamentos financeiros: chame buscar_financeiro antes para obter categoria_id. Para baixa, use buscar_lancamentos_periodo para obter o lancamento_id.',
-    '- Para cadastrar_parceiro: informe nome e ao menos um tipo (fornecedor, funcionario, terceiro).',
-    '- O sistema pede confirmação automática para operações de escrita — chame a ferramenta normalmente.',
-    '- Formate valores como "R$ X.XXX,XX".',
+    `Assistente SmartStone — empresa "${nomeEmpresa}". Hoje: ${hoje}. Usuário: ${nome} (${perfil}). Acesso: ${acesso}.`,
+    'Responda em pt-BR, direto. Formate moeda como "R$ X.XXX,XX".',
+    'OBRIGATÓRIO: quando o usuário pedir informações que estão no banco, chame as tools imediatamente sem explicar o que vai fazer. Nunca descreva os passos — execute-os.',
+    'Regras: cadastrar_cliente exige nome+telefone+endereço do usuário ANTES de chamar. agendar_medicao exige buscar_usuarios primeiro. lançamentos financeiros exigem buscar_financeiro primeiro para categoria_id.',
   ].join('\n');
 }
 
@@ -868,7 +865,7 @@ function removeConversation(id) {
 
 function makeTitleFromHistory(history) {
   const first = history.find(m => m.role === 'user');
-  const raw = first?.parts?.find(p => p.text)?.text ?? '';
+  const raw = typeof first?.content === 'string' ? first.content : '';
   const trimmed = raw.replace(/\[.*?\]/g, '').trim();
   return (trimmed.slice(0, 38) + (trimmed.length > 38 ? '…' : '')) || 'Nova conversa';
 }
@@ -1148,40 +1145,43 @@ export default function AdminIA() {
   const handleSend = async () => {
     const text     = input.trim();
     const hasImage = !!imageBase64;
-    if ((!text && !hasImage) || loading || !GEMINI_API_KEY || hasPendingConfirm) return;
+    if ((!text && !hasImage) || loading || !GROQ_API_KEY || hasPendingConfirm) return;
 
-    const imgData      = imageBase64;
-    const imgNameSnap  = imageName;
+    const imgData     = imageBase64;
+    const imgNameSnap = imageName;
     setInput('');
     setImageBase64(null);
     setImageName('');
 
-    pushDisplay({ role: 'user', text: text || '', imagePreview: imgData || undefined });
+    pushDisplay({ role: 'user', text: text || '', imagePreview: hasImage ? imgData : undefined });
 
     setLoading(true);
     const systemText = buildSystemPrompt(perfil, nomeUsuario, nomeEmpresa);
 
     try {
-      if (hasImage) {
-        // ── Vision turn (no tools) ──────────────────────────────────────────
-        const [meta, b64] = imgData.split(',');
-        const mimeType    = meta.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+      const tools = getToolsForPerfil(perfil);
 
-        const res = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+      // llama-3.3-70b-versatile não suporta visão — embute nome da imagem no texto
+      const userContent = hasImage
+        ? (text ? `${text}\n` : '') + `[Imagem enviada: ${imgNameSnap} — análise de imagem não disponível neste modelo]`
+        : text;
+
+      // Limita o histórico às últimas 10 mensagens para reduzir tokens enviados
+      const trimmedHistory = apiHistory.current.slice(-10);
+      let loopHistory      = [...trimmedHistory, { role: 'user', content: userContent }];
+      let wroteInThisTurn  = false;
+
+      while (true) {
+        const res = await fetch(GROQ_ENDPOINT, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+          },
           body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemText }] },
-            contents: [
-              ...apiHistory.current,
-              {
-                role:  'user',
-                parts: [
-                  { text: text || 'Analise esta imagem.' },
-                  { inlineData: { mimeType, data: b64 } },
-                ],
-              },
-            ],
+            model:    MODEL,
+            messages: [{ role: 'system', content: systemText }, ...loopHistory],
+            ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
           }),
         });
 
@@ -1190,111 +1190,51 @@ export default function AdminIA() {
           throw new Error(err?.error?.message ?? `Erro HTTP ${res.status}`);
         }
 
-        const data         = await res.json();
-        const modelContent = data.candidates?.[0]?.content;
-        if (!modelContent) throw new Error('Resposta inválida do modelo de visão.');
+        const data      = await res.json();
+        const assistant = data.choices?.[0]?.message;
+        if (!assistant) throw new Error('Resposta inválida da API.');
 
-        const replyText = modelContent.parts?.find(p => p.text)?.text ?? '(sem resposta)';
+        loopHistory.push(assistant);
 
-        // Store text-only in history (Gemini format); avoids re-sending image bytes
-        const textMsg = {
-          role:  'user',
-          parts: [{ text: (text ? `${text}\n` : '') + `[Imagem enviada: ${imgNameSnap}]` }],
-        };
-        const newHist = [
-          ...apiHistory.current,
-          textMsg,
-          { role: 'model', parts: [{ text: replyText }] },
-        ];
-        apiHistory.current = newHist;
+        if (assistant.tool_calls?.length > 0) {
+          for (const toolCall of assistant.tool_calls) {
+            const name = toolCall.function.name;
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            let result;
 
-        pushDisplay({ role: 'assistant', text: replyText });
-        saveConv(newHist);
-
-      } else {
-        // ── Text turn with tools ─────────────────────────────────────────────
-        const tools           = getToolsForPerfil(perfil);
-        let   loopHistory     = [...apiHistory.current, { role: 'user', parts: [{ text }] }];
-        let   wroteInLastTurn = false; // após write: força texto na próxima iteração
-        let   wroteInThisTurn = false; // impede que qualquer write seja executada >1x por mensagem
-
-        while (true) {
-          // Após uma write tool: omite tools da request → modelo só pode gerar texto
-          const sendTools = !wroteInLastTurn && tools.length > 0;
-
-          const res = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: systemText }] },
-              contents: loopHistory,
-              ...(sendTools ? {
-                tools:       toGeminiTools(tools),
-                tool_config: { function_calling_config: { mode: 'AUTO' } },
-              } : {}),
-            }),
-          });
-
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message ?? `Erro HTTP ${res.status}`);
-          }
-
-          const data         = await res.json();
-          const modelContent = data.candidates?.[0]?.content;
-          if (!modelContent) throw new Error('Resposta inválida da API.');
-
-          loopHistory.push(modelContent);
-
-          // Gemini signals function calls via parts containing `functionCall` objects
-          const funcCalls = modelContent.parts?.filter(p => p.functionCall) ?? [];
-
-          if (funcCalls.length > 0) {
-            const funcResponses = [];
-            let   executedWrite = false;
-
-            for (const part of funcCalls) {
-              const { name, args } = part.functionCall; // args already a parsed object
-
-              let result;
-              if (WRITE_TOOLS.has(name)) {
-                if (wroteInThisTurn) {
-                  // Duplicate write tool in same batch — silently cancel
-                  result = { cancelado: true, mensagem: 'Operação duplicada ignorada.' };
-                } else {
-                  setLoading(false);
-                  setHasPendingConfirm(true);
-                  pushDisplay({ role: 'confirm', status: 'pending', text: humanizeTool(name, args) });
-
-                  const confirmed = await new Promise(resolve => { confirmResolve.current = resolve; });
-                  setLoading(true);
-
-                  result = confirmed
-                    ? await executeTool(name, args, empresaId, userId, perfil)
-                    : { cancelado: true, mensagem: 'Operação cancelada pelo usuário.' };
-
-                  executedWrite   = true;
-                  wroteInThisTurn = true;
-                }
+            if (WRITE_TOOLS.has(name)) {
+              if (wroteInThisTurn) {
+                result = { cancelado: true, mensagem: 'Operação duplicada ignorada.' };
               } else {
-                result = await executeTool(name, args, empresaId, userId, perfil);
-              }
+                setLoading(false);
+                setHasPendingConfirm(true);
+                pushDisplay({ role: 'confirm', status: 'pending', text: humanizeTool(name, args) });
 
-              funcResponses.push({ functionResponse: { name, response: result } });
+                const confirmed = await new Promise(resolve => { confirmResolve.current = resolve; });
+                setLoading(true);
+
+                result = confirmed
+                  ? await executeTool(name, args, empresaId, userId, perfil)
+                  : { cancelado: true, mensagem: 'Operação cancelada pelo usuário.' };
+
+                wroteInThisTurn = true;
+              }
+            } else {
+              result = await executeTool(name, args, empresaId, userId, perfil);
             }
 
-            // Function responses go as a user-role message in Gemini protocol
-            loopHistory.push({ role: 'user', parts: funcResponses });
-            wroteInLastTurn = executedWrite;
-          } else {
-            const textParts = modelContent.parts?.filter(p => p.text) ?? [];
-            const clean     = textParts.map(p => p.text).join('').trim();
-
-            apiHistory.current = loopHistory;
-            if (clean) pushDisplay({ role: 'assistant', text: clean });
-            saveConv(loopHistory);
-            break;
+            loopHistory.push({
+              role:         'tool',
+              tool_call_id: toolCall.id,
+              content:      JSON.stringify(result),
+            });
           }
+        } else {
+          const clean = sanitizeModelText(assistant.content ?? '');
+          apiHistory.current = loopHistory;
+          if (clean) pushDisplay({ role: 'assistant', text: clean });
+          saveConv(loopHistory);
+          break;
         }
       }
     } catch (err) {
@@ -1323,12 +1263,12 @@ export default function AdminIA() {
   const handleSelectConversation = useCallback((conv) => {
     setConvId(conv.id);
     convIdRef.current = conv.id;
-    // Strip function-call/response turns from saved history — keep only text-bearing
-    // messages so replaying never hits schema mismatches with a different tool set.
+    // Strip tool-call/response turns — keep only user and assistant text messages
+    // so replaying never hits schema mismatches with a different tool set.
     const rawHist = conv.apiHistory ?? [];
     apiHistory.current = rawHist.filter(m => {
-      if (m.role === 'user')  return m.parts?.some(p => p.text);
-      if (m.role === 'model') return m.parts?.some(p => p.text);
+      if (m.role === 'user')      return typeof m.content === 'string' && m.content.trim() !== '';
+      if (m.role === 'assistant') return typeof m.content === 'string' && !m.tool_calls;
       return false;
     });
     setMessages(
@@ -1346,7 +1286,7 @@ export default function AdminIA() {
     if (id === convIdRef.current) startNewConversation();
   }, [startNewConversation]);
 
-  const apiKeyMissing = !GEMINI_API_KEY;
+  const apiKeyMissing = !GROQ_API_KEY;
   const inputDisabled = loading || hasPendingConfirm || apiKeyMissing;
 
   return (
@@ -1371,7 +1311,7 @@ export default function AdminIA() {
             <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-amber-400 mt-0.5 shrink-0" />
             <p className="font-mono text-[11px] text-amber-300 leading-relaxed">
               <span className="font-bold uppercase tracking-widest">Chave não configurada. </span>
-              Adicione <code className="bg-zinc-800 px-1">VITE_GEMINI_API_KEY</code> ao <code className="bg-zinc-800 px-1">.env.local</code> e reinicie.
+              Adicione <code className="bg-zinc-800 px-1">VITE_GROQ_API_KEY</code> ao <code className="bg-zinc-800 px-1">.env.local</code> e reinicie.
             </p>
           </div>
         )}
