@@ -4,20 +4,20 @@ import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabase';
 
 const STATUS_CONFIG = {
-    orcado:     { label: 'Orçado',     color: 'text-[#854D0E] dark:text-zinc-400',    border: 'border-[#DEB87A] dark:border-zinc-700',        bg: 'bg-[#FEF9C3] dark:bg-zinc-900',      dot: 'bg-[#B45309] dark:bg-zinc-500'   },
-    aprovado:   { label: 'Aprovado',   color: 'text-green-700 dark:text-green-400',   border: 'border-green-300 dark:border-green-500/30',    bg: 'bg-green-50 dark:bg-green-400/5',    dot: 'bg-green-500 dark:bg-green-400'  },
-    produzindo: { label: 'Produzindo', color: 'text-violet-700 dark:text-violet-400', border: 'border-violet-300 dark:border-violet-500/30',  bg: 'bg-violet-50 dark:bg-violet-400/5',  dot: 'bg-violet-500 dark:bg-violet-400' },
-    entregue:   { label: 'Entregue',   color: 'text-blue-700 dark:text-blue-400',     border: 'border-blue-300 dark:border-blue-500/30',      bg: 'bg-blue-50 dark:bg-blue-400/5',      dot: 'bg-blue-500 dark:bg-blue-400'   },
-    perdido:    { label: 'Perdido',    color: 'text-red-800 dark:text-red-400',       border: 'border-red-200 dark:border-red-500/30',        bg: 'bg-red-50 dark:bg-red-400/5',        dot: 'bg-red-500 dark:bg-red-400'     },
+    orcado:     { label: 'Orçado',     color: 'text-[#854D0E] dark:text-zinc-400',    border: 'border-[#DEB87A] dark:border-zinc-700',          bg: 'bg-[#FEF9C3] dark:bg-zinc-900',        dot: 'bg-[#B45309] dark:bg-zinc-500'   },
+    aprovado:   { label: 'Aprovado',   color: 'text-green-700 dark:text-green-400',   border: 'border-green-300 dark:border-green-500/30',      bg: 'bg-green-100 dark:bg-green-400/5',     dot: 'bg-green-500 dark:bg-green-400'  },
+    produzindo: { label: 'Produzindo', color: 'text-violet-700 dark:text-violet-400', border: 'border-violet-300 dark:border-violet-500/30',    bg: 'bg-violet-100 dark:bg-violet-400/5',   dot: 'bg-violet-500 dark:bg-violet-400' },
+    entregue:   { label: 'Entregue',   color: 'text-blue-700 dark:text-blue-400',     border: 'border-blue-300 dark:border-blue-500/30',        bg: 'bg-blue-100 dark:bg-blue-400/5',       dot: 'bg-blue-500 dark:bg-blue-400'   },
+    perdido:    { label: 'Perdido',    color: 'text-red-800 dark:text-red-400',       border: 'border-red-300 dark:border-red-500/30',          bg: 'bg-red-100 dark:bg-red-400/5',         dot: 'bg-red-500 dark:bg-red-400'     },
 };
 
 const TIPO_CONFIG = {
-    medicao_processada: { icon: 'solar:ruler-pen-linear',    cor: 'text-violet-700 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-400/10', border: 'border-violet-300 dark:border-violet-400/20' },
-    medicao_agendada:   { icon: 'solar:calendar-linear',     cor: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-400/10', border: 'border-yellow-300 dark:border-yellow-400/20' },
-    projeto_aprovado:   { icon: 'solar:check-circle-linear', cor: 'text-green-700 dark:text-green-400',   bg: 'bg-green-50 dark:bg-green-400/10',   border: 'border-green-300 dark:border-green-400/20'  },
-    status_atualizado:  { icon: 'solar:layers-linear',       cor: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-50 dark:bg-blue-400/10',     border: 'border-blue-300 dark:border-blue-400/20'   },
-    novo_fechamento:    { icon: 'solar:wallet-money-linear', cor: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-400/10', border: 'border-yellow-300 dark:border-yellow-400/20' },
-    projeto_perdido:    { icon: 'solar:close-circle-linear', cor: 'text-red-700 dark:text-red-400',       bg: 'bg-red-50 dark:bg-red-400/10',       border: 'border-red-300 dark:border-red-400/20'    },
+    medicao_processada: { icon: 'solar:ruler-pen-linear',    cor: 'text-violet-700 dark:text-violet-400', bg: 'bg-violet-100 dark:bg-violet-400/10', border: 'border-violet-300 dark:border-violet-400/20' },
+    medicao_agendada:   { icon: 'solar:calendar-linear',     cor: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-400/10', border: 'border-yellow-300 dark:border-yellow-400/20' },
+    projeto_aprovado:   { icon: 'solar:check-circle-linear', cor: 'text-green-700 dark:text-green-400',   bg: 'bg-green-100 dark:bg-green-400/10',   border: 'border-green-300 dark:border-green-400/20'  },
+    status_atualizado:  { icon: 'solar:layers-linear',       cor: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-100 dark:bg-blue-400/10',     border: 'border-blue-300 dark:border-blue-400/20'   },
+    novo_fechamento:    { icon: 'solar:wallet-money-linear', cor: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-400/10', border: 'border-yellow-300 dark:border-yellow-400/20' },
+    projeto_perdido:    { icon: 'solar:close-circle-linear', cor: 'text-red-700 dark:text-red-400',       bg: 'bg-red-100 dark:bg-red-400/10',       border: 'border-red-300 dark:border-red-400/20'    },
 };
 
 // ── Error Boundary ───────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ class DashboardErrorBoundary extends Component {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="font-mono text-[10px] uppercase tracking-[0.12em] text-yellow-600 dark:text-yellow-400 bg-transparent border border-yellow-500/30 dark:border-yellow-400/30 px-4 py-2 cursor-pointer hover:border-yellow-500 dark:hover:border-yellow-400"
+            className="font-mono text-[10px] uppercase tracking-[0.12em] text-yellow-600 dark:text-yellow-400 bg-transparent border border-yellow-400 dark:border-yellow-400/30 px-4 py-2 cursor-pointer hover:border-yellow-500 dark:hover:border-yellow-400"
           >
             Recarregar
           </button>
@@ -393,8 +393,8 @@ function DashboardContent() {
                                         <div className="flex items-center gap-3 shrink-0">
                                             <span className={`px-2 py-0.5 border text-[9px] font-mono uppercase flex items-center gap-1.5 ${
                                                 isEnviada
-                                                    ? 'border-yellow-400/40 dark:border-yellow-400/30 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-400/5'
-                                                    : 'border-violet-400/40 dark:border-violet-400/30 text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-400/5'
+                                                    ? 'border-yellow-400 dark:border-yellow-400/30 text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/5'
+                                                    : 'border-violet-300 dark:border-violet-400/30 text-violet-700 dark:text-violet-400 bg-violet-100 dark:bg-violet-400/5'
                                             }`}>
                                                 <span className={`w-1 h-1 rounded-full animate-pulse ${isEnviada ? 'bg-yellow-500 dark:bg-yellow-400' : 'bg-violet-500 dark:bg-violet-400'}`}></span>
                                                 {isEnviada ? 'Enviada' : 'Processada'}

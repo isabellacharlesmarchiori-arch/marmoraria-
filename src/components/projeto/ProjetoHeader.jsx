@@ -39,7 +39,7 @@ const ProjetoHeader = React.memo(function ProjetoHeader({ projeto, onAtualizarSt
                         </button>
                         <button
                             onClick={onMarcarPerdido}
-                            className="flex items-center gap-2 border border-red-500/30 bg-red-400/5 text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-red-400 transition-colors"
+                            className="flex items-center gap-2 border bg-red-600 border-red-600 text-white dark:border-red-500/30 dark:bg-red-400/5 dark:text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:bg-red-700 dark:hover:bg-transparent dark:hover:border-red-400 transition-colors"
                         >
                             <iconify-icon icon="solar:close-circle-linear" width="13"></iconify-icon>
                             Marcar como perdido

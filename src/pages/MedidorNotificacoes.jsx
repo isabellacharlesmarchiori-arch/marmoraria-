@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const TIPO_CONFIG = {
-  medicao_agendada:   { icon: 'solar:calendar-linear',  cor: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
-  mensagem_admin:     { icon: 'solar:chat-line-linear', cor: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
-  status_atualizado:  { icon: 'solar:layers-linear',    cor: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
+  medicao_agendada:   { icon: 'solar:calendar-linear',  cor: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-400/10', border: 'border-yellow-300 dark:border-yellow-400/20' },
+  mensagem_admin:     { icon: 'solar:chat-line-linear', cor: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-100 dark:bg-blue-400/10',     border: 'border-blue-300 dark:border-blue-400/20'   },
+  status_atualizado:  { icon: 'solar:layers-linear',    cor: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-100 dark:bg-blue-400/10',     border: 'border-blue-300 dark:border-blue-400/20'   },
 };
 
 function formatarData(isoString) {
@@ -122,7 +122,7 @@ export default function MedidorNotificacoes() {
                   onClick={() => handleClick(n)}
                   className={`flex items-start gap-4 px-4 py-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.015] group transition-colors ${
                     i < notifs.length - 1 ? 'border-b border-gray-200 dark:border-zinc-900' : ''
-                  } ${!n.lida ? 'bg-blue-50/60 dark:bg-blue-400/5' : ''}`}
+                  } ${!n.lida ? 'bg-blue-100 dark:bg-blue-400/5' : ''}`}
                 >
                   <div className={`w-8 h-8 flex items-center justify-center shrink-0 ${cfg.bg} border ${cfg.border} ${cfg.cor}`}>
                     <iconify-icon icon={cfg.icon} width="16"></iconify-icon>

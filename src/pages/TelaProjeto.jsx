@@ -303,7 +303,7 @@ export default function TelaProjetoVendedor() {
             <div className="min-h-screen bg-gray-100 dark:bg-[#050505] text-gray-900 dark:text-white flex items-center justify-center">
                 <div className="text-center gap-4 flex flex-col">
                     <p className="font-mono text-xs text-gray-500 dark:text-zinc-500">Projeto não encontrado ou acesso negado.</p>
-                    <button onClick={() => navigate('/projetos')} className="text-[10px] uppercase font-mono text-yellow-400 border border-yellow-400/20 px-4 py-2 hover:bg-yellow-400/10 transition-colors">Voltar para Projetos</button>
+                    <button onClick={() => navigate('/projetos')} className="text-[10px] uppercase font-mono text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-400/20 px-4 py-2 hover:bg-yellow-100 dark:hover:bg-yellow-400/10 transition-colors">Voltar para Projetos</button>
                 </div>
             </div>
         );
@@ -362,7 +362,7 @@ export default function TelaProjetoVendedor() {
                                 </button>
                                 <button
                                     onClick={() => setModalPerda(true)}
-                                    className="flex items-center gap-2 border border-red-500/30 bg-red-400/5 text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-red-400 transition-colors"
+                                    className="flex items-center gap-2 border bg-red-600 border-red-600 text-white dark:border-red-500/30 dark:bg-red-400/5 dark:text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:bg-red-700 dark:hover:bg-transparent dark:hover:border-red-400 transition-colors"
                                 >
                                     <iconify-icon icon="solar:close-circle-linear" width="13"></iconify-icon>
                                     Marcar como perdido

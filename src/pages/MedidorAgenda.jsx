@@ -50,7 +50,7 @@ function CardAgenda({ m, onRealizarClick }) {
             {formatarDataCurta(m.data_medicao)}
           </div>
         </div>
-        <span className="px-2 py-0.5 border border-yellow-400/30 text-[9px] font-mono uppercase text-yellow-400 bg-yellow-400/5 flex items-center gap-1 shrink-0">
+        <span className="px-2 py-0.5 border border-yellow-300 dark:border-yellow-400/30 text-[9px] font-mono uppercase text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/5 flex items-center gap-1 shrink-0">
           <span className="w-1 h-1 bg-yellow-400 rounded-full animate-pulse"></span>Agendada
         </span>
       </div>
@@ -89,8 +89,8 @@ function CardAgenda({ m, onRealizarClick }) {
 
       {/* Observações de Acesso — destaque para o medidor */}
       {m.observacoes_acesso && (
-        <div className="mx-4 mb-3 px-3 py-2.5 bg-yellow-400/5 border border-yellow-400/20">
-          <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-yellow-400 mb-1.5">
+        <div className="mx-4 mb-3 px-3 py-2.5 bg-yellow-50 dark:bg-yellow-400/5 border border-yellow-200 dark:border-yellow-400/20">
+          <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-yellow-700 dark:text-yellow-400 mb-1.5">
             <iconify-icon icon="solar:info-circle-bold" width="11"></iconify-icon>
             Observações de Acesso
           </div>
@@ -311,7 +311,7 @@ export default function MedidorAgenda() {
                   <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">Medidas</span>
                   <button
                     onClick={addMedida}
-                    className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 border border-yellow-400/30 px-2 py-1 hover:bg-yellow-400/10 transition-colors flex items-center gap-1"
+                    className="font-mono text-[9px] uppercase tracking-widest text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-400/30 px-2 py-1 hover:bg-yellow-100 dark:hover:bg-yellow-400/10 transition-colors flex items-center gap-1"
                   >
                     <iconify-icon icon="solar:add-circle-linear" width="11"></iconify-icon>
                     Adicionar peça
@@ -402,7 +402,7 @@ export default function MedidorAgenda() {
               </div>
 
               {erroModal && (
-                <div className="bg-red-400/10 border border-red-400/30 px-3 py-2 font-mono text-[10px] text-red-400">
+                <div className="bg-red-50 dark:bg-red-400/10 border border-red-300 dark:border-red-400/30 px-3 py-2 font-mono text-[10px] text-red-700 dark:text-red-400">
                   {erroModal}
                 </div>
               )}

@@ -820,9 +820,9 @@ export default function Carrinho() {
 
         {/* Badge múltiplas medições */}
         {temMultiplasMedicoes && (
-          <div className="bg-blue-950/40 border border-blue-700/40 px-4 py-3 mb-4 flex items-center gap-2">
-            <iconify-icon icon="solar:info-circle-linear" width="14" class="text-blue-400 shrink-0" />
-            <p className="font-mono text-[11px] text-blue-300">
+          <div className="bg-blue-100 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-700/40 px-4 py-3 mb-4 flex items-center gap-2">
+            <iconify-icon icon="solar:info-circle-linear" width="14" class="text-blue-700 dark:text-blue-400 shrink-0" />
+            <p className="font-mono text-[11px] text-blue-800 dark:text-blue-300">
               Este orçamento contém itens de {numMedicoes} medições diferentes
             </p>
           </div>

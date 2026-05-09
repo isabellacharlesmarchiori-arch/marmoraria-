@@ -36,7 +36,7 @@ export default function ModalPerda({ modalPerda, closeAll, projetoNome, motivoPe
                         <button onClick={closeAll} className="flex-1 border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest py-3 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                             Cancelar
                         </button>
-                        <button onClick={onConfirmar} className="flex-1 border border-red-500/50 bg-red-400/5 text-red-400 text-[11px] font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-2 hover:bg-red-400/10 transition-all">
+                        <button onClick={onConfirmar} className="flex-1 border bg-red-600 border-red-600 text-white dark:border-red-500/50 dark:bg-red-400/5 dark:text-red-400 text-[11px] font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-2 hover:bg-red-700 dark:hover:bg-red-400/10 transition-all">
                             <iconify-icon icon="solar:close-circle-linear" width="14"></iconify-icon>
                             Confirmar perda
                         </button>

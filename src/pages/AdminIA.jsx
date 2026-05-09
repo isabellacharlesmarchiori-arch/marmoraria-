@@ -944,7 +944,7 @@ function MessageBubble({ msg }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
         <div className={`w-6 h-6 border flex items-center justify-center shrink-0 mr-2 mt-0.5 ${
-          isError ? 'bg-red-900/30 border-red-700/40' : 'bg-yellow-400/10 border-yellow-400/20'
+          isError ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700/40' : 'bg-yellow-100 dark:bg-yellow-400/10 border-yellow-300 dark:border-yellow-400/20'
         }`}>
           <iconify-icon
             icon={isError ? 'solar:danger-triangle-linear' : 'solar:stars-linear'}
@@ -955,9 +955,9 @@ function MessageBubble({ msg }) {
       )}
       <div className={`max-w-[75%] font-mono text-[12px] leading-relaxed overflow-hidden ${
         isUser
-          ? 'bg-yellow-400/10 border border-yellow-400/20 text-yellow-100'
+          ? 'bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/20 text-yellow-900 dark:text-yellow-100'
           : isError
-          ? 'bg-red-900/20 border border-red-700/40 text-red-300'
+          ? 'bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700/40 text-red-700 dark:text-red-300'
           : 'bg-zinc-900 border border-zinc-800 text-zinc-300'
       }`}>
         {msg.imagePreview && (
@@ -984,10 +984,10 @@ function ConfirmBubble({ msg, onConfirm, onCancel, isActive }) {
   const [clicked, setClicked] = useState(false);
 
   const cls = {
-    pending:   'border-amber-500/40 bg-amber-950/20',
-    confirmed: 'border-emerald-600/40 bg-emerald-950/15',
-    canceled:  'border-zinc-700 bg-zinc-900/40',
-  }[msg.status] ?? 'border-amber-500/40 bg-amber-950/20';
+    pending:   'border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-950/20',
+    confirmed: 'border-emerald-400 dark:border-emerald-600/40 bg-emerald-50 dark:bg-emerald-950/15',
+    canceled:  'border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900/40',
+  }[msg.status] ?? 'border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-950/20';
 
   function fire(fn) {
     if (clicked) return;
@@ -997,20 +997,20 @@ function ConfirmBubble({ msg, onConfirm, onCancel, isActive }) {
 
   return (
     <div className="flex justify-start">
-      <div className="w-6 h-6 bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+      <div className="w-6 h-6 bg-amber-100 dark:bg-amber-400/10 border border-amber-300 dark:border-amber-400/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
         <iconify-icon icon="solar:shield-warning-linear" width="12" class="text-amber-400" />
       </div>
       <div className={`max-w-[75%] border font-mono text-[12px] ${cls}`}>
         <div className="px-4 pt-3 pb-2">
-          <span className="text-[9px] uppercase tracking-widest text-amber-400 font-bold">Confirmar operação</span>
-          <p className="text-zinc-200 mt-1 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+          <span className="text-[9px] uppercase tracking-widest text-amber-700 dark:text-amber-400 font-bold">Confirmar operação</span>
+          <p className="text-zinc-800 dark:text-zinc-200 mt-1 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
         </div>
         {msg.status === 'pending' && isActive && (
           <div className="flex border-t border-amber-500/20">
             <button
               onClick={() => fire(onConfirm)}
               disabled={clicked}
-              className="flex-1 py-2 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 text-[10px] uppercase tracking-widest font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white dark:bg-emerald-600/20 dark:hover:bg-emerald-600/35 dark:text-emerald-300 text-[10px] uppercase tracking-widest font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {clicked ? '…' : 'Confirmar'}
             </button>
@@ -1018,7 +1018,7 @@ function ConfirmBubble({ msg, onConfirm, onCancel, isActive }) {
             <button
               onClick={() => fire(onCancel)}
               disabled={clicked}
-              className="flex-1 py-2 bg-red-600/10 hover:bg-red-600/25 text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white dark:bg-red-600/10 dark:hover:bg-red-600/25 dark:text-red-400 text-[10px] uppercase tracking-widest font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Cancelar
             </button>
@@ -1026,7 +1026,7 @@ function ConfirmBubble({ msg, onConfirm, onCancel, isActive }) {
         )}
         {msg.status !== 'pending' && (
           <div className={`px-4 py-1.5 text-[10px] font-bold border-t ${
-            msg.status === 'confirmed' ? 'border-emerald-600/30 text-emerald-400' : 'border-zinc-700/50 text-zinc-600'
+            msg.status === 'confirmed' ? 'border-emerald-300 dark:border-emerald-600/30 text-emerald-700 dark:text-emerald-400' : 'border-zinc-300 dark:border-zinc-700/50 text-zinc-600'
           }`}>
             {msg.status === 'confirmed' ? '✓ Confirmado e executado' : '✗ Cancelado'}
           </div>
@@ -1039,7 +1039,7 @@ function ConfirmBubble({ msg, onConfirm, onCancel, isActive }) {
 function LoadingBubble() {
   return (
     <div className="flex justify-start">
-      <div className="w-6 h-6 bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+      <div className="w-6 h-6 bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
         <iconify-icon icon="solar:stars-linear" width="12" class="text-yellow-400" />
       </div>
       <div className="px-4 py-3 bg-zinc-900 border border-zinc-800 flex items-center gap-2">
@@ -1307,9 +1307,9 @@ export default function AdminIA() {
       <div className="flex flex-col flex-1 min-w-0 px-6">
 
         {apiKeyMissing && (
-          <div className="mt-4 mb-2 px-4 py-3 border border-amber-500/40 bg-amber-500/10 flex items-start gap-3 shrink-0">
-            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-amber-400 mt-0.5 shrink-0" />
-            <p className="font-mono text-[11px] text-amber-300 leading-relaxed">
+          <div className="mt-4 mb-2 px-4 py-3 border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 flex items-start gap-3 shrink-0">
+            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-amber-700 dark:text-amber-400 mt-0.5 shrink-0" />
+            <p className="font-mono text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
               <span className="font-bold uppercase tracking-widest">Chave não configurada. </span>
               Adicione <code className="bg-zinc-800 px-1">VITE_GROQ_API_KEY</code> ao <code className="bg-zinc-800 px-1">.env.local</code> e reinicie.
             </p>
@@ -1326,7 +1326,7 @@ export default function AdminIA() {
             >
               <iconify-icon icon="solar:sidebar-minimalistic-linear" width="14" />
             </button>
-            <div className="w-7 h-7 bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center">
+            <div className="w-7 h-7 bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/30 flex items-center justify-center">
               <iconify-icon icon="solar:stars-linear" width="14" class="text-yellow-400" />
             </div>
             <div>
@@ -1365,7 +1365,7 @@ export default function AdminIA() {
         {/* Input area */}
         <div className="shrink-0 border-t border-zinc-800 pt-4 pb-4">
           {hasPendingConfirm && (
-            <div className="mb-2 px-3 py-1.5 bg-amber-950/30 border border-amber-500/30 font-mono text-[10px] text-amber-400 uppercase tracking-widest">
+            <div className="mb-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/30 font-mono text-[10px] text-amber-700 dark:text-amber-400 uppercase tracking-widest">
               Confirme ou cancele a operação acima para continuar
             </div>
           )}

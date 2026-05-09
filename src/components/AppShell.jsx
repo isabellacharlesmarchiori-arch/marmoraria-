@@ -208,7 +208,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
       >
         {/* 1. Logo */}
         <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-300 dark:border-zinc-800 shrink-0">
-          <div className="w-2 h-2 bg-yellow-400 shadow-[0_0_6px_rgba(37,99,235,0.5)] dark:shadow-[0_0_6px_rgba(250,204,21,0.5)]"></div>
+          <div className="w-2 h-2 bg-yellow-400 shadow-[0_0_6px_rgba(251,146,60,0.5)] dark:shadow-[0_0_6px_rgba(250,204,21,0.5)]"></div>
           <span className="font-mono font-bold uppercase tracking-widest text-[11px] text-gray-900 dark:text-white">SmartStone</span>
           <span className="ml-auto font-mono text-[8px] text-gray-400 dark:text-zinc-600 uppercase">v1.0</span>
         </div>
@@ -316,7 +316,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
             >
               <iconify-icon icon="solar:bell-linear" width="18"></iconify-icon>
               {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-none shadow-[0_0_6px_rgba(37,99,235,0.5)] dark:shadow-[0_0_6px_rgba(250,204,21,0.5)]"></span>
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-none shadow-[0_0_6px_rgba(251,146,60,0.5)] dark:shadow-[0_0_6px_rgba(250,204,21,0.5)]"></span>
               )}
             </button>
 

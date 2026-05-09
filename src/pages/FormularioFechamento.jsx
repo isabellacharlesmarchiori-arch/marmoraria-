@@ -492,10 +492,10 @@ export default function FormularioFechamento() {
     return (
       <div className="bg-[#050505] text-[#a1a1aa] min-h-screen font-sans flex items-center justify-center px-6">
         <div className="max-w-sm w-full text-center">
-          <div className="w-14 h-14 border border-green-400/30 bg-green-400/5 flex items-center justify-center mx-auto mb-6">
-            <iconify-icon icon="solar:check-circle-linear" width="28" className="text-green-400"></iconify-icon>
+          <div className="w-14 h-14 border border-green-300 dark:border-green-400/30 bg-green-50 dark:bg-green-400/5 flex items-center justify-center mx-auto mb-6">
+            <iconify-icon icon="solar:check-circle-linear" width="28" className="text-green-700 dark:text-green-400"></iconify-icon>
           </div>
-          <div className="text-[9px] font-mono uppercase tracking-widest text-green-400 mb-2">Fechamento registrado</div>
+          <div className="text-[9px] font-mono uppercase tracking-widest text-green-700 dark:text-green-400 mb-2">Fechamento registrado</div>
           <h2 className="text-xl font-semibold text-white tracking-tight mb-1">{MOCK_PROJETO.nome}</h2>
           <p className="font-mono text-[11px] text-zinc-500 mb-1">{MOCK_PROJETO.cliente}</p>
           <p className="text-2xl font-semibold text-yellow-400 mt-4 mb-6">
@@ -636,7 +636,7 @@ export default function FormularioFechamento() {
                   </div>
                   <FieldError msg={errors.valor_fechado} />
                   {versaoSel && valorNum !== versaoSel.valor && valorNum > 0 && (
-                    <p className="font-mono text-[9px] text-yellow-400/70 mt-1.5 flex items-center gap-1.5">
+                    <p className="font-mono text-[9px] text-yellow-600 dark:text-yellow-400/70 mt-1.5 flex items-center gap-1.5">
                       <iconify-icon icon="solar:info-circle-linear" width="10"></iconify-icon>
                       Difere do orçamento ({fmt(versaoSel.valor)})
                     </p>
@@ -655,7 +655,7 @@ export default function FormularioFechamento() {
                       onClick={() => setField('forma_pagamento', fp.id)}
                       className={`flex flex-col items-center gap-1.5 px-2 py-3 border transition-colors ${
                         form.forma_pagamento === fp.id
-                          ? 'border-yellow-400/40 bg-yellow-400/[0.04] text-yellow-400'
+                          ? 'border-yellow-300 dark:border-yellow-400/40 bg-yellow-100 dark:bg-yellow-400/[0.04] text-yellow-700 dark:text-yellow-400'
                           : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
                       }`}
                     >

@@ -202,13 +202,13 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
 
             {/* Aviso de conflito */}
             {conflito && (
-              <div className="flex items-start gap-2 px-3 py-2.5 border border-amber-500/30 bg-amber-400/5">
-                <iconify-icon icon="solar:danger-triangle-linear" width="13" className="text-amber-400 shrink-0 mt-0.5"></iconify-icon>
+              <div className="flex items-start gap-2 px-3 py-2.5 border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-400/5">
+                <iconify-icon icon="solar:danger-triangle-linear" width="13" className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5"></iconify-icon>
                 <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-amber-400 font-semibold leading-none mb-1">
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-amber-700 dark:text-amber-400 font-semibold leading-none mb-1">
                     Possível Conflito de Horário
                   </div>
-                  <div className="text-[11px] text-amber-300/70">
+                  <div className="text-[11px] text-amber-600 dark:text-amber-300/70">
                     O medidor já tem medição agendada próxima a este horário.
                   </div>
                 </div>

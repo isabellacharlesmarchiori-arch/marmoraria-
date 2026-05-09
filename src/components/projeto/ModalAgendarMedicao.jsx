@@ -46,9 +46,9 @@ export default function ModalAgendarMedicao({
                 {/* Form */}
                 <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-5">
                     {erroAgendar && (
-                        <div className="border border-red-500/30 bg-red-400/5 px-3 py-2 flex items-center gap-2">
-                            <iconify-icon icon="solar:danger-triangle-linear" width="13" className="text-red-400 shrink-0"></iconify-icon>
-                            <span className="font-mono text-[10px] text-red-400">{erroAgendar}</span>
+                        <div className="border border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-400/5 px-3 py-2 flex items-center gap-2">
+                            <iconify-icon icon="solar:danger-triangle-linear" width="13" className="text-red-700 dark:text-red-400 shrink-0"></iconify-icon>
+                            <span className="font-mono text-[10px] text-red-700 dark:text-red-400">{erroAgendar}</span>
                         </div>
                     )}
 

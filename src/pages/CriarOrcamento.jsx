@@ -1588,7 +1588,7 @@ export default function CriarOrcamento() {
                             )),
                             // Acabamentos lineares do grupo
                             ...ge.acabamentos.map(ac => (
-                              <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-950/20 border-b border-amber-900/20 group">
+                              <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-900/20 group">
                                 <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
                                 <select
                                   value={ac.tipo}

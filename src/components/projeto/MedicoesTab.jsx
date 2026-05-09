@@ -223,7 +223,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                 key={m?.id}
                                 className={`grid grid-cols-12 items-center px-4 py-3.5 transition-colors ${
                                     isAprovada
-                                        ? 'bg-green-400/[0.03] border-l-2 border-l-green-500/50 hover:bg-green-400/[0.05]'
+                                        ? 'bg-green-50 dark:bg-green-400/[0.03] border-l-2 border-l-green-300 dark:border-l-green-500/50 hover:bg-green-100 dark:hover:bg-green-400/[0.05]'
                                         : 'hover:bg-white/[0.01]'
                                 } ${i < (medicoes?.length ?? 0) - 1 ? 'border-b border-zinc-900' : ''}`}
                             >
@@ -236,7 +236,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                     <div className="flex flex-col">
                                         <span className="text-sm text-white font-medium">{m?.data ?? '—'}</span>
                                         {isAprovada && (
-                                            <span className="font-mono text-[9px] text-green-500/70 uppercase tracking-widest">Aguardando orçamento</span>
+                                            <span className="font-mono text-[9px] text-green-600 dark:text-green-500/70 uppercase tracking-widest">Aguardando orçamento</span>
                                         )}
                                         {!isAprovada && m?.endereco && (
                                             <span className="font-mono text-[9px] text-zinc-600 truncate max-w-[140px]">{formatarEndereco(m.endereco)}</span>
@@ -253,7 +253,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                             onClick={() => setPainelMedicao(m)}
                                             className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border ${
                                                 isAprovada
-                                                    ? 'border-green-500/40 text-green-400 hover:border-green-400 hover:bg-green-400/10'
+                                                    ? 'border-green-400 dark:border-green-500/40 text-green-700 dark:text-green-400 hover:border-green-600 dark:hover:border-green-400 hover:bg-green-100 dark:hover:bg-green-400/10'
                                                     : 'border-zinc-700 text-zinc-400 hover:border-white hover:text-white'
                                             }`}
                                         >

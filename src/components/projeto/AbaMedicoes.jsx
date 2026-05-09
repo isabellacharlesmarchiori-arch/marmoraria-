@@ -55,7 +55,7 @@ export default function AbaMedicoes({
                             key={m?.id}
                             className={`grid grid-cols-12 items-center px-4 py-3.5 transition-colors ${
                                 isAprovada
-                                    ? 'bg-green-400/[0.03] border-l-2 border-l-green-500/50 hover:bg-green-400/[0.05]'
+                                    ? 'bg-green-50 dark:bg-green-400/[0.03] border-l-2 border-l-green-300 dark:border-l-green-500/50 hover:bg-green-100 dark:hover:bg-green-400/[0.05]'
                                     : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'
                             } ${i < (medicoes?.length ?? 0) - 1 ? 'border-b border-gray-100 dark:border-zinc-900' : ''}`}
                         >
@@ -68,7 +68,7 @@ export default function AbaMedicoes({
                                 <div className="flex flex-col">
                                     <span className="text-sm text-gray-900 dark:text-white font-medium">{m?.data ?? '—'}</span>
                                     {isAprovada && (
-                                        <span className="font-mono text-[9px] text-green-500/70 uppercase tracking-widest">Aguardando orçamento</span>
+                                        <span className="font-mono text-[9px] text-green-600 dark:text-green-500/70 uppercase tracking-widest">Aguardando orçamento</span>
                                     )}
                                     {!isAprovada && m?.endereco && (
                                         <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 truncate max-w-[140px]">{formatarEndereco(m.endereco)}</span>
@@ -85,7 +85,7 @@ export default function AbaMedicoes({
                                         onClick={() => onVerDados(m)}
                                         className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border ${
                                             isAprovada
-                                                ? 'border-green-500/40 text-green-400 hover:border-green-400 hover:bg-green-400/10'
+                                                ? 'border-green-400 dark:border-green-500/40 text-green-700 dark:text-green-400 hover:border-green-600 dark:hover:border-green-400 hover:bg-green-100 dark:hover:bg-green-400/10'
                                                 : 'border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white'
                                         }`}
                                     >

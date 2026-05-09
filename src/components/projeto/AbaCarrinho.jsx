@@ -87,7 +87,7 @@ export default function AbaCarrinho({
                             <button
                                 onClick={() => actions.openPdfModal('pedido', null, setPdfModal)}
                                 disabled={!!loadingPdf}
-                                className="flex items-center gap-2 border border-yellow-400/40 text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-2 hover:bg-yellow-400/5 transition-colors disabled:opacity-40"
+                                className="flex items-center gap-2 border border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-2 hover:bg-yellow-100 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40"
                             >
                                 {loadingPdf === 'pedido'
                                     ? <><iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin"></iconify-icon> Gerando...</>
@@ -109,7 +109,7 @@ export default function AbaCarrinho({
                     {orcamentosCarrinho.length >= 2 && !modoAtivo && !pedidoFechado && (
                         <button
                             onClick={() => setModoMesclar(true)}
-                            className="flex items-center gap-1.5 border border-orange-500/40 text-orange-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-orange-400 hover:bg-orange-400/10 transition-colors"
+                            className="flex items-center gap-1.5 border border-orange-500 dark:border-orange-500/40 text-orange-700 dark:text-orange-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-orange-600 dark:hover:border-orange-400 hover:bg-orange-100 dark:hover:bg-orange-400/10 transition-colors"
                         >
                             <iconify-icon icon="solar:merge-linear" width="13"></iconify-icon>
                             Mesclar Cenários
@@ -181,7 +181,7 @@ export default function AbaCarrinho({
                                 const msg = encodeURIComponent(`Olá! Segue resumo dos orçamentos:\n\n${linhas.join('\n')}${total}`);
                                 window.open(`https://wa.me/${telefone.replace(/\D/g,'')}?text=${msg}`, '_blank');
                             }}
-                            className="flex items-center gap-1.5 border border-green-500/30 text-green-400 text-sm font-mono uppercase tracking-widest px-3 py-1 hover:bg-green-400/10 transition-colors"
+                            className="flex items-center gap-1.5 border border-green-500 dark:border-green-500/30 text-green-700 dark:text-green-400 text-sm font-mono uppercase tracking-widest px-3 py-1 hover:bg-green-100 dark:hover:bg-green-400/10 transition-colors"
                         >
                             <iconify-icon icon="solar:chat-round-linear" width="13"></iconify-icon>
                             Enviar todos
@@ -233,8 +233,8 @@ export default function AbaCarrinho({
                             <div
                                 key={orc.id}
                                 className={`bg-gray-100 dark:bg-[#0a0a0a] border transition-colors
-                                    ${modoMesclar && isMesclarChecked ? 'border-orange-500/60 bg-orange-400/5' : ''}
-                                    ${modoFecharPedido && isFecharChecked ? 'border-green-500/60 bg-green-400/5' : ''}
+                                    ${modoMesclar && isMesclarChecked ? 'border-orange-500 dark:border-orange-500/60 bg-orange-100 dark:bg-orange-400/5' : ''}
+                                    ${modoFecharPedido && isFecharChecked ? 'border-green-500 dark:border-green-500/60 bg-green-100 dark:bg-green-400/5' : ''}
                                     ${!modoMesclar && !modoFecharPedido ? 'border-gray-300 dark:border-zinc-800' : ''}
                                     ${isDescartado ? 'opacity-40' : ''}
                                     ${modoAtivo ? 'cursor-pointer' : ''}
@@ -288,7 +288,7 @@ export default function AbaCarrinho({
                                                 {nomeAtual}
                                             </span>
                                             {orcsMesclados.has(orc.id) && (
-                                                <span className="shrink-0 px-1.5 py-0.5 border border-orange-400/40 text-[8px] font-mono uppercase tracking-widest text-orange-400 bg-orange-400/5">
+                                                <span className="shrink-0 px-1.5 py-0.5 border border-orange-400 dark:border-orange-400/40 text-[8px] font-mono uppercase tracking-widest text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-400/5">
                                                     Mesclado
                                                 </span>
                                             )}
@@ -358,7 +358,7 @@ export default function AbaCarrinho({
                                             <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-700">{orc.data}</span>
                                         )}
                                         {arquitetoNomeProjeto && (
-                                            <span className="font-mono text-[9px] text-amber-600/80 border border-amber-700/30 px-1.5 py-0.5">
+                                            <span className="font-mono text-[9px] text-amber-700 dark:text-amber-600/80 border border-amber-400 dark:border-amber-700/30 px-1.5 py-0.5">
                                                 RT
                                             </span>
                                         )}
@@ -372,7 +372,7 @@ export default function AbaCarrinho({
                                         {/* Ver detalhes */}
                                         <button
                                             onClick={() => toggleCarrinhoDetalhes(orc.id)}
-                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${isExp ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5' : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-800 dark:hover:text-zinc-300'}`}
+                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${isExp ? 'border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/5' : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-800 dark:hover:text-zinc-300'}`}
                                         >
                                             <iconify-icon icon={isExp ? 'solar:alt-arrow-up-linear' : 'solar:eye-linear'} width="11"></iconify-icon>
                                             {isExp ? 'Fechar' : 'Detalhes'}
@@ -631,10 +631,10 @@ export default function AbaCarrinho({
                                                                         const label = ACAB_LABELS_F[tipo] ?? tipo;
                                                                         const vlrMl = ml > 0 ? valor / ml : 0;
                                                                         return (
-                                                                            <div key={`acab-flat-${tipo}`} className="flex items-center justify-between px-5 py-1.5 border-b border-amber-900/20 bg-amber-950/20 hover:bg-amber-950/30 transition-colors">
+                                                                            <div key={`acab-flat-${tipo}`} className="flex items-center justify-between px-5 py-1.5 border-b border-amber-200 dark:border-amber-900/20 bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors">
                                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                                     <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-600/60 shrink-0 ml-1"></iconify-icon>
-                                                                                    <span className="text-[10px] text-amber-400/80 truncate">{label}</span>
+                                                                                    <span className="text-[10px] text-amber-700 dark:text-amber-400/80 truncate">{label}</span>
                                                                                     <span className="font-mono text-[9px] text-amber-700/70 shrink-0">{ml.toFixed(2)} ml</span>
                                                                                     {vlrMl > 0 && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
                                                                                 </div>
@@ -704,10 +704,10 @@ export default function AbaCarrinho({
                                                                         const label = ACAB_LABELS[tipo] ?? tipo;
                                                                         const vlrMl = ml > 0 ? valor / ml : 0;
                                                                         return (
-                                                                            <div key={`acab-${itemKey}-${tipo}`} className={`flex items-center justify-between py-1.5 border-b border-amber-900/20 bg-amber-950/20 hover:bg-amber-950/30 transition-colors ${px}`}>
+                                                                            <div key={`acab-${itemKey}-${tipo}`} className={`flex items-center justify-between py-1.5 border-b border-amber-200 dark:border-amber-900/20 bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors ${px}`}>
                                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                                     <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-600/60 shrink-0 ml-1"></iconify-icon>
-                                                                                    <span className="text-[10px] text-amber-400/80 truncate">{label}</span>
+                                                                                    <span className="text-[10px] text-amber-700 dark:text-amber-400/80 truncate">{label}</span>
                                                                                     <span className="font-mono text-[9px] text-amber-700/70 shrink-0">{ml.toFixed(2)} ml</span>
                                                                                     {vlrMl > 0 && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
                                                                                 </div>

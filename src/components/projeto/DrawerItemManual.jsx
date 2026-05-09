@@ -29,7 +29,7 @@ export default function DrawerItemManual({ itemManualEmEdicao, setItemManualEmEd
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 block mb-2">Tipo</label>
-                            <div className={`px-4 py-3 border font-mono text-xs ${itemManualEmEdicao.itemData.tipo === 'area' ? 'border-blue-500/30 text-blue-400 bg-blue-400/5' : 'border-purple-500/30 text-purple-400 bg-purple-400/5'}`}>
+                            <div className={`px-4 py-3 border font-mono text-xs ${itemManualEmEdicao.itemData.tipo === 'area' ? 'border-blue-300 dark:border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-400/5' : 'border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-400/5'}`}>
                                 {itemManualEmEdicao.itemData.tipo === 'area' ? 'Área (m²)' : 'Linear (ML)'}
                             </div>
                         </div>
@@ -79,7 +79,7 @@ export default function DrawerItemManual({ itemManualEmEdicao, setItemManualEmEd
                         </div>
                         <div className="flex-1">
                             <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 block mb-2">Total</label>
-                            <div className="px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 font-mono text-sm text-yellow-400 font-semibold">
+                            <div className="px-4 py-3 border border-yellow-300 dark:border-yellow-400/20 bg-yellow-50 dark:bg-yellow-400/5 font-mono text-sm text-yellow-700 dark:text-yellow-400 font-semibold">
                                 {fmtBRL((parseFloat(itemManualEmEdicao.itemData.quantidade) || 0) * (itemManualEmEdicao.itemData.preco_unitario || 0))}
                             </div>
                         </div>

@@ -973,29 +973,29 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 const subAc = pw.precoManual != null ? pw.precoManual : subAcComputed;
                                 const isEditingPM = editandoPrecoManual?.uid === pw.uid;
                                 return (
-                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-900/20 last:border-b-0 bg-amber-950/20 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-200 dark:border-amber-900/20 last:border-b-0 bg-amber-50 dark:bg-amber-950/20 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
                                     {/* Conector visual "filho da peça acima" */}
                                     <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
                                       <div className="w-px h-2 bg-amber-600/30"></div>
                                       <div className="w-1.5 h-1.5 rounded-full bg-amber-600/50"></div>
                                     </div>
-                                    <iconify-icon icon="solar:ruler-angular-linear" width="12" className="text-amber-500/70 shrink-0"></iconify-icon>
-                                    <span className="font-mono text-[10px] text-amber-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
+                                    <iconify-icon icon="solar:ruler-angular-linear" width="12" className="text-amber-600 dark:text-amber-500/70 shrink-0"></iconify-icon>
+                                    <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
                                     <div className="flex items-center gap-1 shrink-0">
                                       <input
                                         type="number" min="0" step="0.01"
                                         value={pw.ml}
                                         onChange={e => editarAcabamentoMl(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
-                                        className="w-14 bg-gray-50 dark:bg-black border border-amber-900/40 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
+                                        className="w-14 bg-gray-50 dark:bg-black border border-amber-400 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
                                       />
                                       <span className="font-mono text-[10px] text-amber-700">ml</span>
                                     </div>
                                     {pw.matLinearId
-                                      ? <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-amber-600/40 text-amber-400 shrink-0 flex items-center gap-1 hover:bg-amber-400/10 transition-colors">
+                                      ? <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-amber-500 dark:border-amber-600/40 text-amber-700 dark:text-amber-400 shrink-0 flex items-center gap-1 hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-colors">
                                           <iconify-icon icon="solar:ruler-angular-linear" width="9"></iconify-icon>
                                           {matLineares.find(m => m.id === pw.matLinearId)?.nome ?? 'Linear'}
                                         </button>
-                                      : <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-red-600/50 text-red-400 shrink-0 flex items-center gap-1 hover:bg-red-400/10 transition-colors">
+                                      : <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-red-500 dark:border-red-600/50 text-red-700 dark:text-red-400 shrink-0 flex items-center gap-1 hover:bg-red-100 dark:hover:bg-red-400/10 transition-colors">
                                           <iconify-icon icon="solar:danger-triangle-linear" width="9"></iconify-icon>
                                           não cadastrado
                                         </button>
@@ -1024,7 +1024,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           }}
                                           onBlur={() => { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); }}
                                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); } }}
-                                          className="w-16 bg-gray-50 dark:bg-black border border-amber-500/60 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                          className="w-16 bg-gray-50 dark:bg-black border border-amber-500 dark:border-amber-500/60 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
                                         />
                                       </div>
                                     ) : (
@@ -1052,7 +1052,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
 
                               // Helper: renderiza uma linha de recorte/furo
                               const renderRecorte = (pw, indent = false) => (
-                                <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-teal-900/20 last:border-b-0 bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-teal-200 dark:border-teal-900/20 last:border-b-0 bg-teal-50 dark:bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
                                   <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
                                     <div className="w-px h-2 bg-teal-600/30"></div>
                                     <div className="w-1.5 h-1.5 rounded-full bg-teal-600/50"></div>
@@ -1062,13 +1062,13 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                     <select
                                       value={pw.nome}
                                       onChange={e => { const sel = acabamentosUnitarios.find(a => a.nome === e.target.value); editarRecorteTipo(amb, v.id, pw.uid, e.target.value, sel?.preco_unitario ?? pw.precoUnit); }}
-                                      className="font-mono text-[10px] text-teal-400/80 min-w-[90px] uppercase tracking-wide bg-transparent border border-teal-900/40 px-1 py-0.5 outline-none focus:border-teal-500/60 shrink-0"
+                                      className="font-mono text-[10px] text-teal-700 dark:text-teal-400/80 min-w-[90px] uppercase tracking-wide bg-transparent border border-teal-400 dark:border-teal-900/40 px-1 py-0.5 outline-none focus:border-teal-600 dark:focus:border-teal-500/60 shrink-0"
                                     >
                                       {acabamentosUnitarios.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)}
                                       {!acabamentosUnitarios.find(a => a.nome === pw.nome) && <option value={pw.nome}>{pw.nome}</option>}
                                     </select>
                                   ) : (
-                                    <span className="font-mono text-[10px] text-teal-400/80 min-w-[90px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
+                                    <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400/80 min-w-[90px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
                                   )}
                                   {pw.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{pw.formato}</span>}
                                   <span className="flex-1"></span>
@@ -1078,7 +1078,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                       type="number" min="0" step="0.01"
                                       value={pw.precoUnit}
                                       onChange={e => editarRecortePreco(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
-                                      className="w-20 bg-gray-50 dark:bg-black border border-teal-900/40 text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
+                                      className="w-20 bg-gray-50 dark:bg-black border border-teal-400 dark:border-teal-900/40 text-teal-800 dark:text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
                                     />
                                   </div>
                                   <span className="font-mono text-[11px] text-teal-400 shrink-0 w-20 text-right font-semibold">{pw.precoUnit > 0 ? fmt(pw.precoUnit) : '—'}</span>
@@ -1102,13 +1102,13 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                   const precoUnit = firstPw?.precoUnit ?? 0;
                                   const total = precoUnit * count;
                                   return (
-                                    <div key={`rc-g-${nome}`} className={`flex items-center gap-2 py-2 border-b border-teal-900/20 last:border-b-0 bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                    <div key={`rc-g-${nome}`} className={`flex items-center gap-2 py-2 border-b border-teal-200 dark:border-teal-900/20 last:border-b-0 bg-teal-50 dark:bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
                                       <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
                                         <div className="w-px h-2 bg-teal-600/30"></div>
                                         <div className="w-1.5 h-1.5 rounded-full bg-teal-600/50"></div>
                                       </div>
                                       <iconify-icon icon="solar:scissors-linear" width="12" className="text-teal-500/70 shrink-0"></iconify-icon>
-                                      <span className="font-mono text-[10px] text-teal-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{nome}</span>
+                                      <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{nome}</span>
                                       {firstPw?.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{firstPw.formato}</span>}
                                       <span className="font-mono text-[10px] text-teal-600 shrink-0">×{count}</span>
                                       <span className="flex-1"></span>
@@ -1118,7 +1118,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           type="number" min="0" step="0.01"
                                           value={precoUnit}
                                           onChange={e => editarRecorteTipoPreco(amb, v.id, nome, parseFloat(e.target.value) || 0)}
-                                          className="w-16 bg-gray-50 dark:bg-black border border-teal-900/40 text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
+                                          className="w-16 bg-gray-50 dark:bg-black border border-teal-400 dark:border-teal-900/40 text-teal-800 dark:text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
                                         />
                                       </div>
                                       <span className="font-mono text-[11px] text-teal-400 shrink-0 w-20 text-right font-semibold">{total > 0 ? fmt(total) : '—'}</span>

@@ -4,11 +4,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const TIPO_CONFIG = {
-  medicao_processada: { icon: 'solar:ruler-pen-linear',    cor: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20' },
-  pedido_fechado:     { icon: 'solar:wallet-money-linear', cor: 'text-green-400',  bg: 'bg-green-400/10',  border: 'border-green-400/20'  },
-  projeto_perdido:    { icon: 'solar:close-circle-linear', cor: 'text-red-400',    bg: 'bg-red-400/10',    border: 'border-red-400/20'    },
-  mensagem_admin:     { icon: 'solar:chat-line-linear',    cor: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
-  status_atualizado:  { icon: 'solar:layers-linear',       cor: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
+  medicao_processada: { icon: 'solar:ruler-pen-linear',    cor: 'text-violet-700 dark:text-violet-400', bg: 'bg-violet-100 dark:bg-violet-400/10', border: 'border-violet-300 dark:border-violet-400/20' },
+  pedido_fechado:     { icon: 'solar:wallet-money-linear', cor: 'text-green-700 dark:text-green-400',   bg: 'bg-green-100 dark:bg-green-400/10',   border: 'border-green-300 dark:border-green-400/20'  },
+  projeto_perdido:    { icon: 'solar:close-circle-linear', cor: 'text-red-700 dark:text-red-400',       bg: 'bg-red-100 dark:bg-red-400/10',       border: 'border-red-300 dark:border-red-400/20'    },
+  mensagem_admin:     { icon: 'solar:chat-line-linear',    cor: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-100 dark:bg-blue-400/10',     border: 'border-blue-300 dark:border-blue-400/20'   },
+  status_atualizado:  { icon: 'solar:layers-linear',       cor: 'text-blue-700 dark:text-blue-400',     bg: 'bg-blue-100 dark:bg-blue-400/10',     border: 'border-blue-300 dark:border-blue-400/20'   },
 };
 
 function formatarData(isoString) {
@@ -145,7 +145,7 @@ export default function AdminNotificacoes() {
                   onClick={() => handleClick(n)}
                   className={`flex items-start gap-4 px-4 py-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.015] group transition-colors ${
                     i < notifs.length - 1 ? 'border-b border-gray-200 dark:border-zinc-900' : ''
-                  } ${!n.lida ? 'bg-blue-50/60 dark:bg-blue-400/5' : ''}`}
+                  } ${!n.lida ? 'bg-blue-100 dark:bg-blue-400/5' : ''}`}
                 >
                   <div className={`w-8 h-8 flex items-center justify-center shrink-0 ${cfg.bg} border ${cfg.border} ${cfg.cor}`}>
                     <iconify-icon icon={cfg.icon} width="16"></iconify-icon>
