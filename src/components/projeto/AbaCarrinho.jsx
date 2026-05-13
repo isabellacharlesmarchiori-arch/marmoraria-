@@ -30,6 +30,9 @@ export default function AbaCarrinho({
     const navigate = useNavigate();
     const id = projetoId;
     const [modalPdf, setModalPdf] = useState(false);
+    const [editandoPecaCarrinho, setEditandoPecaCarrinho] = useState(null); // { orcId, pecaId, pecaDbId, nome }
+    const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null); // { orcId, itemNome, novo }
+    const [editandoAmbCarrinho,  setEditandoAmbCarrinho]  = useState(null); // { ambId, novo }
 
     function toggleCarrinhoDetalhes(orcId) {
         setCarrinhoExpandido(prev => {
@@ -585,16 +588,48 @@ export default function AbaCarrinho({
 
                                                 return (
                                                     <div key={ambId} className={gi > 0 ? 'border-t border-gray-300 dark:border-zinc-800' : ''}>
-                                                        {/* Header do grupo */}
-                                                        <div className="flex items-center justify-between px-5 py-2.5 bg-gray-100 dark:bg-zinc-950/50 border-b border-gray-100 dark:border-zinc-900">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-0.5 h-4 bg-yellow-400/50 shrink-0"></div>
-                                                                <span className="font-mono text-[10px] uppercase tracking-widest text-gray-700 dark:text-zinc-300 font-semibold">
-                                                                    {ambNome}
-                                                                </span>
-                                                            </div>
-                                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">{fmtBRL(subtotalComManuais)}</span>
-                                                        </div>
+                                                        {/* Header do ambiente */}
+                                                        {(() => {
+                                                            const isRealAmb = ambId && ambId !== '__sem_ambiente__';
+                                                            const isEditAmb = isRealAmb && editandoAmbCarrinho?.ambId === ambId;
+                                                            return (
+                                                                <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-zinc-950/50 border-b border-gray-100 dark:border-zinc-900 group/amb">
+                                                                    <div className="w-0.5 h-4 bg-yellow-400/50 shrink-0"></div>
+                                                                    {isEditAmb ? (
+                                                                        <>
+                                                                            <input
+                                                                                autoFocus
+                                                                                value={editandoAmbCarrinho.novo}
+                                                                                onChange={e => setEditandoAmbCarrinho(prev => ({ ...prev, novo: e.target.value }))}
+                                                                                onBlur={() => actions.renomearAmbCarrinho(ambId, editandoAmbCarrinho.novo, () => setEditandoAmbCarrinho(null))}
+                                                                                onKeyDown={e => {
+                                                                                    if (e.key === 'Enter') actions.renomearAmbCarrinho(ambId, editandoAmbCarrinho.novo, () => setEditandoAmbCarrinho(null));
+                                                                                    if (e.key === 'Escape') setEditandoAmbCarrinho(null);
+                                                                                }}
+                                                                                className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-[10px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none font-semibold"
+                                                                            />
+                                                                            <button onClick={() => setEditandoAmbCarrinho(null)} className="font-mono text-[8px] text-gray-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <span className="font-mono text-[10px] uppercase tracking-widest text-gray-700 dark:text-zinc-300 font-semibold flex-1">
+                                                                                {ambNome}
+                                                                            </span>
+                                                                            {isRealAmb && (
+                                                                                <button
+                                                                                    onClick={() => setEditandoAmbCarrinho({ ambId, novo: ambNome })}
+                                                                                    className="opacity-0 group-hover/amb:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                                                                                    title="Renomear ambiente"
+                                                                                >
+                                                                                    <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
+                                                                                </button>
+                                                                            )}
+                                                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 shrink-0">{fmtBRL(subtotalComManuais)}</span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
 
                                                         {/* Peças do grupo — agrupadas por item */}
                                                         {(() => {
@@ -673,25 +708,74 @@ export default function AbaCarrinho({
                                                                 const acabRows = [...acabByTipo.entries()];
 
                                                                 const px = nomeItem ? 'px-7' : 'px-5';
+                                                                const isEditItem = editandoItemCarrinho?.orcId === orc.id && editandoItemCarrinho?.itemNome === nomeItem;
                                                                 return [
                                                                     // Header do item
                                                                     ...(nomeItem ? [
-                                                                        <div key={`item-hdr-${itemKey}`} className="flex items-center justify-between px-5 py-1.5 bg-gray-100/30 dark:bg-zinc-900/30 border-b border-gray-100/40 dark:border-zinc-900/40">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <iconify-icon icon="solar:folder-linear" width="10" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
-                                                                                <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">{nomeItem}</span>
-                                                                            </div>
-                                                                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{fmtBRL(subtotalItem)}</span>
+                                                                        <div key={`item-hdr-${itemKey}`} className="flex items-center gap-2 px-5 py-1.5 bg-gray-100/30 dark:bg-zinc-900/30 border-b border-gray-100/40 dark:border-zinc-900/40 group/item">
+                                                                            <iconify-icon icon="solar:folder-linear" width="10" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
+                                                                            {isEditItem ? (
+                                                                                <>
+                                                                                    <input
+                                                                                        autoFocus
+                                                                                        value={editandoItemCarrinho.novo}
+                                                                                        onChange={e => setEditandoItemCarrinho(prev => ({ ...prev, novo: e.target.value }))}
+                                                                                        onBlur={() => actions.renomearItemCarrinho(orc.id, nomeItem, editandoItemCarrinho.novo, () => setEditandoItemCarrinho(null))}
+                                                                                        onKeyDown={e => {
+                                                                                            if (e.key === 'Enter') actions.renomearItemCarrinho(orc.id, nomeItem, editandoItemCarrinho.novo, () => setEditandoItemCarrinho(null));
+                                                                                            if (e.key === 'Escape') setEditandoItemCarrinho(null);
+                                                                                        }}
+                                                                                        className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none"
+                                                                                    />
+                                                                                    <button onClick={() => setEditandoItemCarrinho(null)} className="font-mono text-[8px] text-gray-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 flex-1">{nomeItem}</span>
+                                                                                    <button
+                                                                                        onClick={() => setEditandoItemCarrinho({ orcId: orc.id, itemNome: nomeItem, novo: nomeItem })}
+                                                                                        className="opacity-0 group-hover/item:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                                                                                        title="Renomear item"
+                                                                                    >
+                                                                                        <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
+                                                                                    </button>
+                                                                                    <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{fmtBRL(subtotalItem)}</span>
+                                                                                </>
+                                                                            )}
                                                                         </div>
                                                                     ] : []),
                                                                     // Linhas de pedra (valor = total − acabamentos)
                                                                     ...pecasItem.map((p, pi) => {
                                                                         const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0);
+                                                                        const isEditPeca = editandoPecaCarrinho?.orcId === orc.id && editandoPecaCarrinho?.pecaId === p.id;
                                                                         return (
-                                                                            <div key={p.id ?? pi} className={`flex items-center justify-between py-2 border-b border-gray-100/30 dark:border-zinc-900/30 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors ${px}`}>
-                                                                                <div className="flex items-center gap-3 min-w-0">
+                                                                            <div key={p.id ?? pi} className={`flex items-center justify-between py-2 border-b border-gray-100/30 dark:border-zinc-900/30 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors group/peca ${px}`}>
+                                                                                <div className="flex items-center gap-3 min-w-0 flex-1">
                                                                                     <div className="w-px h-5 bg-gray-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                                    <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{p.nome ?? 'Peça'}</span>
+                                                                                    {isEditPeca ? (
+                                                                                        <input
+                                                                                            autoFocus
+                                                                                            value={editandoPecaCarrinho.nome}
+                                                                                            onChange={e => setEditandoPecaCarrinho(prev => ({ ...prev, nome: e.target.value }))}
+                                                                                            onBlur={() => actions.renomearPecaCarrinho(orc.id, p.id, p.pecaDbId, editandoPecaCarrinho.nome, () => setEditandoPecaCarrinho(null))}
+                                                                                            onKeyDown={e => {
+                                                                                                if (e.key === 'Enter') actions.renomearPecaCarrinho(orc.id, p.id, p.pecaDbId, editandoPecaCarrinho.nome, () => setEditandoPecaCarrinho(null));
+                                                                                                if (e.key === 'Escape') setEditandoPecaCarrinho(null);
+                                                                                            }}
+                                                                                            className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-[11px] px-1.5 py-0.5 outline-none"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{p.nome ?? 'Peça'}</span>
+                                                                                            <button
+                                                                                                onClick={() => setEditandoPecaCarrinho({ orcId: orc.id, pecaId: p.id, pecaDbId: p.peca_id ?? null, nome: p.nome ?? '' })}
+                                                                                                className="opacity-0 group-hover/peca:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                                                                                                title="Renomear peça"
+                                                                                            >
+                                                                                                <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
+                                                                                            </button>
+                                                                                        </>
+                                                                                    )}
                                                                                     {p.area != null && <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{Number(p.area).toFixed(2)} m²</span>}
                                                                                     {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
                                                                                 </div>

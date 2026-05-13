@@ -1,7 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, todosM }) {
+export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, onRenomear, todosM }) {
   const temMaterial = peca.materiais.length > 0;
+  const [editando, setEditando] = useState(false);
+  const [nomeEdit, setNomeEdit] = useState('');
+
+  function iniciarEdicao() {
+    setNomeEdit(peca.nome);
+    setEditando(true);
+  }
+  function confirmar() {
+    const novo = nomeEdit.trim();
+    if (novo && novo !== peca.nome) onRenomear?.(peca.id, novo);
+    setEditando(false);
+  }
+
   return (
     <div className={`grid grid-cols-12 items-center px-4 py-3.5 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 group transition-colors ${peca.incluida ? '' : 'opacity-40'}`}>
       {/* Toggle */}
@@ -17,7 +30,31 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, t
 
       {/* Nome */}
       <div className="col-span-3 min-w-0 pr-2">
-        <span className="text-sm text-gray-900 dark:text-white font-medium truncate block">{peca.nome}</span>
+        {editando ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus
+              value={nomeEdit}
+              onChange={e => setNomeEdit(e.target.value)}
+              onBlur={confirmar}
+              onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setEditando(false); }}
+              className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1.5 py-0.5 outline-none"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 group/nome">
+            <span className="text-sm text-gray-900 dark:text-white font-medium truncate">{peca.nome}</span>
+            {onRenomear && (
+              <button
+                onClick={iniciarEdicao}
+                className="opacity-0 group-hover/nome:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                title="Renomear peça"
+              >
+                <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
+              </button>
+            )}
+          </div>
+        )}
         {peca.descricao && (
           <span className="font-mono text-[9px] text-zinc-500 block">{peca.descricao}</span>
         )}

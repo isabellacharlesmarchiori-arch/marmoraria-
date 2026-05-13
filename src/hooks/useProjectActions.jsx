@@ -533,6 +533,50 @@ export function useProjectActions(projectId, {
         recarregarAmbientes();
     }
 
+    // Renomeia ambiente no carrinho — atualiza ambientes.nome no banco
+    async function renomearAmbCarrinho(ambId, novoNome, clearFn) {
+        const nome = novoNome.trim();
+        if (!nome) { clearFn(); return; }
+        setAmbientes(prev => prev.map(a => a.id === ambId ? { ...a, nome } : a));
+        clearFn();
+        const { error } = await supabase.from('ambientes').update({ nome }).eq('id', ambId);
+        if (error) { console.error('Erro ao renomear ambiente:', error.message); recarregarAmbientes(); }
+    }
+
+    // Renomeia peça no carrinho — atualiza pecas.nome_livre no banco
+    async function renomearPecaCarrinho(orcId, pecaId, pecaDbId, novoNome, clearFn) {
+        setAmbientes(prev => prev.map(amb => ({
+            ...amb,
+            orcamentos: (amb.orcamentos ?? []).map(o => {
+                if (o.id !== orcId) return o;
+                return { ...o, pecas: (o.pecas ?? []).map(p => p.id === pecaId ? { ...p, nome: novoNome } : p) };
+            }),
+        })));
+        clearFn();
+        if (pecaDbId) {
+            const { error } = await supabase.from('pecas').update({ nome_livre: novoNome }).eq('id', pecaDbId);
+            if (error) console.error('Erro ao renomear peça:', error.message);
+        }
+    }
+
+    // Renomeia item no carrinho — batch update em orcamento_pecas.item_nome
+    async function renomearItemCarrinho(orcId, itemNomeAntigo, novoNome, clearFn) {
+        setAmbientes(prev => prev.map(amb => ({
+            ...amb,
+            orcamentos: (amb.orcamentos ?? []).map(o => {
+                if (o.id !== orcId) return o;
+                return { ...o, pecas: (o.pecas ?? []).map(p => p.item_nome === itemNomeAntigo ? { ...p, item_nome: novoNome } : p) };
+            }),
+        })));
+        clearFn();
+        const { error } = await supabase
+            .from('orcamento_pecas')
+            .update({ item_nome: novoNome })
+            .eq('orcamento_id', orcId)
+            .eq('item_nome', itemNomeAntigo);
+        if (error) console.error('Erro ao renomear item:', error.message);
+    }
+
     // clearFn: () => setCarrinhoEditandoNome(null)
     async function salvarNomeOrcamentoCarrinho(orcId, nome, clearFn) {
         setAmbientes(prev => prev.map(amb => ({
@@ -806,7 +850,7 @@ export function useProjectActions(projectId, {
                 ambientes,
                 catMateriais,
                 empresa:      empresaCtx ?? {},
-                vendedorNome: profile?.nome ?? null,
+                vendedorNome: projeto?.usuarios?.nome ?? profile?.nome ?? null,
                 prazoEntrega: pedidoFechado.prazo_entrega ?? null,
                 template:     opts,
             });
@@ -849,7 +893,7 @@ export function useProjectActions(projectId, {
                     ambientes,
                     catMateriais,
                     empresa:      empresaCtx ?? {},
-                    vendedorNome: profile?.nome ?? null,
+                    vendedorNome: projeto?.usuarios?.nome ?? profile?.nome ?? null,
                     template:     opts,
                 };
                 if (modo === 'bw') {
@@ -910,6 +954,9 @@ export function useProjectActions(projectId, {
         mockDuplicarPeca,
         mockRemoverPeca,
         handleSalvarEdicaoPeca,
+        renomearAmbCarrinho,
+        renomearPecaCarrinho,
+        renomearItemCarrinho,
         // Itens manuais
         removerItemManual,
         duplicarItemManual,

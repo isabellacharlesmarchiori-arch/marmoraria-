@@ -84,7 +84,7 @@ export function useProjectData(projectId, activeTab) {
             try {
                 const empresaId = profile?.empresa_id;
                 let qProj = supabase.from('projetos')
-                    .select('*, clientes(id, nome, telefone, email, endereco), arquitetos(id, nome), rt_padrao_percentual')
+                    .select('*, clientes(id, nome, telefone, email, endereco), arquitetos(id, nome), usuarios!vendedor_id(nome), rt_padrao_percentual')
                     .eq('id', projectId);
                 if (empresaId) qProj = qProj.eq('empresa_id', empresaId);
                 let qAmb = supabase.from('ambientes').select(AMBIENTES_SELECT).eq('projeto_id', projectId);
@@ -178,6 +178,7 @@ export function useProjectData(projectId, activeTab) {
                         ...o,
                         pecas: data.map((op, idx) => ({
                             id:                op.id,
+                            peca_id:           op.peca_id ?? null,
                             nome:              op.pecas?.nome_livre ?? `Peça ${idx + 1}`,
                             material:          'Material Padrão',
                             material_id:       op.material_id ?? '',

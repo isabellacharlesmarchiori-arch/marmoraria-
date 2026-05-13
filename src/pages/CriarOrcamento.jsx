@@ -508,6 +508,8 @@ export default function CriarOrcamento() {
   // Estado para ações por ambiente
   const [editandoAmbNome, setEditandoAmbNome] = useState(null);     // { amb: string, novo: string }
   const [painelMaterialAmbNome, setPainelMaterialAmbNome] = useState(null); // nome do ambiente aberto no PainelMaterial
+  const [editandoItemNome, setEditandoItemNome] = useState(null);   // { amb: string, gKey: string, novo: string }
+  const [painelMaterialGrupoKey, setPainelMaterialGrupoKey] = useState(null); // "amb::gKey" aberto no PainelMaterial
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -532,7 +534,7 @@ export default function CriarOrcamento() {
 
   const totalPecas = pecasIncluidas.reduce((s, p) => {
     if (p.materiais.length === 0) return s;
-    return s + precoPeca(p, p.materiais[0], materiais);
+    return s + precoPeca(p, p.materiais[0], materiais, p.acabamentoSel ?? null);
   }, 0);
   const total = totalPecas + totalProdutos;
 
@@ -553,8 +555,24 @@ export default function CriarOrcamento() {
     });
   }
 
-  function confirmarMaterial(pecaId, materiais) {
-    setPecas(prev => prev.map(p => p.id === pecaId ? { ...p, materiais } : p));
+  function renomearPeca(pecaId, novoNome) {
+    setPecas(prev => prev.map(p => p.id === pecaId ? { ...p, nome: novoNome } : p));
+  }
+
+  function renomearItem(amb, gKeyAntigo, novoNome) {
+    const novoKey = novoNome.trim() || gKeyAntigo;
+    setPecas(prev => prev.map(p => {
+      const k = p.grupo_nome ?? p.item_nome ?? '__sem_grupo__';
+      if ((p.ambiente_nome ?? '') !== amb || k !== gKeyAntigo) return p;
+      return p.grupo_nome != null
+        ? { ...p, grupo_nome: novoKey }
+        : { ...p, item_nome: novoKey };
+    }));
+    setEditandoItemNome(null);
+  }
+
+  function confirmarMaterial(pecaId, mats, acabamentoSel) {
+    setPecas(prev => prev.map(p => p.id === pecaId ? { ...p, materiais: mats, acabamentoSel: acabamentoSel ?? null } : p));
     setPainelMaterialPecaId(null);
   }
 
@@ -577,9 +595,18 @@ export default function CriarOrcamento() {
     setPecas(prev => [...prev, ...clones]);
   }
 
-  function aplicarMaterialAoAmbiente(ambNome, matIds) {
-    setPecas(prev => prev.map(p => p.ambiente_nome === ambNome ? { ...p, materiais: matIds } : p));
+  function aplicarMaterialAoAmbiente(ambNome, matIds, acabamentoSel) {
+    setPecas(prev => prev.map(p => p.ambiente_nome === ambNome ? { ...p, materiais: matIds, acabamentoSel: acabamentoSel ?? null } : p));
     setPainelMaterialAmbNome(null);
+  }
+
+  function aplicarMaterialAoGrupo(ambNome, gKey, matIds, acabamentoSel) {
+    setPecas(prev => prev.map(p => {
+      const k = p.grupo_nome ?? p.item_nome ?? '__sem_grupo__';
+      if ((p.ambiente_nome ?? '') !== ambNome || k !== gKey) return p;
+      return { ...p, materiais: matIds, acabamentoSel: acabamentoSel ?? null };
+    }));
+    setPainelMaterialGrupoKey(null);
   }
 
   // ── Bulk action: aplicar material a todas as peças incluídas ───
@@ -647,7 +674,8 @@ export default function CriarOrcamento() {
     } else {
       const versao = {
         nome: 'Orçamento',
-        mats: Object.fromEntries(pecasIncluidas.map(p => [p.id, p.materiais[0] ?? ''])),
+        mats:        Object.fromEntries(pecasIncluidas.map(p => [p.id, p.materiais[0] ?? ''])),
+        acabamentos: Object.fromEntries(pecasIncluidas.map(p => [p.id, p.acabamentoSel ?? null])),
       };
       setVersoesCriadas([versao]);
     }
@@ -1574,17 +1602,53 @@ export default function CriarOrcamento() {
                           const grupoLabel = grupoNome ?? (temGruposNomeados ? 'Peças avulsas' : null);
                           const geKey = `${amb}::${gKey}`;
                           const ge = grupoExtras[geKey] ?? { acabamentos: [], furos: [] };
+                          const isEditandoEsteItem = editandoItemNome?.amb === amb && editandoItemNome?.gKey === gKey;
                           return [
                             // Cabeçalho do grupo
                             ...(grupoLabel ? [
                               <div key={`grp-${gKey}`} className="flex items-center gap-2 px-4 py-1.5 bg-gray-200/20 dark:bg-zinc-900/20 border-b border-gray-200 dark:border-zinc-900/60">
                                 <iconify-icon icon="solar:folder-linear" width="10" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
-                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{grupoLabel}</span>
+                                {isEditandoEsteItem ? (
+                                  <>
+                                    <input
+                                      autoFocus
+                                      value={editandoItemNome.novo}
+                                      onChange={e => setEditandoItemNome(prev => ({ ...prev, novo: e.target.value }))}
+                                      onKeyDown={e => { if (e.key === 'Enter') renomearItem(amb, gKey, editandoItemNome.novo); if (e.key === 'Escape') setEditandoItemNome(null); }}
+                                      className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-[9px] font-mono px-1.5 py-0.5 outline-none uppercase tracking-widest"
+                                    />
+                                    <button onClick={() => renomearItem(amb, gKey, editandoItemNome.novo)} className="text-yellow-400 text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border border-yellow-400/40 hover:bg-yellow-400/10 transition-colors shrink-0">OK</button>
+                                    <button onClick={() => setEditandoItemNome(null)} className="text-gray-500 dark:text-zinc-500 text-[9px] font-mono px-1.5 py-0.5 border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest flex-1">{grupoLabel}</span>
+                                    {/* Ajuste 3: botão Material por item */}
+                                    <button
+                                      onClick={() => setPainelMaterialGrupoKey(geKey)}
+                                      title="Aplicar material a todas as peças deste item"
+                                      className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors shrink-0"
+                                    >
+                                      <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
+                                      Mat.
+                                    </button>
+                                    {/* Ajuste 1: renomear item */}
+                                    {gKey !== '__sem_grupo__' && (
+                                      <button
+                                        onClick={() => setEditandoItemNome({ amb, gKey, novo: grupoLabel })}
+                                        title="Renomear item"
+                                        className="p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-colors shrink-0"
+                                      >
+                                        <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
+                                      </button>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             ] : []),
                             // Peças do grupo
                             ...gMap.get(gKey).map(p => (
-                              <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} todosM={materiais} />
+                              <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} onRenomear={renomearPeca} todosM={materiais} />
                             )),
                             // Acabamentos lineares do grupo
                             ...ge.acabamentos.map(ac => (
@@ -1788,16 +1852,17 @@ export default function CriarOrcamento() {
         </div>
       </div>
 
-      {/* ── Painel lateral: material (versões por ambiente) ─ */}
       {/* ── Painel lateral: material por peça ───────── */}
       {painelMaterialPecaId && pecaPainel && (
         <PainelMaterial
           pecaId={pecaPainel.id}
           pecaNome={pecaPainel.nome}
           selecionados={pecaPainel.materiais}
+          acabamentoInicial={pecaPainel.acabamentoSel ?? null}
           onConfirmar={confirmarMaterial}
           onFechar={() => setPainelMaterialPecaId(null)}
           todosM={materiais}
+          single
         />
       )}
 
@@ -1807,11 +1872,33 @@ export default function CriarOrcamento() {
           pecaId={painelMaterialAmbNome}
           pecaNome={`${painelMaterialAmbNome} — todas as peças`}
           selecionados={[...new Set(pecas.filter(p => p.ambiente_nome === painelMaterialAmbNome).flatMap(p => p.materiais))]}
-          onConfirmar={(_, sel) => aplicarMaterialAoAmbiente(painelMaterialAmbNome, sel)}
+          onConfirmar={(_, sel, acabSel) => aplicarMaterialAoAmbiente(painelMaterialAmbNome, sel, acabSel)}
           onFechar={() => setPainelMaterialAmbNome(null)}
           todosM={materiais}
+          single
         />
       )}
+
+      {/* ── Painel lateral: material por item/grupo ──── */}
+      {painelMaterialGrupoKey && (() => {
+        const [ambNome, gKey] = painelMaterialGrupoKey.split('::');
+        const pecasGrupo = pecas.filter(p => {
+          const k = p.grupo_nome ?? p.item_nome ?? '__sem_grupo__';
+          return (p.ambiente_nome ?? '') === ambNome && k === gKey;
+        });
+        const labelGrupo = gKey === '__sem_grupo__' ? ambNome : `${ambNome} / ${gKey}`;
+        return (
+          <PainelMaterial
+            pecaId={painelMaterialGrupoKey}
+            pecaNome={`${labelGrupo} — todas as peças`}
+            selecionados={[...new Set(pecasGrupo.flatMap(p => p.materiais))]}
+            onConfirmar={(_, sel, acabSel) => aplicarMaterialAoGrupo(ambNome, gKey, sel, acabSel)}
+            onFechar={() => setPainelMaterialGrupoKey(null)}
+            todosM={materiais}
+            single
+          />
+        );
+      })()}
 
       {/* ── Modal: produto avulso ────────────────────── */}
       {modalProduto && (

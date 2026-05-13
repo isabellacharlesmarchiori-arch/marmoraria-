@@ -424,6 +424,7 @@ export function normalizarAmbiente(amb) {
         pecas: (orc.orcamento_pecas ?? []).map((op, idx) => {
             return {
                 id:               op.id,
+                peca_id:          op.peca_id ?? null,
                 nome:             op.pecas?.nome_livre ?? `Peça ${idx + 1}`,
                 material:         'Material Padrão',
                 material_id:      op.material_id ?? '',
@@ -434,7 +435,7 @@ export function normalizarAmbiente(amb) {
                 valor_acabamentos: op.valor_acabamentos ?? 0,
                 recortes:         [],
                 ambiente_id:      op.pecas?.ambiente_id ?? null,
-                item_nome:        op.pecas?.dimensoes?.item_nome ?? null,
+                item_nome:        op.item_nome ?? op.pecas?.dimensoes?.item_nome ?? null,
                 acabamentos:      op.acabamentos ?? [],
             };
         }),

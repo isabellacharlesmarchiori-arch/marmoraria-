@@ -73,6 +73,17 @@ const txt = (doc, text, x, y, size, rgb, style = 'normal', opts = {}, cs = 0) =>
   doc.text(String(text ?? ''), x, y, opts);
 };
 
+const truncarTexto = (doc, texto, size, style, maxMm) => {
+  doc.setFontSize(size);
+  doc.setFont('helvetica', style);
+  if (doc.getTextWidth(texto) <= maxMm) return texto;
+  let truncado = texto;
+  while (truncado.length > 0 && doc.getTextWidth(truncado + '…') > maxMm) {
+    truncado = truncado.slice(0, -1);
+  }
+  return truncado + '…';
+};
+
 // ── Carregamento de logo (dupla estratégia) ───────────────────────────────────
 async function loadLogoBase64(url) {
   if (!url) return null;
@@ -333,17 +344,20 @@ async function buildOrcamentoPdf(
   fillRect(doc, ML, BLK_Y, CW, BLK_H, C.panel);
   if (isColor) fillRect(doc, ML, BLK_Y + BLK_H - 0.4, CW, 0.4, COR_PRIM_RGB);
 
+  const cliMaxWidth = COL2 - (ML + 10) - 4;
   let d1 = BLK_Y + 8;
   txt(doc, 'CLIENTE', ML + 10, d1, 6.5, C.faint, 'bold'); d1 += 5;
-  txt(doc, cliNome, ML + 10, d1, 12, C.ink, 'bold'); d1 += 7;
-  if (cliTel)   { txt(doc, cliTel,   ML + 10, d1, 8.5, C.muted); d1 += 4; }
-  if (cliEmail) { txt(doc, cliEmail, ML + 10, d1, 8.5, C.muted); }
+  txt(doc, truncarTexto(doc, cliNome, 12, 'bold', cliMaxWidth), ML + 10, d1, 12, C.ink, 'bold'); d1 += 7;
+  if (cliTel)   { txt(doc, truncarTexto(doc, cliTel,   8.5, 'normal', cliMaxWidth), ML + 10, d1, 8.5, C.muted); d1 += 4; }
+  if (cliEmail) { txt(doc, truncarTexto(doc, cliEmail, 8.5, 'normal', cliMaxWidth), ML + 10, d1, 8.5, C.muted); }
 
   let d2 = BLK_Y + 8;
-  txt(doc, 'RESPONSÁVEIS', COL2, d2, 6.5, C.faint, 'bold'); d2 += 5;
-  for (const r of respEntries) {
-    txt(doc, r.l.toUpperCase(), COL2, d2, 6.5, C.faint, 'bold'); d2 += 3.5;
-    txt(doc, r.v, COL2, d2, 9.5, C.ink); d2 += 7;
+  if (respEntries.length > 0) {
+    txt(doc, 'RESPONSÁVEIS', COL2, d2, 6.5, C.faint, 'bold'); d2 += 5;
+    for (const r of respEntries) {
+      txt(doc, r.l.toUpperCase(), COL2, d2, 6.5, C.faint, 'bold'); d2 += 3.5;
+      txt(doc, r.v, COL2, d2, 9.5, C.ink); d2 += 7;
+    }
   }
 
   y = BLK_Y + BLK_H + 10;

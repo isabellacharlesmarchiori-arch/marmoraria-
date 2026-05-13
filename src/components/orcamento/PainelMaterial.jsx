@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { fmt } from '../../utils/orcamentoUtils';
 
-export default function PainelMaterial({ pecaId, pecaNome, selecionados, onConfirmar, onFechar, todosM, single = false }) {
+export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabamentoInicial = null, onConfirmar, onFechar, todosM, single = false }) {
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('todos');
   const [sel, setSel] = useState(selecionados);
-  const [acabamentoSel, setAcabamentoSel] = useState(null);
+  const [acabamentoSel, setAcabamentoSel] = useState(acabamentoInicial);
 
   const categoriasDisponiveis = useMemo(
     () => [...new Set(todosM.map(m => m.categoria).filter(Boolean))].sort(),
@@ -13,14 +13,20 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, onConfi
   );
 
   const variacoesMat = useMemo(() => {
-    if (!single || sel.length === 0) return [];
+    if (sel.length === 0) return [];
     return todosM.find(m => m.id === sel[0])?.variacoes_precos ?? [];
-  }, [single, sel, todosM]);
+  }, [sel, todosM]);
 
-  const acabamentosUnicos = useMemo(
-    () => [...new Set(variacoesMat.map(v => v.acabamento))],
-    [variacoesMat]
-  );
+  // Cada variante exibe "Acabamento · Xcm" como label único
+  const variantesDisponiveis = useMemo(() => {
+    if (variacoesMat.length <= 1) return [];
+    return variacoesMat.map(v => ({
+      acabamento: v.acabamento,
+      espessura:  v.espessura,
+      preco:      v.preco_venda,
+      label:      [v.acabamento, v.espessura ? `${v.espessura}cm` : null].filter(Boolean).join(' · '),
+    }));
+  }, [variacoesMat]);
 
   const filtrados = useMemo(() => todosM.filter(m => {
     const matchBusca = busca === '' || m.nome.toLowerCase().includes(busca.toLowerCase()) || (m.cor ?? '').toLowerCase().includes(busca.toLowerCase());
@@ -133,22 +139,23 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, onConfi
           )}
         </div>
 
-        {/* Seleção de acabamento — aparece quando material está selecionado (modo single) */}
-        {single && sel.length > 0 && acabamentosUnicos.length > 0 && (
+        {/* Seleção de variação — aparece quando material selecionado tem mais de uma variante */}
+        {sel.length > 0 && variantesDisponiveis.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-300 dark:border-zinc-800">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Acabamento</div>
-            <div className="flex flex-wrap gap-1.5">
-              {acabamentosUnicos.map(ac => (
+            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Variação</div>
+            <div className="flex flex-col gap-1">
+              {variantesDisponiveis.map(v => (
                 <button
-                  key={ac}
-                  onClick={() => setAcabamentoSel(prev => prev === ac ? null : ac)}
-                  className={`font-mono text-[10px] px-3 py-1 border transition-colors ${
-                    acabamentoSel === ac
+                  key={v.label}
+                  onClick={() => setAcabamentoSel(prev => prev === v.acabamento ? null : v.acabamento)}
+                  className={`flex items-center justify-between font-mono text-[10px] px-3 py-1.5 border transition-colors text-left ${
+                    acabamentoSel === v.acabamento
                       ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5'
-                      : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600'
+                      : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-zinc-400'
                   }`}
                 >
-                  {ac}
+                  <span>{v.label}</span>
+                  {v.preco > 0 && <span className="text-[9px] opacity-70">{fmt(v.preco)}/m²</span>}
                 </button>
               ))}
             </div>
@@ -158,9 +165,11 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, onConfi
         {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-300 dark:border-zinc-800 flex items-center gap-3">
           <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 flex-1">
-            {single
-              ? (sel.length === 0 ? 'Nenhum selecionado' : (acabamentoSel ? acabamentoSel : '1 selecionado'))
-              : `${sel.length} selecionado${sel.length !== 1 ? 's' : ''}`}
+            {sel.length === 0
+              ? 'Nenhum selecionado'
+              : acabamentoSel
+                ? `${acabamentoSel}`
+                : `${sel.length} selecionado${sel.length !== 1 ? 's' : ''}`}
           </span>
           <button
             onClick={onFechar}
