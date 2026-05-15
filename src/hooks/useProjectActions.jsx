@@ -35,6 +35,8 @@ export function useProjectActions(projectId, {
             .from('orcamento_pecas')
             .select('*, pecas(nome_livre, area_liquida_m2, espessura_cm, ambiente_id, dimensoes)')
             .eq('orcamento_id', orcId);
+        console.log('[PDF] fetchPecasParaPdf — orcId:', orcId, '| rows retornados:', data?.length ?? 0, '| error:', error);
+        console.log('[PDF] fetchPecasParaPdf — data raw:', data);
         if (error) throw error;
         return (data ?? []).map((op, idx) => ({
             id:                op.id,
@@ -761,6 +763,7 @@ export function useProjectActions(projectId, {
 
             setPedidoFechado({
                 id: pedido.id,
+                cenario_ids:           fecharIds,
                 forma_pagamento,
                 parcelas:              temParcelas ? parcelas_lista?.length : null,
                 parcelas_detalhes,
@@ -822,11 +825,16 @@ export function useProjectActions(projectId, {
         try {
             const incluirContrato = modo === 'pedido_contrato';
             const cenarioIds = pedidoFechado.cenario_ids ?? [];
+            console.log('[PDF] gerarPdfs — pedidoFechado.cenario_ids:', cenarioIds);
             const todasPecas = [];
             for (const orcId of cenarioIds) {
-                todasPecas.push(...(await fetchPecasParaPdf(orcId)));
+                const pecasDoCenario = await fetchPecasParaPdf(orcId);
+                console.log(`[PDF] gerarPdfs — cenario ${orcId}: ${pecasDoCenario.length} peças mapeadas`, pecasDoCenario);
+                todasPecas.push(...pecasDoCenario);
             }
+            console.log('[PDF] gerarPdfs — todasPecas total:', todasPecas.length);
             const orcsSel = ambientes.flatMap(a => a.orcamentos ?? []).filter(o => cenarioIds.includes(o.id));
+            console.log('[PDF] gerarPdfs — orcsSel (cenários encontrados nos ambientes):', orcsSel.length, orcsSel.map(o => ({ id: o.id, itens_manuais_len: o.itens_manuais?.length ?? 0 })));
             const orcUnificado = {
                 id:                     pedidoFechado.id,
                 nome:                   `Pedido #${pedidoFechado.id.slice(-8).toUpperCase()}`,
@@ -843,6 +851,8 @@ export function useProjectActions(projectId, {
                 valor_fechado:          pedidoFechado.valor_fechado ?? null,
                 data_fechamento:        pedidoFechado.created_at ?? null,
             };
+            console.log('[PDF] gerarPdfs — orcUnificado.pecas:', orcUnificado.pecas?.length, orcUnificado.pecas);
+            console.log('[PDF] gerarPdfs — orcUnificado.itens_manuais:', orcUnificado.itens_manuais?.length, orcUnificado.itens_manuais);
             const { gerarPdfPedidoFechado, gerarPdfContrato } = await import('../utils/gerarPdfOrcamento');
             await gerarPdfPedidoFechado({
                 orc:          orcUnificado,

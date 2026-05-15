@@ -226,6 +226,8 @@ async function buildOrcamentoPdf(
     ? [parseInt(corPrimaria.slice(1,3),16), parseInt(corPrimaria.slice(3,5),16), parseInt(corPrimaria.slice(5,7),16)]
     : C.accent;
 
+  console.log('[PDF] orcamento recebido:', JSON.stringify(orc, null, 2));
+  console.log('[PDF] pecas:', orc?.pecas, orc?.orcamento_pecas, orc?.itens);
   const pecasTotal = (orc.pecas ?? []).length + (orc.itens_manuais ?? []).length;
   if (pecasTotal === 0) throw new Error('Orçamento sem peças — não é possível gerar o PDF.');
 
