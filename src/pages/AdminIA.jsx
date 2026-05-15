@@ -1,13 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabase';
+import {
+  callGemini,
+  buildChatSystemPrompt,
+  sanitizeGeminiHistory,
+  isConfigured,
+  MODEL_NAME,
+  MAX_HISTORY_MESSAGES,
+} from '../services/aiService';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const GROQ_API_KEY  = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL         = 'llama-3.3-70b-versatile';
-const STORAGE_KEY   = 'smartstone_ia_history';
+const MODEL       = MODEL_NAME;
+const STORAGE_KEY = 'smartstone_ia_history';
 const MAX_SAVED_CONVS = 30;
 
 const WRITE_TOOLS = new Set([
@@ -28,13 +34,29 @@ const ALL_TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'buscar_projetos',
-      description: 'Lista projetos da empresa com filtro de status e/ou cliente.',
+      name: 'buscar_cep',
+      description: 'Busca endereço completo a partir de um CEP brasileiro via ViaCEP. Use ANTES de cadastrar_cliente quando o usuário fornecer apenas um CEP, para preencher logradouro, bairro, cidade e estado automaticamente.',
       parameters: {
         type: 'object',
         properties: {
+          cep: { type: 'string', description: 'CEP no formato 00000-000 ou 00000000.' },
+        },
+        required: ['cep'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'buscar_projetos',
+      description: 'Busca projetos da empresa. Use `projeto_nome` para localizar um projeto por nome parcial (ILIKE) e obter o projeto_id — nunca peça o ID ao usuário. Combine com `cliente_nome` ou `cliente_id` para restringir ao cliente certo.',
+      parameters: {
+        type: 'object',
+        properties: {
+          projeto_nome: { type: 'string', description: 'Nome parcial do projeto (busca ILIKE). Use para resolver o projeto_id sem pedir ao usuário.' },
           status:       { type: 'string', enum: ['orcado','aprovado','produzindo','entregue','perdido'] },
-          cliente_nome: { type: 'string' },
+          cliente_nome: { type: 'string', description: 'Nome parcial do cliente dono do projeto.' },
+          cliente_id:   { type: 'string', description: 'ID exato do cliente (use quando já tiver o ID de buscar_clientes).' },
           limite:       { type: 'number' },
         },
       },
@@ -44,11 +66,11 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_clientes',
-      description: 'Lista clientes da empresa.',
+      description: 'Busca clientes por nome parcial (ILIKE). SEMPRE use esta tool para resolver nomes em IDs — nunca peça o ID ao usuário. Se retornar múltiplos resultados, apresente os nomes encontrados e pergunte qual é o correto antes de continuar.',
       parameters: {
         type: 'object',
         properties: {
-          nome:  { type: 'string' },
+          nome:  { type: 'string', description: 'Nome parcial do cliente (busca ILIKE). Use para obter o cliente_id.' },
           email: { type: 'string' },
         },
       },
@@ -113,15 +135,20 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'buscar_usuarios',
-      description: 'Lista usuários da empresa.',
-      parameters: { type: 'object', properties: {} },
+      description: 'Busca usuários da empresa. Use `nome` para localizar um medidor pelo nome parcial (ILIKE) e obter o medidor_id — nunca peça o ID ao usuário. Vendedor só vê medidores; admin vê todos.',
+      parameters: {
+        type: 'object',
+        properties: {
+          nome: { type: 'string', description: 'Nome parcial do usuário (busca ILIKE). Use para resolver o medidor_id.' },
+        },
+      },
     },
   },
   {
     type: 'function',
     function: {
       name: 'cadastrar_cliente',
-      description: 'Cadastra cliente. Colete nome, telefone e endereço ANTES de chamar.',
+      description: 'Cadastra cliente. Se o usuário informar um CEP, chame buscar_cep PRIMEIRO para obter o endereço completo. Colete nome, telefone e endereço ANTES de chamar.',
       parameters: {
         type: 'object',
         properties: {
@@ -290,13 +317,13 @@ const ALL_TOOLS = [
     type: 'function',
     function: {
       name: 'agendar_medicao',
-      description: 'Agenda medição. Chame buscar_usuarios primeiro para obter medidor_id.',
+      description: 'Agenda medição. FLUXO OBRIGATÓRIO antes de chamar esta tool: 1) buscar_clientes pelo nome do cliente → 2) buscar_projetos com projeto_nome e o cliente_id encontrado → 3) buscar_usuarios com o nome do medidor → 4) somente então chamar agendar_medicao com os IDs. Nunca peça projeto_id nem medidor_id ao usuário — resolva-os sempre via tools.',
       parameters: {
         type: 'object',
         properties: {
-          projeto_id:   { type: 'string' },
-          medidor_id:   { type: 'string' },
-          data_medicao: { type: 'string', description: 'ISO 8601' },
+          projeto_id:   { type: 'string', description: 'ID do projeto (obtenha via buscar_projetos, nunca peça ao usuário).' },
+          medidor_id:   { type: 'string', description: 'ID do medidor (obtenha via buscar_usuarios, nunca peça ao usuário).' },
+          data_medicao: { type: 'string', description: 'ISO 8601, ex: 2026-05-20T09:00:00' },
           endereco:     { type: 'string' },
           observacoes:  { type: 'string' },
         },
@@ -381,13 +408,37 @@ async function executeTool(name, args, empresaId, userId, perfil) {
   try {
     switch (name) {
 
+      case 'buscar_cep': {
+        const cep = (args.cep ?? '').replace(/\D/g, '');
+        if (cep.length !== 8) return { erro: 'CEP inválido — informe exatamente 8 dígitos.' };
+        const res  = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (!res.ok) return { erro: `ViaCEP não respondeu (HTTP ${res.status}).` };
+        const d = await res.json();
+        if (d.erro) return { erro: `CEP ${args.cep} não encontrado.` };
+        const enderecoCompleto = [d.logradouro, d.bairro, `${d.localidade}/${d.uf}`, d.cep]
+          .filter(Boolean).join(', ');
+        return {
+          cep:               d.cep,
+          logradouro:        d.logradouro,
+          bairro:            d.bairro,
+          cidade:            d.localidade,
+          estado:            d.uf,
+          endereco_completo: enderecoCompleto,
+        };
+      }
+
       case 'buscar_projetos': {
-        const limite = Math.min(args.limite ?? 20, 50);
+        const limite = Math.min(args.limite ?? 50, 100);
+        const normalizeStr = s => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
         let clienteIds = null;
-        if (args.cliente_nome) {
-          const { data: clts } = await supabase.from('clientes').select('id')
-            .eq('empresa_id', empresaId).ilike('nome', `%${args.cliente_nome}%`);
-          clienteIds = (clts ?? []).map(c => c.id);
+        if (args.cliente_id) {
+          clienteIds = [args.cliente_id];
+        } else if (args.cliente_nome) {
+          // Busca todos e filtra client-side (accent-insensitive)
+          const { data: clts } = await supabase.from('clientes').select('id, nome')
+            .eq('empresa_id', empresaId);
+          const matched = (clts ?? []).filter(c => normalizeStr(c.nome).includes(normalizeStr(args.cliente_nome)));
+          clienteIds = matched.map(c => c.id);
           if (clienteIds.length === 0) return { total: 0, projetos: [] };
         }
         let q = supabase.from('projetos')
@@ -398,9 +449,12 @@ async function executeTool(name, args, empresaId, userId, perfil) {
         if (clienteIds)   q = q.in('cliente_id', clienteIds);
         const { data, error } = await q;
         if (error) return { erro: error.message };
+        const projetos = args.projeto_nome
+          ? data.filter(p => normalizeStr(p.nome).includes(normalizeStr(args.projeto_nome)))
+          : data;
         return {
-          total: data.length,
-          projetos: data.map(p => ({
+          total: projetos.length,
+          projetos: projetos.map(p => ({
             id: p.id, nome: p.nome,
             status: p.status, status_pt: STATUS_PT[p.status] ?? p.status,
             cliente: p.clientes?.nome ?? '—',
@@ -410,13 +464,16 @@ async function executeTool(name, args, empresaId, userId, perfil) {
       }
 
       case 'buscar_clientes': {
+        const normalizeStr = s => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
         let q = supabase.from('clientes').select('id, nome, telefone, email')
-          .eq('empresa_id', empresaId).order('nome').limit(50);
-        if (args.nome)  q = q.ilike('nome',  `%${args.nome}%`);
+          .eq('empresa_id', empresaId).order('nome').limit(200);
         if (args.email) q = q.ilike('email', `%${args.email}%`);
         const { data, error } = await q;
         if (error) return { erro: error.message };
-        return { total: data.length, clientes: data };
+        const filtered = args.nome
+          ? data.filter(c => normalizeStr(c.nome).includes(normalizeStr(args.nome)))
+          : data;
+        return { total: filtered.length, clientes: filtered };
       }
 
       case 'buscar_orcamento': {
@@ -523,19 +580,31 @@ async function executeTool(name, args, empresaId, userId, perfil) {
       }
 
       case 'buscar_usuarios': {
+        // ilike do PostgreSQL é accent-sensitive: 'André' ILIKE '%andre%' = false.
+        // Solução: buscar tudo no banco e filtrar client-side com normalize('NFD').
+        const normalizeStr = s => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
         // Vendedor só vê medidores (necessário para agendar_medicao).
         // Admin vê todos os usuários.
         if (perfil !== 'admin' && perfil !== 'superadmin') {
           const { data, error } = await supabase.from('usuarios')
             .select('id, nome, perfil')
-            .eq('empresa_id', empresaId).eq('perfil', 'medidor').eq('ativo', true).order('nome');
+            .eq('empresa_id', empresaId)
+            .in('perfil', ['medidor', 'vendedor_medidor'])
+            .eq('ativo', true).order('nome');
           if (error) return { erro: error.message };
-          return { total: data.length, usuarios: data, aviso: 'Vendedor visualiza apenas medidores.' };
+          const filtered = args.nome
+            ? data.filter(u => normalizeStr(u.nome).includes(normalizeStr(args.nome)))
+            : data;
+          return { total: filtered.length, usuarios: filtered, aviso: 'Vendedor visualiza apenas medidores.' };
         }
         const { data, error } = await supabase.from('usuarios')
           .select('id, nome, email, perfil, ativo').eq('empresa_id', empresaId).order('nome');
         if (error) return { erro: error.message };
-        return { total: data.length, usuarios: data };
+        const filtered = args.nome
+          ? data.filter(u => normalizeStr(u.nome).includes(normalizeStr(args.nome)))
+          : data;
+        return { total: filtered.length, usuarios: filtered };
       }
 
       case 'cadastrar_cliente': {
@@ -695,23 +764,48 @@ async function executeTool(name, args, empresaId, userId, perfil) {
       }
 
       case 'agendar_medicao': {
+        // Converte data/hora para BRT (-03:00) antes de enviar ao Supabase.
+        // A IA manda strings ISO sem timezone (ex: "2026-05-14T09:00:00") e o
+        // PostgreSQL interpretaria como UTC, salvando com -3h. Forçamos o offset.
+        function toBRTimestamp(val) {
+          if (!val) return null;
+          const bare       = String(val).replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
+          const normalized = /T\d{2}:\d{2}$/.test(bare) ? bare + ':00' : bare;
+          return normalized + '-03:00';
+        }
+
         // Busca o nome do medidor para preencher `responsavel` (NOT NULL no banco)
-        const { data: medidor } = await supabase.from('usuarios')
+        const { data: medidor, error: errMedidor } = await supabase.from('usuarios')
           .select('nome').eq('id', args.medidor_id).single();
-        const { data, error } = await supabase.from('medicoes')
-          .insert({
-            empresa_id:         empresaId,
-            projeto_id:         args.projeto_id,
-            medidor_id:         args.medidor_id,
-            responsavel:        medidor?.nome ?? '',
-            data_medicao:       args.data_medicao,
-            endereco:           args.endereco?.trim()    || null,
-            observacoes_acesso: args.observacoes?.trim() || null,
-            status:             'agendada',
-          })
-          .select('id, projeto_id, data_medicao, status, responsavel').single();
-        if (error) return { erro: error.message };
-        return { sucesso: true, medicao_criada: data };
+        if (errMedidor) console.warn('[IA][agendar_medicao] busca medidor:', errMedidor.message);
+
+        const payload = {
+          empresa_id:         empresaId,
+          projeto_id:         args.projeto_id,
+          medidor_id:         args.medidor_id,
+          responsavel:        medidor?.nome ?? '',
+          data_medicao:       toBRTimestamp(args.data_medicao),
+          endereco:           args.endereco?.trim()    || null,
+          observacoes_acesso: args.observacoes?.trim() || null,
+          status:             'agendada',
+        };
+        console.log('[IA][agendar_medicao] payload enviado:', JSON.stringify(payload, null, 2));
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('medicoes')
+          .insert(payload)
+          .select('id, projeto_id, data_medicao, status, responsavel')
+          .single();
+
+        console.log('[IA][agendar_medicao] resposta Supabase:', { inserted, insertError });
+
+        if (insertError) {
+          return { sucesso: false, erro: insertError.message };
+        }
+        if (!inserted) {
+          return { sucesso: false, erro: 'Insert não retornou dados — verifique RLS da tabela medicoes.' };
+        }
+        return { sucesso: true, medicao: inserted };
       }
 
       case 'marcar_lancamento_pago': {
@@ -819,26 +913,12 @@ function humanizeTool(name, args) {
   }
 }
 
-function buildSystemPrompt(perfil, nome, nomeEmpresa) {
-  const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const acesso = perfil === 'medidor'
-    ? 'projetos, medições, notificações'
-    : perfil === 'vendedor'
-    ? 'projetos, clientes, orçamentos, materiais, arquitetos, fechamentos, medições'
-    : 'tudo: projetos, clientes, orçamentos, materiais, financeiro, parceiros, usuários';
-  return [
-    `Assistente SmartStone — empresa "${nomeEmpresa}". Hoje: ${hoje}. Usuário: ${nome} (${perfil}). Acesso: ${acesso}.`,
-    'Responda em pt-BR, direto. Formate moeda como "R$ X.XXX,XX".',
-    'OBRIGATÓRIO: quando o usuário pedir informações que estão no banco, chame as tools imediatamente sem explicar o que vai fazer. Nunca descreva os passos — execute-os.',
-    'Regras: cadastrar_cliente exige nome+telefone+endereço do usuário ANTES de chamar. agendar_medicao exige buscar_usuarios primeiro. lançamentos financeiros exigem buscar_financeiro primeiro para categoria_id.',
-  ].join('\n');
+function buildSystemPrompt(perfil, nome, nomeEmpresa, economyMode = false) {
+  return buildChatSystemPrompt(perfil, nome, nomeEmpresa, economyMode);
 }
 
-function getInitialMessage(perfil, nome) {
-  const primeiro = (nome ?? 'Usuário').split(' ')[0];
-  if (perfil === 'medidor')  return `Olá, ${primeiro}! Posso consultar projetos, medições e suas notificações. Como posso ajudar?`;
-  if (perfil === 'vendedor') return `Olá, ${primeiro}! Posso consultar e criar projetos, clientes, orçamentos, agendar medições, buscar arquitetos e fechamentos. Como posso ajudar?`;
-  return `Olá, ${primeiro}! Acesso completo: projetos, clientes, orçamentos, materiais, arquitetos, parceiros, financeiro (lançamentos, baixa, cancelamento, contas) e usuários. Como posso ajudar?`;
+function getInitialMessage() {
+  return 'Olá! Eu sou a Gi, como posso te ajudar?';
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
@@ -865,7 +945,8 @@ function removeConversation(id) {
 
 function makeTitleFromHistory(history) {
   const first = history.find(m => m.role === 'user');
-  const raw = typeof first?.content === 'string' ? first.content : '';
+  // Gemini format: parts array; fallback to legacy content string
+  const raw = first?.parts?.[0]?.text ?? (typeof first?.content === 'string' ? first.content : '');
   const trimmed = raw.replace(/\[.*?\]/g, '').trim();
   return (trimmed.slice(0, 38) + (trimmed.length > 38 ? '…' : '')) || 'Nova conversa';
 }
@@ -885,8 +966,8 @@ function formatRelDate(iso) {
 
 function ConversationSidebar({ conversations, currentId, onSelect, onNew, onDelete }) {
   return (
-    <div className="flex flex-col w-52 shrink-0 border-r border-zinc-800 bg-[#0a0a0a] overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-3 border-b border-zinc-800 shrink-0">
+    <div className="flex flex-col w-52 shrink-0 border-r border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-3 border-b border-gray-200 dark:border-zinc-800 shrink-0">
         <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Conversas</span>
         <button
           onClick={onNew}
@@ -909,13 +990,13 @@ function ConversationSidebar({ conversations, currentId, onSelect, onNew, onDele
             onClick={() => onSelect(conv)}
             className={`group flex items-start gap-1.5 px-3 py-2.5 cursor-pointer transition-colors border-l-2 ${
               conv.id === currentId
-                ? 'bg-zinc-900 border-yellow-400'
-                : 'border-transparent hover:bg-zinc-900/50 hover:border-zinc-700'
+                ? 'bg-gray-200 dark:bg-zinc-900 border-yellow-400'
+                : 'border-transparent hover:bg-gray-200/70 dark:hover:bg-zinc-900/50 hover:border-gray-400 dark:hover:border-zinc-700'
             }`}
           >
             <div className="flex-1 min-w-0 pt-px">
               <p className={`font-mono text-[11px] leading-snug truncate ${
-                conv.id === currentId ? 'text-yellow-400' : 'text-zinc-300'
+                conv.id === currentId ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-700 dark:text-zinc-300'
               }`}>
                 {conv.title}
               </p>
@@ -937,11 +1018,44 @@ function ConversationSidebar({ conversations, currentId, onSelect, onNew, onDele
   );
 }
 
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onDelete, onEdit, onRetry, disabled }) {
   const isUser  = msg.role === 'user';
   const isError = msg.role === 'error';
+
+  const actions = (
+    <div className={`flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {isUser && !disabled && (
+        <button
+          onClick={() => onEdit?.(msg.id, msg.text ?? '')}
+          title="Editar e reenviar"
+          className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors"
+        >
+          <iconify-icon icon="solar:pen-linear" width="11" />
+        </button>
+      )}
+      {!disabled && (
+        <button
+          onClick={() => onDelete?.(msg.id)}
+          title="Excluir mensagem"
+          className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-colors"
+        >
+          <iconify-icon icon="solar:trash-bin-minimalistic-linear" width="11" />
+        </button>
+      )}
+      {isError && !disabled && (
+        <button
+          onClick={() => onRetry?.()}
+          title="Tentar novamente"
+          className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-emerald-400 transition-colors"
+        >
+          <iconify-icon icon="solar:refresh-linear" width="11" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}>
       {!isUser && (
         <div className={`w-6 h-6 border flex items-center justify-center shrink-0 mr-2 mt-0.5 ${
           isError ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700/40' : 'bg-yellow-100 dark:bg-yellow-400/10 border-yellow-300 dark:border-yellow-400/20'
@@ -953,26 +1067,29 @@ function MessageBubble({ msg }) {
           />
         </div>
       )}
-      <div className={`max-w-[75%] font-mono text-[12px] leading-relaxed overflow-hidden ${
-        isUser
-          ? 'bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/20 text-yellow-900 dark:text-yellow-100'
-          : isError
-          ? 'bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700/40 text-red-700 dark:text-red-300'
-          : 'bg-zinc-900 border border-zinc-800 text-zinc-300'
-      }`}>
-        {msg.imagePreview && (
-          <img
-            src={msg.imagePreview}
-            alt="imagem"
-            className="max-w-full max-h-52 object-contain w-full border-b border-zinc-700/50"
-          />
-        )}
-        {(msg.text || (!msg.imagePreview)) && (
-          <p className="px-4 py-3 whitespace-pre-wrap">{msg.text}</p>
-        )}
+      <div className="flex flex-col max-w-[75%]">
+        <div className={`font-mono text-[12px] leading-relaxed overflow-hidden ${
+          isUser
+            ? 'bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/20 text-yellow-900 dark:text-yellow-100'
+            : isError
+            ? 'bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700/40 text-red-700 dark:text-red-300'
+            : 'bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300'
+        }`}>
+          {msg.imagePreview && (
+            <img
+              src={msg.imagePreview}
+              alt="imagem"
+              className="max-w-full max-h-52 object-contain w-full border-b border-zinc-700/50"
+            />
+          )}
+          {(msg.text || (!msg.imagePreview)) && (
+            <p className="px-4 py-3 whitespace-pre-wrap">{msg.text}</p>
+          )}
+        </div>
+        {actions}
       </div>
       {isUser && (
-        <div className="w-6 h-6 bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 ml-2 mt-0.5 font-mono text-[8px] text-yellow-400 font-bold">
+        <div className="w-6 h-6 bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 flex items-center justify-center shrink-0 ml-2 mt-0.5 font-mono text-[8px] text-yellow-600 dark:text-yellow-400 font-bold">
           EU
         </div>
       )}
@@ -1042,10 +1159,10 @@ function LoadingBubble() {
       <div className="w-6 h-6 bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
         <iconify-icon icon="solar:stars-linear" width="12" class="text-yellow-400" />
       </div>
-      <div className="px-4 py-3 bg-zinc-900 border border-zinc-800 flex items-center gap-2">
-        <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce [animation-delay:0ms]" />
-        <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce [animation-delay:150ms]" />
-        <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce [animation-delay:300ms]" />
+      <div className="px-4 py-3 bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center gap-2">
+        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:0ms]" />
+        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:150ms]" />
+        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:300ms]" />
       </div>
     </div>
   );
@@ -1083,19 +1200,21 @@ export default function AdminIA() {
   const [imageBase64, setImageBase64] = useState(null);
   const [imageName,   setImageName]   = useState('');
 
-  const apiHistory     = useRef([]);
-  const bottomRef      = useRef(null);
-  const confirmResolve = useRef(null);
-  const profileInitRef = useRef(false);
-  const fileInputRef   = useRef(null);
-  const convIdRef      = useRef(convId);
+  const apiHistory           = useRef([]);
+  const bottomRef            = useRef(null);
+  const confirmResolve       = useRef(null);
+  const profileInitRef       = useRef(false);
+  const fileInputRef         = useRef(null);
+  const convIdRef            = useRef(convId);
+  const lastUserTextRef      = useRef('');
+  const historyBeforeSendRef = useRef([]);
   useEffect(() => { convIdRef.current = convId; }, [convId]);
 
   // Init greeting once profile loads
   useEffect(() => {
     if (profile && !profileInitRef.current) {
       profileInitRef.current = true;
-      setMessages([{ id: 0, role: 'assistant', text: getInitialMessage(perfil, nomeUsuario) }]);
+      setMessages([{ id: 0, role: 'assistant', text: getInitialMessage() }]);
     }
   }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1145,13 +1264,16 @@ export default function AdminIA() {
   const handleSend = async () => {
     const text     = input.trim();
     const hasImage = !!imageBase64;
-    if ((!text && !hasImage) || loading || !GROQ_API_KEY || hasPendingConfirm) return;
+    if ((!text && !hasImage) || loading || !isConfigured || hasPendingConfirm) return;
 
     const imgData     = imageBase64;
-    const imgNameSnap = imageName;
     setInput('');
     setImageBase64(null);
     setImageName('');
+
+    // Guarda estado para retry/edit
+    lastUserTextRef.current      = text;
+    historyBeforeSendRef.current = [...apiHistory.current];
 
     pushDisplay({ role: 'user', text: text || '', imagePreview: hasImage ? imgData : undefined });
 
@@ -1161,45 +1283,54 @@ export default function AdminIA() {
     try {
       const tools = getToolsForPerfil(perfil);
 
-      // llama-3.3-70b-versatile não suporta visão — embute nome da imagem no texto
-      const userContent = hasImage
-        ? (text ? `${text}\n` : '') + `[Imagem enviada: ${imgNameSnap} — análise de imagem não disponível neste modelo]`
-        : text;
+      // Build Gemini-format user parts (supports vision natively)
+      const userParts = [];
+      if (text) userParts.push({ text });
+      if (hasImage) {
+        const [header, data] = imgData.split(',');
+        const mimeType       = header.match(/:(.*?);/)[1];
+        userParts.push({ inlineData: { data, mimeType } });
+      }
 
-      // Limita o histórico às últimas 10 mensagens para reduzir tokens enviados
-      const trimmedHistory = apiHistory.current.slice(-10);
-      let loopHistory      = [...trimmedHistory, { role: 'user', content: userContent }];
+      // Slice e sanitiza o histórico: o slice pode cortar no meio de um par
+      // functionCall/functionResponse, criando órfãos que o Gemini rejeita com 400.
+      const trimmedHistory = sanitizeGeminiHistory(apiHistory.current.slice(-MAX_HISTORY_MESSAGES));
+      let loopHistory      = [...trimmedHistory, { role: 'user', parts: userParts }];
       let wroteInThisTurn  = false;
 
       while (true) {
-        const res = await fetch(GROQ_ENDPOINT, {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model:    MODEL,
-            messages: [{ role: 'system', content: systemText }, ...loopHistory],
-            ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
-          }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err?.error?.message ?? `Erro HTTP ${res.status}`);
+        if (import.meta.env.DEV) {
+          console.log(`[IA] callGemini — ${loopHistory.length} turns no histórico:`);
+          loopHistory.forEach((m, i) => {
+            const p = m.parts?.[0] ?? {};
+            const preview = p.text?.slice(0, 60)
+              ?? (p.functionCall     ? `⚙ ${p.functionCall.name}(${JSON.stringify(p.functionCall.args ?? {}).slice(0, 40)})` : null)
+              ?? (p.functionResponse ? `↩ ${p.functionResponse.name}` : null)
+              ?? (p.inlineData       ? '[imagem]' : '?');
+            console.log(`  [${i}] ${m.role}: ${preview}`);
+          });
         }
 
-        const data      = await res.json();
-        const assistant = data.choices?.[0]?.message;
-        if (!assistant) throw new Error('Resposta inválida da API.');
+        const { text: responseText, functionCalls } = await callGemini({
+          systemPrompt: systemText,
+          history:      loopHistory,
+          tools:        tools.length > 0 ? tools : undefined,
+          fluxo:        'chat_vendedor',
+          empresaId,
+        });
 
-        loopHistory.push(assistant);
+        if (functionCalls?.length > 0) {
+          // Append model's function-call turn
+          loopHistory.push({
+            role:  'model',
+            parts: functionCalls.map(fc => ({ functionCall: { name: fc.name, args: fc.args } })),
+          });
 
-        if (assistant.tool_calls?.length > 0) {
-          for (const toolCall of assistant.tool_calls) {
-            const name = toolCall.function.name;
-            const args = JSON.parse(toolCall.function.arguments || '{}');
+          // Execute tools and collect function responses
+          const responseParts = [];
+          for (const fc of functionCalls) {
+            const name = fc.name;
+            const args = fc.args ?? {};
             let result;
 
             if (WRITE_TOOLS.has(name)) {
@@ -1223,17 +1354,30 @@ export default function AdminIA() {
               result = await executeTool(name, args, empresaId, userId, perfil);
             }
 
-            loopHistory.push({
-              role:         'tool',
-              tool_call_id: toolCall.id,
-              content:      JSON.stringify(result),
-            });
+            responseParts.push({ functionResponse: { name, response: result } });
           }
+
+          // Append all function responses as a single user turn
+          loopHistory.push({ role: 'user', parts: responseParts });
+
         } else {
-          const clean = sanitizeModelText(assistant.content ?? '');
-          apiHistory.current = loopHistory;
+          const clean = sanitizeModelText(responseText ?? '');
+          loopHistory.push({ role: 'model', parts: [{ text: clean }] });
+
+          // Salva apenas turns de texto puro (user plain + model text).
+          // Descartar os turns fc/fr intermediários evita que o slice(-N) do próximo
+          // turno corte no meio de uma sequência de tool calls, o que faria a
+          // sanitizeGeminiHistory descartar tudo e zerar o contexto da conversa.
+          // O texto da resposta já resume o que as tools retornaram, então o
+          // contexto conversacional é preservado sem precisar repassar dados brutos.
+          const plainHistory = loopHistory.filter(m =>
+            Array.isArray(m.parts) &&
+            m.parts.every(p => !('functionCall' in p) && !('functionResponse' in p))
+          );
+          apiHistory.current = plainHistory;
+
           if (clean) pushDisplay({ role: 'assistant', text: clean });
-          saveConv(loopHistory);
+          saveConv(plainHistory);
           break;
         }
       }
@@ -1249,13 +1393,35 @@ export default function AdminIA() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
+  const handleDeleteMessage = useCallback((msgId) => {
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+  }, [setMessages]);
+
+  const handleEditMessage = useCallback((msgId, text) => {
+    setMessages(prev => {
+      const idx = prev.findIndex(m => m.id === msgId);
+      return idx >= 0 ? prev.slice(0, idx) : prev;
+    });
+    apiHistory.current = historyBeforeSendRef.current;
+    setInput(text);
+  }, [setMessages]);
+
+  const handleRetryMessage = useCallback(() => {
+    setMessages(prev => {
+      const lastErrIdx = [...prev].map((m, i) => ({ m, i })).reverse().find(({ m }) => m.role === 'error')?.i ?? -1;
+      return lastErrIdx >= 0 ? prev.slice(0, lastErrIdx) : prev;
+    });
+    apiHistory.current = historyBeforeSendRef.current;
+    setInput(lastUserTextRef.current);
+  }, [setMessages]);
+
   const startNewConversation = useCallback(() => {
     const newId = crypto.randomUUID();
     setConvId(newId);
     convIdRef.current = newId;
     apiHistory.current = [];
     profileInitRef.current = false;
-    setMessages([{ id: Date.now(), role: 'assistant', text: getInitialMessage(perfil, nomeUsuario) }]);
+    setMessages([{ id: Date.now(), role: 'assistant', text: getInitialMessage() }]);
     setInput('');
     setImageBase64(null);
   }, [perfil, nomeUsuario, setMessages]);
@@ -1263,18 +1429,24 @@ export default function AdminIA() {
   const handleSelectConversation = useCallback((conv) => {
     setConvId(conv.id);
     convIdRef.current = conv.id;
-    // Strip tool-call/response turns — keep only user and assistant text messages
-    // so replaying never hits schema mismatches with a different tool set.
+    // Keep only pure text turns (Gemini format) — discard function call/response turns
+    // to avoid schema mismatches when replaying with a different tool set.
     const rawHist = conv.apiHistory ?? [];
     apiHistory.current = rawHist.filter(m => {
-      if (m.role === 'user')      return typeof m.content === 'string' && m.content.trim() !== '';
-      if (m.role === 'assistant') return typeof m.content === 'string' && !m.tool_calls;
+      if (m.role === 'user') {
+        // Gemini user turns with only text parts (not functionResponse)
+        return Array.isArray(m.parts) && m.parts.length > 0 && m.parts.every(p => typeof p.text === 'string' && p.text.trim() !== '');
+      }
+      if (m.role === 'model') {
+        // Gemini model turns with only text parts (not functionCall)
+        return Array.isArray(m.parts) && m.parts.length > 0 && m.parts.every(p => typeof p.text === 'string');
+      }
       return false;
     });
     setMessages(
       conv.messages?.length
         ? conv.messages
-        : [{ id: Date.now(), role: 'assistant', text: getInitialMessage(perfil, nomeUsuario) }]
+        : [{ id: Date.now(), role: 'assistant', text: getInitialMessage() }]
     );
     setInput('');
     setImageBase64(null);
@@ -1286,7 +1458,7 @@ export default function AdminIA() {
     if (id === convIdRef.current) startNewConversation();
   }, [startNewConversation]);
 
-  const apiKeyMissing = !GROQ_API_KEY;
+  const apiKeyMissing = !isConfigured;
   const inputDisabled = loading || hasPendingConfirm || apiKeyMissing;
 
   return (
@@ -1311,18 +1483,18 @@ export default function AdminIA() {
             <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-amber-700 dark:text-amber-400 mt-0.5 shrink-0" />
             <p className="font-mono text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
               <span className="font-bold uppercase tracking-widest">Chave não configurada. </span>
-              Adicione <code className="bg-zinc-800 px-1">VITE_GROQ_API_KEY</code> ao <code className="bg-zinc-800 px-1">.env.local</code> e reinicie.
+              Adicione <code className="bg-gray-200 dark:bg-zinc-800 px-1">VITE_GEMINI_API_KEY</code> ao <code className="bg-gray-200 dark:bg-zinc-800 px-1">.env.local</code> e reinicie.
             </p>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between pt-4 pb-3 shrink-0 border-b border-zinc-800/60 mb-4">
+        <div className="flex items-center justify-between pt-4 pb-3 shrink-0 border-b border-gray-200 dark:border-zinc-800/60 mb-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(p => !p)}
               title={sidebarOpen ? 'Fechar painel' : 'Ver conversas'}
-              className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-zinc-300 border border-zinc-800 hover:border-zinc-600 transition-colors mr-1"
+              className="w-7 h-7 flex items-center justify-center text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300 border border-gray-300 dark:border-zinc-800 hover:border-gray-500 dark:hover:border-zinc-600 transition-colors mr-1"
             >
               <iconify-icon icon="solar:sidebar-minimalistic-linear" width="14" />
             </button>
@@ -1330,15 +1502,15 @@ export default function AdminIA() {
               <iconify-icon icon="solar:stars-linear" width="14" class="text-yellow-400" />
             </div>
             <div>
-              <div className="font-mono text-[11px] uppercase tracking-widest text-white font-bold leading-tight">
-                Assistente IA
+              <div className="font-mono text-[11px] uppercase tracking-widest text-gray-900 dark:text-white font-bold leading-tight">
+                Gi
               </div>
               <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{MODEL}</div>
             </div>
           </div>
           <button
             onClick={startNewConversation}
-            className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 hover:text-zinc-400 px-2 py-1 border border-zinc-800 hover:border-zinc-600 transition-colors flex items-center gap-1.5"
+            className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 hover:text-gray-800 dark:hover:text-zinc-400 px-2 py-1 border border-gray-300 dark:border-zinc-800 hover:border-gray-500 dark:hover:border-zinc-600 transition-colors flex items-center gap-1.5"
           >
             <iconify-icon icon="solar:add-square-linear" width="11" />
             Nova
@@ -1355,7 +1527,14 @@ export default function AdminIA() {
                 onCancel={() => confirmPending(false)}
               />
             ) : (
-              <MessageBubble key={msg.id} msg={msg} />
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                disabled={loading || hasPendingConfirm}
+                onDelete={handleDeleteMessage}
+                onEdit={handleEditMessage}
+                onRetry={handleRetryMessage}
+              />
             )
           )}
           {loading && <LoadingBubble />}
@@ -1363,7 +1542,7 @@ export default function AdminIA() {
         </div>
 
         {/* Input area */}
-        <div className="shrink-0 border-t border-zinc-800 pt-4 pb-4">
+        <div className="shrink-0 border-t border-gray-200 dark:border-zinc-800 pt-4 pb-4">
           {hasPendingConfirm && (
             <div className="mb-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/30 font-mono text-[10px] text-amber-700 dark:text-amber-400 uppercase tracking-widest">
               Confirme ou cancele a operação acima para continuar
@@ -1371,7 +1550,7 @@ export default function AdminIA() {
           )}
 
           {imageBase64 && (
-            <div className="mb-2 flex items-center gap-3 px-3 py-2 bg-zinc-900 border border-zinc-700">
+            <div className="mb-2 flex items-center gap-3 px-3 py-2 bg-gray-100 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700">
               <img src={imageBase64} alt="preview" className="w-10 h-10 object-cover shrink-0" />
               <span className="font-mono text-[10px] text-zinc-400 truncate flex-1">{imageName}</span>
               <button
@@ -1390,7 +1569,7 @@ export default function AdminIA() {
               onClick={() => fileInputRef.current?.click()}
               disabled={inputDisabled || !!imageBase64}
               title="Enviar imagem"
-              className="px-3 border border-zinc-800 text-zinc-600 hover:text-zinc-300 hover:border-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center"
+              className="px-3 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:text-gray-800 dark:hover:text-zinc-300 hover:border-gray-500 dark:hover:border-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center"
             >
               <iconify-icon icon="solar:camera-add-linear" width="16" />
             </button>
@@ -1407,7 +1586,7 @@ export default function AdminIA() {
                 : 'Digite sua mensagem... (Enter para enviar)'
               }
               rows={3}
-              className="flex-1 bg-zinc-950 border border-zinc-800 text-white text-[12px] font-mono px-3 py-2 outline-none focus:border-yellow-400 focus:shadow-[0_0_8px_rgba(250,204,21,0.10)] placeholder:text-zinc-700 resize-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 bg-gray-50 dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono px-3 py-2 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 focus:shadow-[0_0_8px_rgba(250,204,21,0.10)] placeholder:text-gray-400 dark:placeholder:text-zinc-700 resize-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             />
 
             <button

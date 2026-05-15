@@ -1,19 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useAuth } from '../../lib/AuthContext';
+import { analyzePlantPDF, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-// ── Mock ─────────────────────────────────────────────────────────────────────
+const MAX_PDF_PAGES = 10; // limite de páginas enviadas ao Gemini
 
-const MOCK_ITEMS = [
-  { id: '1', descricao: 'Bancada cozinha', dimensoes: '3,20 m × 0,60 m', ambiente: 'Cozinha',   confianca: 95, pagina: 1 },
-  { id: '2', descricao: 'Bancada banheiro suíte', dimensoes: '1,80 m × 0,55 m', ambiente: 'Suíte', confianca: 72, pagina: 2 },
-  { id: '3', descricao: 'Soleira entrada', dimensoes: '1,20 m × 0,15 m', ambiente: 'Hall',       confianca: 40, pagina: 1 },
-  { id: '4', descricao: 'Balcão lavabo',  dimensoes: '0,90 m × 0,45 m', ambiente: 'Lavabo',      confianca: 88, pagina: 3 },
-];
-
-const MOCK_CHAT = [
+const INITIAL_CHAT = [
   { role: 'assistant', text: 'Faça upload de um PDF de projeto para eu extrair os itens automaticamente.' },
 ];
 
@@ -293,6 +288,9 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) {
+  const { profile } = useAuth();
+  const empresaId   = profile?.empresa_id ?? null;
+
   const [pdfDoc,       setPdfDoc]       = useState(null);
   const [currentPage,  setCurrentPage]  = useState(1);
   const [scale,        setScale]        = useState(1.2);
@@ -300,13 +298,17 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   const [fileName,     setFileName]     = useState('');
   const [items,        setItems]        = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [chatMessages, setChatMessages] = useState(MOCK_CHAT);
+  const [chatMessages, setChatMessages] = useState(INITIAL_CHAT);
   const [chatInput,    setChatInput]    = useState('');
+  const [chatLoading,  setChatLoading]  = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [fileList,     setFileList]     = useState(initialFiles ?? []);
   const [activeFileIdx, setActiveFileIdx] = useState(0);
 
-  const fileInputRef = useRef(null);
+  // Gemini-format chat history (separate from display messages)
+  const chatHistoryRef = useRef([]);
+
+  const fileInputRef  = useRef(null);
   const chatBottomRef = useRef(null);
 
   useEffect(() => {
@@ -318,27 +320,76 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     if (initialFiles?.length > 0) loadPDF(initialFiles[0]);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── PDF → images helper ────────────────────────────────────────────────────
+  async function pdfToImages(doc) {
+    const count  = Math.min(doc.numPages, MAX_PDF_PAGES);
+    const images = [];
+    for (let i = 1; i <= count; i++) {
+      const page     = await doc.getPage(i);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas   = document.createElement('canvas');
+      canvas.width   = viewport.width;
+      canvas.height  = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      images.push(canvas.toDataURL('image/jpeg', 0.85));
+    }
+    return images;
+  }
+
   // ── PDF loading ────────────────────────────────────────────────────────────
   async function loadPDF(file) {
     if (!file || file.type !== 'application/pdf') return;
     setLoading(true);
     setFileName(file.name);
+    setItems([]);
+    chatHistoryRef.current = [];
+
     try {
       const buffer = await file.arrayBuffer();
       const doc    = await pdfjsLib.getDocument({ data: buffer }).promise;
       setPdfDoc(doc);
       setCurrentPage(1);
-      // Simula extração pela IA após 1.5s
-      setTimeout(() => {
-        setItems(MOCK_ITEMS);
-        setChatMessages(prev => [
-          ...prev,
-          { role: 'assistant', text: `Analisei "${file.name}" e encontrei ${MOCK_ITEMS.length} itens. Revise abaixo e me diga se algo precisa ser ajustado.` },
-        ]);
+
+      if (!isConfigured) {
+        setChatMessages(prev => [...prev, {
+          role: 'error',
+          text: 'VITE_GEMINI_API_KEY não configurada. Adicione ao .env.local e reinicie.',
+        }]);
         setLoading(false);
-      }, 1500);
+        return;
+      }
+
+      setChatMessages(prev => [...prev, { role: 'assistant', text: `Renderizando "${file.name}"…` }]);
+
+      const pageImages  = await pdfToImages(doc);
+      const extracted   = await analyzePlantPDF({ pageImages, empresaId });
+
+      // Normalize ids to strings
+      const normalizedItems = extracted.map((item, i) => ({
+        ...item,
+        id:       String(item.id ?? i + 1),
+        pagina:   Number(item.pagina ?? 1),
+        confianca: Number(item.confianca ?? 50),
+      }));
+
+      setItems(normalizedItems);
+
+      const summary = `Analisei "${file.name}" (${doc.numPages} pág.) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
+      setChatMessages(prev => [
+        ...prev.slice(0, -1), // remove a mensagem de "Renderizando..."
+        { role: 'assistant', text: summary },
+      ]);
+
+      // Seed chat history with item context so follow-up questions work
+      chatHistoryRef.current = [
+        { role: 'model', parts: [{ text: `${summary}\n\nItens extraídos:\n${JSON.stringify(normalizedItems, null, 2)}` }] },
+      ];
     } catch (err) {
-      setChatMessages(prev => [...prev, { role: 'error', text: `Erro ao carregar PDF: ${err.message}` }]);
+      setChatMessages(prev => [
+        ...prev.filter(m => m.text !== `Renderizando "${file.name}"…`),
+        { role: 'error', text: `Erro ao analisar PDF: ${err.message}` },
+      ]);
+    } finally {
       setLoading(false);
     }
   }
@@ -372,15 +423,32 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   }
 
   // ── Chat ───────────────────────────────────────────────────────────────────
-  function handleChatSend() {
+  async function handleChatSend() {
     const text = chatInput.trim();
-    if (!text) return;
-    setChatMessages(prev => [
-      ...prev,
-      { role: 'user', text },
-      { role: 'assistant', text: 'Entendido. Ajuste anotado — implemente a integração real para que eu aplique as mudanças nos itens.' },
-    ]);
+    if (!text || chatLoading) return;
+
+    setChatMessages(prev => [...prev, { role: 'user', text }]);
     setChatInput('');
+    setChatLoading(true);
+
+    const userTurn = { role: 'user', parts: [{ text }] };
+    const history  = [...chatHistoryRef.current.slice(-6), userTurn];
+
+    try {
+      const { text: responseText } = await callGemini({
+        systemPrompt: PLANTA_CHAT_SYSTEM,
+        history,
+        fluxo:        'analise_planta',
+        empresaId,
+      });
+      const reply = responseText ?? 'Não consegui processar sua mensagem.';
+      chatHistoryRef.current = [...history, { role: 'model', parts: [{ text: reply }] }];
+      setChatMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: 'error', text: `Erro: ${err.message}` }]);
+    } finally {
+      setChatLoading(false);
+    }
   }
 
   return (
@@ -500,16 +568,19 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleChatSend()}
-              disabled={!pdfDoc}
+              disabled={!pdfDoc || chatLoading}
               placeholder={pdfDoc ? 'Ex: muda a medida da bancada da cozinha para 3,50 m' : 'Faça upload de um PDF para começar'}
               className="flex-1 bg-zinc-950 border border-zinc-800 text-white text-[11px] font-mono px-3 py-2 outline-none focus:border-yellow-400 placeholder:text-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             />
             <button
               onClick={handleChatSend}
-              disabled={!chatInput.trim() || !pdfDoc}
+              disabled={!chatInput.trim() || !pdfDoc || chatLoading}
               className="px-3 bg-yellow-400 text-black font-mono text-[10px] uppercase tracking-widest font-bold hover:bg-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <iconify-icon icon="solar:arrow-up-linear" width="13" />
+              {chatLoading
+                ? <iconify-icon icon="solar:refresh-linear" width="13" class="animate-spin" />
+                : <iconify-icon icon="solar:arrow-up-linear" width="13" />
+              }
             </button>
           </div>
         </div>

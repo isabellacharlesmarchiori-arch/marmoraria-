@@ -194,7 +194,7 @@ export default function AbaCarrinho({
                         <>
                             <button
                                 onClick={() => setModalPdf(true)}
-                                className="flex items-center gap-1.5 border border-zinc-600 text-zinc-300 text-sm font-mono uppercase tracking-widest px-3 py-1 hover:border-zinc-400 hover:text-white transition-colors"
+                                className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 text-sm font-mono uppercase tracking-widest px-3 py-1 hover:border-gray-700 dark:hover:border-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                             >
                                 <iconify-icon icon="solar:file-text-linear" width="13"></iconify-icon>
                                 Orçamento por PDF

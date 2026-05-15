@@ -749,7 +749,7 @@ export default function Carrinho() {
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-zinc-600 gap-4">
+    <div className="min-h-screen bg-gray-100 dark:bg-[#050505] flex flex-col items-center justify-center text-gray-500 dark:text-zinc-600 gap-4">
       <iconify-icon icon="solar:spinner-linear" width="40" class="animate-spin" />
       <p className="font-mono text-xs uppercase tracking-widest">Carregando orçamento...</p>
     </div>
@@ -757,7 +757,7 @@ export default function Carrinho() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-yellow-400/30">
+    <div className="min-h-screen bg-gray-100 dark:bg-[#050505] text-gray-900 dark:text-white flex flex-col font-sans selection:bg-yellow-400/30">
 
       {/* Backgrounds — mesmo padrão do TelaProjeto */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid" />
@@ -795,17 +795,17 @@ export default function Carrinho() {
 
         {/* Header */}
         <section className="mb-6">
-          <div className="bg-[#0a0a0a] border border-zinc-800 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-0.5 mb-2">
                 11 // Carrinho
               </div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Gerar Orçamento</h1>
-              {clienteNome && <p className="font-mono text-[11px] text-zinc-500 mt-0.5">{clienteNome}</p>}
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Gerar Orçamento</h1>
+              {clienteNome && <p className="font-mono text-[11px] text-gray-500 dark:text-zinc-500 mt-0.5">{clienteNome}</p>}
             </div>
             <button
               onClick={() => navigate(`/projetos/${projetoId}`)}
-              className="flex items-center gap-2 border border-zinc-700 bg-zinc-900 text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-white transition-colors self-start md:self-auto"
+              className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors self-start md:self-auto"
             >
               <iconify-icon icon="solar:arrow-left-linear" width="13" />
               Voltar ao projeto
@@ -830,14 +830,14 @@ export default function Carrinho() {
 
         {/* Estado vazio */}
         {ambientes.length === 0 ? (
-          <div className="bg-[#0a0a0a] border border-zinc-800 px-6 py-16 text-center">
-            <iconify-icon icon="solar:layers-linear" width="36" class="text-zinc-800 block mx-auto mb-4" />
-            <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-700 mb-6">
+          <div className="bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-6 py-16 text-center">
+            <iconify-icon icon="solar:layers-linear" width="36" class="text-gray-300 dark:text-zinc-800 block mx-auto mb-4" />
+            <p className="font-mono text-[11px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 mb-6">
               Este projeto ainda não tem ambientes com orçamento.
             </p>
             <button
               onClick={() => navigate(`/projetos/${projetoId}`)}
-              className="border border-zinc-700 text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-5 py-2.5 hover:border-white hover:text-white transition-colors"
+              className="border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-5 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Ir para o projeto
             </button>
@@ -849,21 +849,21 @@ export default function Carrinho() {
                 {temMultiplasMedicoes && (
                   <div className="flex items-center gap-3 mb-3 border-l-4 border-yellow-500 pl-4">
                     <iconify-icon icon="solar:ruler-cross-pen-linear" width="14" class="text-yellow-500 shrink-0" />
-                    <h3 className="font-semibold text-sm text-white">
+                    <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
                       Medição {grupo.data_medicao ? new Date(grupo.data_medicao).toLocaleDateString('pt-BR') : '—'}
                     </h3>
                   </div>
                 )}
                 <div className="flex flex-col gap-4">
                 {grupo.ambientes.map(amb => (
-                  <div key={amb.id} className="bg-[#0a0a0a] border border-zinc-800">
+                  <div key={amb.id} className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-zinc-800">
 
                 {/* ── Cabeçalho do Ambiente ── */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-zinc-800">
                   <div className="flex items-center gap-3">
-                    <iconify-icon icon="solar:layers-minimalistic-linear" width="14" class="text-zinc-600 shrink-0" />
-                    <span className="text-white font-semibold text-sm tracking-tight">{amb.nome}</span>
-                    <span className="px-2 py-0.5 border border-yellow-400/30 text-[9px] font-mono uppercase text-yellow-400 bg-yellow-400/5">
+                    <iconify-icon icon="solar:layers-minimalistic-linear" width="14" class="text-gray-400 dark:text-zinc-600 shrink-0" />
+                    <span className="text-gray-900 dark:text-white font-semibold text-sm tracking-tight">{amb.nome}</span>
+                    <span className="px-2 py-0.5 border border-yellow-500/40 dark:border-yellow-400/30 text-[9px] font-mono uppercase text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-400/5">
                       {amb.versoes.length} {amb.versoes.length === 1 ? 'versão' : 'versões'}
                     </span>
                   </div>
@@ -877,14 +877,14 @@ export default function Carrinho() {
                         <button
                           title="Renomear ambiente"
                           onClick={e => { e.stopPropagation(); setEditingAmbNome({ id: amb.id, nome: amb.nome }); }}
-                          className="flex items-center border border-zinc-700 text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-white hover:text-white transition-colors"
+                          className="flex items-center border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-gray-700 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
                         >
                           <iconify-icon icon="solar:pen-linear" width="12" />
                         </button>
                         <button
                           title="Duplicar ambiente"
                           onClick={e => duplicarAmbiente(e, amb.id)}
-                          className="flex items-center gap-1.5 border border-zinc-700 text-zinc-400 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-yellow-400 hover:text-yellow-400 transition-colors"
+                          className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-yellow-500 dark:hover:border-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
                         >
                           <iconify-icon icon="solar:copy-linear" width="12" />
                           Duplicar
@@ -892,7 +892,7 @@ export default function Carrinho() {
                         <button
                           title="Excluir ambiente"
                           onClick={e => excluirAmbiente(e, amb.id)}
-                          className="flex items-center border border-zinc-700 text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-red-400 hover:text-red-400 transition-colors"
+                          className="flex items-center border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-red-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                         >
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="12" />
                         </button>
@@ -916,7 +916,7 @@ export default function Carrinho() {
                     return (
                       <div
                         key={v.id}
-                        className={`flex flex-col group transition-colors ${vi < amb.versoes.length - 1 ? 'border-b border-zinc-900' : ''} ${modoMesclar && isMesclarChecked ? 'bg-orange-400/5' : ''}`}
+                        className={`flex flex-col group transition-colors ${vi < amb.versoes.length - 1 ? 'border-b border-gray-100 dark:border-zinc-900' : ''} ${modoMesclar && isMesclarChecked ? 'bg-orange-400/5' : ''}`}
                       >
                         {/* Linha da versão */}
                         <div
@@ -929,14 +929,14 @@ export default function Carrinho() {
                             {modoMesclar ? (
                               <div
                                 onClick={e => toggleMesclarId(e, v.id)}
-                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors ${isMesclarChecked ? 'border-orange-400 bg-orange-400/20' : 'border-zinc-600 hover:border-orange-400'}`}
+                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors ${isMesclarChecked ? 'border-orange-400 bg-orange-400/20' : 'border-gray-400 dark:border-zinc-600 hover:border-orange-400'}`}
                               >
                                 {isMesclarChecked && <iconify-icon icon="solar:check-read-linear" width="10" class="text-orange-400" />}
                               </div>
                             ) : (
                               <div
                                 onClick={e => toggleSelecionar(e, v.id)}
-                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors ${isChecked ? 'border-yellow-400 bg-yellow-400/10' : 'border-zinc-700 hover:border-yellow-400'}`}
+                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors ${isChecked ? 'border-yellow-400 bg-yellow-400/10' : 'border-gray-400 dark:border-zinc-700 hover:border-yellow-400'}`}
                               >
                                 {isChecked && <iconify-icon icon="solar:check-read-linear" width="10" class="text-yellow-400" />}
                               </div>
@@ -950,7 +950,7 @@ export default function Carrinho() {
 
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className={`text-sm font-medium transition-colors ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-white group-hover:text-orange-400') : (isChecked ? 'text-yellow-400' : 'text-white group-hover:text-yellow-400')}`}>
+                                <span className={`text-sm font-medium transition-colors ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-gray-900 dark:text-white group-hover:text-orange-400') : (isChecked ? 'text-yellow-400' : 'text-gray-900 dark:text-white group-hover:text-yellow-400')}`}>
                                   {v.nome}
                                 </span>
                                 {versoesUnificadas.has(v.id) && (
@@ -1011,7 +1011,7 @@ export default function Carrinho() {
                             </div>
 
                             {/* Valor total */}
-                            <span className={`font-mono text-sm font-semibold ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-white') : (isChecked ? 'text-yellow-400' : 'text-white')}`}>
+                            <span className={`font-mono text-sm font-semibold ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-gray-900 dark:text-white') : (isChecked ? 'text-yellow-400' : 'text-gray-900 dark:text-white')}`}>
                               {fmt(v.valor_total)}
                             </span>
 
@@ -1028,30 +1028,30 @@ export default function Carrinho() {
 
                         {/* Tabela de peças (expandida) */}
                         {isExpandido && (
-                          <div className="px-5 pb-4 flex flex-col gap-2 bg-black/20">
+                          <div className="px-5 pb-4 flex flex-col gap-2 bg-gray-50/50 dark:bg-black/20">
                             {v.pecas.length === 0 ? (
-                              <div className="text-center py-6 border border-dashed border-zinc-800">
-                                <p className="font-mono text-[10px] uppercase text-zinc-700">Nenhuma peça nesta versão</p>
+                              <div className="text-center py-6 border border-dashed border-gray-300 dark:border-zinc-800">
+                                <p className="font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700">Nenhuma peça nesta versão</p>
                               </div>
                             ) : (
                               v.pecas.map(p => (
                                 <div
                                   key={p.id}
-                                  className="flex flex-col md:flex-row md:items-center justify-between p-3 border border-zinc-800 bg-black gap-3 hover:border-zinc-700 transition-colors"
+                                  className="flex flex-col md:flex-row md:items-center justify-between p-3 border border-gray-200 dark:border-zinc-800 bg-white dark:bg-black gap-3 hover:border-gray-300 dark:hover:border-zinc-700 transition-colors"
                                 >
                                   {/* Info da peça */}
                                   <div className="flex items-start md:items-center gap-4">
-                                    <div className="w-1.5 h-8 bg-zinc-800 rounded-full shrink-0" />
+                                    <div className="w-1.5 h-8 bg-gray-200 dark:bg-zinc-800 rounded-full shrink-0" />
                                     <div className="flex flex-col gap-1">
-                                      <div className="text-xs text-white font-medium tracking-wide">{p.nome}</div>
-                                      <div className="flex flex-wrap items-center gap-y-1 gap-x-2 font-mono text-[10px] text-zinc-500">
+                                      <div className="text-xs text-gray-900 dark:text-white font-medium tracking-wide">{p.nome}</div>
+                                      <div className="flex flex-wrap items-center gap-y-1 gap-x-2 font-mono text-[10px] text-gray-500 dark:text-zinc-500">
                                         <span className="flex items-center gap-1">
                                           <iconify-icon icon="solar:box-linear" width="10" />
                                           {p.material}
                                         </span>
                                         {p.espessura && p.espessura !== '—' && (
                                           <>
-                                            <span className="w-1 h-1 bg-zinc-700 rounded-full" />
+                                            <span className="w-1 h-1 bg-gray-300 dark:bg-zinc-700 rounded-full" />
                                             <span className="flex items-center gap-1">
                                               <iconify-icon icon="solar:ruler-linear" width="10" />
                                               {p.espessura}
@@ -1060,7 +1060,7 @@ export default function Carrinho() {
                                         )}
                                         {p.area && p.area !== '—' && (
                                           <>
-                                            <span className="w-1 h-1 bg-zinc-700 rounded-full" />
+                                            <span className="w-1 h-1 bg-gray-300 dark:bg-zinc-700 rounded-full" />
                                             <span className="flex items-center gap-1">
                                               <iconify-icon icon="solar:ruler-cross-pen-linear" width="10" />
                                               {p.area}
@@ -1069,8 +1069,8 @@ export default function Carrinho() {
                                         )}
                                         {p.acabamento && p.acabamento !== '—' && (
                                           <>
-                                            <span className="w-1 h-1 bg-zinc-700 rounded-full" />
-                                            <span className="text-zinc-400">{p.acabamento}</span>
+                                            <span className="w-1 h-1 bg-gray-300 dark:bg-zinc-700 rounded-full" />
+                                            <span className="text-gray-500 dark:text-zinc-400">{p.acabamento}</span>
                                           </>
                                         )}
                                       </div>
@@ -1078,7 +1078,7 @@ export default function Carrinho() {
                                   </div>
 
                                   {/* Valor da peça */}
-                                  <span className="font-mono text-xs text-zinc-300 md:ml-auto md:mr-4">
+                                  <span className="font-mono text-xs text-gray-700 dark:text-zinc-300 md:ml-auto md:mr-4">
                                     {fmt(p.valor)}
                                   </span>
                                 </div>
@@ -1087,8 +1087,8 @@ export default function Carrinho() {
 
                             {/* Total da versão */}
                             <div className="flex items-center justify-between pt-1 px-1">
-                              <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">{v.pecas.length} peça{v.pecas.length !== 1 ? 's' : ''}</span>
-                              <span className="font-mono text-sm font-bold text-white">{fmt(v.valor_total)}</span>
+                              <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{v.pecas.length} peça{v.pecas.length !== 1 ? 's' : ''}</span>
+                              <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{fmt(v.valor_total)}</span>
                             </div>
                           </div>
                         )}
@@ -1100,9 +1100,9 @@ export default function Carrinho() {
                 ))}
                 </div>
                 {temMultiplasMedicoes && (
-                  <div className="mt-3 flex items-center justify-between px-4 py-3 bg-zinc-900/50 border border-zinc-800/50">
-                    <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">Subtotal desta medição</span>
-                    <span className="font-mono text-sm font-semibold text-white">
+                  <div className="mt-3 flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800/50">
+                    <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 uppercase tracking-widest">Subtotal desta medição</span>
+                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
                       {fmt(grupo.ambientes.flatMap(a => a.versoes).filter(v => selectedIds.includes(v.id)).reduce((s, v) => s + v.valor_total, 0))}
                     </span>
                   </div>
@@ -1114,7 +1114,7 @@ export default function Carrinho() {
       </main>
 
       {/* ── Rodapé fixo — Total selecionado + ações ──────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#050505] border-t border-zinc-800 p-4 flex items-center justify-between z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#050505] border-t border-gray-200 dark:border-zinc-800 p-4 flex items-center justify-between z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
         {modoMesclar ? (
           /* ── Modo Mesclar Cenários ── */
           <>
@@ -1135,7 +1135,7 @@ export default function Carrinho() {
             <div className="flex items-center gap-2">
               <button
                 onClick={cancelarMesclar}
-                className="flex items-center gap-2 border border-zinc-700 text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-white transition-colors"
+                className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 <iconify-icon icon="solar:close-linear" width="13" />
                 Cancelar
@@ -1155,7 +1155,7 @@ export default function Carrinho() {
           <>
             <div className="flex items-center gap-4">
               <div>
-                <div className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">
+                <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 uppercase tracking-widest">
                   Total selecionado ({selectedIds.length} {selectedIds.length === 1 ? 'versão' : 'versões'})
                 </div>
                 <div className="text-lg font-mono font-bold text-yellow-400">{fmt(totalSelecionado)}</div>
@@ -1165,7 +1165,7 @@ export default function Carrinho() {
               <button
                 onClick={gerarPrint}
                 disabled={selectedIds.length === 0}
-                className="flex items-center gap-2 border border-zinc-700 text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <iconify-icon icon="solar:printer-linear" width="13" />
                 Imprimir / PDF
@@ -1173,7 +1173,7 @@ export default function Carrinho() {
               <button
                 onClick={() => setModalUnir({ nome: 'Cenário Unificado' })}
                 disabled={selectedIds.length < 2}
-                className="flex items-center gap-2 border border-violet-500/50 text-violet-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-violet-400 hover:text-violet-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 border border-violet-400/50 dark:border-violet-500/50 text-violet-700 dark:text-violet-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <iconify-icon icon="solar:link-circle-linear" width="13" />
                 Unir Cenários ({selectedIds.length})

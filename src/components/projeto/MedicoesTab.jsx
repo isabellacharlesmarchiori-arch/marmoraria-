@@ -184,7 +184,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
             {/* ── Tabela de Medições ────────────────────────────── */}
             <div className="sys-reveal sys-delay-200">
                 <div className="flex items-center justify-between mb-3">
-                    <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1">
+                    <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
                         01 // Medições
                     </div>
                     <div className="flex items-center gap-2">
@@ -208,12 +208,12 @@ const MedicoesTab = React.memo(function MedicoesTab({
                     </div>
                 </div>
 
-                <div className="bg-[#0a0a0a] border border-zinc-800">
-                    <div className="grid grid-cols-12 px-4 py-2.5 border-b border-zinc-800">
-                        <span className="col-span-4 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Data</span>
-                        <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Medidor</span>
-                        <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Status</span>
-                        <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600 text-right">Ação</span>
+                <div className="bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
+                    <div className="grid grid-cols-12 px-4 py-2.5 border-b border-gray-200 dark:border-zinc-800">
+                        <span className="col-span-4 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Data</span>
+                        <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Medidor</span>
+                        <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Status</span>
+                        <span className="col-span-3 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 text-right">Ação</span>
                     </div>
 
                     {(medicoes ?? []).map((m, i) => {
@@ -225,7 +225,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                     isAprovada
                                         ? 'bg-green-50 dark:bg-green-400/[0.03] border-l-2 border-l-green-300 dark:border-l-green-500/50 hover:bg-green-100 dark:hover:bg-green-400/[0.05]'
                                         : 'hover:bg-white/[0.01]'
-                                } ${i < (medicoes?.length ?? 0) - 1 ? 'border-b border-zinc-900' : ''}`}
+                                } ${i < (medicoes?.length ?? 0) - 1 ? 'border-b border-gray-100 dark:border-zinc-900' : ''}`}
                             >
                                 <div className="col-span-4 flex items-start gap-2">
                                     <iconify-icon
@@ -234,7 +234,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                         className={`mt-0.5 shrink-0 ${isAprovada ? 'text-green-500' : 'text-zinc-600'}`}
                                     ></iconify-icon>
                                     <div className="flex flex-col">
-                                        <span className="text-sm text-white font-medium">{m?.data ?? '—'}</span>
+                                        <span className="text-sm text-gray-900 dark:text-white font-medium">{m?.data ?? '—'}</span>
                                         {isAprovada && (
                                             <span className="font-mono text-[9px] text-green-600 dark:text-green-500/70 uppercase tracking-widest">Aguardando orçamento</span>
                                         )}
@@ -254,7 +254,7 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                             className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border ${
                                                 isAprovada
                                                     ? 'border-green-400 dark:border-green-500/40 text-green-700 dark:text-green-400 hover:border-green-600 dark:hover:border-green-400 hover:bg-green-100 dark:hover:bg-green-400/10'
-                                                    : 'border-zinc-700 text-zinc-400 hover:border-white hover:text-white'
+                                                    : 'border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white'
                                             }`}
                                         >
                                             <iconify-icon icon="solar:eye-linear" width="12"></iconify-icon>
@@ -275,14 +275,14 @@ const MedicoesTab = React.memo(function MedicoesTab({
                                             <button
                                                 onClick={() => handleAbrirEditar(m)}
                                                 title="Editar medição"
-                                                className="w-7 h-7 flex items-center justify-center border border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-white transition-colors"
+                                                className="w-7 h-7 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-700 dark:hover:border-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                                             >
                                                 <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                                             </button>
                                             <button
                                                 onClick={() => handleExcluirMedicao(m)}
                                                 title="Excluir medição"
-                                                className="w-7 h-7 flex items-center justify-center border border-zinc-800 text-zinc-500 hover:border-red-400/50 hover:text-red-400 transition-colors"
+                                                className="w-7 h-7 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-red-400/50 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                                             >
                                                 <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                                             </button>
