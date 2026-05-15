@@ -35,6 +35,7 @@ const MedidorHistorico     = lazy(() => import('./pages/MedidorHistorico'))
 const MedidorNotificacoes  = lazy(() => import('./pages/MedidorNotificacoes'))
 const SuperAdmin           = lazy(() => import('./pages/SuperAdmin'))
 const AdminIA              = lazy(() => import('./pages/AdminIA'))
+const Estoque              = lazy(() => import('./pages/Estoque'))
 const ImportarPDFPage      = lazy(() => import('./pages/ImportarPDFPage'))
 
 // Fallback de Suspense — fundo escuro sem piscar
@@ -159,6 +160,7 @@ export default function App() {
                   <Route path="relatorios"        element={<FinanceiroRelatorios />} />
                 </Route>
                 <Route path="/admin/ia"             element={<AdminIA />} />
+                <Route path="/admin/estoque"        element={<Estoque />} />
                 <Route path="/admin/configuracoes" element={<Configuracoes />} />
                 <Route path="/admin/mensagens"     element={<AdminMensagens />} />
                 <Route path="/admin/notificacoes"  element={<AdminNotificacoes />} />

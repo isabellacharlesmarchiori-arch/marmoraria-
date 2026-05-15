@@ -382,6 +382,50 @@ const ALL_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'buscar_estoque',
+      description: 'Retorna resumo do estoque para responder vendedores sobre disponibilidade de materiais.',
+      parameters: {
+        type: 'object',
+        properties: {
+          tipo: {
+            type: 'string',
+            enum: ['chapas', 'pedaceiras', 'produtos', 'insumos'],
+            description: 'Tipo de estoque a consultar. Omitir retorna todos.',
+          },
+          material_nome: {
+            type: 'string',
+            description: 'Filtrar chapas/pedaceiras por nome parcial do material (ILIKE).',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'cadastrar_chapa',
+      description: 'Cadastra uma ou mais chapas no estoque. Resolve material_id automaticamente pelo nome. Apenas admin.',
+      parameters: {
+        type: 'object',
+        properties: {
+          material_nome:  { type: 'string',  description: 'Nome do material (busca ILIKE na tabela materiais).' },
+          categoria:      { type: 'string',  enum: ['granito','marmore','quartzito','quartzo','lamina','nanoglass'] },
+          largura_cm:     { type: 'number' },
+          altura_cm:      { type: 'number' },
+          espessura_cm:   { type: 'number',  description: 'Padrão 2 cm.' },
+          quantidade:     { type: 'integer', description: 'Quantas chapas idênticas cadastrar. Padrão 1.' },
+          tem_trinca:     { type: 'boolean' },
+          tem_mula:       { type: 'boolean' },
+          observacoes:    { type: 'string' },
+        },
+        required: ['material_nome', 'categoria', 'largura_cm', 'altura_cm'],
+      },
+    },
+  },
 ];
 
 function getToolsForPerfil(perfil) {
@@ -862,6 +906,101 @@ async function executeTool(name, args, empresaId, userId, perfil) {
         return { sucesso: true, parceiro_criado: data };
       }
 
+      case 'buscar_estoque': {
+        const tipo = args.tipo;
+        const results = {};
+
+        if (!tipo || tipo === 'chapas') {
+          let q = supabase.from('estoque_chapas')
+            .select('id, categoria, largura_cm, altura_cm, espessura_cm, quantidade, tem_trinca, tem_mula, materiais(nome)')
+            .eq('empresa_id', empresaId).order('created_at', { ascending: false }).limit(100);
+          const { data } = await q;
+          let chapas = data ?? [];
+          if (args.material_nome)
+            chapas = chapas.filter(c => c.materiais?.nome?.toLowerCase().includes(args.material_nome.toLowerCase()));
+          results.chapas = chapas.map(c => ({
+            material: c.materiais?.nome ?? '?',
+            categoria: c.categoria,
+            dimensoes: `${c.largura_cm}×${c.altura_cm}cm esp.${c.espessura_cm}cm`,
+            quantidade: c.quantidade,
+            defeitos: [c.tem_trinca && 'trinca', c.tem_mula && 'mula'].filter(Boolean).join(', ') || 'nenhum',
+          }));
+        }
+
+        if (!tipo || tipo === 'pedaceiras') {
+          const { data } = await supabase.from('estoque_pedaceiras')
+            .select('id, categoria, largura_cm, altura_cm, espessura_cm, tem_trinca, tem_mula, materiais(nome)')
+            .eq('empresa_id', empresaId).order('created_at', { ascending: false }).limit(100);
+          let peds = data ?? [];
+          if (args.material_nome)
+            peds = peds.filter(p => p.materiais?.nome?.toLowerCase().includes(args.material_nome.toLowerCase()));
+          results.pedaceiras = peds.map(p => ({
+            material: p.materiais?.nome ?? '?',
+            categoria: p.categoria,
+            dimensoes: `${p.largura_cm}×${p.altura_cm}cm esp.${p.espessura_cm}cm`,
+            defeitos: [p.tem_trinca && 'trinca', p.tem_mula && 'mula'].filter(Boolean).join(', ') || 'nenhum',
+          }));
+        }
+
+        if (!tipo || tipo === 'produtos') {
+          const { data } = await supabase.from('estoque_produtos_avulsos')
+            .select('nome, categoria, quantidade, unidade').eq('empresa_id', empresaId).order('nome').limit(100);
+          results.produtos = data ?? [];
+        }
+
+        if (!tipo || tipo === 'insumos') {
+          const { data } = await supabase.from('estoque_insumos')
+            .select('nome, categoria, quantidade, unidade').eq('empresa_id', empresaId).order('nome').limit(100);
+          results.insumos = data ?? [];
+        }
+
+        return results;
+      }
+
+      case 'cadastrar_chapa': {
+        if (perfil !== 'admin' && perfil !== 'superadmin')
+          return { erro: 'Acesso negado: apenas administradores.' };
+
+        // Resolve material_id pelo nome (ILIKE)
+        const { data: mats, error: errMat } = await supabase.from('materiais')
+          .select('id, nome').eq('empresa_id', empresaId)
+          .ilike('nome', `%${args.material_nome}%`).limit(5);
+        if (errMat)       return { erro: errMat.message };
+        if (!mats?.length) return { erro: `Material "${args.material_nome}" não encontrado.` };
+        if (mats.length > 1) return {
+          erro: `Nome ambíguo — encontrei: ${mats.map(m => m.nome).join(', ')}. Seja mais específico.`,
+        };
+
+        const material = mats[0];
+        const MEDIDAS_FIXAS_IA = { lamina: { largura_cm: 320, altura_cm: 160 }, nanoglass: { largura_cm: 320, altura_cm: 160 } };
+        const fixed = MEDIDAS_FIXAS_IA[args.categoria];
+        const largura = fixed ? fixed.largura_cm : args.largura_cm;
+        const altura  = fixed ? fixed.altura_cm  : args.altura_cm;
+
+        const payload = {
+          empresa_id:  empresaId,
+          material_id: material.id,
+          categoria:   args.categoria,
+          largura_cm:  largura,
+          altura_cm:   altura,
+          espessura_cm: args.espessura_cm ?? 2,
+          quantidade:  args.quantidade ?? 1,
+          tem_trinca:  args.tem_trinca ?? false,
+          tem_mula:    args.tem_mula ?? false,
+          observacoes: args.observacoes ?? null,
+        };
+
+        const qty = payload.quantidade;
+        const rows = qty === 1 ? [payload] : Array.from({ length: qty }, () => ({ ...payload, quantidade: 1 }));
+        const { error } = await supabase.from('estoque_chapas').insert(rows);
+        if (error) return { erro: error.message };
+
+        return {
+          sucesso: true,
+          resumo: `${qty} chapa${qty > 1 ? 's' : ''} de ${material.nome} cadastrada${qty > 1 ? 's' : ''} (${largura}×${altura}cm, esp.${payload.espessura_cm}cm).`,
+        };
+      }
+
       default:
         return { erro: `Ferramenta desconhecida: ${name}` };
     }
@@ -908,6 +1047,10 @@ function humanizeTool(name, args) {
       return `Cancelar lançamento${args.motivo ? `\nMotivo: ${args.motivo}` : ''}`;
     case 'cadastrar_parceiro':
       return `Cadastrar parceiro "${args.nome}" (${(args.tipos ?? []).join(', ')})`;
+    case 'buscar_estoque':
+      return `Consultar estoque${args.tipo ? ` — ${args.tipo}` : ''}${args.material_nome ? ` · material: ${args.material_nome}` : ''}`;
+    case 'cadastrar_chapa':
+      return `Cadastrar ${args.quantidade ?? 1} chapa(s) de "${args.material_nome}" (${args.largura_cm}×${args.altura_cm}cm)`;
     default:
       return name;
   }
