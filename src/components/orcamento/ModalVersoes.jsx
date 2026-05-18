@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export default function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
-  const [modo, setModo] = useState('pareadas');
+  const [modo, setModo] = useState('automatico');
   const [versoesManual, setVersoesManual] = useState([
     { nome: 'Versão A', mats: Object.fromEntries(pecas.filter(p => p.incluida).map(p => [p.id, p.materiais[0] ?? ''])) },
   ]);
@@ -41,27 +41,23 @@ export default function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
   function handleCriar() {
     let versoes = [];
 
-    if (modo === 'pareadas') {
-      const maxMats = Math.max(...pecasIncluidas.map(p => p.materiais.length));
-      for (let i = 0; i < maxMats; i++) {
-        const mat0 = todosM.find(m => m.id === pecasIncluidas[0]?.materiais[i]);
-        versoes.push({
-          nome: `Versão ${String.fromCharCode(65 + i)} — ${mat0?.nome ?? ''}`,
-          mats: Object.fromEntries(pecasIncluidas.map(p => [p.id, p.materiais[i] ?? p.materiais[0] ?? ''])),
-        });
-      }
-    } else if (modo === 'combinacoes') {
-      function combinações(arr) {
+    if (modo === 'automatico') {
+      function cartesian(arr) {
         if (arr.length === 0) return [[]];
         const [first, ...rest] = arr;
-        const sub = combinações(rest);
+        const sub = cartesian(rest);
         return first.materiais.flatMap(m => sub.map(s => [{ pecaId: first.id, matId: m }, ...s]));
       }
-      const combos = combinações(pecasIncluidas);
-      versoes = combos.map((combo, i) => ({
-        nome: `Versão ${i + 1}`,
-        mats: Object.fromEntries(combo.map(c => [c.pecaId, c.matId])),
-      }));
+      const combos = cartesian(pecasIncluidas);
+      versoes = combos.map((combo, i) => {
+        const nomes = combo
+          .map(c => todosM.find(m => m.id === c.matId)?.nome)
+          .filter(Boolean);
+        return {
+          nome: nomes.length > 0 ? nomes.join(' + ') : `Versão ${i + 1}`,
+          mats: Object.fromEntries(combo.map(c => [c.pecaId, c.matId])),
+        };
+      });
     } else {
       versoes = versoesManual;
     }
@@ -88,9 +84,8 @@ export default function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
           {/* Opções */}
           <div className="flex flex-col gap-2">
             {[
-              { key: 'pareadas',    icon: 'solar:layers-minimalistic-linear', titulo: 'Versões pareadas',        desc: 'Cada material vira uma versão separada com a mesma combinação para todas as peças' },
-              { key: 'combinacoes', icon: 'solar:widget-5-linear',            titulo: 'Todas as combinações',    desc: 'Gera automaticamente todas as combinações possíveis de materiais' },
-              { key: 'manual',      icon: 'solar:pen-linear',                 titulo: 'Definição manual',        desc: 'Você define nome e material de cada peça para cada versão' },
+              { key: 'automatico', icon: 'solar:widget-5-linear', titulo: 'Todas as combinações', desc: 'Gera automaticamente o produto cartesiano de todos os materiais por peça' },
+              { key: 'manual',     icon: 'solar:pen-linear',      titulo: 'Definição manual',     desc: 'Você define nome e material de cada peça para cada versão' },
             ].map(opt => (
               <div
                 key={opt.key}
