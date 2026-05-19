@@ -42,20 +42,56 @@ export default function ModalVersoes({ pecas, onCriar, onFechar, todosM }) {
     let versoes = [];
 
     if (modo === 'automatico') {
+      // Group pieces by (ambiente_nome, sorted deduplicated material set)
+      const dimsMap = new Map();
+      pecasIncluidas.forEach(p => {
+        const uniqMats = [...new Set(p.materiais)];
+        const key = `${p.ambiente_nome ?? ''}__${[...uniqMats].sort().join(',')}`;
+        if (!dimsMap.has(key)) {
+          dimsMap.set(key, { ambNome: p.ambiente_nome ?? '', materiais: uniqMats, pieceIds: [] });
+        }
+        dimsMap.get(key).pieceIds.push(p.id);
+      });
+
+      // Fixed: single-material dims (don't vary) — always apply their one material
+      const fixedDims = [...dimsMap.values()].filter(d => d.materiais.length === 1);
+      // Variable: dims with 2+ materials → each becomes a cartesian dimension
+      const varDims   = [...dimsMap.values()].filter(d => d.materiais.length > 1);
+
       function cartesian(arr) {
         if (arr.length === 0) return [[]];
         const [first, ...rest] = arr;
-        const sub = cartesian(rest);
-        return first.materiais.flatMap(m => sub.map(s => [{ pecaId: first.id, matId: m }, ...s]));
+        return first.materiais.flatMap(matId =>
+          cartesian(rest).map(s => [{ ...first, matId }, ...s])
+        );
       }
-      const combos = cartesian(pecasIncluidas);
+      const combos = varDims.length > 0 ? cartesian(varDims) : [[]];
+
       versoes = combos.map((combo, i) => {
-        const nomes = combo
-          .map(c => todosM.find(m => m.id === c.matId)?.nome)
-          .filter(Boolean);
+        const matsObj = {};
+        // Fixed materials applied to every version
+        fixedDims.forEach(({ pieceIds, materiais: [matId] }) => {
+          pieceIds.forEach(pid => { matsObj[pid] = matId; });
+        });
+        // Variable materials from this cartesian combination
+        combo.forEach(({ pieceIds, matId }) => {
+          pieceIds.forEach(pid => { matsObj[pid] = matId; });
+        });
+        // Version name built only from variable dims
+        const matByAmb = {};
+        combo.forEach(({ ambNome, matId, pieceIds }) => {
+          const nome = todosM.find(m => m.id === matId)?.nome;
+          if (!nome) return;
+          if (!matByAmb[ambNome]) matByAmb[ambNome] = {};
+          matByAmb[ambNome][nome] = (matByAmb[ambNome][nome] ?? 0) + pieceIds.length;
+        });
+        const partes = Object.entries(matByAmb).map(([amb, mats]) => {
+          const top = Object.entries(mats).sort((a, b) => b[1] - a[1])[0]?.[0];
+          return top ? (amb ? `${amb}: ${top}` : top) : null;
+        }).filter(Boolean);
         return {
-          nome: nomes.length > 0 ? nomes.join(' + ') : `Versão ${i + 1}`,
-          mats: Object.fromEntries(combo.map(c => [c.pecaId, c.matId])),
+          nome: partes.length > 0 ? partes.join(' + ') : `Versão ${i + 1}`,
+          mats: matsObj,
         };
       });
     } else {

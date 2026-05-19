@@ -5,28 +5,30 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('todos');
   const [sel, setSel] = useState(selecionados);
-  const [acabamentoSel, setAcabamentoSel] = useState(acabamentoInicial);
+
+  // ── Painel de variação ────────────────────────────────────────────
+  // painelAberto: true enquanto o usuário escolhe a variante do material clicado.
+  // variantesAbertas: variantes do último material clicado (carregadas na abertura).
+  // varianteSel: variante escolhida — persiste após o painel fechar; mostrada no footer.
+  const [painelAberto, setPainelAberto]         = useState(false);
+  const [variantesAbertas, setVariantesAbertas] = useState([]);
+  const [varianteSel, setVarianteSel]           = useState(() => {
+    if (!acabamentoInicial) return null;
+    for (const id of selecionados) {
+      const vars = todosM.find(m => m.id === id)?.variacoes_precos ?? [];
+      const match = vars.find(v => v.acabamento === acabamentoInicial);
+      if (match) return {
+        acabamento: match.acabamento,
+        label: [match.acabamento, match.espessura ? `${match.espessura}cm` : null].filter(Boolean).join(' · '),
+      };
+    }
+    return null;
+  });
 
   const categoriasDisponiveis = useMemo(
     () => [...new Set(todosM.map(m => m.categoria).filter(Boolean))].sort(),
     [todosM]
   );
-
-  const variacoesMat = useMemo(() => {
-    if (sel.length === 0) return [];
-    return todosM.find(m => m.id === sel[0])?.variacoes_precos ?? [];
-  }, [sel, todosM]);
-
-  // Cada variante exibe "Acabamento · Xcm" como label único
-  const variantesDisponiveis = useMemo(() => {
-    if (variacoesMat.length <= 1) return [];
-    return variacoesMat.map(v => ({
-      acabamento: v.acabamento,
-      espessura:  v.espessura,
-      preco:      v.preco_venda,
-      label:      [v.acabamento, v.espessura ? `${v.espessura}cm` : null].filter(Boolean).join(' · '),
-    }));
-  }, [variacoesMat]);
 
   const filtrados = useMemo(() => todosM.filter(m => {
     const matchBusca = busca === '' || m.nome.toLowerCase().includes(busca.toLowerCase()) || (m.cor ?? '').toLowerCase().includes(busca.toLowerCase());
@@ -34,13 +36,49 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
     return matchBusca && matchCat;
   }), [busca, categoria, todosM]);
 
-  function toggle(id) {
-    if (single) {
-      setSel(prev => prev.includes(id) ? [] : [id]);
-      setAcabamentoSel(null);
+  function abrirVariantes(id) {
+    const vars = todosM.find(m => m.id === id)?.variacoes_precos ?? [];
+    if (vars.length > 1) {
+      setVariantesAbertas(vars.map(v => ({
+        acabamento: v.acabamento,
+        espessura: v.espessura,
+        preco: v.preco_venda,
+        label: [v.acabamento, v.espessura ? `${v.espessura}cm` : null].filter(Boolean).join(' · '),
+      })));
+      setPainelAberto(true);
     } else {
-      setSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+      setPainelAberto(false);
     }
+  }
+
+  function toggle(id) {
+    const jaEstaNoSel = sel.includes(id);
+    if (single) {
+      if (jaEstaNoSel) {
+        setSel([]);
+        setVarianteSel(null);
+        setPainelAberto(false);
+      } else {
+        setSel([id]);
+        setVarianteSel(null);
+        abrirVariantes(id);
+      }
+    } else {
+      if (jaEstaNoSel) {
+        setSel(prev => prev.filter(x => x !== id));
+        setPainelAberto(false);
+      } else {
+        setSel(prev => [...prev, id]);
+        setVarianteSel(null);
+        abrirVariantes(id);
+      }
+    }
+  }
+
+  function limparSelecao() {
+    setSel([]);
+    setVarianteSel(null);
+    setPainelAberto(false);
   }
 
   return (
@@ -72,8 +110,8 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
               className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-gray-400 dark:text-zinc-700 transition-colors"
             />
           </div>
-          {/* Categorias */}
-          <div className="flex gap-1.5 flex-wrap">
+          {/* Categorias + Limpar */}
+          <div className="flex gap-1.5 flex-wrap items-center">
             {['todos', ...categoriasDisponiveis].map(cat => (
               <button
                 key={cat}
@@ -87,10 +125,20 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
                 {cat === 'todos' ? 'Todos' : cat}
               </button>
             ))}
+            {sel.length > 0 && (
+              <button
+                onClick={limparSelecao}
+                className="ml-auto font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border border-red-400/30 text-red-400/60 hover:border-red-400 hover:text-red-400 transition-colors flex items-center gap-1 shrink-0"
+                title="Limpar seleção"
+              >
+                <iconify-icon icon="solar:close-circle-linear" width="9"></iconify-icon>
+                Limpar
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Lista */}
+        {/* Lista de materiais */}
         <div className="flex-1 overflow-y-auto">
           {filtrados.length === 0 ? (
             <div className="py-12 text-center">
@@ -139,17 +187,20 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
           )}
         </div>
 
-        {/* Seleção de variação — aparece quando material selecionado tem mais de uma variante */}
-        {sel.length > 0 && variantesDisponiveis.length > 0 && (
+        {/* Painel de acabamento — abre ao clicar num material com variantes, fecha ao escolher */}
+        {painelAberto && variantesAbertas.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-300 dark:border-zinc-800">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Variação</div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Acabamento</div>
             <div className="flex flex-col gap-1">
-              {variantesDisponiveis.map(v => (
+              {variantesAbertas.map(v => (
                 <button
                   key={v.label}
-                  onClick={() => setAcabamentoSel(prev => prev === v.acabamento ? null : v.acabamento)}
+                  onClick={() => {
+                    setVarianteSel(v);
+                    setPainelAberto(false);
+                  }}
                   className={`flex items-center justify-between font-mono text-[10px] px-3 py-1.5 border transition-colors text-left ${
-                    acabamentoSel === v.acabamento
+                    varianteSel?.label === v.label
                       ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5'
                       : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-zinc-400'
                   }`}
@@ -167,8 +218,8 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
           <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 flex-1">
             {sel.length === 0
               ? 'Nenhum selecionado'
-              : acabamentoSel
-                ? `${acabamentoSel}`
+              : varianteSel
+                ? varianteSel.label
                 : `${sel.length} selecionado${sel.length !== 1 ? 's' : ''}`}
           </span>
           <button
@@ -178,7 +229,7 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
             Cancelar
           </button>
           <button
-            onClick={() => onConfirmar(pecaId, sel, acabamentoSel)}
+            onClick={() => onConfirmar(pecaId, sel, varianteSel?.acabamento ?? null)}
             className="bg-yellow-400 text-black font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:bg-yellow-300 transition-colors font-bold"
           >
             Confirmar

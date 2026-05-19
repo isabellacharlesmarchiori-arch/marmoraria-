@@ -19,7 +19,6 @@ import PecaRow from '../components/orcamento/PecaRow';
 import PainelMaterial from '../components/orcamento/PainelMaterial';
 import PainelMaterialLinear from '../components/orcamento/PainelMaterialLinear';
 import ModalProdutoAvulso from '../components/orcamento/ModalProdutoAvulso';
-import ModalVersoes from '../components/orcamento/ModalVersoes';
 import TelaVersoes from '../components/orcamento/TelaVersoes';
 
 
@@ -499,7 +498,6 @@ export default function CriarOrcamento() {
 
   const [painelMaterialPecaId, setPainelMaterialPecaId] = useState(null);
   const [modalProduto, setModalProduto] = useState(false);
-  const [modalVersoes, setModalVersoes] = useState(false);
   const [versoesCriadas, setVersoesCriadas] = useState(null);
   const [salvandoOrc, setSalvandoOrc] = useState(false);
   const [addFuroMenuKey, setAddFuroMenuKey] = useState(null);
@@ -670,20 +668,69 @@ export default function CriarOrcamento() {
 
   function handleContinuar() {
     if (precisaVersoes) {
-      setModalVersoes(true);
+      const pecasComMat = pecasIncluidas.filter(p => p.materiais.length > 0);
+
+      // Group pieces by (ambiente_nome, sorted deduplicated material set)
+      const dimsMap = new Map();
+      pecasComMat.forEach(p => {
+        const uniqMats = [...new Set(p.materiais)];
+        const key = `${p.ambiente_nome ?? ''}__${[...uniqMats].sort().join(',')}`;
+        if (!dimsMap.has(key)) {
+          dimsMap.set(key, { ambNome: p.ambiente_nome ?? '', materiais: uniqMats, pieceIds: [] });
+        }
+        dimsMap.get(key).pieceIds.push(p.id);
+      });
+
+      // Fixed: single-material dims (don't vary) — always apply their one material
+      const fixedDims = [...dimsMap.values()].filter(d => d.materiais.length === 1);
+      // Variable: dims with 2+ materials → each becomes a cartesian dimension
+      const varDims   = [...dimsMap.values()].filter(d => d.materiais.length > 1);
+
+      function cartesian(arr) {
+        if (arr.length === 0) return [[]];
+        const [first, ...rest] = arr;
+        return first.materiais.flatMap(matId =>
+          cartesian(rest).map(s => [{ ...first, matId }, ...s])
+        );
+      }
+      const combos = varDims.length > 0 ? cartesian(varDims) : [[]];
+
+      const versoes = combos.map(combo => {
+        const matsObj = {};
+        // Fixed materials applied to every version
+        fixedDims.forEach(({ pieceIds, materiais: [matId] }) => {
+          pieceIds.forEach(pid => { matsObj[pid] = matId; });
+        });
+        // Variable materials from this cartesian combination
+        combo.forEach(({ pieceIds, matId }) => {
+          pieceIds.forEach(pid => { matsObj[pid] = matId; });
+        });
+        // Version name built only from variable dims (fixed dims are noise in the name)
+        const matByAmb = {};
+        combo.forEach(({ ambNome, matId, pieceIds }) => {
+          const nome = materiais.find(m => m.id === matId)?.nome;
+          if (!nome) return;
+          if (!matByAmb[ambNome]) matByAmb[ambNome] = {};
+          matByAmb[ambNome][nome] = (matByAmb[ambNome][nome] ?? 0) + pieceIds.length;
+        });
+        const partes = Object.entries(matByAmb).map(([amb, mats]) => {
+          const top = Object.entries(mats).sort((a, b) => b[1] - a[1])[0]?.[0];
+          return top ? (amb ? `${amb}: ${top}` : top) : null;
+        }).filter(Boolean);
+        return {
+          nome: partes.length > 0 ? partes.join(' + ') : 'Versão',
+          mats: matsObj,
+          acabamentos: Object.fromEntries(pecasIncluidas.map(p => [p.id, p.acabamentoSel ?? null])),
+        };
+      });
+      setVersoesCriadas(versoes);
     } else {
-      const versao = {
+      setVersoesCriadas([{
         nome: 'Orçamento',
         mats:        Object.fromEntries(pecasIncluidas.map(p => [p.id, p.materiais[0] ?? ''])),
         acabamentos: Object.fromEntries(pecasIncluidas.map(p => [p.id, p.acabamentoSel ?? null])),
-      };
-      setVersoesCriadas([versao]);
+      }]);
     }
-  }
-
-  function handleCriarVersoes(versoes) {
-    setModalVersoes(false);
-    setVersoesCriadas(versoes);
   }
 
   // ── Garante que existam registros em `ambientes` para esta medição ──
@@ -1855,6 +1902,7 @@ export default function CriarOrcamento() {
       {/* ── Painel lateral: material por peça ───────── */}
       {painelMaterialPecaId && pecaPainel && (
         <PainelMaterial
+          key={`pm-peca-${painelMaterialPecaId}`}
           pecaId={pecaPainel.id}
           pecaNome={pecaPainel.nome}
           selecionados={pecaPainel.materiais}
@@ -1862,20 +1910,19 @@ export default function CriarOrcamento() {
           onConfirmar={confirmarMaterial}
           onFechar={() => setPainelMaterialPecaId(null)}
           todosM={materiais}
-          single
         />
       )}
 
       {/* ── Painel lateral: material por ambiente ────── */}
       {painelMaterialAmbNome && (
         <PainelMaterial
+          key={`pm-amb-${painelMaterialAmbNome}`}
           pecaId={painelMaterialAmbNome}
           pecaNome={`${painelMaterialAmbNome} — todas as peças`}
           selecionados={[...new Set(pecas.filter(p => p.ambiente_nome === painelMaterialAmbNome).flatMap(p => p.materiais))]}
           onConfirmar={(_, sel, acabSel) => aplicarMaterialAoAmbiente(painelMaterialAmbNome, sel, acabSel)}
           onFechar={() => setPainelMaterialAmbNome(null)}
           todosM={materiais}
-          single
         />
       )}
 
@@ -1889,13 +1936,13 @@ export default function CriarOrcamento() {
         const labelGrupo = gKey === '__sem_grupo__' ? ambNome : `${ambNome} / ${gKey}`;
         return (
           <PainelMaterial
+            key={`pm-grp-${painelMaterialGrupoKey}`}
             pecaId={painelMaterialGrupoKey}
             pecaNome={`${labelGrupo} — todas as peças`}
             selecionados={[...new Set(pecasGrupo.flatMap(p => p.materiais))]}
             onConfirmar={(_, sel, acabSel) => aplicarMaterialAoGrupo(ambNome, gKey, sel, acabSel)}
             onFechar={() => setPainelMaterialGrupoKey(null)}
             todosM={materiais}
-            single
           />
         );
       })()}
@@ -1908,15 +1955,6 @@ export default function CriarOrcamento() {
         />
       )}
 
-      {/* ── Modal: criar versões ─────────────────────── */}
-      {modalVersoes && (
-        <ModalVersoes
-          pecas={pecas}
-          onCriar={handleCriarVersoes}
-          onFechar={() => setModalVersoes(false)}
-          todosM={materiais}
-        />
-      )}
     </div>
   );
 }

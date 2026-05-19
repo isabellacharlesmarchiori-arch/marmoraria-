@@ -32,9 +32,30 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   const [ambiVersoes, setAmbiVersoes] = useState(() => {
     const result = {};
     listaAmbientes.forEach(amb => {
-      result[amb] = initialVersoes.map((v, vIdx) => {
+      const pecasAmb = pecas.filter(p => p.incluida && (p.ambiente_nome ?? '') === amb);
+
+      // Deduplicate global cartesian versions: keep only entries with a unique material
+      // signature for THIS ambient's pieces (avoids N×M versions when only N are distinct here)
+      const seenSig = new Set();
+      const uniqVersoes = initialVersoes.filter(v => {
+        const sig = pecasAmb.map(p => v.mats[p.id] ?? '').join('\0');
+        if (seenSig.has(sig)) return false;
+        seenSig.add(sig);
+        return true;
+      });
+
+      result[amb] = uniqVersoes.map((v, vIdx) => {
+        // Per-ambient version name: dominant material by area (not the global combo name)
+        const areaByNome = {};
+        pecasAmb.forEach(p => {
+          const mid = v.mats[p.id];
+          if (!mid) return;
+          const nome = todosM?.find(m => m.id === mid)?.nome;
+          if (nome) areaByNome[nome] = (areaByNome[nome] ?? 0) + (p.area_liq ?? 1);
+        });
+        const vNome = Object.entries(areaByNome).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `Versão ${vIdx + 1}`;
+
         // Agrupa peças do ambiente por grupo_nome (fallback: item_nome)
-        const pecasAmb = pecas.filter(p => p.incluida && (p.ambiente_nome ?? '') === amb);
         const gMap = new Map();
         const gOrder = [];
         pecasAmb.forEach(p => {
@@ -126,7 +147,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
         });
         return {
           id: `v-${amb}-${Date.now()}-${vIdx}`,
-          nome: v.nome,
+          nome: vNome,
           pecasList: aplicarAutoMatchNaLista(pecasList, todosM, matLineares, precosCatMaterial),
           avulsos: [],
         };
@@ -652,6 +673,35 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   }
 
   // ── Cenários ─────────────────────────────────────────────────────
+  function gerarNomeCenario(selAtivos) {
+    const ambsAtivos = listaAmbientes.filter(amb => ambientesAtivos[amb] && selAtivos[amb]);
+    if (ambsAtivos.length === 0) return 'Novo Cenário';
+
+    function matPrincipal(amb) {
+      const versao = (ambiVersoes[amb] ?? []).find(v => v.id === selAtivos[amb]);
+      const areaByNome = {};
+      (versao?.pecasList ?? []).forEach(pw => {
+        if (pw.tipo === 'pedra' && pw.matId) {
+          const nome = todosM.find(m => m.id === pw.matId)?.nome;
+          if (nome) areaByNome[nome] = (areaByNome[nome] ?? 0) + (pw.area_liq ?? 0);
+        }
+      });
+      return Object.entries(areaByNome).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    }
+
+    const partes = ambsAtivos.slice(0, 2).map(amb => {
+      const mat = matPrincipal(amb);
+      return mat ? `${amb}: ${mat}` : amb;
+    });
+
+    if (ambsAtivos.length > 2) {
+      const outros = ambsAtivos.length - 2;
+      partes.push(`${outros} outro${outros > 1 ? 's' : ''}`);
+    }
+
+    return partes.join(' + ');
+  }
+
   function criarCenario() {
     const id = `cen-${Date.now()}`;
     // Inclui apenas ambientes ativos nas selecoes do cenário
@@ -661,7 +711,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     });
     setCenarios(prev => [...prev, {
       id,
-      nome: `Cenário ${prev.length + 1}`,
+      nome: gerarNomeCenario(selAtivos),
       selecoes: selAtivos,
       descontoValor: '',
       descontoTipo: '%',
@@ -734,14 +784,14 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-[#050505] text-[#a1a1aa] selection:bg-gray-200 dark:selection:bg-white selection:text-black antialiased relative overflow-x-hidden font-sans">
+    <div className="flex flex-col bg-gray-100 dark:bg-[#050505] text-[#a1a1aa] selection:bg-gray-200 dark:selection:bg-white selection:text-black antialiased relative font-sans">
 
       {/* Backgrounds */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
       <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
       <div className="hidden dark:block fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
 
-      <main className="relative z-10 w-full flex-1 max-w-[1200px] mx-auto p-4 md:p-8 pt-12 pb-32">
+      <main className="relative z-10 w-full max-w-[1200px] mx-auto px-4 md:px-8 pt-12 pb-80">
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <section className="sys-reveal mb-8">
@@ -1583,6 +1633,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
       {/* Painel lateral: selecionar material (versões) */}
       {painelMatVersao && (
         <PainelMaterial
+          key={`pm-versao-${painelMatVersao.uid ?? painelMatVersao.itemKey ?? 'v'}`}
           pecaId={painelMatVersao.uid ?? painelMatVersao.itemKey ?? 'versao'}
           pecaNome={painelMatVersao.label ?? 'Selecionar material'}
           selecionados={painelMatVersao.atual ? [painelMatVersao.atual] : []}
