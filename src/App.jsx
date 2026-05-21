@@ -25,7 +25,7 @@ const FinanceiroContas       = lazy(() => import('./pages/financeiro/FinanceiroC
 const FinanceiroCheques      = lazy(() => import('./pages/financeiro/FinanceiroCheques'))
 const FinanceiroRelatorios   = lazy(() => import('./pages/financeiro/FinanceiroRelatorios'))
 const AdminRelatorios        = lazy(() => import('./pages/AdminRelatorios'))
-const RelatoriosPedidos      = lazy(() => import('./pages/AdminRelatorios').then(m => ({ default: m.RelatoriosPedidos })))
+const RelatoriosPedidos      = lazy(() => import('./pages/relatorios/RelatoriosPedidos'))
 const Configuracoes        = lazy(() => import('./pages/Configuracoes'))
 const Admin                = lazy(() => import('./pages/Admin'))
 const Notificacoes         = lazy(() => import('./pages/Notificacoes'))

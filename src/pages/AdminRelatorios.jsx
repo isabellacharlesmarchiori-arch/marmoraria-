@@ -5,15 +5,6 @@ const tabs = [
   { to: '/admin/relatorios/desempenho', label: 'Desempenho' },
 ];
 
-export function RelatoriosPedidos() {
-  return (
-    <div className="p-6 flex flex-col items-center justify-center gap-3 py-24 text-center">
-      <iconify-icon icon="solar:document-text-linear" width="32" className="text-gray-300 dark:text-zinc-700 block mb-2"></iconify-icon>
-      <div className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Em breve</div>
-    </div>
-  );
-}
-
 export default function AdminRelatorios() {
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-gray-100 dark:bg-[#050505] text-gray-600 dark:text-zinc-300">
