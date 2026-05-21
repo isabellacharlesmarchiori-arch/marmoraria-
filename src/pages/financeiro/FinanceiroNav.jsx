@@ -5,7 +5,6 @@ const tabs = [
   { to: '/admin/financeiro/lancamentos',label: 'Lançamentos',  icon: 'lucide:arrow-right-left',  end: false },
   { to: '/admin/financeiro/contas',     label: 'Contas',       icon: 'lucide:landmark',          end: false },
   { to: '/admin/financeiro/cheques',    label: 'Cheques',      icon: 'lucide:file-check',        end: false },
-  { to: '/admin/financeiro/relatorios', label: 'Relatórios',   icon: 'lucide:bar-chart-3',       end: false },
 ];
 
 export default function FinanceiroNav() {

@@ -24,6 +24,8 @@ const FinanceiroLancamentos  = lazy(() => import('./pages/financeiro/FinanceiroL
 const FinanceiroContas       = lazy(() => import('./pages/financeiro/FinanceiroContas'))
 const FinanceiroCheques      = lazy(() => import('./pages/financeiro/FinanceiroCheques'))
 const FinanceiroRelatorios   = lazy(() => import('./pages/financeiro/FinanceiroRelatorios'))
+const AdminRelatorios        = lazy(() => import('./pages/AdminRelatorios'))
+const RelatoriosPedidos      = lazy(() => import('./pages/AdminRelatorios').then(m => ({ default: m.RelatoriosPedidos })))
 const Configuracoes        = lazy(() => import('./pages/Configuracoes'))
 const Admin                = lazy(() => import('./pages/Admin'))
 const Notificacoes         = lazy(() => import('./pages/Notificacoes'))
@@ -157,7 +159,12 @@ export default function App() {
                   <Route path="lancamentos"       element={<FinanceiroLancamentos />} />
                   <Route path="contas"            element={<FinanceiroContas />} />
                   <Route path="cheques"           element={<FinanceiroCheques />} />
-                  <Route path="relatorios"        element={<FinanceiroRelatorios />} />
+                  <Route path="relatorios"        element={<Navigate to="/admin/relatorios/desempenho" replace />} />
+                </Route>
+                <Route path="/admin/relatorios" element={<AdminRelatorios />}>
+                  <Route index                    element={<Navigate to="/admin/relatorios/pedidos" replace />} />
+                  <Route path="pedidos"           element={<RelatoriosPedidos />} />
+                  <Route path="desempenho"        element={<FinanceiroRelatorios />} />
                 </Route>
                 <Route path="/admin/ia"             element={<AdminIA />} />
                 <Route path="/admin/estoque"        element={<Estoque />} />
