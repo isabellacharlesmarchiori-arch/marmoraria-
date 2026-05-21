@@ -22,7 +22,8 @@ export function useProjectActions(projectId, {
     setMedicoes,
     medidores,
     pedidoFechado,
-    setPedidoFechado,
+    pedidosFechados,
+    setPedidosFechados,
     catMateriais,
     catProdAvulsos,
     recarregarAmbientes,
@@ -753,15 +754,20 @@ export function useProjectActions(projectId, {
                 .from('projetos').update({ status_pedido: 'FECHADO' }).eq('id', projectId);
             if (eProjeto) throw new Error(eProjeto.message);
 
+            // Protege cenários de pedidos já fechados (usa estado em memória — sem query extra)
+            const cenariosBloqueados = new Set([
+                ...fecharIds,
+                ...(pedidosFechados ?? []).flatMap(p => p.cenario_ids ?? []),
+            ]);
             const todosOrcIds  = ambientes.flatMap(amb => (amb.orcamentos ?? []).map(o => o.id));
-            const descartarIds = todosOrcIds.filter(oid => !fecharIds.includes(oid));
+            const descartarIds = todosOrcIds.filter(oid => !cenariosBloqueados.has(oid));
             if (descartarIds.length > 0) {
                 const { error: eDesc } = await supabase.from('orcamentos')
                     .update({ descartado_em: new Date().toISOString() }).in('id', descartarIds);
                 if (eDesc) console.error('[FecharPedido] Soft delete:', eDesc.message);
             }
 
-            setPedidoFechado({
+            const novoPedido = {
                 id: pedido.id,
                 cenario_ids:           fecharIds,
                 forma_pagamento,
@@ -771,7 +777,8 @@ export function useProjectActions(projectId, {
                 prazo_entrega_tipo:    prazo_tipo,
                 prazo_entrega_valor:   prazo_tipo === 'DIAS_UTEIS' ? prazo_dias : null,
                 created_at:            new Date().toISOString(),
-            });
+            };
+            setPedidosFechados(prev => [novoPedido, ...prev]);
             cancelarFecharPedido();
             await recarregarAmbientes();
             setToastFechar('Pedido fechado com sucesso!');
@@ -788,7 +795,7 @@ export function useProjectActions(projectId, {
         if (!pedidoFechado?.id) return;
         if (!window.confirm('Reverter pedido para status de orçamento? Os cenários descartados ainda dentro do prazo de 7 dias serão restaurados.')) return;
         try {
-            await supabase.from('pedidos_fechados').update({ status: 'REVERTIDO' }).eq('id', pedidoFechado.id).eq('empresa_id', profile.empresa_id);
+            await supabase.from('pedidos_fechados').update({ status: 'REVERTIDO' }).eq('id', pedidoFechado.id);
             await supabase.from('projetos').update({ status_pedido: 'ORCAMENTO' }).eq('id', projectId);
             const ambIds = ambientes.map(a => a.id);
             if (ambIds.length) {
@@ -799,7 +806,7 @@ export function useProjectActions(projectId, {
                     .not('descartado_em', 'is', null)
                     .gt('descartado_em', limite);
             }
-            setPedidoFechado(null);
+            setPedidosFechados(prev => prev.filter(p => p.id !== pedidoFechado.id));
             await recarregarAmbientes();
         } catch (err) {
             alert('Erro ao reverter: ' + err.message);

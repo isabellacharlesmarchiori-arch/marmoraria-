@@ -42,7 +42,7 @@ export default function TelaProjetoVendedor() {
         medicoes,        setMedicoes,
         catMateriais,    catProdAvulsos,
         medidores,
-        pedidoFechado,   setPedidoFechado,
+        pedidosFechados, setPedidosFechados, pedidoFechado,
         loadingProjeto,
         loadingPecasOrc,
         recarregarAmbientes,
@@ -55,7 +55,7 @@ export default function TelaProjetoVendedor() {
         projeto, setProjeto,
         setMedicoes,
         medidores,
-        pedidoFechado, setPedidoFechado,
+        pedidoFechado, pedidosFechados, setPedidosFechados,
         catMateriais, catProdAvulsos,
         recarregarAmbientes,
     });
@@ -360,6 +360,7 @@ export default function TelaProjetoVendedor() {
                                     <iconify-icon icon="solar:refresh-linear" width="13"></iconify-icon>
                                     Atualizar status
                                 </button>
+                                {pedidosFechados.length === 0 && (
                                 <button
                                     onClick={() => setModalPerda(true)}
                                     className="flex items-center gap-2 border bg-red-600 border-red-600 text-white dark:border-red-500/30 dark:bg-red-400/5 dark:text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:bg-red-700 dark:hover:bg-transparent dark:hover:border-red-400 transition-colors"
@@ -367,6 +368,7 @@ export default function TelaProjetoVendedor() {
                                     <iconify-icon icon="solar:close-circle-linear" width="13"></iconify-icon>
                                     Marcar como perdido
                                 </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -414,6 +416,7 @@ export default function TelaProjetoVendedor() {
                     <AbaCarrinho
                         ambientes={ambientes}
                         pedidoFechado={pedidoFechado}
+                        pedidosFechados={pedidosFechados}
                         projeto={projeto}
                         projetoId={id}
                         isViewOnlyAdmin={isViewOnlyAdmin}

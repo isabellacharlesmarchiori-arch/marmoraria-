@@ -7,6 +7,7 @@ import ModalImportarPDF from './ModalImportarPDF';
 export default function AbaCarrinho({
     ambientes,
     pedidoFechado,
+    pedidosFechados = [],
     projeto,
     projetoId,
     isViewOnlyAdmin,
@@ -30,9 +31,10 @@ export default function AbaCarrinho({
     const navigate = useNavigate();
     const id = projetoId;
     const [modalPdf, setModalPdf] = useState(false);
-    const [editandoPecaCarrinho, setEditandoPecaCarrinho] = useState(null); // { orcId, pecaId, pecaDbId, nome }
-    const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null); // { orcId, itemNome, novo }
-    const [editandoAmbCarrinho,  setEditandoAmbCarrinho]  = useState(null); // { ambId, novo }
+    const [editandoPecaCarrinho, setEditandoPecaCarrinho] = useState(null);
+    const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null);
+    const [editandoAmbCarrinho,  setEditandoAmbCarrinho]  = useState(null);
+    const [pedidosAbertos, setPedidosAbertos] = useState({});
 
     function toggleCarrinhoDetalhes(orcId) {
         setCarrinhoExpandido(prev => {
@@ -52,6 +54,7 @@ export default function AbaCarrinho({
     );
     const totalGeral = orcamentosCarrinho.reduce((s, o) => s + (o.valor_total ?? 0), 0);
     const modoAtivo = modoMesclar || modoFecharPedido;
+    const pedidosOrdenados = [...pedidosFechados].reverse(); // oldest first → Pedido 1, 2, 3...
 
     return (
         <>
@@ -70,34 +73,101 @@ export default function AbaCarrinho({
                 </div>
             )}
 
-            {/* Badge pedido fechado */}
-            {pedidoFechado && (
-                <div className="mb-4 bg-green-100 dark:bg-green-950/40 border border-green-300 dark:border-green-700/40 px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <iconify-icon icon="solar:check-circle-bold" width="16" className="text-green-700 dark:text-green-400 shrink-0"></iconify-icon>
-                            <div className="min-w-0">
-                                <div className="font-mono text-[10px] text-green-900 dark:text-green-400 uppercase tracking-widest font-bold">Pedido Fechado</div>
-                                <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 mt-0.5 truncate">
-                                    {pedidoFechado.forma_pagamento}
-                                    {pedidoFechado.parcelas ? ` · ${pedidoFechado.parcelas}x` : ''}
-                                    {pedidoFechado.prazo_entrega ? ` · Entrega: ${new Date(pedidoFechado.prazo_entrega).toLocaleDateString('pt-BR')}` : ''}
-                                    {pedidoFechado.created_at ? ` · Fechado em ${new Date(pedidoFechado.created_at).toLocaleDateString('pt-BR')}` : ''}
-                                </div>
+            {/* Pedidos fechados — accordion */}
+            {pedidosOrdenados.length > 0 && (
+                <div className="mb-4 flex flex-col gap-2">
+                    {pedidosOrdenados.map((pedido, idx) => {
+                        const aberto = pedidosAbertos[pedido.id] !== undefined
+                            ? pedidosAbertos[pedido.id]
+                            : idx === 0;
+                        const toggle = () => setPedidosAbertos(prev => ({ ...prev, [pedido.id]: !aberto }));
+                        const cenarioNomes = (pedido.cenario_ids ?? [])
+                            .map(cid => {
+                                const orc = orcamentosCarrinho.find(o => o.id === cid);
+                                return orc?.nome ?? orc?.nome_versao ?? null;
+                            })
+                            .filter(Boolean);
+                        const valorTotal = (pedido.cenario_ids ?? []).reduce((s, cid) => {
+                            const orc = orcamentosCarrinho.find(o => o.id === cid);
+                            return s + (orc?.valor_total ?? 0);
+                        }, 0);
+                        return (
+                            <div key={pedido.id} className="border border-green-300 dark:border-green-700/40 bg-green-50 dark:bg-green-950/30">
+                                <button
+                                    onClick={toggle}
+                                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-green-100 dark:hover:bg-green-950/60 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <iconify-icon icon="solar:check-circle-bold" width="15" className="text-green-600 dark:text-green-400 shrink-0"></iconify-icon>
+                                        <span className="font-mono text-[10px] uppercase tracking-widest font-bold text-green-900 dark:text-green-400">
+                                            Pedido {idx + 1}
+                                        </span>
+                                        {pedido.created_at && (
+                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">
+                                                {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
+                                            </span>
+                                        )}
+                                        {valorTotal > 0 && (
+                                            <span className="font-mono text-[10px] font-semibold text-gray-700 dark:text-zinc-300">
+                                                {fmtBRL(valorTotal)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <iconify-icon
+                                        icon={aberto ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
+                                        width="14"
+                                        className="text-gray-400 dark:text-zinc-500 shrink-0"
+                                    ></iconify-icon>
+                                </button>
+                                {aberto && (
+                                    <div className="px-4 pb-3 border-t border-green-200 dark:border-green-700/30">
+                                        <div className="flex flex-col gap-2 mt-3">
+                                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                                <div>
+                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-0.5">Pagamento</div>
+                                                    <div className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">
+                                                        {pedido.forma_pagamento ?? '—'}
+                                                        {pedido.parcelas ? ` · ${pedido.parcelas}x` : ''}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-0.5">Prazo de entrega</div>
+                                                    <div className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">
+                                                        {pedido.prazo_entrega
+                                                            ? new Date(pedido.prazo_entrega).toLocaleDateString('pt-BR')
+                                                            : '—'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {cenarioNomes.length > 0 && (
+                                                <div>
+                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-1">Cenários incluídos</div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {cenarioNomes.map((nome, i) => (
+                                                            <span key={i} className="font-mono text-[10px] bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-700/40 text-green-800 dark:text-green-300 px-2 py-0.5">
+                                                                {nome}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-end mt-1">
+                                                <button
+                                                    onClick={() => actions.openPdfModal('pedido', pedido, setPdfModal)}
+                                                    disabled={!!loadingPdf}
+                                                    className="flex items-center gap-2 border border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 hover:bg-yellow-100 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40"
+                                                >
+                                                    {loadingPdf === 'pedido'
+                                                        ? <><iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin"></iconify-icon> Gerando...</>
+                                                        : <><iconify-icon icon="solar:file-download-linear" width="13"></iconify-icon> Emitir PDF</>}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button
-                                onClick={() => actions.openPdfModal('pedido', null, setPdfModal)}
-                                disabled={!!loadingPdf}
-                                className="flex items-center gap-2 border border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-2 hover:bg-yellow-100 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40"
-                            >
-                                {loadingPdf === 'pedido'
-                                    ? <><iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin"></iconify-icon> Gerando...</>
-                                    : <><iconify-icon icon="solar:file-download-linear" width="13"></iconify-icon> Gerar PDF</>}
-                            </button>
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -109,7 +179,7 @@ export default function AbaCarrinho({
                 <div className="flex items-center gap-2">
 
                     {/* ── Modo Mesclar: botão de entrada ── */}
-                    {orcamentosCarrinho.length >= 2 && !modoAtivo && !pedidoFechado && (
+                    {orcamentosCarrinho.length >= 2 && !modoAtivo && (
                         <button
                             onClick={() => setModoMesclar(true)}
                             className="flex items-center gap-1.5 border border-orange-500 dark:border-orange-500/40 text-orange-700 dark:text-orange-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-orange-600 dark:hover:border-orange-400 hover:bg-orange-100 dark:hover:bg-orange-400/10 transition-colors"
@@ -141,7 +211,7 @@ export default function AbaCarrinho({
                     )}
 
                     {/* ── Fechar Pedido: botão de entrada ── */}
-                    {orcamentosCarrinho.length >= 1 && !modoAtivo && !pedidoFechado && !isViewOnlyAdmin && (
+                    {orcamentosCarrinho.length >= 1 && !modoAtivo && (
                         <button
                             onClick={() => setModoFecharPedido(true)}
                             className="flex items-center gap-1.5 bg-blue-600 text-gray-900 dark:text-white text-[11px] font-bold font-mono uppercase tracking-widest px-3 py-1 hover:bg-blue-500 transition-colors"
@@ -190,7 +260,7 @@ export default function AbaCarrinho({
                             Enviar todos
                         </button>
                     )}
-                    {!isViewOnlyAdmin && !modoAtivo && (
+                    {!modoAtivo && (
                         <>
                             <button
                                 onClick={() => setModalPdf(true)}

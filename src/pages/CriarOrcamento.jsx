@@ -496,6 +496,8 @@ export default function CriarOrcamento() {
     setGrupoExtras(map);
   }, [loadingPecas]); // re-init only when loading state changes
 
+  const [openAmbientes, setCollapsedAmbientes] = useState(new Set());
+  const [openGrupos, setCollapsedGrupos] = useState(new Set());
   const [painelMaterialPecaId, setPainelMaterialPecaId] = useState(null);
   const [modalProduto, setModalProduto] = useState(false);
   const [versoesCriadas, setVersoesCriadas] = useState(null);
@@ -572,6 +574,17 @@ export default function CriarOrcamento() {
   function confirmarMaterial(pecaId, mats, acabamentoSel) {
     setPecas(prev => prev.map(p => p.id === pecaId ? { ...p, materiais: mats, acabamentoSel: acabamentoSel ?? null } : p));
     setPainelMaterialPecaId(null);
+  }
+
+  function toggleSecaoAmbiente(amb) {
+    setCollapsedAmbientes(prev => {
+      const next = new Set(prev); next.has(amb) ? next.delete(amb) : next.add(amb); return next;
+    });
+  }
+  function toggleSecaoGrupo(geKey) {
+    setCollapsedGrupos(prev => {
+      const next = new Set(prev); next.has(geKey) ? next.delete(geKey) : next.add(geKey); return next;
+    });
   }
 
   // ── Ações por ambiente ──────────────────────────────────────────
@@ -1588,7 +1601,10 @@ export default function CriarOrcamento() {
                                 <button onClick={() => setEditandoAmbNome(null)} className="text-gray-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
                               </div>
                             ) : (
-                              <span className="font-semibold text-gray-900 dark:text-white text-sm tracking-tight flex-1 min-w-0 truncate">{amb}</span>
+                              <button onClick={() => toggleSecaoAmbiente(amb)} className="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity">
+                                <iconify-icon icon="solar:alt-arrow-down-linear" width="12" className={`text-gray-400 dark:text-zinc-600 shrink-0 transition-transform duration-200 ${openAmbientes.has(amb) ? '' : '-rotate-90'}`}></iconify-icon>
+                                <span className="font-semibold text-gray-900 dark:text-white text-sm tracking-tight truncate">{amb}</span>
+                              </button>
                             )}
                             {/* 4 botões de ação */}
                             {!isEditandoEsteAmb && (
@@ -1634,6 +1650,7 @@ export default function CriarOrcamento() {
                         </div>
                       )}
                       {/* ── Peças do ambiente, agrupadas por grupo_nome ── */}
+                      <div className={`grid transition-all duration-200 ease-in-out ${openAmbientes.has(amb) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}><div className="overflow-hidden">
                       {(() => {
                         const pecasDoAmb = mapa.get(amb);
                         const gMap = new Map();
@@ -1669,7 +1686,10 @@ export default function CriarOrcamento() {
                                   </>
                                 ) : (
                                   <>
-                                    <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest flex-1">{grupoLabel}</span>
+                                    <button onClick={() => toggleSecaoGrupo(geKey)} className="flex items-center gap-1 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity">
+                                      <iconify-icon icon="solar:alt-arrow-down-linear" width="9" className={`text-gray-400 dark:text-zinc-700 shrink-0 transition-transform duration-200 ${openGrupos.has(geKey) ? '' : '-rotate-90'}`}></iconify-icon>
+                                      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest truncate">{grupoLabel}</span>
+                                    </button>
                                     {/* Ajuste 3: botão Material por item */}
                                     <button
                                       onClick={() => setPainelMaterialGrupoKey(geKey)}
@@ -1693,102 +1713,103 @@ export default function CriarOrcamento() {
                                 )}
                               </div>
                             ] : []),
-                            // Peças do grupo
-                            ...gMap.get(gKey).map(p => (
-                              <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} onRenomear={renomearPeca} todosM={materiais} />
-                            )),
-                            // Acabamentos lineares do grupo
-                            ...ge.acabamentos.map(ac => (
-                              <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-900/20 group">
-                                <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
-                                <select
-                                  value={ac.tipo}
-                                  onChange={e => updateGrupoAcabamento(geKey, ac.id, 'tipo', e.target.value)}
-                                  className="bg-transparent border border-amber-900/40 text-amber-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-amber-500/60 shrink-0"
-                                >
-                                  <option value="meia_esquadria">Meia Esquadria</option>
-                                  <option value="reto_simples">Reto Simples</option>
-                                  <option value="boleado">Boleado</option>
-                                  <option value="boleado_duplo">Boleado Duplo</option>
-                                  <option value="reto_duplo">Reto Duplo</option>
-                                  <option value="chanfrado">Chanfrado</option>
-                                </select>
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="number" min="0" step="0.01"
-                                    value={ac.ml}
-                                    onChange={e => updateGrupoAcabamento(geKey, ac.id, 'ml', parseFloat(e.target.value) || 0)}
-                                    className="w-14 bg-transparent border border-amber-900/40 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
-                                  />
-                                  <span className="font-mono text-[9px] text-amber-700">ml</span>
-                                </div>
-                                <span className="flex-1"></span>
-                                <button onClick={() => removeGrupoAcabamento(geKey, ac.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
-                                  <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
-                                </button>
-                              </div>
-                            )),
-                            // Furos / recortes do grupo — agrupados por tipo
-                            ...(() => {
-                              const tiposMap = new Map();
-                              ge.furos.forEach(fu => {
-                                if (!tiposMap.has(fu.tipo)) tiposMap.set(fu.tipo, []);
-                                tiposMap.get(fu.tipo).push(fu);
-                              });
-                              return Array.from(tiposMap.entries()).map(([tipo, furosTipo]) => {
-                                const count = furosTipo.length;
-                                return (
-                                  <div key={`furo-tipo-${tipo}`} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/10 border-b border-teal-900/20 group">
-                                    <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
-                                    <span className="font-mono text-[9px] text-teal-400 uppercase tracking-widest shrink-0 min-w-[80px]">{tipo}</span>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button onClick={() => removeGrupoFuroTipo(geKey, tipo)} className="w-5 h-5 flex items-center justify-center border border-teal-900/40 text-teal-600 hover:text-teal-300 font-mono text-[11px] transition-colors">−</button>
-                                      <span className="font-mono text-[10px] text-teal-300 w-5 text-center">{count}</span>
-                                      <button onClick={() => addGrupoFuroTipo(geKey, tipo)} className="w-5 h-5 flex items-center justify-center border border-teal-900/40 text-teal-600 hover:text-teal-300 font-mono text-[11px] transition-colors">+</button>
+                            <div key={`grp-content-${gKey}`} className={`grid transition-all duration-200 ease-in-out ${openGrupos.has(geKey) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                              <div className="overflow-hidden">
+                                {gMap.get(gKey).map(p => (
+                                  <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} onRenomear={renomearPeca} todosM={materiais} />
+                                ))}
+                                {ge.acabamentos.map(ac => (
+                                  <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-900/20 group">
+                                    <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
+                                    <select
+                                      value={ac.tipo}
+                                      onChange={e => updateGrupoAcabamento(geKey, ac.id, 'tipo', e.target.value)}
+                                      className="bg-transparent border border-amber-900/40 text-amber-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-amber-500/60 shrink-0"
+                                    >
+                                      <option value="meia_esquadria">Meia Esquadria</option>
+                                      <option value="reto_simples">Reto Simples</option>
+                                      <option value="boleado">Boleado</option>
+                                      <option value="boleado_duplo">Boleado Duplo</option>
+                                      <option value="reto_duplo">Reto Duplo</option>
+                                      <option value="chanfrado">Chanfrado</option>
+                                    </select>
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="number" min="0" step="0.01"
+                                        value={ac.ml}
+                                        onChange={e => updateGrupoAcabamento(geKey, ac.id, 'ml', parseFloat(e.target.value) || 0)}
+                                        className="w-14 bg-transparent border border-amber-900/40 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
+                                      />
+                                      <span className="font-mono text-[9px] text-amber-700">ml</span>
                                     </div>
                                     <span className="flex-1"></span>
-                                    <button onClick={() => removeGrupoFuroTipoAll(geKey, tipo)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                                    <button onClick={() => removeGrupoAcabamento(geKey, ac.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                                       <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                     </button>
                                   </div>
-                                );
-                              });
-                            })(),
-                            // Botões adicionar
-                            <div key={`add-${gKey}`} className="flex flex-col gap-0">
-                              <div className="flex items-center gap-3 pl-6 pr-4 py-1 bg-zinc-950/20 border-b border-zinc-900/30">
-                                <button onClick={() => addGrupoAcabamento(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-amber-800 hover:text-amber-500 transition-colors">
-                                  <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
-                                  Acabamento
-                                </button>
-                                <button onClick={() => setAddFuroMenuKey(addFuroMenuKey === geKey ? null : geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-teal-800 hover:text-teal-500 transition-colors">
-                                  <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
-                                  Furo
-                                </button>
-                              </div>
-                              {addFuroMenuKey === geKey && (
-                                <div className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/20 border-b border-teal-900/20">
-                                  <iconify-icon icon="solar:scissors-linear" width="10" className="text-teal-600 shrink-0"></iconify-icon>
-                                  <select
-                                    defaultValue=""
-                                    onChange={e => { if (e.target.value) { addGrupoFuroTipo(geKey, e.target.value); setAddFuroMenuKey(null); } }}
-                                    className="flex-1 bg-transparent border border-teal-900/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-teal-500/60"
-                                  >
-                                    <option value="">— Selecionar tipo de furo —</option>
-                                    {acabamentosUnitarios.length > 0
-                                      ? acabamentosUnitarios.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)
-                                      : <option value="Recorte">Recorte</option>
-                                    }
-                                  </select>
-                                  <button onClick={() => setAddFuroMenuKey(null)} className="p-0.5 text-zinc-700 hover:text-red-400 transition-colors shrink-0">
-                                    <iconify-icon icon="solar:close-circle-linear" width="11"></iconify-icon>
-                                  </button>
+                                ))}
+                                {(() => {
+                                  const tiposMap = new Map();
+                                  ge.furos.forEach(fu => {
+                                    if (!tiposMap.has(fu.tipo)) tiposMap.set(fu.tipo, []);
+                                    tiposMap.get(fu.tipo).push(fu);
+                                  });
+                                  return Array.from(tiposMap.entries()).map(([tipo, furosTipo]) => {
+                                    const count = furosTipo.length;
+                                    return (
+                                      <div key={`furo-tipo-${tipo}`} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/10 border-b border-teal-900/20 group">
+                                        <iconify-icon icon="solar:scissors-linear" width="11" className="text-teal-500/70 shrink-0"></iconify-icon>
+                                        <span className="font-mono text-[9px] text-teal-400 uppercase tracking-widest shrink-0 min-w-[80px]">{tipo}</span>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <button onClick={() => removeGrupoFuroTipo(geKey, tipo)} className="w-5 h-5 flex items-center justify-center border border-teal-900/40 text-teal-600 hover:text-teal-300 font-mono text-[11px] transition-colors">−</button>
+                                          <span className="font-mono text-[10px] text-teal-300 w-5 text-center">{count}</span>
+                                          <button onClick={() => addGrupoFuroTipo(geKey, tipo)} className="w-5 h-5 flex items-center justify-center border border-teal-900/40 text-teal-600 hover:text-teal-300 font-mono text-[11px] transition-colors">+</button>
+                                        </div>
+                                        <span className="flex-1"></span>
+                                        <button onClick={() => removeGrupoFuroTipoAll(geKey, tipo)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                                          <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
+                                        </button>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                                <div className="flex flex-col gap-0">
+                                  <div className="flex items-center gap-3 pl-6 pr-4 py-1 bg-zinc-950/20 border-b border-zinc-900/30">
+                                    <button onClick={() => addGrupoAcabamento(geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-amber-800 hover:text-amber-500 transition-colors">
+                                      <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
+                                      Acabamento
+                                    </button>
+                                    <button onClick={() => setAddFuroMenuKey(addFuroMenuKey === geKey ? null : geKey)} className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-teal-800 hover:text-teal-500 transition-colors">
+                                      <iconify-icon icon="solar:add-circle-linear" width="9"></iconify-icon>
+                                      Furo
+                                    </button>
+                                  </div>
+                                  {addFuroMenuKey === geKey && (
+                                    <div className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-teal-950/20 border-b border-teal-900/20">
+                                      <iconify-icon icon="solar:scissors-linear" width="10" className="text-teal-600 shrink-0"></iconify-icon>
+                                      <select
+                                        defaultValue=""
+                                        onChange={e => { if (e.target.value) { addGrupoFuroTipo(geKey, e.target.value); setAddFuroMenuKey(null); } }}
+                                        className="flex-1 bg-transparent border border-teal-900/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest px-1 py-0.5 outline-none focus:border-teal-500/60"
+                                      >
+                                        <option value="">— Selecionar tipo de furo —</option>
+                                        {acabamentosUnitarios.length > 0
+                                          ? acabamentosUnitarios.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)
+                                          : <option value="Recorte">Recorte</option>
+                                        }
+                                      </select>
+                                      <button onClick={() => setAddFuroMenuKey(null)} className="p-0.5 text-zinc-700 hover:text-red-400 transition-colors shrink-0">
+                                        <iconify-icon icon="solar:close-circle-linear" width="11"></iconify-icon>
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              </div>
                             </div>,
                           ];
                         });
                       })()}
+                      </div></div>
                     </div>
                   );
                 });

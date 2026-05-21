@@ -30,7 +30,7 @@ export function useProjectData(projectId, activeTab) {
     const [catMateriais,   setCatMateriais]   = useState([]);
     const [catProdAvulsos, setCatProdAvulsos] = useState([]);
     const [medidores,      setMedidores]      = useState([]);
-    const [pedidoFechado,  setPedidoFechado]  = useState(null);
+    const [pedidosFechados, setPedidosFechados] = useState([]);
     const [loadingProjeto, setLoadingProjeto] = useState(true);
     const [loadingPecasOrc, setLoadingPecasOrc] = useState({});
 
@@ -154,11 +154,9 @@ export function useProjectData(projectId, activeTab) {
         supabase.from('pedidos_fechados')
             .select('*')
             .eq('projeto_id', projectId)
-            .eq('empresa_id', profile.empresa_id)
             .eq('status', 'FECHADO')
             .order('created_at', { ascending: false })
-            .limit(1)
-            .then(({ data }) => { if (data?.[0]) setPedidoFechado(data[0]); });
+            .then(({ data }) => { if (data) setPedidosFechados(data); });
     }, [activeTab, projectId, profile?.empresa_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Lazy load de peças ───────────────────────────────────────────────────
@@ -201,6 +199,8 @@ export function useProjectData(projectId, activeTab) {
         setLoadingPecasOrc(prev => ({ ...prev, [orcId]: false }));
     }
 
+    const pedidoFechado = pedidosFechados[0] ?? null;
+
     return {
         // Estado — dados
         projeto,        setProjeto,
@@ -209,7 +209,8 @@ export function useProjectData(projectId, activeTab) {
         catMateriais,
         catProdAvulsos,
         medidores,
-        pedidoFechado,  setPedidoFechado,
+        pedidosFechados, setPedidosFechados,
+        pedidoFechado,
         loadingProjeto,
         loadingPecasOrc,
         // Refetch
