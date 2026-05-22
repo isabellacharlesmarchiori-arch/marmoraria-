@@ -34,7 +34,7 @@ export default function AbaCarrinho({
     const [editandoPecaCarrinho, setEditandoPecaCarrinho] = useState(null);
     const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null);
     const [editandoAmbCarrinho,  setEditandoAmbCarrinho]  = useState(null);
-    const [pedidosAbertos, setPedidosAbertos] = useState({});
+    const [avisoIncluido, setAvisoIncluido] = useState(null); // { orcId, pedidoNumero }
 
     function toggleCarrinhoDetalhes(orcId) {
         setCarrinhoExpandido(prev => {
@@ -56,6 +56,19 @@ export default function AbaCarrinho({
     const modoAtivo = modoMesclar || modoFecharPedido;
     const pedidosOrdenados = [...pedidosFechados].reverse(); // oldest first → Pedido 1, 2, 3...
 
+    function handleToggleFecharId(orcId) {
+        if (fecharIds.includes(orcId)) {
+            toggleFecharId(orcId);
+            return;
+        }
+        const pedidoIdx = pedidosOrdenados.findIndex(p => (p.cenario_ids ?? []).includes(orcId));
+        if (pedidoIdx !== -1) {
+            setAvisoIncluido({ orcId, pedidoNumero: pedidoIdx + 1 });
+        } else {
+            toggleFecharId(orcId);
+        }
+    }
+
     return (
         <>
         <div className="sys-reveal sys-delay-200">
@@ -73,108 +86,10 @@ export default function AbaCarrinho({
                 </div>
             )}
 
-            {/* Pedidos fechados — accordion */}
-            {pedidosOrdenados.length > 0 && (
-                <div className="mb-4 flex flex-col gap-2">
-                    {pedidosOrdenados.map((pedido, idx) => {
-                        const aberto = pedidosAbertos[pedido.id] !== undefined
-                            ? pedidosAbertos[pedido.id]
-                            : idx === 0;
-                        const toggle = () => setPedidosAbertos(prev => ({ ...prev, [pedido.id]: !aberto }));
-                        const cenarioNomes = (pedido.cenario_ids ?? [])
-                            .map(cid => {
-                                const orc = orcamentosCarrinho.find(o => o.id === cid);
-                                return orc?.nome ?? orc?.nome_versao ?? null;
-                            })
-                            .filter(Boolean);
-                        const valorTotal = (pedido.cenario_ids ?? []).reduce((s, cid) => {
-                            const orc = orcamentosCarrinho.find(o => o.id === cid);
-                            return s + (orc?.valor_total ?? 0);
-                        }, 0);
-                        return (
-                            <div key={pedido.id} className="border border-green-300 dark:border-green-700/40 bg-green-50 dark:bg-green-950/30">
-                                <button
-                                    onClick={toggle}
-                                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-green-100 dark:hover:bg-green-950/60 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <iconify-icon icon="solar:check-circle-bold" width="15" className="text-green-600 dark:text-green-400 shrink-0"></iconify-icon>
-                                        <span className="font-mono text-[10px] uppercase tracking-widest font-bold text-green-900 dark:text-green-400">
-                                            Pedido {idx + 1}
-                                        </span>
-                                        {pedido.created_at && (
-                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">
-                                                {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
-                                            </span>
-                                        )}
-                                        {valorTotal > 0 && (
-                                            <span className="font-mono text-[10px] font-semibold text-gray-700 dark:text-zinc-300">
-                                                {fmtBRL(valorTotal)}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <iconify-icon
-                                        icon={aberto ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
-                                        width="14"
-                                        className="text-gray-400 dark:text-zinc-500 shrink-0"
-                                    ></iconify-icon>
-                                </button>
-                                {aberto && (
-                                    <div className="px-4 pb-3 border-t border-green-200 dark:border-green-700/30">
-                                        <div className="flex flex-col gap-2 mt-3">
-                                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                                                <div>
-                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-0.5">Pagamento</div>
-                                                    <div className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">
-                                                        {pedido.forma_pagamento ?? '—'}
-                                                        {pedido.parcelas ? ` · ${pedido.parcelas}x` : ''}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-0.5">Prazo de entrega</div>
-                                                    <div className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">
-                                                        {pedido.prazo_entrega
-                                                            ? new Date(pedido.prazo_entrega).toLocaleDateString('pt-BR')
-                                                            : '—'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {cenarioNomes.length > 0 && (
-                                                <div>
-                                                    <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-1">Cenários incluídos</div>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {cenarioNomes.map((nome, i) => (
-                                                            <span key={i} className="font-mono text-[10px] bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-700/40 text-green-800 dark:text-green-300 px-2 py-0.5">
-                                                                {nome}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div className="flex justify-end mt-1">
-                                                <button
-                                                    onClick={() => actions.openPdfModal('pedido', pedido, setPdfModal)}
-                                                    disabled={!!loadingPdf}
-                                                    className="flex items-center gap-2 border border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 hover:bg-yellow-100 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40"
-                                                >
-                                                    {loadingPdf === 'pedido'
-                                                        ? <><iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin"></iconify-icon> Gerando...</>
-                                                        : <><iconify-icon icon="solar:file-download-linear" width="13"></iconify-icon> Emitir PDF</>}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
             {/* Cabeçalho da aba */}
             <div className="flex items-center justify-between mb-5">
                 <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
-                    02 // Carrinho
+                    02 // Orçamentos
                 </div>
                 <div className="flex items-center gap-2">
 
@@ -301,6 +216,8 @@ export default function AbaCarrinho({
                         const isMesclarChecked = mesclarIds.includes(orc.id);
                         const isFecharChecked  = fecharIds.includes(orc.id);
                         const isDescartado     = !!orc.descartado_em;
+                        const pedidoDoOrcIdx   = pedidosOrdenados.findIndex(p => (p.cenario_ids ?? []).includes(orc.id));
+                        const pedidoDoOrc      = pedidoDoOrcIdx !== -1 ? pedidoDoOrcIdx + 1 : null;
 
                         return (
                             <div
@@ -314,7 +231,7 @@ export default function AbaCarrinho({
                                 `}
                                 onClick={
                                     modoMesclar ? () => toggleMesclarId(orc.id) :
-                                    modoFecharPedido ? () => toggleFecharId(orc.id) :
+                                    modoFecharPedido ? () => handleToggleFecharId(orc.id) :
                                     undefined
                                 }
                             >
@@ -333,7 +250,7 @@ export default function AbaCarrinho({
                                     {modoFecharPedido && (
                                         <div
                                             className={`w-4 h-4 flex items-center justify-center shrink-0 border transition-colors ${isFecharChecked ? 'border-green-400 bg-green-400/20' : 'border-gray-300 dark:border-zinc-600 hover:border-green-400'}`}
-                                            onClick={e => { e.stopPropagation(); toggleFecharId(orc.id); }}
+                                            onClick={e => { e.stopPropagation(); handleToggleFecharId(orc.id); }}
                                         >
                                             {isFecharChecked && <iconify-icon icon="solar:check-read-linear" width="10" className="text-green-400"></iconify-icon>}
                                         </div>
@@ -363,6 +280,11 @@ export default function AbaCarrinho({
                                             {orcsMesclados.has(orc.id) && (
                                                 <span className="shrink-0 px-1.5 py-0.5 border border-orange-400 dark:border-orange-400/40 text-[8px] font-mono uppercase tracking-widest text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-400/5">
                                                     Mesclado
+                                                </span>
+                                            )}
+                                            {pedidoDoOrc && (
+                                                <span className="shrink-0 px-1.5 py-0.5 border border-blue-400 dark:border-blue-500/50 text-[8px] font-mono uppercase tracking-widest text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10">
+                                                    Pedido {pedidoDoOrc}
                                                 </span>
                                             )}
                                         </span>
@@ -1200,6 +1122,34 @@ export default function AbaCarrinho({
 
         {modalPdf && (
             <ModalImportarPDF projetoId={id} onClose={() => setModalPdf(false)} />
+        )}
+
+        {/* Aviso: cenário já incluído em pedido */}
+        {avisoIncluido && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                <div className="bg-gray-100 dark:bg-[#0d0d0d] border border-gray-300 dark:border-zinc-700 w-full max-w-sm shadow-2xl p-5 space-y-4">
+                    <div className="flex items-start gap-3">
+                        <iconify-icon icon="solar:info-circle-linear" width="16" className="text-yellow-400 shrink-0 mt-0.5"></iconify-icon>
+                        <p className="font-mono text-[11px] text-gray-700 dark:text-zinc-300 leading-relaxed">
+                            Este cenário já foi incluído no <span className="font-bold text-gray-900 dark:text-white">Pedido {avisoIncluido.pedidoNumero}</span>. Deseja incluir mesmo assim?
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setAvisoIncluido(null)}
+                            className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={() => { toggleFecharId(avisoIncluido.orcId); setAvisoIncluido(null); }}
+                            className="flex-1 bg-yellow-400 text-black font-bold font-mono text-[10px] uppercase tracking-widest py-2 hover:bg-yellow-300 transition-colors"
+                        >
+                            Incluir mesmo assim
+                        </button>
+                    </div>
+                </div>
+            </div>
         )}
         </>
     );

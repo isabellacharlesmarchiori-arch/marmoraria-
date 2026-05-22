@@ -43,10 +43,10 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     ? ['medidor', 'admin_medidor', 'vendedor_medidor'].includes(impersonation.perfil)
     : perfil === 'medidor' || perfil === 'admin_medidor' || perfil === 'vendedor_medidor';
   const isCombinado = perfil === 'admin_medidor'  || perfil === 'vendedor_medidor';
-  const notifPath   = isCombinado             ? '/notificacoes'
-                    : perfilBase === 'admin'  ? '/admin/notificacoes'
+  const notifPath   = isCombinado             ? '/mensagens/notificacoes'
+                    : perfilBase === 'admin'  ? '/admin/mensagens/notificacoes'
                     : perfilBase === 'medidor'? '/medidor/notificacoes'
-                    : '/notificacoes';
+                    : '/mensagens/notificacoes';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(notifCountProp);
   const [toasts, setToasts] = useState([]);
@@ -117,7 +117,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: '/dashboard', label: 'Início', icon: 'solar:home-linear', subtitle: 'Dashboard pessoal' },
     { path: '/projetos', label: 'Projetos', icon: 'solar:layers-linear', subtitle: 'Gerenciamento de projetos' },
     { path: '/clientes', label: 'Clientes', icon: 'solar:users-group-two-rounded-linear', subtitle: 'Base de clientes' },
-    { path: '/notificacoes', label: 'Notificações', icon: 'solar:bell-linear', subtitle: 'Avisos do sistema', badge: true }
+    { path: '/mensagens', label: 'Notificações', icon: 'solar:chat-line-linear', subtitle: 'Mensagens e notificações', badge: true }
   ];
 
   const menuAdmin = [
@@ -129,8 +129,7 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
     { path: '/admin/estoque',    label: 'Estoque',    icon: 'solar:box-linear',           subtitle: 'Chapas, produtos e insumos' },
     { path: '/admin/ia',            label: 'IA',            icon: 'solar:stars-linear',     subtitle: 'Assistente inteligente' },
     { path: '/admin/configuracoes', label: 'Configurações', icon: 'solar:settings-linear',  subtitle: 'Ajustes do sistema' },
-    { path: '/admin/mensagens',    label: 'Mensagens',     icon: 'solar:chat-line-linear', subtitle: 'Enviar avisos ao time' },
-    { path: notifPath, label: 'Notificações',  icon: 'solar:bell-linear',      subtitle: 'Avisos do sistema', badge: true }
+    { path: '/admin/mensagens', label: 'Notificações', icon: 'solar:chat-line-linear', subtitle: 'Mensagens e notificações', badge: true }
   ];
 
   const menuSuperAdmin = [

@@ -406,7 +406,7 @@ export function normalizarJsonMedicao(json) {
 }
 
 export function normalizarAmbiente(amb) {
-    const orcamentosDoAmb = (amb.orcamentos ?? []).filter(o => !o.descartado_em);
+    const orcamentosDoAmb = amb.orcamentos ?? [];
     const versoes = orcamentosDoAmb.map(orc => ({
         id:             orc.id,
         nome:           orc.nome_versao ?? orc.nome ?? 'Versão',

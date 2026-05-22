@@ -26,9 +26,11 @@ const FinanceiroCheques      = lazy(() => import('./pages/financeiro/FinanceiroC
 const FinanceiroRelatorios   = lazy(() => import('./pages/financeiro/FinanceiroRelatorios'))
 const AdminRelatorios        = lazy(() => import('./pages/AdminRelatorios'))
 const RelatoriosPedidos      = lazy(() => import('./pages/relatorios/RelatoriosPedidos'))
+const RelatoriosVendas       = lazy(() => import('./pages/relatorios/RelatoriosVendas'))
 const Configuracoes        = lazy(() => import('./pages/Configuracoes'))
 const Admin                = lazy(() => import('./pages/Admin'))
 const Notificacoes         = lazy(() => import('./pages/Notificacoes'))
+const MensagensHub         = lazy(() => import('./pages/MensagensHub'))
 const AdminNotificacoes    = lazy(() => import('./pages/AdminNotificacoes'))
 const AdminMensagens       = lazy(() => import('./pages/AdminMensagens'))
 const PainelMedidor        = lazy(() => import('./pages/PainelMedidor'))
@@ -145,7 +147,12 @@ export default function App() {
               <Route path="/projetos"                    element={<ProjetosAdminV2 />} />
               <Route path="/projetos/:id"                element={<TelaProjeto />} />
               <Route path="/clientes"                    element={<Clientes />} />
-              <Route path="/notificacoes"                element={<Notificacoes />} />
+              <Route path="/notificacoes" element={<Navigate to="/mensagens/notificacoes" replace />} />
+              <Route path="/mensagens" element={<MensagensHub />}>
+                <Route index element={<Navigate to="notificacoes" replace />} />
+                <Route path="notificacoes" element={<Notificacoes />} />
+                <Route path="mensagens"    element={<Notificacoes />} />
+              </Route>
               <Route path="/projetos/:id/orcamento/novo" element={<CriarOrcamento />} />
               <Route path="/projetos/:id/carrinho"       element={<Carrinho />} />
               {/* ── Rotas exclusivas de admin ── */}
@@ -159,18 +166,24 @@ export default function App() {
                   <Route path="lancamentos"       element={<FinanceiroLancamentos />} />
                   <Route path="contas"            element={<FinanceiroContas />} />
                   <Route path="cheques"           element={<FinanceiroCheques />} />
-                  <Route path="relatorios"        element={<Navigate to="/admin/relatorios/desempenho" replace />} />
+                  <Route path="relatorios"        element={<Navigate to="/admin/relatorios/contabil" replace />} />
                 </Route>
                 <Route path="/admin/relatorios" element={<AdminRelatorios />}>
                   <Route index                    element={<Navigate to="/admin/relatorios/pedidos" replace />} />
                   <Route path="pedidos"           element={<RelatoriosPedidos />} />
-                  <Route path="desempenho"        element={<FinanceiroRelatorios />} />
+                  <Route path="vendas"            element={<RelatoriosVendas />} />
+                  <Route path="contabil"          element={<FinanceiroRelatorios />} />
+                  <Route path="desempenho"        element={<Navigate to="/admin/relatorios/contabil" replace />} />
                 </Route>
                 <Route path="/admin/ia"             element={<AdminIA />} />
                 <Route path="/admin/estoque"        element={<Estoque />} />
                 <Route path="/admin/configuracoes" element={<Configuracoes />} />
-                <Route path="/admin/mensagens"     element={<AdminMensagens />} />
-                <Route path="/admin/notificacoes"  element={<AdminNotificacoes />} />
+                <Route path="/admin/notificacoes" element={<Navigate to="/admin/mensagens/notificacoes" replace />} />
+                <Route path="/admin/mensagens" element={<MensagensHub />}>
+                  <Route index element={<Navigate to="notificacoes" replace />} />
+                  <Route path="notificacoes" element={<AdminNotificacoes />} />
+                  <Route path="mensagens"    element={<AdminMensagens />} />
+                </Route>
               </Route>
               <Route path="/agenda"                      element={<Agenda />} />
               {/* ── Rotas exclusivas de superadmin ── */}

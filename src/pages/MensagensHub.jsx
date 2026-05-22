@@ -1,12 +1,14 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useMatch } from 'react-router-dom';
 
-const tabs = [
-  { to: '/admin/relatorios/pedidos',  label: 'Pedidos'  },
-  { to: '/admin/relatorios/vendas',   label: 'Vendas'   },
-  { to: '/admin/relatorios/contabil', label: 'Contábil' },
-];
+export default function MensagensHub() {
+  const isAdmin = useMatch('/admin/*');
+  const base = isAdmin ? '/admin/mensagens' : '/mensagens';
 
-export default function AdminRelatorios() {
+  const tabs = [
+    { to: `${base}/notificacoes`, label: 'Notificações' },
+    { to: `${base}/mensagens`,    label: 'Mensagens'    },
+  ];
+
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-gray-100 dark:bg-[#050505] text-gray-600 dark:text-zinc-300">
       <nav className="border-b border-gray-300 dark:border-zinc-800 bg-gray-100 dark:bg-[#050505] z-20">

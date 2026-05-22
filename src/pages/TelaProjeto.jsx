@@ -17,6 +17,7 @@ import DrawerEdicaoPeca from '../components/projeto/DrawerEdicaoPeca';
 import ModalAgendarMedicao from '../components/projeto/ModalAgendarMedicao';
 import AbaMedicoes from '../components/projeto/AbaMedicoes';
 import AbaCarrinho from '../components/projeto/AbaCarrinho';
+import AbaPedidos from '../components/projeto/AbaPedidos';
 import {
     STATUS_CONFIG,
     StatusPill, MedicaoPill,
@@ -377,8 +378,9 @@ export default function TelaProjetoVendedor() {
                 {/* ── Tabs ──────────────────────────────────────────────── */}
                 <div className="sys-reveal sys-delay-100 flex border-b border-gray-300 dark:border-zinc-800 mb-6">
                     {[
-                        { id: 'medicoes', label: 'Medições',  icon: 'solar:ruler-pen-linear'              },
-                        { id: 'carrinho', label: 'Carrinho',  icon: 'solar:cart-large-minimalistic-linear' },
+                        { id: 'medicoes',   label: 'Medições',   icon: 'solar:ruler-pen-linear'              },
+                        { id: 'orcamentos', label: 'Orçamentos', icon: 'solar:cart-large-minimalistic-linear' },
+                        { id: 'pedidos',    label: 'Pedidos',    icon: 'solar:document-text-linear'          },
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -411,8 +413,8 @@ export default function TelaProjetoVendedor() {
                     />
                 )}
 
-                {/* ══ ABA: CARRINHO ══════════════════════════════════════ */}
-                {activeTab === 'carrinho' && (
+                {/* ══ ABA: ORÇAMENTOS ════════════════════════════════════ */}
+                {activeTab === 'orcamentos' && (
                     <AbaCarrinho
                         ambientes={ambientes}
                         pedidoFechado={pedidoFechado}
@@ -442,6 +444,17 @@ export default function TelaProjetoVendedor() {
                         carrinhoEditandoAjustes={carrinhoEditandoAjustes} setCarrinhoEditandoAjustes={setCarrinhoEditandoAjustes}
                         loadingPdf={loadingPdf} setPdfModal={setPdfModal}
                         actions={actions}
+                    />
+                )}
+
+                {/* ══ ABA: PEDIDOS ═══════════════════════════════════════ */}
+                {activeTab === 'pedidos' && (
+                    <AbaPedidos
+                        pedidosFechados={pedidosFechados}
+                        ambientes={ambientes}
+                        actions={actions}
+                        loadingPdf={loadingPdf}
+                        setPdfModal={setPdfModal}
                     />
                 )}
             </main>

@@ -89,12 +89,21 @@ export function useProjectData(projectId, activeTab) {
                 if (empresaId) qProj = qProj.eq('empresa_id', empresaId);
                 let qAmb = supabase.from('ambientes').select(AMBIENTES_SELECT).eq('projeto_id', projectId);
                 if (empresaId) qAmb = qAmb.eq('empresa_id', empresaId);
-                const [resP, resA] = await Promise.all([
+                let qPedidos = supabase.from('pedidos_fechados')
+                    .select('*')
+                    .eq('projeto_id', projectId)
+                    .eq('status', 'FECHADO')
+                    .order('created_at', { ascending: false });
+
+                const [resP, resA, resPed] = await Promise.all([
                     qProj.single(),
                     qAmb.order('created_at'),
+                    qPedidos,
                 ]);
                 if (resP.error) console.error('[TelaProjeto] Erro projeto:', resP.error.message);
                 if (resP.data) setProjeto(resP.data);
+                if (resPed.error) console.error('[TelaProjeto] Erro pedidos_fechados:', resPed.error.message);
+                if (resPed.data) setPedidosFechados(resPed.data);
                 if (resA.error) {
                     console.error('[TelaProjeto] Erro ao carregar ambientes:', resA.error.message, resA.error.details);
                     let qFb = supabase.from('ambientes').select(AMBIENTES_SELECT_FALLBACK).eq('projeto_id', projectId);
@@ -147,16 +156,10 @@ export function useProjectData(projectId, activeTab) {
         });
     }, [profile?.empresa_id]);
 
-    // Ao abrir aba Carrinho: recarrega ambientes + busca pedido fechado ativo
+    // Ao abrir aba Orçamentos: recarrega ambientes para refletir alterações recentes
     useEffect(() => {
-        if (activeTab !== 'carrinho' || !projectId || !profile?.empresa_id) return;
+        if (activeTab !== 'orcamentos' || !projectId || !profile?.empresa_id) return;
         recarregarAmbientes();
-        supabase.from('pedidos_fechados')
-            .select('*')
-            .eq('projeto_id', projectId)
-            .eq('status', 'FECHADO')
-            .order('created_at', { ascending: false })
-            .then(({ data }) => { if (data) setPedidosFechados(data); });
     }, [activeTab, projectId, profile?.empresa_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Lazy load de peças ───────────────────────────────────────────────────

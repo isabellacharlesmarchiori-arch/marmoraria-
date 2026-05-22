@@ -754,19 +754,6 @@ export function useProjectActions(projectId, {
                 .from('projetos').update({ status_pedido: 'FECHADO' }).eq('id', projectId);
             if (eProjeto) throw new Error(eProjeto.message);
 
-            // Protege cenários de pedidos já fechados (usa estado em memória — sem query extra)
-            const cenariosBloqueados = new Set([
-                ...fecharIds,
-                ...(pedidosFechados ?? []).flatMap(p => p.cenario_ids ?? []),
-            ]);
-            const todosOrcIds  = ambientes.flatMap(amb => (amb.orcamentos ?? []).map(o => o.id));
-            const descartarIds = todosOrcIds.filter(oid => !cenariosBloqueados.has(oid));
-            if (descartarIds.length > 0) {
-                const { error: eDesc } = await supabase.from('orcamentos')
-                    .update({ descartado_em: new Date().toISOString() }).in('id', descartarIds);
-                if (eDesc) console.error('[FecharPedido] Soft delete:', eDesc.message);
-            }
-
             const novoPedido = {
                 id: pedido.id,
                 cenario_ids:           fecharIds,
