@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
 import { fmtBRL } from '../../utils/projetoUtils';
 
-export default function AbaPedidos({ pedidosFechados = [], ambientes = [], actions, loadingPdf, setPdfModal }) {
+function getTipoMedicao(m) {
+    if (m.tipo) return m.tipo;
+    const t = m?.json_medicao?.ambientes?.[0]?.tipo_medicao;
+    return t === 'orcamento' ? 'preliminar' : 'producao';
+}
+
+function getAmbsProducao(medicao) {
+    return new Set(
+        (medicao?.json_medicao?.ambientes ?? [])
+            .filter(a => a.tipo_medicao === 'producao')
+            .map(a => a.nome)
+            .filter(Boolean)
+    );
+}
+
+export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medicoes = [], onAgendarProducao, onEditarProducao, actions, loadingPdf, setPdfModal }) {
     const [pedidosAbertos, setPedidosAbertos] = useState({});
 
-    const pedidosOrdenados = [...pedidosFechados].reverse(); // oldest first → Pedido 1, 2, 3...
+    const pedidosOrdenados = [...pedidosFechados].reverse();
 
     const orcamentosMap = Object.fromEntries(
         ambientes.flatMap(a => (a.orcamentos ?? []).map(o => [o.id, { ...o, ambiente_nome: a.nome }]))
@@ -38,6 +53,22 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], actio
 
                         const cenarios = (pedido.cenario_ids ?? []).map(cid => orcamentosMap[cid]).filter(Boolean);
                         const valorTotal = cenarios.reduce((s, o) => s + (o.valor_total ?? 0), 0);
+                        const pedidoAmbientes = new Set(cenarios.map(o => o.ambiente_nome).filter(Boolean));
+
+                        const medicoesProd = medicoes.filter(m => {
+                            if (getTipoMedicao(m) !== 'producao') return false;
+                            // match direto por pedido_id (medições novas)
+                            if (m.pedido_id) return m.pedido_id === pedido.id;
+                            // fallback por ambiente (medições antigas sem pedido_id)
+                            const ambs = getAmbsProducao(m);
+                            if (ambs.size === 0) return false;
+                            return [...pedidoAmbientes].some(n => ambs.has(n));
+                        });
+
+                        const temRecebida = medicoesProd.some(m =>
+                            ['concluida', 'processada', 'aprovada'].includes(m.status)
+                        );
+                        const temAgendada = medicoesProd.some(m => m.status === 'agendada');
 
                         return (
                             <div key={pedido.id} className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
@@ -61,9 +92,19 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], actio
                                                 {fmtBRL(valorTotal)}
                                             </span>
                                         )}
-                                        <span className="font-mono text-[9px] px-2 py-0.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500">
-                                            Sem medição de produção
-                                        </span>
+                                        {temRecebida ? (
+                                            <span className="font-mono text-[9px] px-2 py-0.5 border border-green-500/40 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-400/5">
+                                                Medição recebida{medicoesProd.length > 1 ? ` · ${medicoesProd.length}` : ''}
+                                            </span>
+                                        ) : temAgendada ? (
+                                            <span className="font-mono text-[9px] px-2 py-0.5 border border-blue-400/40 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/5">
+                                                Medição agendada
+                                            </span>
+                                        ) : (
+                                            <span className="font-mono text-[9px] px-2 py-0.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500">
+                                                Sem medição de produção
+                                            </span>
+                                        )}
                                     </div>
                                     <iconify-icon
                                         icon={aberto ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
@@ -74,7 +115,6 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], actio
 
                                 {aberto && (
                                     <div className="border-t border-gray-300 dark:border-zinc-800">
-                                        {/* Detalhes do pedido */}
                                         <div className="p-5 grid grid-cols-2 gap-x-6 gap-y-4">
                                             <div>
                                                 <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-1">Pagamento</div>
@@ -92,24 +132,55 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], actio
                                                 </div>
                                             </div>
                                             <div className="col-span-2">
-                                                <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-1">Medição de Produção</div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">
-                                                        Sem medição de produção
-                                                    </span>
-                                                    <button
-                                                        disabled
-                                                        title="Disponível quando a medição de produção for recebida"
-                                                        className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed"
-                                                    >
-                                                        <iconify-icon icon="solar:eye-linear" width="11"></iconify-icon>
-                                                        Ver Diferença
-                                                    </button>
-                                                </div>
+                                                <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Medição de Produção</div>
+                                                {medicoesProd.length > 0 ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        {medicoesProd.map(m => (
+                                                            <div key={m.id} className="flex items-center gap-3 flex-wrap">
+                                                                <iconify-icon
+                                                                    icon={['concluida','processada','aprovada'].includes(m.status) ? 'solar:check-circle-linear' : 'solar:calendar-linear'}
+                                                                    width="13"
+                                                                    className={['concluida','processada','aprovada'].includes(m.status) ? 'text-green-500 shrink-0' : 'text-blue-400 shrink-0'}
+                                                                ></iconify-icon>
+                                                                <span className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">{m.data ?? '—'}</span>
+                                                                <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">{m.medidor ?? '—'}</span>
+                                                                {m.status === 'agendada' && (
+                                                                    <button
+                                                                        onClick={() => onEditarProducao?.(m, numero)}
+                                                                        title="Editar agendamento"
+                                                                        className="w-6 h-6 flex items-center justify-center border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-gray-500 dark:hover:border-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                                                    >
+                                                                        <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    disabled
+                                                                    title="Disponível em breve"
+                                                                    className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed"
+                                                                >
+                                                                    <iconify-icon icon="solar:eye-linear" width="11"></iconify-icon>
+                                                                    Ver Diferença
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">
+                                                            Sem medição de produção
+                                                        </span>
+                                                        <button
+                                                            onClick={() => onAgendarProducao?.(pedido, numero)}
+                                                            className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 px-3 py-1 hover:border-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
+                                                        >
+                                                            <iconify-icon icon="solar:calendar-add-linear" width="11"></iconify-icon>
+                                                            Agendar Medição de Produção
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* Cenários incluídos */}
                                         {cenarios.length > 0 && (
                                             <div className="border-t border-gray-300/60 dark:border-zinc-800/60 px-5 py-3">
                                                 <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Cenários incluídos</div>
@@ -126,7 +197,6 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], actio
                                             </div>
                                         )}
 
-                                        {/* Ações */}
                                         <div className="border-t border-gray-300/60 dark:border-zinc-800/60 px-5 py-3 flex justify-end">
                                             <button
                                                 onClick={() => actions.openPdfModal('pedido', pedido, setPdfModal)}

@@ -195,6 +195,78 @@ export function useProjectActions(projectId, {
         }
     }
 
+    async function handleAgendarMedicaoProducao({ pedidoId, medidorId, dataStr, observacoes }) {
+        if (!projectId || !profile?.empresa_id) throw new Error('Sessão inválida. Recarregue a página.');
+        const medidorSel = medidores.find(m => m.id === medidorId);
+        const { data: med, error } = await supabase
+            .from('medicoes')
+            .insert({
+                projeto_id:  projectId,
+                empresa_id:  profile.empresa_id,
+                medidor_id:  medidorId,
+                responsavel: medidorSel?.nome ?? '',
+                data_medicao: new Date(dataStr).toISOString(),
+                status:             'agendada',
+                tipo:               'producao',
+                pedido_id:          pedidoId,
+                observacoes_acesso: observacoes ?? null,
+            })
+            .select('id, data_medicao, responsavel, medidor_id, status, json_medicao, svg_url, tipo, pedido_id')
+            .single();
+        if (error) throw new Error(error.message);
+        setMedicoes(prev => [{
+            ...med,
+            data: new Date(med.data_medicao).toLocaleString('pt-BR', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+            }),
+            medidor: med.responsavel ?? '—',
+        }, ...prev]);
+    }
+
+    async function handleEditarMedicaoProducao({ medicaoId, medidorId, dataStr, observacoes }) {
+        if (!projectId || !profile?.empresa_id) throw new Error('Sessão inválida. Recarregue a página.');
+        const medidorSel      = medidores.find(m => m.id === medidorId);
+        const dataAgendadaISO = new Date(dataStr).toISOString();
+        const { data: med, error } = await supabase
+            .from('medicoes')
+            .update({
+                medidor_id:         medidorId,
+                responsavel:        medidorSel?.nome ?? '',
+                data_medicao:       dataAgendadaISO,
+                observacoes_acesso: observacoes ?? null,
+            })
+            .eq('id', medicaoId)
+            .select('id, data_medicao, responsavel, medidor_id, status, json_medicao, svg_url, tipo, pedido_id, observacoes_acesso')
+            .single();
+        if (error) throw new Error(error.message);
+        setMedicoes(prev => prev.map(m => m.id === medicaoId ? {
+            ...m,
+            ...med,
+            data: new Date(med.data_medicao).toLocaleString('pt-BR', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+            }),
+            medidor: med.responsavel ?? '—',
+        } : m));
+        // Notifica o medidor sobre a alteração
+        if (medidorId && medidorId !== session?.user?.id && projeto?.empresa_id) {
+            const dataFormatada = new Date(dataAgendadaISO).toLocaleString('pt-BR', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+            });
+            await supabase.from('notificacoes').insert({
+                empresa_id: projeto.empresa_id,
+                usuario_id: medidorId,
+                projeto_id: projectId,
+                tipo:       'medicao_agendada',
+                titulo:     'Medição de produção alterada',
+                corpo:      `A medição do projeto "${projeto?.nome ?? ''}" foi reagendada para ${dataFormatada}.`,
+                lida:       false,
+            });
+        }
+    }
+
     // ── AMBIENTES ─────────────────────────────────────────────────────────────
 
     function mockDuplicarAmbiente(e, ambienteId) {
@@ -946,6 +1018,8 @@ export function useProjectActions(projectId, {
         handleFazerMedicao,
         handleExcluirMedicao,
         handleAgendarMedicao,
+        handleAgendarMedicaoProducao,
+        handleEditarMedicaoProducao,
         // Ambientes
         mockDuplicarAmbiente,
         mockExcluirAmbiente,

@@ -39,7 +39,7 @@ export function useProjectData(projectId, activeTab) {
         if (!projectId) return;
         let q = supabase
             .from('medicoes')
-            .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, fotos, status, json_medicao, svg_url, projetos(nome)')
+            .select('id, data_medicao, responsavel, medidor_id, endereco, observacoes_acesso, fotos, status, json_medicao, svg_url, tipo, pedido_id, projetos(nome)')
             .eq('projeto_id', projectId);
         if (profile?.empresa_id) q = q.eq('empresa_id', profile.empresa_id);
         const { data, error } = await q.order('data_medicao', { ascending: false });

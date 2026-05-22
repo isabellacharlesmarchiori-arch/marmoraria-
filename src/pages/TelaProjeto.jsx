@@ -15,6 +15,7 @@ import ModalEditarVersao from '../components/projeto/ModalEditarVersao';
 import DrawerItemManual from '../components/projeto/DrawerItemManual';
 import DrawerEdicaoPeca from '../components/projeto/DrawerEdicaoPeca';
 import ModalAgendarMedicao from '../components/projeto/ModalAgendarMedicao';
+import ModalAgendarProducao from '../components/projeto/ModalAgendarProducao';
 import AbaMedicoes from '../components/projeto/AbaMedicoes';
 import AbaCarrinho from '../components/projeto/AbaCarrinho';
 import AbaPedidos from '../components/projeto/AbaPedidos';
@@ -153,7 +154,8 @@ export default function TelaProjetoVendedor() {
     const [modalPerda,       setModalPerda]       = useState(false);
     const [modalStatus,      setModalStatus]      = useState(false);
     const [modalOrcManual,   setModalOrcManual]   = useState(false);
-    const [painelMedicao, setPainelMedicao] = useState(null);
+    const [painelMedicao,      setPainelMedicao]      = useState(null);
+    const [modalAgendarProd,   setModalAgendarProd]   = useState(null); // null | { pedido, numero }
 
     // ── Carrinho: expansão, edição de nome, edição de desconto ─────────────────
     const [carrinhoExpandido,       setCarrinhoExpandido]       = useState({});
@@ -401,6 +403,13 @@ export default function TelaProjetoVendedor() {
                 {activeTab === 'medicoes' && (
                     <AbaMedicoes
                         medicoes={medicoes}
+                        pedidosFechados={pedidosFechados}
+                        ambientes={ambientes}
+                        onAgendarProducao={(pedido, numero) => setModalAgendarProd({ pedido, numero, medicao: null })}
+                        onEditarProducao={(medicao, pedidoNumero) => {
+                            const pedido = pedidosFechados.find(p => p.id === medicao.pedido_id);
+                            setModalAgendarProd({ pedido: pedido ?? {}, numero: pedidoNumero, medicao });
+                        }}
                         isMedidorCombinado={isMedidorCombinado}
                         vendedorId={projeto?.vendedor_id}
                         sessionUserId={session?.user?.id}
@@ -452,6 +461,12 @@ export default function TelaProjetoVendedor() {
                     <AbaPedidos
                         pedidosFechados={pedidosFechados}
                         ambientes={ambientes}
+                        medicoes={medicoes}
+                        onAgendarProducao={(pedido, numero) => setModalAgendarProd({ pedido, numero, medicao: null })}
+                        onEditarProducao={(medicao, pedidoNumero) => {
+                            const pedido = pedidosFechados.find(p => p.id === medicao.pedido_id);
+                            setModalAgendarProd({ pedido: pedido ?? {}, numero: pedidoNumero, medicao });
+                        }}
                         actions={actions}
                         loadingPdf={loadingPdf}
                         setPdfModal={setPdfModal}
@@ -564,6 +579,30 @@ export default function TelaProjetoVendedor() {
                 defaults={pdfModal.defaults}
                 onConfirm={(opts, modo) => actions.handlePdfConfirm(opts, modo, pdfModal, { setPdfModal, setLoadingPdf })}
                 onClose={() => setPdfModal(null)}
+            />
+        )}
+
+        {/* ══ MODAL — Agendar Medição de Produção ══════════════════════ */}
+        {modalAgendarProd && (
+            <ModalAgendarProducao
+                pedido={modalAgendarProd.pedido}
+                pedidoNumero={modalAgendarProd.numero}
+                medidores={medidores}
+                profile={profile}
+                modo={modalAgendarProd.medicao ? 'editar' : 'agendar'}
+                medicaoInicial={modalAgendarProd.medicao}
+                onConfirmar={({ medidorId, dataStr, observacoes }) =>
+                    modalAgendarProd.medicao
+                        ? actions.handleEditarMedicaoProducao({
+                              medicaoId: modalAgendarProd.medicao.id,
+                              medidorId, dataStr, observacoes,
+                          }).then(() => setModalAgendarProd(null))
+                        : actions.handleAgendarMedicaoProducao({
+                              pedidoId: modalAgendarProd.pedido.id,
+                              medidorId, dataStr, observacoes,
+                          }).then(() => setModalAgendarProd(null))
+                }
+                onClose={() => setModalAgendarProd(null)}
             />
         )}
 
