@@ -199,13 +199,13 @@ Para cada item extraído, retorne um objeto JSON com:
 - ambiente: nome do cômodo ou área (ex: "Cozinha", "Suíte", "Hall de entrada")
 - pagina: número da página onde o item aparece (começando em 1)
 - confianca: sua confiança na extração (0 a 100), considerando legibilidade e clareza das cotas
+- material: nome do material mencionado na planta (ex: "Granito Branco"), ou null
+- espessura_cm: espessura da pedra em cm, APENAS valores 1, 2 ou 3. Se não encontrar ou o valor for maior que 3 (ex: larguras de espelho/saia/frontão não são espessura), retornar null
+- tipo: classificar em um de: "bancada" | "tampo" | "soleira" | "peitoril" | "espelho" | "saia" | "frontao" | "prateleira" | "faixa" | "outro"
+- furos: array de strings com furos identificados (ex: ["furo_cuba", "furo_torneira"]), ou []
+- trecho_origem: trecho exato do texto/planta de onde a informação foi extraída
 
-Retorne APENAS um array JSON válido, sem texto adicional, markdown ou explicação.
-Exemplo de saída:
-[
-  {"id":"1","descricao":"Bancada cozinha","dimensoes":"3,20 m × 0,60 m","ambiente":"Cozinha","pagina":1,"confianca":90},
-  {"id":"2","descricao":"Soleira entrada","dimensoes":"1,20 m × 0,15 m","ambiente":"Hall","pagina":1,"confianca":60}
-]`;
+Retorne APENAS um array JSON válido, sem texto adicional, markdown ou explicação.`;
 
 const PLANTA_SYSTEM_ECONOMY = `Analise as imagens de planta baixa e extraia itens que usam pedra (bancadas, pias, soleiras, pisos etc).
 Retorne apenas JSON array: [{id, descricao, dimensoes, ambiente, pagina, confianca}].

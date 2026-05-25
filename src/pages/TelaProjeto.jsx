@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { parseEndereco } from '../utils/endereco';
 import ModalOrcamentoManual from '../components/ModalOrcamentoManual';
@@ -38,6 +38,10 @@ export default function TelaProjetoVendedor() {
     const isMedidorCombinado = perfilAtual === 'admin_medidor' || perfilAtual === 'vendedor_medidor';
 
     const [activeTab, setActiveTab] = useState('medicoes');
+    const location = useLocation();
+    useEffect(() => {
+        if (location.state?.activeTab) setActiveTab(location.state.activeTab);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const {
         projeto,         setProjeto,

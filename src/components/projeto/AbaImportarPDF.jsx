@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Fragment } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { analyzePlantPDF, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -29,6 +31,84 @@ function ConfidenceBar({ pct }) {
     </div>
   );
 }
+
+const MEDIDAS_PADRAO_CM = {
+  espelho: 10, saia: 10, frontao: 10,
+  soleira: 15, peitoril: 15,
+  prateleira: 30,
+  tampo: 60, bancada: 60,
+};
+
+function parseDimensoes(str) {
+  if (!str || str === 'a medir') return null;
+  const matches = [...str.matchAll(/(\d+)[,.](\d+)/g)].map(m => parseFloat(`${m[1]}.${m[2]}`));
+  if (matches.length < 2) return null;
+  return { comprimento: matches[0], largura: matches[1] };
+}
+
+function fuzzyMatchMaterial(query, candidates) {
+  if (!query || !candidates.length) return null;
+  const norm = s => (s ?? '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+  const q = norm(query);
+  if (!q) return null;
+  let best = null, bestScore = 0;
+  for (const c of candidates) {
+    const n = norm(c.nome);
+    let score = 0;
+    if (n === q) score = 100;
+    else if (n.includes(q) || q.includes(n)) score = 75;
+    else {
+      const qt = q.split(' ').filter(Boolean);
+      const nt = new Set(n.split(' ').filter(Boolean));
+      const shared = qt.filter(t => nt.has(t)).length;
+      const total  = new Set([...qt, ...n.split(' ').filter(Boolean)]).size;
+      if (total > 0) score = Math.round(shared / total * 60);
+    }
+    if (score > bestScore) { bestScore = score; best = c; }
+  }
+  return bestScore >= 50 ? best : null;
+}
+
+function getPrecoM2(materialObj, espessuraCm = 2) {
+  if (!materialObj?.variacoes_precos?.length) return 0;
+  const esp = Number(espessuraCm) || 2;
+  const v = materialObj.variacoes_precos.find(x => (parseInt(x.espessura) || 0) === esp)
+         ?? materialObj.variacoes_precos[0];
+  return Number(v?.preco_venda ?? 0);
+}
+
+const TOOL_ATUALIZAR_ITEMS = {
+  function: {
+    name: 'atualizar_items_pdf',
+    description: 'Atualiza campos (material, espessura, dimensões) de itens selecionados da tabela de revisão do PDF. Use quando o usuário pedir para alterar propriedades de itens.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filtro: {
+          type: 'object',
+          description: 'Critérios para selecionar os itens. Todos opcionais — se vazio, seleciona todos.',
+          properties: {
+            ambiente:  { type: 'string', description: 'Filtra por nome do ambiente (parcial, ex: "W.C.", "Cozinha")' },
+            tipo:      { type: 'string', description: 'Filtra por tipo da peça (ex: "bancada", "soleira", "espelho")' },
+            descricao: { type: 'string', description: 'Filtra por trecho da descrição (parcial)' },
+          },
+        },
+        campos: {
+          type: 'object',
+          description: 'Campos a atualizar. Pelo menos um deve ser informado.',
+          properties: {
+            material_nome: { type: 'string', description: 'Nome do material a aplicar (buscado no catálogo por similaridade)' },
+            espessura_cm:  { type: 'number', description: 'Nova espessura em cm (aceito: 1, 2 ou 3)' },
+            dimensoes:     { type: 'string', description: 'Novas dimensões no formato "X,XX m × Y,YY m"' },
+          },
+        },
+      },
+      required: ['filtro', 'campos'],
+    },
+  },
+};
 
 // ── PDF Viewer ────────────────────────────────────────────────────────────────
 
@@ -288,8 +368,9 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const empresaId   = profile?.empresa_id ?? null;
+  const navigate    = useNavigate();
 
   const [pdfDoc,       setPdfDoc]       = useState(null);
   const [currentPage,  setCurrentPage]  = useState(1);
@@ -303,10 +384,17 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   const [chatLoading,  setChatLoading]  = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [fileList,     setFileList]     = useState(initialFiles ?? []);
-  const [activeFileIdx, setActiveFileIdx] = useState(0);
+  const [activeFileIdx,    setActiveFileIdx]    = useState(0);
+  const [pendentes,        setPendentes]        = useState(new Set());
+  const [digitandoId,      setDigitandoId]      = useState(null);
+  const [digitandoValor,   setDigitandoValor]   = useState('');
+  const [gerandoOrcamento, setGerandoOrcamento] = useState(false);
+  const [msgArquiteto,     setMsgArquiteto]     = useState('');
+  const [materiais,        setMateriais]        = useState([]);
 
   // Gemini-format chat history (separate from display messages)
   const chatHistoryRef = useRef([]);
+  const materiaisRef   = useRef([]);
 
   const fileInputRef  = useRef(null);
   const chatBottomRef = useRef(null);
@@ -319,6 +407,24 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   useEffect(() => {
     if (initialFiles?.length > 0) loadPDF(initialFiles[0]);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load company materials for fuzzy matching
+  useEffect(() => {
+    if (!empresaId) return;
+    supabase
+      .from('materiais').select('id, nome, variacoes_precos(espessura, preco_venda)')
+      .eq('empresa_id', empresaId).eq('ativo', true).order('nome')
+      .then(({ data }) => {
+        if (!data) return;
+        setMateriais(data);
+        materiaisRef.current = data;
+        // Re-match items already loaded before materiais arrived (skip resolved ones)
+        setItems(prev => prev.length === 0 ? prev : prev.map(item => {
+          if (item.material_resolved) return item;
+          return { ...item, material_id: item.material ? (fuzzyMatchMaterial(item.material, data)?.id ?? null) : null };
+        }));
+      });
+  }, [empresaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── PDF → images helper ────────────────────────────────────────────────────
   async function pdfToImages(doc) {
@@ -364,13 +470,25 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
       const pageImages  = await pdfToImages(doc);
       const extracted   = await analyzePlantPDF({ pageImages, empresaId });
 
-      // Normalize ids to strings
-      const normalizedItems = extracted.map((item, i) => ({
-        ...item,
-        id:       String(item.id ?? i + 1),
-        pagina:   Number(item.pagina ?? 1),
-        confianca: Number(item.confianca ?? 50),
-      }));
+      // Normalize ids to strings and fill new fields from enriched prompt
+      const normalizedItems = extracted.map((item, i) => {
+        const rawEsp = item.espessura_cm != null ? Number(item.espessura_cm) : null;
+        const esp    = rawEsp != null && rawEsp >= 1 && rawEsp <= 3 ? rawEsp : null;
+        const match  = fuzzyMatchMaterial(item.material, materiaisRef.current);
+        return {
+          ...item,
+          id:           String(item.id ?? i + 1),
+          pagina:       Number(item.pagina ?? 1),
+          confianca:    Number(item.confianca ?? 50),
+          material:     item.material ?? null,
+          espessura_cm: esp,
+          tipo:         item.tipo ?? 'outro',
+          furos:        Array.isArray(item.furos) ? item.furos : [],
+          trecho_origem:    item.trecho_origem ?? null,
+          material_id:      match?.id ?? null,
+          material_resolved: false,
+        };
+      });
 
       setItems(normalizedItems);
 
@@ -431,19 +549,51 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     setChatInput('');
     setChatLoading(true);
 
-    const userTurn = { role: 'user', parts: [{ text }] };
-    const history  = [...chatHistoryRef.current.slice(-6), userTurn];
+    const userTurn      = { role: 'user', parts: [{ text }] };
+    let loopHistory     = [...chatHistoryRef.current.slice(-6), userTurn];
+    const activeTools   = items.length > 0 ? [TOOL_ATUALIZAR_ITEMS] : undefined;
+    const chatSystemPrompt = items.length > 0
+      ? `${PLANTA_CHAT_SYSTEM}\n\nMateriais disponíveis: ${materiais.map(m => m.nome).join(', ') || 'nenhum'}.\n\nUse a tool 'atualizar_items_pdf' quando o usuário pedir para alterar material, espessura ou dimensões de itens. Após executar, confirme o que foi alterado.`
+      : PLANTA_CHAT_SYSTEM;
 
     try {
-      const { text: responseText } = await callGemini({
-        systemPrompt: PLANTA_CHAT_SYSTEM,
-        history,
+      const { text: responseText, functionCalls } = await callGemini({
+        systemPrompt: chatSystemPrompt,
+        history:      loopHistory,
+        tools:        activeTools,
         fluxo:        'analise_planta',
         empresaId,
       });
-      const reply = responseText ?? 'Não consegui processar sua mensagem.';
-      chatHistoryRef.current = [...history, { role: 'model', parts: [{ text: reply }] }];
-      setChatMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+
+      if (functionCalls?.length > 0) {
+        loopHistory.push({ role: 'model', parts: functionCalls.map(fc => ({ functionCall: { name: fc.name, args: fc.args } })) });
+        const responseParts = [];
+        for (const fc of functionCalls) {
+          const result = fc.name === 'atualizar_items_pdf'
+            ? executarAtualizarItems(fc.args ?? {})
+            : { erro: 'Tool desconhecida.' };
+          responseParts.push({ functionResponse: { name: fc.name, response: result } });
+        }
+        loopHistory.push({ role: 'user', parts: responseParts });
+
+        const { text: finalText } = await callGemini({
+          systemPrompt: chatSystemPrompt,
+          history:      loopHistory,
+          fluxo:        'analise_planta',
+          empresaId,
+        });
+        const reply = finalText ?? 'Atualização concluída.';
+        // Keep only plain text turns in persistent history to avoid functionCall/Response orphans
+        const plainHistory = loopHistory.filter(m =>
+          Array.isArray(m.parts) && m.parts.every(p => !('functionCall' in p) && !('functionResponse' in p))
+        );
+        chatHistoryRef.current = [...plainHistory, { role: 'model', parts: [{ text: reply }] }];
+        setChatMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+      } else {
+        const reply = responseText ?? 'Não consegui processar sua mensagem.';
+        chatHistoryRef.current = [...loopHistory, { role: 'model', parts: [{ text: reply }] }];
+        setChatMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+      }
     } catch (err) {
       setChatMessages(prev => [...prev, { role: 'error', text: `Erro: ${err.message}` }]);
     } finally {
@@ -451,7 +601,156 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     }
   }
 
+  // ── Usar padrão ─────────────────────────────────────────────────────────────
+  function usarPadrao(item) {
+    const largPadrao = MEDIDAS_PADRAO_CM[item.tipo];
+    const largM      = largPadrao != null ? (largPadrao / 100).toFixed(2).replace('.', ',') : null;
+    const update     = { espessura_cm: item.espessura_cm ?? 2, confianca: Math.max(item.confianca, 80) };
+    if (item.dimensoes === 'a medir' && largM != null) {
+      update.dimensoes = `? × ${largM} m`;
+    }
+    setItems(prev => prev.map(it => it.id === item.id ? { ...it, ...update } : it));
+  }
+
+  // ── Executar tool atualizar_items_pdf ────────────────────────────────────────
+  function executarAtualizarItems({ filtro = {}, campos = {} }) {
+    const normStr = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    const matched = items.filter(item => {
+      if (filtro.ambiente  && !normStr(item.ambiente  ?? '').includes(normStr(filtro.ambiente)))  return false;
+      if (filtro.tipo      && normStr(item.tipo  ?? '') !== normStr(filtro.tipo))                  return false;
+      if (filtro.descricao && !normStr(item.descricao ?? '').includes(normStr(filtro.descricao))) return false;
+      return true;
+    });
+    if (matched.length === 0) return { atualizados: 0, mensagem: 'Nenhum item encontrado.' };
+    const matchedIds = new Set(matched.map(it => it.id));
+    setItems(prev => prev.map(item => {
+      if (!matchedIds.has(item.id)) return item;
+      const update = {};
+      if (campos.material_nome) {
+        const match = fuzzyMatchMaterial(campos.material_nome, materiaisRef.current);
+        update.material = campos.material_nome;
+        update.material_id = match?.id ?? null;
+        update.material_resolved = !!match;
+      }
+      if (campos.espessura_cm != null) {
+        const esp = Number(campos.espessura_cm);
+        if (esp >= 1 && esp <= 3) update.espessura_cm = esp;
+      }
+      if (campos.dimensoes) {
+        update.dimensoes = campos.dimensoes;
+        if (parseDimensoes(campos.dimensoes)) update.confianca = Math.max(item.confianca, 70);
+      }
+      return { ...item, ...update };
+    }));
+    return { atualizados: matched.length, itens: matched.map(it => `${it.descricao} (${it.ambiente ?? 'Geral'})`) };
+  }
+
+  // ── Gerar Orçamento ─────────────────────────────────────────────────────────
+  async function gerarOrcamento() {
+    const vendedorId = session?.user?.id ?? null;
+    if (!empresaId || !vendedorId) { alert('Sessão inválida.'); return; }
+    setGerandoOrcamento(true);
+    try {
+      const itemsParaOrcamento = items.filter(it => !pendentes.has(it.id));
+      if (itemsParaOrcamento.length === 0) { alert('Nenhum item para orçar.'); return; }
+
+      // 1. Criar um ambiente por nome único
+      const ambienteNomes = [...new Set(itemsParaOrcamento.map(it => it.ambiente ?? 'Geral'))];
+      const ambMapping = {};
+      for (const nome of ambienteNomes) {
+        const ambId = crypto.randomUUID();
+        const { error } = await supabase.from('ambientes').insert({
+          id: ambId, empresa_id: empresaId, projeto_id: projetoId, nome,
+          created_at: new Date().toISOString(),
+        });
+        if (!error) ambMapping[nome] = ambId;
+        else console.error('[PDF→Orc] Erro ambiente:', nome, error.message);
+      }
+      const firstAmbId = Object.values(ambMapping)[0];
+      if (!firstAmbId) throw new Error('Falha ao criar ambientes.');
+
+      // 2. Criar todas as peças (cada uma no seu ambiente correto)
+      const allPecasRows = itemsParaOrcamento.map(item => {
+        const dims = parseDimensoes(item.dimensoes);
+        const area = dims ? Math.round(dims.comprimento * dims.largura * 10000) / 10000 : 0;
+        return {
+          id: crypto.randomUUID(), empresa_id: empresaId,
+          ambiente_id: ambMapping[item.ambiente ?? 'Geral'] ?? firstAmbId,
+          tipo: 'retangulo', nome_livre: item.descricao,
+          espessura_cm: item.espessura_cm ?? 2,
+          area_bruta_m2: area, area_liquida_m2: area,
+          dimensoes: dims ?? {},
+          arestas: { meia_esquadria_ml: 0, reto_simples_ml: 0 },
+          recortes: (item.furos ?? []).map(f => ({ tipo: f, quantidade: 1 })),
+          incluida: true, created_at: new Date().toISOString(),
+        };
+      });
+
+      const { error: errPecas } = await supabase.from('pecas').insert(allPecasRows);
+      if (errPecas) throw new Error('Erro ao criar peças: ' + errPecas.message);
+
+      // 3. Calcular preços por peça
+      const opcRows = allPecasRows.map((p, idx) => {
+        const item      = itemsParaOrcamento[idx];
+        const mat       = item.material_id ? materiais.find(m => m.id === item.material_id) : null;
+        const precoM2   = getPrecoM2(mat, p.espessura_cm);
+        const valorArea = Math.round(p.area_liquida_m2 * precoM2 * 100) / 100;
+        return {
+          peca_id: p.id, material_id: item.material_id ?? null,
+          item_nome: item.descricao,
+          valor_area: valorArea, valor_acabamentos: 0, valor_recortes: 0,
+          valor_total: valorArea,
+          acabamentos: [], recortes: p.recortes,
+        };
+      });
+
+      const valorTotalOrc = Math.round(opcRows.reduce((s, r) => s + r.valor_total, 0) * 100) / 100;
+
+      // 4. Criar UM orçamento com o total calculado
+      const { data: orc, error: errOrc } = await supabase
+        .from('orcamentos')
+        .insert({
+          empresa_id: empresaId, ambiente_id: firstAmbId, vendedor_id: vendedorId,
+          nome_versao: 'Orçamento PDF', status: 'rascunho',
+          desconto_total: 0, valor_total: valorTotalOrc,
+        })
+        .select('id').single();
+      if (errOrc) throw new Error('Erro ao criar orçamento: ' + errOrc.message);
+
+      const { error: errOpc } = await supabase
+        .from('orcamento_pecas')
+        .insert(opcRows.map(r => ({ ...r, orcamento_id: orc.id })));
+      if (errOpc) console.error('[PDF→Orc] Erro orcamento_pecas:', errOpc.message);
+
+      navigate(`/projetos/${projetoId}`, { state: { activeTab: 'orcamentos' } });
+    } catch (err) {
+      alert('Erro ao gerar orçamento: ' + err.message);
+    } finally {
+      setGerandoOrcamento(false);
+    }
+  }
+
+  // ── Gerar Mensagem para Arquiteto ────────────────────────────────────────────
+  function gerarMsgArquiteto() {
+    const itensPendentes = items.filter(it => pendentes.has(it.id));
+    if (itensPendentes.length === 0) return;
+    const linhas = itensPendentes.map(it =>
+      `• ${it.descricao} (${it.ambiente ?? 'Geral'}): ${it.dimensoes === 'a medir' ? 'preciso das medidas' : `confirmar: ${it.dimensoes}`}`
+    );
+    setMsgArquiteto(
+      `Olá! Para finalizar o orçamento do seu projeto, preciso de algumas informações:\n\n${linhas.join('\n')}\n\nSe possível, me envie as medidas em metros. Ex: 2,50 × 0,60.`
+    );
+  }
+
+  const ambiguosNaoResolvidos = items.filter(it =>
+    !pendentes.has(it.id) &&
+    it.material !== null &&
+    it.material_id === null &&
+    it.material_resolved !== true
+  ).length;
+
   return (
+    <>
     <div className={`flex gap-0 border border-zinc-800 ${fullscreen ? 'h-full' : 'h-[calc(100vh-220px)] min-h-[500px]'}`}>
 
       {/* ══ LADO ESQUERDO ════════════════════════════════════════════════════ */}
@@ -509,34 +808,173 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
             <p className="px-4 py-4 font-mono text-[10px] text-zinc-700 text-center">Analisando PDF...</p>
           )}
 
-          <div className="max-h-56 overflow-y-auto">
-            {items.map(item => {
-              const isSelected = selectedItem === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleItemClick(item)}
-                  className={`w-full text-left px-4 py-2.5 border-b border-zinc-800/50 transition-colors border-l-2 ${
-                    isSelected
-                      ? 'bg-yellow-400/5 border-l-yellow-400'
-                      : 'border-l-transparent hover:bg-zinc-900/50'
-                  }`}
-                >
-                  <p className="font-mono text-[11px] text-zinc-200 truncate leading-snug">{item.descricao}</p>
-                  <p className="font-mono text-[10px] text-zinc-500 mt-0.5">
-                    {item.dimensoes}
-                    <span className="mx-1.5 text-zinc-700">·</span>
-                    <span className="text-zinc-600">{item.ambiente}</span>
-                    <span className="mx-1.5 text-zinc-700">·</span>
-                    <span className="text-zinc-700">pág. {item.pagina}</span>
-                  </p>
-                  <div className="mt-1.5">
-                    <ConfidenceBar pct={item.confianca} />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          {items.length > 0 && (
+            <div className="overflow-x-auto max-h-64">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-zinc-950 border-b border-zinc-800 sticky top-0">
+                    <th className="text-left px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Descrição</th>
+                    <th className="text-left px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Ambiente</th>
+                    <th className="text-left px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Material</th>
+                    <th className="text-left px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Dimensões</th>
+                    <th className="text-right px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Esp.</th>
+                    <th className="text-right px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Conf.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map(item => {
+                    const isPendente  = pendentes.has(item.id);
+                    const needsReview = !isPendente && (item.confianca < 50 || item.dimensoes === 'a medir');
+                    const isEditing   = digitandoId === item.id;
+                    const isSelected  = selectedItem === item.id;
+                    const rowBg       = isPendente  ? 'bg-orange-400/5'
+                                      : needsReview ? 'bg-yellow-400/5'
+                                      : isSelected  ? 'bg-zinc-800/40' : '';
+                    return (
+                      <Fragment key={item.id}>
+                        <tr
+                          onClick={() => handleItemClick(item)}
+                          className={`border-b border-zinc-800/40 cursor-pointer hover:bg-zinc-800/30 transition-colors ${rowBg}`}
+                        >
+                          <td className="px-2 py-1.5 font-mono text-[10px] text-zinc-200 max-w-[110px]">
+                            <span className="block truncate">{item.descricao}</span>
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[10px] text-zinc-500 max-w-[70px]">
+                            <span className="block truncate">{item.ambiente}</span>
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[10px]">
+                            {item.material_id != null ? (
+                              <div className="flex items-center gap-1">
+                                <span className="truncate text-zinc-300 max-w-[110px] block">
+                                  {materiais.find(m => m.id === item.material_id)?.nome ?? item.material}
+                                </span>
+                                <button
+                                  onClick={e => { e.stopPropagation(); setItems(prev => prev.map(it => it.id === item.id ? { ...it, material_id: null, material_resolved: false } : it)); }}
+                                  className="shrink-0 text-zinc-600 hover:text-zinc-400 transition-colors leading-none"
+                                  title="Remover"
+                                >×</button>
+                              </div>
+                            ) : item.material_resolved ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-zinc-600">sem material</span>
+                                <button
+                                  onClick={e => { e.stopPropagation(); setItems(prev => prev.map(it => it.id === item.id ? { ...it, material_resolved: false } : it)); }}
+                                  className="shrink-0 text-zinc-600 hover:text-zinc-400 transition-colors leading-none"
+                                  title="Reverter"
+                                >×</button>
+                              </div>
+                            ) : item.material ? (
+                              <div className="flex flex-col gap-0.5" onClick={e => e.stopPropagation()}>
+                                <span className="text-yellow-500 text-[9px] truncate max-w-[130px]" title={`IA sugeriu: "${item.material}"`}>
+                                  {item.material} ?
+                                </span>
+                                <select
+                                  value=""
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    if (!val) return;
+                                    setItems(prev => prev.map(it => it.id === item.id
+                                      ? { ...it, material_id: val === '__sem__' ? null : val, material_resolved: true }
+                                      : it));
+                                  }}
+                                  className="bg-zinc-900 border border-amber-700 text-zinc-400 text-[9px] py-0.5 px-1 outline-none focus:border-yellow-400 max-w-[130px] cursor-pointer"
+                                >
+                                  <option value="">Selecionar...</option>
+                                  {materiais.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                  <option value="__sem__">— sem material —</option>
+                                </select>
+                              </div>
+                            ) : (
+                              <select
+                                value=""
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (!val) return;
+                                  setItems(prev => prev.map(it => it.id === item.id
+                                    ? { ...it, material_id: val === '__sem__' ? null : val, material_resolved: true }
+                                    : it));
+                                }}
+                                onClick={e => e.stopPropagation()}
+                                className="bg-zinc-900 border border-zinc-800 text-zinc-600 text-[9px] py-0.5 px-1 outline-none focus:border-zinc-600 max-w-[130px] cursor-pointer"
+                              >
+                                <option value="">Selecionar material</option>
+                                {materiais.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                <option value="__sem__">— sem material —</option>
+                              </select>
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[10px] whitespace-nowrap">
+                            {isEditing ? (
+                              <input
+                                autoFocus
+                                value={digitandoValor}
+                                onChange={e => setDigitandoValor(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') {
+                                    const v = digitandoValor.trim();
+                                    setItems(prev => prev.map(it => it.id === item.id
+                                      ? { ...it, dimensoes: v || it.dimensoes, confianca: Math.max(it.confianca, 70) }
+                                      : it));
+                                    setDigitandoId(null);
+                                  } else if (e.key === 'Escape') {
+                                    setDigitandoId(null);
+                                  }
+                                }}
+                                onClick={e => e.stopPropagation()}
+                                placeholder="ex: 3,20 m × 0,60 m"
+                                className="bg-zinc-900 border border-yellow-400 text-white text-[10px] font-mono px-1.5 py-0.5 w-32 outline-none"
+                              />
+                            ) : (
+                              <span className={item.dimensoes === 'a medir' ? 'text-yellow-400' : 'text-zinc-300'}>
+                                {item.dimensoes}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[10px] text-zinc-500 text-right whitespace-nowrap">
+                            {item.espessura_cm != null ? `${item.espessura_cm}` : '—'}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[10px] text-right whitespace-nowrap">
+                            <span style={{ color: confidenceColor(item.confianca) }}>{item.confianca}%</span>
+                          </td>
+                        </tr>
+                        {(needsReview || isPendente) && !isEditing && (
+                          <tr className={`border-b border-zinc-800/40 ${rowBg}`}>
+                            <td colSpan={6} className="px-2 pb-1.5 pt-0">
+                              {isPendente ? (
+                                <div className="flex items-center gap-2">
+                                  <iconify-icon icon="solar:clock-circle-linear" width="10" class="text-orange-400 shrink-0" />
+                                  <span className="font-mono text-[9px] text-orange-400 uppercase tracking-widest">Aguardando arquiteto</span>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setPendentes(p => { const s = new Set(p); s.delete(item.id); return s; }); }}
+                                    className="font-mono text-[9px] text-zinc-600 hover:text-zinc-400 transition-colors ml-1"
+                                  >✕</button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <button
+                                    onClick={e => { e.stopPropagation(); usarPadrao(item); }}
+                                    className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                                  >Usar padrão</button>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setDigitandoId(item.id); setDigitandoValor(item.dimensoes === 'a medir' ? '' : item.dimensoes); }}
+                                    className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                                  >Digitar</button>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setPendentes(p => new Set([...p, item.id])); }}
+                                    className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-orange-800 text-orange-500 hover:border-orange-600 hover:text-orange-300 transition-colors"
+                                  >Perguntar ao arquiteto</button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Chat */}
@@ -585,13 +1023,35 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
           </div>
         </div>
 
-        {/* Rodapé — Gerar Orçamento */}
+        {/* Rodapé — Gerar Orçamento / Mensagem */}
         {items.length > 0 && (
           <div className="shrink-0 border-t border-zinc-800 p-3">
-            <button className="w-full py-2.5 bg-[#1D9E75] hover:bg-[#18896A] text-white font-mono text-[11px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2">
-              <iconify-icon icon="solar:cart-large-minimalistic-linear" width="14" />
-              Gerar Orçamento ({items.length} {items.length === 1 ? 'item' : 'itens'})
-            </button>
+            {pendentes.size > 0 ? (
+              <button
+                onClick={gerarMsgArquiteto}
+                className="w-full py-2.5 bg-orange-600/10 border border-orange-800 hover:bg-orange-600/20 text-orange-400 font-mono text-[11px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2"
+              >
+                <iconify-icon icon="solar:chat-round-dots-linear" width="14" />
+                Gerar mensagem ({pendentes.size} {pendentes.size === 1 ? 'pendente' : 'pendentes'})
+              </button>
+            ) : ambiguosNaoResolvidos > 0 ? (
+              <div className="w-full py-2.5 flex items-center justify-center gap-2 font-mono text-[10px] text-yellow-600 border border-yellow-900/50 bg-yellow-900/10">
+                <iconify-icon icon="solar:danger-triangle-linear" width="13" />
+                Resolva {ambiguosNaoResolvidos} material{ambiguosNaoResolvidos > 1 ? 'is' : ''} antes de gerar
+              </div>
+            ) : (
+              <button
+                onClick={gerarOrcamento}
+                disabled={gerandoOrcamento}
+                className="w-full py-2.5 bg-[#1D9E75] hover:bg-[#18896A] text-white font-mono text-[11px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {gerandoOrcamento
+                  ? <iconify-icon icon="solar:refresh-linear" width="14" class="animate-spin" />
+                  : <iconify-icon icon="solar:cart-large-minimalistic-linear" width="14" />
+                }
+                {gerandoOrcamento ? 'Gerando...' : `Gerar Orçamento (${items.length} ${items.length === 1 ? 'item' : 'itens'})`}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -619,5 +1079,41 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
         />
       </div>
     </div>
+
+    {/* Modal — Mensagem para arquiteto */}
+    {msgArquiteto && (
+      <>
+        <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setMsgArquiteto('')} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
+          <div className="bg-zinc-900 border border-zinc-700 w-full max-w-md pointer-events-auto flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">Mensagem para o arquiteto</span>
+              <button onClick={() => setMsgArquiteto('')} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                <iconify-icon icon="solar:close-linear" width="14" />
+              </button>
+            </div>
+            <pre className="px-4 py-3 font-mono text-[11px] text-zinc-300 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
+              {msgArquiteto}
+            </pre>
+            <div className="px-4 py-3 border-t border-zinc-800 flex justify-end gap-2">
+              <button
+                onClick={() => navigator.clipboard.writeText(msgArquiteto)}
+                className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1.5"
+              >
+                <iconify-icon icon="solar:copy-linear" width="12" />
+                Copiar
+              </button>
+              <button
+                onClick={() => setMsgArquiteto('')}
+                className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+    </>
   );
 }
