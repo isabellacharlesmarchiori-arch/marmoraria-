@@ -333,7 +333,7 @@ export default function PainelDiferencaMedicao({
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[760px] text-[11px] font-mono border-collapse">
                                         <thead>
-                                            <tr className="bg-[#1D9E75] text-white">
+                                            <tr className="bg-zinc-800 dark:bg-zinc-900 text-white">
                                                 {['Ambiente', 'Peça', 'Material', 'm² Ped.', 'm² Real', 'Diferença', 'R$/m²', 'Impacto'].map((h, i) => (
                                                     <th key={h} className={`py-2.5 px-3 font-semibold tracking-wider text-[10px] uppercase ${i >= 3 ? 'text-right' : 'text-left'}`}>{h}</th>
                                                 ))}
@@ -357,7 +357,7 @@ export default function PainelDiferencaMedicao({
                                                                 ? fmtNum(row.areaReal, 4)
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-400/5' : 'text-amber-500 dark:text-amber-400'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-amber-500 dark:text-amber-400'}`}>
                                                             {diffStr}
                                                         </td>
                                                         <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
@@ -365,7 +365,7 @@ export default function PainelDiferencaMedicao({
                                                                 ? fmtBRL(row.precoM2)
                                                                 : <span className="text-gray-300 dark:text-zinc-700">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-400/5' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
                                                             {row.impacto !== null ? fmtBRL(row.impacto) : '—'}
                                                         </td>
                                                     </tr>
@@ -384,7 +384,7 @@ export default function PainelDiferencaMedicao({
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[600px] text-[11px] font-mono border-collapse">
                                         <thead>
-                                            <tr className="bg-[#1D9E75] text-white">
+                                            <tr className="bg-zinc-800 dark:bg-zinc-900 text-white">
                                                 {['Tipo', 'ml Ped.', 'ml Real', 'Diferença', 'R$/ml', 'Impacto'].map((h, i) => (
                                                     <th key={h} className={`py-2.5 px-3 font-semibold tracking-wider text-[10px] uppercase ${i >= 1 ? 'text-right' : 'text-left'}`}>{h}</th>
                                                 ))}
@@ -412,7 +412,7 @@ export default function PainelDiferencaMedicao({
                                                                 ? fmtNum(row.mlReal, 2)
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-400/5' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
                                                             {diffStr}
                                                         </td>
                                                         <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
@@ -420,7 +420,7 @@ export default function PainelDiferencaMedicao({
                                                                 ? fmtBRL(row.precoMl)
                                                                 : <span className="text-gray-300 dark:text-zinc-700">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-400/5' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
                                                             {row.impacto !== null ? fmtBRL(row.impacto) : '—'}
                                                         </td>
                                                     </tr>
@@ -439,7 +439,7 @@ export default function PainelDiferencaMedicao({
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[420px] text-[11px] font-mono border-collapse">
                                         <thead>
-                                            <tr className="bg-[#1D9E75] text-white">
+                                            <tr className="bg-zinc-800 dark:bg-zinc-900 text-white">
                                                 {['Tipo de Furo', 'Qtd Ped.', 'Qtd Real', 'Diferença'].map((h, i) => (
                                                     <th key={h} className={`py-2.5 px-3 font-semibold tracking-wider text-[10px] uppercase ${i >= 1 ? 'text-right' : 'text-left'}`}>{h}</th>
                                                 ))}
@@ -465,7 +465,7 @@ export default function PainelDiferencaMedicao({
                                                                 ? row.qtdReal
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-400/5' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
                                                             {row.diferenca !== null
                                                                 ? (row.diferenca >= 0 ? '+' : '') + row.diferenca
                                                                 : '—'}

@@ -75,9 +75,9 @@ export async function gerarPdfDiferenca({ linhas, totalImpacto, medicao, pedido,
     let y = 0;
 
     // ── Faixa de cabeçalho ───────────────────────────────────────────────────
-    fillRect(doc, 0, 0, PW, 19, C.accent);
-    txt(doc, 'NOTA DE AJUSTE — MEDIÇÃO DE PRODUÇÃO', ML, 8, 9, C.paper, 'bold', { charSpace: 1 });
-    txt(doc, `Pedido ${pedidoNumero}`, ML, 15, 7.5, [200, 240, 230]);
+    fillRect(doc, 0, 0, PW, 19, C.panel);
+    txt(doc, 'NOTA DE AJUSTE — MEDIÇÃO DE PRODUÇÃO', ML, 8, 9, C.ink, 'bold', { charSpace: 1 });
+    txt(doc, `Pedido ${pedidoNumero}`, ML, 15, 7.5, C.body);
     y = 26;
 
     // ── Bloco de metadados ───────────────────────────────────────────────────
@@ -110,11 +110,11 @@ export async function gerarPdfDiferenca({ linhas, totalImpacto, medicao, pedido,
 
     // ── Função de cabeçalho da tabela ────────────────────────────────────────
     function renderTableHeader() {
-        fillRect(doc, ML, y, CW, 7, C.accent);
+        fillRect(doc, ML, y, CW, 7, C.panel);
         COLS.forEach((col, ci) => {
             const cx = ML + COL_X[ci];
             const tx = col.align === 'right' ? cx + col.w - 2 : cx + 2;
-            txt(doc, col.label, tx, y + 4.6, 6.5, C.paper, 'bold',
+            txt(doc, col.label, tx, y + 4.6, 6.5, C.ink, 'bold',
                 col.align === 'right' ? { align: 'right' } : {}
             );
         });
@@ -134,12 +134,11 @@ export async function gerarPdfDiferenca({ linhas, totalImpacto, medicao, pedido,
         if (idx % 2 === 1) fillRect(doc, ML, y, CW, ROW_H, [249, 250, 251]);
 
         // Destaque colorido nas colunas Diferença e Impacto
-        if (linha.diferenca !== null && linha.diferenca !== 0) {
-            const bgRgb = linha.diferenca > 0 ? C.redBg : C.greenBg;
+        if (linha.diferenca !== null && linha.diferenca > 0) {
             const ciDif = 5;
             const ciImp = 7;
-            fillRect(doc, ML + COL_X[ciDif], y, COLS[ciDif].w, ROW_H, bgRgb);
-            fillRect(doc, ML + COL_X[ciImp], y, COLS[ciImp].w, ROW_H, bgRgb);
+            fillRect(doc, ML + COL_X[ciDif], y, COLS[ciDif].w, ROW_H, C.redBg);
+            fillRect(doc, ML + COL_X[ciImp], y, COLS[ciImp].w, ROW_H, C.redBg);
         }
 
         const diffStr = linha.diferenca !== null
@@ -188,7 +187,7 @@ export async function gerarPdfDiferenca({ linhas, totalImpacto, medicao, pedido,
         y = 14;
     }
 
-    hLine(doc, y, ML, RIGHT, C.accent, 0.6);
+    hLine(doc, y, ML, RIGHT, C.rule, 0.6);
     y += 7;
 
     const isAcrescimo = totalImpacto > 0;

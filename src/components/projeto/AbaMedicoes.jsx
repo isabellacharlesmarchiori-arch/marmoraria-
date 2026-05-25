@@ -1,5 +1,5 @@
-import React from 'react';
-import { MedicaoPill } from '../../utils/projetoUtils';
+import React, { useState } from 'react';
+import { MedicaoPill, parseSvgUrl } from '../../utils/projetoUtils';
 import { formatarEndereco } from '../../utils/endereco';
 
 function getTipoMedicao(m) {
@@ -43,6 +43,8 @@ export default function AbaMedicoes({
     onFazerMedicao,
     onExcluirMedicao,
 }) {
+    const [desenhoAberto, setDesenhoAberto] = useState(null);
+
     const medicoesList = medicoes ?? [];
 
     const medicoesPrelim = medicoesList.filter(m => getTipoMedicao(m) === 'preliminar');
@@ -201,19 +203,26 @@ export default function AbaMedicoes({
                     <MedicaoPill status={m?.status ?? 'agendada'} />
                 </div>
                 <div className="col-span-3 flex items-center justify-end gap-1.5">
-                    {m?.status !== 'agendada' && m?.status !== 'pendente' && (
-                        <button
-                            onClick={() => onVerDados(m)}
-                            className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border ${
-                                isAprovada
-                                    ? 'border-green-400 dark:border-green-500/40 text-green-700 dark:text-green-400 hover:border-green-600 dark:hover:border-green-400 hover:bg-green-100 dark:hover:bg-green-400/10'
-                                    : 'border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                        >
-                            <iconify-icon icon="solar:eye-linear" width="12"></iconify-icon>
-                            Ver Dados
-                        </button>
-                    )}
+                    {(() => {
+                        const svgUrl = parseSvgUrl(m?.svg_url);
+                        return svgUrl ? (
+                            <button
+                                onClick={() => setDesenhoAberto(svgUrl)}
+                                className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 transition-colors border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white"
+                            >
+                                <iconify-icon icon="solar:map-linear" width="12"></iconify-icon>
+                                Ver Desenho
+                            </button>
+                        ) : (
+                            <span
+                                title="Desenho não disponível"
+                                className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 border border-gray-200 dark:border-zinc-800 text-gray-300 dark:text-zinc-700 cursor-not-allowed"
+                            >
+                                <iconify-icon icon="solar:map-linear" width="12"></iconify-icon>
+                                Ver Desenho
+                            </span>
+                        );
+                    })()}
                     {(() => {
                         const canDiff = !!m?.json_medicao && pedidoNum !== null;
                         return (
@@ -245,6 +254,7 @@ export default function AbaMedicoes({
     const totalProdRows = medProducao.length + pedidosPendentes.length;
 
     return (
+        <>
         <div className="sys-reveal sys-delay-200">
             <div className="flex items-center justify-between mb-3">
                 <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
@@ -350,5 +360,42 @@ export default function AbaMedicoes({
                 </div>
             </div>
         </div>
+
+        {desenhoAberto && (
+                <>
+                    <div
+                        className="fixed inset-0 bg-black/85 z-50"
+                        onClick={() => setDesenhoAberto(null)}
+                    />
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+                        <div className="flex flex-col items-center gap-3 pointer-events-auto">
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={desenhoAberto}
+                                    download
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-zinc-600 text-zinc-300 hover:border-white hover:text-white transition-colors bg-black/60"
+                                >
+                                    <iconify-icon icon="solar:download-linear" width="12"></iconify-icon>
+                                    Baixar
+                                </a>
+                                <button
+                                    onClick={() => setDesenhoAberto(null)}
+                                    className="flex items-center justify-center w-8 h-8 border border-zinc-600 text-zinc-300 hover:border-white hover:text-white transition-colors bg-black/60"
+                                >
+                                    <iconify-icon icon="solar:close-linear" width="14"></iconify-icon>
+                                </button>
+                            </div>
+                            <img
+                                src={desenhoAberto}
+                                alt="Desenho da medição"
+                                className="max-h-[80vh] max-w-[90vw] object-contain"
+                            />
+                        </div>
+                    </div>
+                </>
+        )}
+        </>
     );
 }
