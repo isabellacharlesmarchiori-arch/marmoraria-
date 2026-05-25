@@ -4,7 +4,7 @@ import { fmtBRL } from '../../utils/projetoUtils';
 function getTipoMedicao(m) {
     if (m.tipo) return m.tipo;
     const t = m?.json_medicao?.ambientes?.[0]?.tipo_medicao;
-    return t === 'orcamento' ? 'preliminar' : 'producao';
+    return t === 'producao' ? 'producao' : 'preliminar';
 }
 
 function getAmbsProducao(medicao) {

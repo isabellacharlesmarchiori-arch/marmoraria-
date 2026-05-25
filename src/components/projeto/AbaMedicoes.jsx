@@ -5,7 +5,7 @@ import { formatarEndereco } from '../../utils/endereco';
 function getTipoMedicao(m) {
     if (m.tipo) return m.tipo;
     const t = m?.json_medicao?.ambientes?.[0]?.tipo_medicao;
-    return t === 'orcamento' ? 'preliminar' : 'producao';
+    return t === 'producao' ? 'producao' : 'preliminar';
 }
 
 function getAmbsProducao(medicao) {
@@ -39,6 +39,7 @@ export default function AbaMedicoes({
     onAbrirNovoAgendamento,
     onAbrirEditar,
     onVerDados,
+    onVerDiferenca,
     onFazerMedicao,
     onExcluirMedicao,
 }) {
@@ -213,14 +214,20 @@ export default function AbaMedicoes({
                             Ver Dados
                         </button>
                     )}
-                    <button
-                        disabled
-                        title="Disponível em breve"
-                        className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 border border-gray-200 dark:border-zinc-800 text-gray-300 dark:text-zinc-700 cursor-not-allowed"
-                    >
-                        <iconify-icon icon="solar:layers-minimalistic-linear" width="12"></iconify-icon>
-                        Diferença
-                    </button>
+                    {(() => {
+                        const canDiff = !!m?.json_medicao && pedidoNum !== null;
+                        return (
+                            <button
+                                onClick={canDiff ? () => onVerDiferenca?.(m, pedidoNum) : undefined}
+                                disabled={!canDiff}
+                                title={canDiff ? 'Ver diferença de área' : 'Medição sem dados ou pedido não vinculado'}
+                                className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 border transition-colors ${canDiff ? 'border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white' : 'border-gray-200 dark:border-zinc-800 text-gray-300 dark:text-zinc-700 cursor-not-allowed'}`}
+                            >
+                                <iconify-icon icon="solar:layers-minimalistic-linear" width="12"></iconify-icon>
+                                Diferença
+                            </button>
+                        );
+                    })()}
                     {!isViewOnlyAdmin && m?.status === 'agendada' && (
                         <button
                             onClick={() => onEditarProducao?.(m, pedidoNum)}

@@ -1034,6 +1034,7 @@ export default function CriarOrcamento() {
               valor_recortes:    valorRecortesTotal,
               valor_total:       valorArea + valorAcabamentosTotal + valorRecortesTotal,
               acabamentos:       acabamentosJson,
+              recortes:          pSource.recortes ?? [],
             };
           });
 

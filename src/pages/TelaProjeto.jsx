@@ -8,6 +8,7 @@ import CamposParcelamento from './financeiro/lancamentos/CamposParcelamento';
 import { useProjectData } from '../hooks/useProjectData';
 import { useProjectActions } from '../hooks/useProjectActions';
 import { PainelDetalhesMedicao } from '../components/projeto/PainelDetalhesMedicao';
+import PainelDiferencaMedicao from '../components/projeto/PainelDiferencaMedicao';
 import ModalStatus from '../components/projeto/ModalStatus';
 import ModalPerda from '../components/projeto/ModalPerda';
 import ModalRenomearAmbiente from '../components/projeto/ModalRenomearAmbiente';
@@ -155,6 +156,7 @@ export default function TelaProjetoVendedor() {
     const [modalStatus,      setModalStatus]      = useState(false);
     const [modalOrcManual,   setModalOrcManual]   = useState(false);
     const [painelMedicao,      setPainelMedicao]      = useState(null);
+    const [painelDiferenca,    setPainelDiferenca]    = useState(null); // null | { medicao, pedido, pedidoNumero }
     const [modalAgendarProd,   setModalAgendarProd]   = useState(null); // null | { pedido, numero }
 
     // ── Carrinho: expansão, edição de nome, edição de desconto ─────────────────
@@ -417,6 +419,11 @@ export default function TelaProjetoVendedor() {
                         onAbrirNovoAgendamento={handleAbrirNovoAgendamento}
                         onAbrirEditar={handleAbrirEditar}
                         onVerDados={setPainelMedicao}
+                        onVerDiferenca={(medicao, pedidoNumero) => {
+                            const pedido = pedidosFechados.find(p => p.id === medicao.pedido_id)
+                                ?? pedidosFechados[pedidosFechados.length - pedidoNumero];
+                            setPainelDiferenca({ medicao, pedido: pedido ?? null, pedidoNumero });
+                        }}
                         onFazerMedicao={() => actions.handleFazerMedicao()}
                         onExcluirMedicao={actions.handleExcluirMedicao}
                     />
@@ -498,6 +505,20 @@ export default function TelaProjetoVendedor() {
                     />
                 );
             })()}
+
+            {/* ══ PAINEL LATERAL — Diferença de Medição ══════════════════ */}
+            {painelDiferenca && (
+                <PainelDiferencaMedicao
+                    medicao={painelDiferenca.medicao}
+                    pedido={painelDiferenca.pedido}
+                    pedidoNumero={painelDiferenca.pedidoNumero}
+                    projeto={projeto}
+                    empresa={empresaCtx}
+                    ambientes={ambientes}
+                    catMateriais={catMateriais}
+                    onClose={() => setPainelDiferenca(null)}
+                />
+            )}
 
             {/* ══ MODAL — Agendar Medição ════════════════════════════════ */}
             <ModalAgendarMedicao

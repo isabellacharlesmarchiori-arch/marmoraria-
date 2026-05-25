@@ -171,6 +171,7 @@ export function useProjectActions(projectId, {
                         endereco:           enderecoCompleto || null,
                         observacoes_acesso: agObservacoes.trim() || null,
                         status:             'agendada',
+                        tipo:               'preliminar',
                     })
                     .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
                     .single();
