@@ -145,6 +145,7 @@ export default function PainelDiferencaMedicao({
     const [rowsRecortes, setRowsRecortes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [totalImpacto, setTotalImpacto] = useState(0);
+    const [ajuste, setAjuste] = useState(null);
     const [gerandoPdf, setGerandoPdf] = useState(false);
 
     useEffect(() => {
@@ -156,10 +157,19 @@ export default function PainelDiferencaMedicao({
         async function buildRows() {
             setLoading(true);
 
-            const { data: ops, error } = await supabase
-                .from('orcamento_pecas')
-                .select('peca_id, material_id, valor_area, item_nome, acabamentos, recortes, pecas(nome_livre, area_liquida_m2, ambiente_id)')
-                .in('orcamento_id', pedido.cenario_ids);
+            const [opsResult, orcsResult] = await Promise.all([
+                supabase
+                    .from('orcamento_pecas')
+                    .select('peca_id, material_id, valor_area, valor_total, item_nome, acabamentos, recortes, pecas(nome_livre, area_liquida_m2, ambiente_id)')
+                    .in('orcamento_id', pedido.cenario_ids),
+                supabase
+                    .from('orcamentos')
+                    .select('id, desconto_total, valor_frete, majoramento_percentual, rt_percentual')
+                    .in('id', pedido.cenario_ids),
+            ]);
+
+            const { data: ops, error } = opsResult;
+            const { data: orcsData }   = orcsResult;
 
             if (error) {
                 console.error('[PainelDiferenca] Erro ao buscar orcamento_pecas:', error.message);
@@ -256,11 +266,21 @@ export default function PainelDiferencaMedicao({
 
             const totalPecas = linhasPecas.reduce((s, l) => s + (l.impacto ?? 0), 0);
             const totalAcab  = linhasAcab.reduce((s, l) => s + (l.impacto ?? 0), 0);
+            const impactoBase = totalPecas + totalAcab;
+
+            const frete       = (orcsData ?? []).reduce((s, o) => s + (o.valor_frete    ?? 0), 0);
+            const desconto    = (orcsData ?? []).reduce((s, o) => s + (o.desconto_total ?? 0), 0);
+            const majoramento = orcsData?.[0]?.majoramento_percentual ?? 0;
+            const rt          = orcsData?.[0]?.rt_percentual          ?? 0;
+            const fatorMaj    = 1 + majoramento / 100;
+            const fatorRt     = 1 + rt / 100;
+            const totalFinal  = impactoBase * fatorMaj * fatorRt;
 
             setRows(linhasPecas);
             setRowsAcabamentos(linhasAcab);
             setRowsRecortes(linhasRc);
-            setTotalImpacto(totalPecas + totalAcab);
+            setTotalImpacto(impactoBase);
+            setAjuste({ frete, desconto, majoramento, rt, totalFinal });
             setLoading(false);
         }
 
@@ -479,20 +499,50 @@ export default function PainelDiferencaMedicao({
                             )}
 
                             {/* Footer */}
-                            <div className="px-6 py-5 border-t border-gray-200 dark:border-zinc-800 flex items-end justify-between gap-4">
-                                <div className="flex flex-col gap-1">
-                                    <span className={`font-mono text-[9px] uppercase tracking-widest ${isAcrescimo ? 'text-red-500' : isDesconto ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-zinc-600'}`}>
-                                        {isAcrescimo ? 'Acréscimo total (peças + acabamentos)' : isDesconto ? 'Desconto total (peças + acabamentos)' : 'Sem ajuste financeiro'}
-                                    </span>
-                                    <span className={`font-mono text-2xl font-bold ${isAcrescimo ? 'text-red-600 dark:text-red-400' : isDesconto ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-zinc-500'}`}>
-                                        {isAcrescimo ? '+' : isDesconto ? '−' : ''}{fmtBRL(Math.abs(totalImpacto))}
-                                    </span>
+                            <div className="px-6 py-5 border-t border-gray-200 dark:border-zinc-800">
+                                <div className="flex flex-col gap-1.5">
+                                    {/* Subtotal das diferenças (antes dos multiplicadores) */}
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+                                            Subtotal das diferenças
+                                        </span>
+                                        <span className={`font-mono text-sm font-semibold ${isAcrescimo ? 'text-red-600 dark:text-red-400' : isDesconto ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-zinc-500'}`}>
+                                            {isAcrescimo ? '+' : isDesconto ? '−' : ''}{fmtBRL(Math.abs(totalImpacto))}
+                                        </span>
+                                    </div>
+
+                                    {/* Itens informativos do orçamento */}
+                                    {ajuste && (
+                                        <>
+                                            {ajuste.frete > 0 && (
+                                                <InfoRow label="Frete" value={fmtBRL(ajuste.frete)} />
+                                            )}
+                                            {ajuste.desconto > 0 && (
+                                                <InfoRow label="Desconto" value={`−${fmtBRL(ajuste.desconto)}`} valueClass="text-green-600 dark:text-green-500" />
+                                            )}
+                                            <InfoRow label="Majoramento" value={`${ajuste.majoramento}%`} />
+                                            <InfoRow label="RT" value={`${ajuste.rt}%`} />
+                                        </>
+                                    )}
+
+                                    {/* Total final com multiplicadores */}
+                                    {ajuste && (
+                                        <div className="border-t border-gray-200 dark:border-zinc-800 mt-1 pt-3 flex items-center justify-between">
+                                            <span className="font-mono text-[10px] uppercase tracking-widest font-bold text-gray-700 dark:text-zinc-300">
+                                                Total do Ajuste
+                                            </span>
+                                            <span className={`font-mono text-2xl font-bold ${ajuste.totalFinal > 0 ? 'text-red-600 dark:text-red-400' : ajuste.totalFinal < 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-zinc-500'}`}>
+                                                {ajuste.totalFinal > 0 ? '+' : ajuste.totalFinal < 0 ? '−' : ''}{fmtBRL(Math.abs(ajuste.totalFinal))}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {semCorrespondencia > 0 && (
+                                        <span className="font-mono text-[10px] text-amber-500 dark:text-amber-400 mt-1">
+                                            {semCorrespondencia} peça{semCorrespondencia !== 1 ? 's' : ''} sem medição correspondente
+                                        </span>
+                                    )}
                                 </div>
-                                {semCorrespondencia > 0 && (
-                                    <span className="font-mono text-[10px] text-amber-500 dark:text-amber-400">
-                                        {semCorrespondencia} peça{semCorrespondencia !== 1 ? 's' : ''} sem medição correspondente
-                                    </span>
-                                )}
                             </div>
                         </>
                     )}
@@ -514,6 +564,15 @@ function EmptySection({ label }) {
     return (
         <div className="px-6 py-3 border-b border-gray-100 dark:border-zinc-900">
             <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{label}</span>
+        </div>
+    );
+}
+
+function InfoRow({ label, value, valueClass = '' }) {
+    return (
+        <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{label}</span>
+            <span className={`font-mono text-[10px] text-gray-400 dark:text-zinc-600 ${valueClass}`}>{value}</span>
         </div>
     );
 }

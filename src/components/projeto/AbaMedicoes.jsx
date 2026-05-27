@@ -63,17 +63,22 @@ export default function AbaMedicoes({
             return idx === -1 ? null : idx + 1;
         }
         // fallback: cruzamento por nome de ambiente (medições antigas sem pedido_id)
+        // Usa maior sobreposição em vez de first-match, para evitar falsos positivos
+        // quando múltiplos pedidos têm algum ambiente em comum com a medição.
         const ambs = getAmbsProducao(medicao);
         if (ambs.size === 0) return null;
-        const idx = pedidosOrdenados.findIndex(pedido => {
+        let bestIdx = -1;
+        let bestScore = 0;
+        pedidosOrdenados.forEach((pedido, idx) => {
             const pedidoAmbientes = new Set(
                 (pedido.cenario_ids ?? [])
                     .map(cid => orcamentosMap[cid]?.ambiente_nome)
                     .filter(Boolean)
             );
-            return [...pedidoAmbientes].some(n => ambs.has(n));
+            const score = [...ambs].filter(n => pedidoAmbientes.has(n)).length;
+            if (score > bestScore) { bestScore = score; bestIdx = idx; }
         });
-        return idx === -1 ? null : idx + 1;
+        return bestIdx === -1 ? null : bestIdx + 1;
     }
 
     // IDs of pedidos que já têm ao menos uma medição de produção vinculada
