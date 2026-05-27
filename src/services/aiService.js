@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase';
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-export const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_PRIMARY  = 'gemini-2.5-flash';
+const MODEL_FALLBACK = 'gemini-2.5-flash-lite';
+export const MODEL_NAME = MODEL_PRIMARY;
 export const MAX_HISTORY_MESSAGES = 20;
 export const isConfigured = !!GEMINI_API_KEY;
 
@@ -71,18 +73,35 @@ function is503(err) {
     || String(err?.message ?? '').toLowerCase().includes('overloaded');
 }
 
-async function generateWithRetry(model, params) {
+async function generateWithRetry(model, params, fallbackModel = null) {
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     try {
       return await model.generateContent(params);
     } catch (err) {
       if (!is503(err)) throw err; // falha imediata para 400, 429, etc.
-      if (attempt === RETRY_DELAYS_MS.length) break; // esgotou tentativas
+      if (attempt === RETRY_DELAYS_MS.length) break; // esgotou tentativas do primário
       const delay = RETRY_DELAYS_MS[attempt];
       console.warn(`[AI] 503 — tentativa ${attempt + 1}/${RETRY_DELAYS_MS.length + 1}, aguardando ${delay / 1000}s…`);
       await sleep(delay);
     }
   }
+
+  if (fallbackModel) {
+    console.warn('[AI] modelo primário falhou, tentando fallback…');
+    const FALLBACK_DELAYS_MS = [2000, 4000];
+    for (let attempt = 0; attempt <= FALLBACK_DELAYS_MS.length; attempt++) {
+      try {
+        const result = await fallbackModel.generateContent(params);
+        console.log('[AI] resposta obtida via fallback gemini-2.0-flash');
+        return result;
+      } catch (err) {
+        if (!is503(err)) throw err;
+        if (attempt === FALLBACK_DELAYS_MS.length) break;
+        await sleep(FALLBACK_DELAYS_MS[attempt]);
+      }
+    }
+  }
+
   throw new Error('O serviço está temporariamente sobrecarregado. Tente novamente em alguns instantes.');
 }
 
@@ -96,11 +115,15 @@ function toFunctionDeclarations(openAITools) {
   }));
 }
 
-function getModel(withTools) {
+function getModel(withTools, modelName = MODEL_PRIMARY, generationConfig = undefined) {
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   return genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    ...(withTools?.length ? { tools: [{ functionDeclarations: withTools }] } : {}),
+    model: modelName,
+    ...(generationConfig ? { generationConfig } : {}),
+    ...(withTools?.length ? {
+      tools:      [{ functionDeclarations: withTools }],
+      toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+    } : {}),
   });
 }
 
@@ -189,8 +212,14 @@ export function buildChatSystemPrompt(perfil, nome, nomeEmpresa, economyMode = f
 }
 
 const PLANTA_SYSTEM_FULL = `Você é um especialista em leitura de plantas baixas para marmoraria.
-Analise as imagens do PDF e identifique TODOS os itens que utilizam pedra natural ou artificial:
+Analise as imagens do PDF e identifique os itens que utilizam pedra natural ou artificial:
 bancadas, pias, balcões, soleiras, peitoris, pisos, revestimentos, rodapés em pedra, tampos, etc.
+
+REGRAS ESTRITAS DE EXTRAÇÃO:
+- Extraia APENAS itens cujas dimensões estão visíveis na planta ou são claramente inferíveis a partir de cotas explícitas no desenho
+- NÃO invente itens que não estejam explicitamente representados no projeto
+- Se um item existe mas não tem dimensão legível, registre dimensoes como "a medir"
+- trecho_origem DEVE conter: número da página (ex: "pág. 2") + trecho exato de texto ou cota de onde a informação foi extraída (ex: "pág. 2 — cota '2,50 × 0,60' próxima à pia")
 
 Para cada item extraído, retorne um objeto JSON com:
 - id: número sequencial (1, 2, 3...)
@@ -203,7 +232,7 @@ Para cada item extraído, retorne um objeto JSON com:
 - espessura_cm: espessura da pedra em cm, APENAS valores 1, 2 ou 3. Se não encontrar ou o valor for maior que 3 (ex: larguras de espelho/saia/frontão não são espessura), retornar null
 - tipo: classificar em um de: "bancada" | "tampo" | "soleira" | "peitoril" | "espelho" | "saia" | "frontao" | "prateleira" | "faixa" | "outro"
 - furos: array de strings com furos identificados (ex: ["furo_cuba", "furo_torneira"]), ou []
-- trecho_origem: trecho exato do texto/planta de onde a informação foi extraída
+- trecho_origem: número da página + trecho exato de texto ou cota de onde a informação foi extraída
 
 Retorne APENAS um array JSON válido, sem texto adicional, markdown ou explicação.`;
 
@@ -240,11 +269,12 @@ export async function callGemini({
 
   const declarations  = toFunctionDeclarations(tools);
   const model         = getModel(declarations.length ? declarations : null);
+  const fallback      = getModel(declarations.length ? declarations : null, MODEL_FALLBACK);
   const safeHistory   = sanitizeGeminiHistory(history);
 
   if (!safeHistory.length) throw new Error('Histórico resultou vazio após sanitização — verifique a sequência de mensagens.');
 
-  const result   = await generateWithRetry(model, { contents: safeHistory, systemInstruction: systemPrompt });
+  const result   = await generateWithRetry(model, { contents: safeHistory, systemInstruction: systemPrompt }, fallback);
   const response = result.response;
 
   const rawCalls     = response.functionCalls();
@@ -289,8 +319,9 @@ export async function analyzePlantPDF({ pageImages, economyMode = false, empresa
     ],
   }];
 
-  const model    = getModel(null);
-  const result   = await generateWithRetry(model, { contents, systemInstruction: systemPrompt });
+  const model    = getModel(null, MODEL_PRIMARY,  { temperature: 0 });
+  const fallback = getModel(null, MODEL_FALLBACK, { temperature: 0 });
+  const result   = await generateWithRetry(model, { contents, systemInstruction: systemPrompt }, fallback);
   const response = result.response;
   const rawText  = response.text();
 

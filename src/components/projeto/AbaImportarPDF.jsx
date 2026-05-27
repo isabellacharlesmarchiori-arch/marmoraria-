@@ -46,6 +46,22 @@ function parseDimensoes(str) {
   return { comprimento: matches[0], largura: matches[1] };
 }
 
+// Returns {comprimento, largura} where one is a "X,XX" string and the other is null,
+// when str has the format "X × a medir" or "a medir × Y" (exactly one side unknown).
+// Returns null for fully unknown ('a medir'), fully known, or unrecognised formats.
+function parsePartialDim(str) {
+  if (!str || str === 'a medir') return null;
+  const xIdx = str.indexOf('×');
+  if (xIdx === -1) return null;
+  const left  = str.slice(0, xIdx).trim();
+  const right = str.slice(xIdx + 1).trim();
+  const numOf = s => { const m = s.match(/(\d+)[,.](\d+)/); return m ? `${m[1]},${m[2]}` : null; };
+  const c = numOf(left);
+  const l = numOf(right);
+  if ((c && l) || (!c && !l)) return null; // both known or both unknown
+  return { comprimento: c, largura: l };
+}
+
 function fuzzyMatchMaterial(query, candidates) {
   if (!query || !candidates.length) return null;
   const norm = s => (s ?? '').toLowerCase()
@@ -498,9 +514,28 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
         { role: 'assistant', text: summary },
       ]);
 
-      // Seed chat history with item context so follow-up questions work
+      // Detectar materiais sugeridos pela IA que não foram encontrados no catálogo
+      const materiaisAmbiguos = [...new Set(
+        normalizedItems
+          .filter(it => it.material && !it.material_id)
+          .map(it => it.material)
+      )];
+
+      // Texto que vai no seed do histórico (sempre presente, para contexto da IA)
+      let modelSeedText = `${summary}\n\nItens extraídos:\n${JSON.stringify(normalizedItems, null, 2)}`;
+
+      if (materiaisAmbiguos.length > 0) {
+        const pergunta = `Encontrei os seguintes materiais que não estão no catálogo: ${materiaisAmbiguos.join(', ')}. Para cada um, qual material do sistema devo usar? Ou posso cadastrar como novo?`;
+        setChatMessages(prev => [...prev, { role: 'assistant', text: pergunta }]);
+        // Inclui a pergunta no mesmo turn do model seed para manter o histórico alternado (user→model)
+        modelSeedText += `\n\n${pergunta}`;
+      }
+
+      // Seed chat history with a valid user/model pair so sanitizeGeminiHistory
+      // doesn't strip it (Gemini requires history to start with a user turn).
       chatHistoryRef.current = [
-        { role: 'model', parts: [{ text: `${summary}\n\nItens extraídos:\n${JSON.stringify(normalizedItems, null, 2)}` }] },
+        { role: 'user',  parts: [{ text: 'PDF analisado. Quais itens foram encontrados?' }] },
+        { role: 'model', parts: [{ text: modelSeedText }] },
       ];
     } catch (err) {
       setChatMessages(prev => [
@@ -552,8 +587,24 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     const userTurn      = { role: 'user', parts: [{ text }] };
     let loopHistory     = [...chatHistoryRef.current.slice(-6), userTurn];
     const activeTools   = items.length > 0 ? [TOOL_ATUALIZAR_ITEMS] : undefined;
+    // Include current items in system prompt so the model always has context,
+    // even when sanitizeGeminiHistory strips old history turns.
+    const itemsCtx = items.map(it => ({
+      id: it.id, descricao: it.descricao, ambiente: it.ambiente ?? 'Geral',
+      dimensoes: it.dimensoes, material: it.material ?? null,
+      tipo: it.tipo, espessura_cm: it.espessura_cm,
+    }));
     const chatSystemPrompt = items.length > 0
-      ? `${PLANTA_CHAT_SYSTEM}\n\nMateriais disponíveis: ${materiais.map(m => m.nome).join(', ') || 'nenhum'}.\n\nUse a tool 'atualizar_items_pdf' quando o usuário pedir para alterar material, espessura ou dimensões de itens. Após executar, confirme o que foi alterado.`
+      ? [
+          PLANTA_CHAT_SYSTEM,
+          '',
+          'Itens atuais extraídos do PDF (use para interpretar pedidos do usuário):',
+          JSON.stringify(itemsCtx, null, 2),
+          '',
+          `Materiais disponíveis no catálogo: ${materiais.map(m => m.nome).join(', ') || 'nenhum'}.`,
+          '',
+          "Use a tool 'atualizar_items_pdf' SEMPRE que o usuário pedir para alterar material, espessura ou dimensões de itens. Após executar a tool, confirme ao usuário exatamente o que foi alterado.",
+        ].join('\n')
       : PLANTA_CHAT_SYSTEM;
 
     try {
@@ -605,11 +656,31 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   function usarPadrao(item) {
     const largPadrao = MEDIDAS_PADRAO_CM[item.tipo];
     const largM      = largPadrao != null ? (largPadrao / 100).toFixed(2).replace('.', ',') : null;
-    const update     = { espessura_cm: item.espessura_cm ?? 2, confianca: Math.max(item.confianca, 80) };
-    if (item.dimensoes === 'a medir' && largM != null) {
-      update.dimensoes = `? × ${largM} m`;
-    }
-    setItems(prev => prev.map(it => it.id === item.id ? { ...it, ...update } : it));
+    // Grava dimensoes como parcial ("a medir × 0,10 m") para que parsePartialDim
+    // renderize "[____] × 0,10 m" inline na célula com autoFocus no comprimento.
+    setItems(prev => prev.map(it =>
+      it.id === item.id ? {
+        ...it,
+        espessura_cm: it.espessura_cm ?? 2,
+        ...(largM != null ? { dimensoes: `a medir × ${largM} m` } : {}),
+      } : it
+    ));
+    setDigitandoId(item.id);
+    setDigitandoValor('');
+  }
+
+  // ── Salvar dimensão parcial ──────────────────────────────────────────────────
+  function savePartialDim(item, partial, rawVal) {
+    const m = rawVal.trim().match(/(\d+)[,.](\d+)/);
+    if (!m) { setDigitandoId(null); return; }
+    const val  = `${m[1]},${m[2]}`;
+    const full = partial.comprimento === null
+      ? `${val} m × ${partial.largura} m`
+      : `${partial.comprimento} m × ${val} m`;
+    setItems(prev => prev.map(it =>
+      it.id === item.id ? { ...it, dimensoes: full, confianca: Math.max(it.confianca, 70) } : it
+    ));
+    setDigitandoId(null);
   }
 
   // ── Executar tool atualizar_items_pdf ────────────────────────────────────────
@@ -824,8 +895,10 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
                 <tbody>
                   {items.map(item => {
                     const isPendente  = pendentes.has(item.id);
-                    const needsReview = !isPendente && (item.confianca < 50 || item.dimensoes === 'a medir');
+                    const partialDim  = parsePartialDim(item.dimensoes);
+                    const needsReview = !isPendente && (item.confianca < 50 || item.dimensoes === 'a medir' || partialDim !== null);
                     const isEditing   = digitandoId === item.id;
+                    const cellEditing = isEditing && !partialDim; // input fica na célula só quando não é parcial
                     const isSelected  = selectedItem === item.id;
                     const rowBg       = isPendente  ? 'bg-orange-400/5'
                                       : needsReview ? 'bg-yellow-400/5'
@@ -904,7 +977,7 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
                             )}
                           </td>
                           <td className="px-2 py-1.5 font-mono text-[10px] whitespace-nowrap">
-                            {isEditing ? (
+                            {cellEditing ? (
                               <input
                                 autoFocus
                                 value={digitandoValor}
@@ -924,6 +997,42 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
                                 placeholder="ex: 3,20 m × 0,60 m"
                                 className="bg-zinc-900 border border-yellow-400 text-white text-[10px] font-mono px-1.5 py-0.5 w-32 outline-none"
                               />
+                            ) : partialDim ? (
+                              <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                {partialDim.comprimento === null ? (
+                                  <>
+                                    <input
+                                      autoFocus={isEditing}
+                                      value={isEditing ? digitandoValor : ''}
+                                      onFocus={() => { setDigitandoId(item.id); setDigitandoValor(''); }}
+                                      onChange={e => setDigitandoValor(e.target.value)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') savePartialDim(item, partialDim, digitandoValor);
+                                        else if (e.key === 'Escape') setDigitandoId(null);
+                                      }}
+                                      placeholder="ex: 3,20"
+                                      className="bg-zinc-900 border border-yellow-400 text-white text-[10px] font-mono px-1.5 py-0.5 w-16 outline-none"
+                                    />
+                                    <span className="text-zinc-400 whitespace-nowrap shrink-0">× {partialDim.largura} m</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-zinc-400 whitespace-nowrap shrink-0">{partialDim.comprimento} m ×</span>
+                                    <input
+                                      autoFocus={isEditing}
+                                      value={isEditing ? digitandoValor : ''}
+                                      onFocus={() => { setDigitandoId(item.id); setDigitandoValor(''); }}
+                                      onChange={e => setDigitandoValor(e.target.value)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') savePartialDim(item, partialDim, digitandoValor);
+                                        else if (e.key === 'Escape') setDigitandoId(null);
+                                      }}
+                                      placeholder="ex: 0,60"
+                                      className="bg-zinc-900 border border-yellow-400 text-white text-[10px] font-mono px-1.5 py-0.5 w-16 outline-none"
+                                    />
+                                  </>
+                                )}
+                              </div>
                             ) : (
                               <span className={item.dimensoes === 'a medir' ? 'text-yellow-400' : 'text-zinc-300'}>
                                 {item.dimensoes}
@@ -937,7 +1046,7 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
                             <span style={{ color: confidenceColor(item.confianca) }}>{item.confianca}%</span>
                           </td>
                         </tr>
-                        {(needsReview || isPendente) && !isEditing && (
+                        {(needsReview || isPendente) && !cellEditing && (
                           <tr className={`border-b border-zinc-800/40 ${rowBg}`}>
                             <td colSpan={6} className="px-2 pb-1.5 pt-0">
                               {isPendente ? (
@@ -948,6 +1057,13 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
                                     onClick={e => { e.stopPropagation(); setPendentes(p => { const s = new Set(p); s.delete(item.id); return s; }); }}
                                     className="font-mono text-[9px] text-zinc-600 hover:text-zinc-400 transition-colors ml-1"
                                   >✕</button>
+                                </div>
+                              ) : partialDim ? (
+                                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setPendentes(p => new Set([...p, item.id])); }}
+                                    className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-orange-800 text-orange-500 hover:border-orange-600 hover:text-orange-300 transition-colors"
+                                  >Perguntar ao arquiteto</button>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1.5 flex-wrap">
