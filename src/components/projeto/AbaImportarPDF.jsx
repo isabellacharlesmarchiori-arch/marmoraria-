@@ -391,8 +391,7 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   const [pdfDoc,       setPdfDoc]       = useState(null);
   const [currentPage,  setCurrentPage]  = useState(1);
   const [scale,        setScale]        = useState(1.2);
-  const [isDragOver,   setIsDragOver]   = useState(false);
-  const [fileName,     setFileName]     = useState('');
+const [fileName,     setFileName]     = useState('');
   const [items,        setItems]        = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [chatMessages, setChatMessages] = useState(INITIAL_CHAT);
@@ -558,6 +557,7 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     setFileName(file.name);
     setItems([]);
     setPdfDoc(null);
+    setChatMessages(INITIAL_CHAT);
     chatHistoryRef.current = [];
 
     try {
@@ -644,17 +644,6 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
       else loadPDF(file);
     }
     e.target.value = '';
-  }
-
-  function handleDrop(e) {
-    e.preventDefault();
-    setIsDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      setFileList([]); setActiveFileIdx(0);
-      if (file.type.startsWith('image/')) loadImage(file);
-      else loadPDF(file);
-    }
   }
 
   function switchFile(idx) {
@@ -958,24 +947,6 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
             )}
           </div>
 
-          {!pdfDoc && !loading && !imageUrl && (
-            <div
-              onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
-              onDragLeave={() => setIsDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`mx-4 mb-3 flex flex-col items-center justify-center gap-2 py-5 border-2 border-dashed cursor-pointer transition-colors ${
-                isDragOver ? 'border-yellow-400 bg-yellow-400/5' : 'border-zinc-800 hover:border-zinc-600'
-              }`}
-            >
-              <iconify-icon icon="solar:upload-linear" width="18" class="text-zinc-600" />
-              <p className="font-mono text-[10px] text-zinc-600 text-center">
-                Arraste um PDF ou imagem (PNG, JPG) ou <span className="text-yellow-400">clique para selecionar</span>
-              </p>
-            </div>
-          )}
-
-
           {items.length === 0 && pdfDoc && !loading && (
             <p className="px-4 py-4 font-mono text-[10px] text-zinc-700 text-center">Analisando PDF...</p>
           )}
@@ -1223,13 +1194,13 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleChatSend()}
-              disabled={!pdfDoc || chatLoading}
-              placeholder={pdfDoc ? 'Ex: muda a medida da bancada da cozinha para 3,50 m' : 'Faça upload de um PDF para começar'}
+              disabled={(!pdfDoc && !imageUrl) || chatLoading}
+              placeholder={(pdfDoc || imageUrl) ? 'Ex: muda a medida da bancada da cozinha para 3,50 m' : 'Faça upload de um PDF ou imagem para começar'}
               className="flex-1 bg-zinc-950 border border-zinc-800 text-white text-[11px] font-mono px-3 py-2 outline-none focus:border-yellow-400 placeholder:text-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             />
             <button
               onClick={handleChatSend}
-              disabled={!chatInput.trim() || !pdfDoc || chatLoading}
+              disabled={!chatInput.trim() || (!pdfDoc && !imageUrl) || chatLoading}
               className="px-3 bg-yellow-400 text-black font-mono text-[10px] uppercase tracking-widest font-bold hover:bg-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               {chatLoading
