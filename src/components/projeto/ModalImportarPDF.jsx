@@ -8,7 +8,9 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
   const inputRef = useRef(null);
 
   function addFiles(incoming) {
-    const pdfs = Array.from(incoming).filter(f => f.type === 'application/pdf');
+    const pdfs = Array.from(incoming).filter(f =>
+      f.type === 'application/pdf' || f.type.startsWith('image/')
+    );
     setFiles(prev => {
       const existing = new Set(prev.map(f => f.name));
       return [...prev, ...pdfs.filter(f => !existing.has(f.name))];
@@ -36,7 +38,7 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
               Importar projeto
             </h2>
             <p className="font-mono text-[10px] text-zinc-500 mt-0.5">
-              Selecione um ou mais PDFs do projeto
+              Selecione PDFs ou imagens do projeto
             </p>
           </div>
           <button
@@ -63,7 +65,7 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
             <iconify-icon icon="solar:upload-linear" width="28" class="text-zinc-500" />
             <div className="text-center">
               <p className="font-mono text-[11px] text-zinc-300">
-                Arraste PDFs aqui
+                Arraste PDFs ou imagens aqui
               </p>
               <p className="font-mono text-[10px] text-zinc-600 mt-1">
                 ou <span className="text-yellow-400">clique para selecionar</span>
@@ -72,7 +74,7 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
             <input
               ref={inputRef}
               type="file"
-              accept="application/pdf"
+              accept=".pdf,image/png,image/jpeg,image/jpg"
               multiple
               onChange={e => addFiles(e.target.files)}
               className="hidden"

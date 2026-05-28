@@ -407,6 +407,7 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   const [gerandoOrcamento, setGerandoOrcamento] = useState(false);
   const [msgArquiteto,     setMsgArquiteto]     = useState('');
   const [materiais,        setMateriais]        = useState([]);
+  const [imageUrl,         setImageUrl]         = useState(null);
 
   // Gemini-format chat history (separate from display messages)
   const chatHistoryRef = useRef([]);
@@ -421,7 +422,10 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
 
   // Auto-load first file from initialFiles on mount
   useEffect(() => {
-    if (initialFiles?.length > 0) loadPDF(initialFiles[0]);
+    if (initialFiles?.length > 0) {
+      if (initialFiles[0]?.type.startsWith('image/')) loadImage(initialFiles[0]);
+      else loadPDF(initialFiles[0]);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load company materials for fuzzy matching
@@ -464,6 +468,7 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     setLoading(true);
     setFileName(file.name);
     setItems([]);
+    setImageUrl(null);
     chatHistoryRef.current = [];
 
     try {
@@ -547,9 +552,97 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     }
   }
 
+  // ── Image loading ───────────────────────────────────────────────────────────
+  async function loadImage(file) {
+    setLoading(true);
+    setFileName(file.name);
+    setItems([]);
+    setPdfDoc(null);
+    chatHistoryRef.current = [];
+
+    try {
+      if (!isConfigured) {
+        setChatMessages(prev => [...prev, {
+          role: 'error',
+          text: 'VITE_GEMINI_API_KEY não configurada. Adicione ao .env.local e reinicie.',
+        }]);
+        return;
+      }
+
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setImageUrl(dataUrl);
+
+      setChatMessages(prev => [...prev, { role: 'assistant', text: `Analisando "${file.name}"…` }]);
+
+      const extracted = await analyzePlantPDF({ pageImages: [dataUrl], empresaId });
+
+      const normalizedItems = extracted.map((item, i) => {
+        const rawEsp = item.espessura_cm != null ? Number(item.espessura_cm) : null;
+        const esp    = rawEsp != null && rawEsp >= 1 && rawEsp <= 3 ? rawEsp : null;
+        const match  = fuzzyMatchMaterial(item.material, materiaisRef.current);
+        return {
+          ...item,
+          id:           String(item.id ?? i + 1),
+          pagina:       Number(item.pagina ?? 1),
+          confianca:    Number(item.confianca ?? 50),
+          material:     item.material ?? null,
+          espessura_cm: esp,
+          tipo:         item.tipo ?? 'outro',
+          furos:        Array.isArray(item.furos) ? item.furos : [],
+          trecho_origem:     item.trecho_origem ?? null,
+          material_id:       match?.id ?? null,
+          material_resolved: false,
+        };
+      });
+
+      setItems(normalizedItems);
+
+      const summary = `Analisei "${file.name}" e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
+      setChatMessages(prev => [
+        ...prev.slice(0, -1),
+        { role: 'assistant', text: summary },
+      ]);
+
+      const materiaisAmbiguos = [...new Set(
+        normalizedItems
+          .filter(it => it.material && !it.material_id)
+          .map(it => it.material)
+      )];
+
+      let modelSeedText = `${summary}\n\nItens extraídos:\n${JSON.stringify(normalizedItems, null, 2)}`;
+
+      if (materiaisAmbiguos.length > 0) {
+        const pergunta = `Encontrei os seguintes materiais que não estão no catálogo: ${materiaisAmbiguos.join(', ')}. Para cada um, qual material do sistema devo usar? Ou posso cadastrar como novo?`;
+        setChatMessages(prev => [...prev, { role: 'assistant', text: pergunta }]);
+        modelSeedText += `\n\n${pergunta}`;
+      }
+
+      chatHistoryRef.current = [
+        { role: 'user',  parts: [{ text: 'Imagem analisada. Quais itens foram encontrados?' }] },
+        { role: 'model', parts: [{ text: modelSeedText }] },
+      ];
+    } catch (err) {
+      setChatMessages(prev => [
+        ...prev.filter(m => m.text !== `Analisando "${file.name}"…`),
+        { role: 'error', text: `Erro ao analisar imagem: ${err.message}` },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function handleFileChange(e) {
     const file = e.target.files?.[0];
-    if (file) { setFileList([]); setActiveFileIdx(0); loadPDF(file); }
+    if (file) {
+      setFileList([]); setActiveFileIdx(0);
+      if (file.type.startsWith('image/')) loadImage(file);
+      else loadPDF(file);
+    }
     e.target.value = '';
   }
 
@@ -557,16 +650,23 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) { setFileList([]); setActiveFileIdx(0); loadPDF(file); }
+    if (file) {
+      setFileList([]); setActiveFileIdx(0);
+      if (file.type.startsWith('image/')) loadImage(file);
+      else loadPDF(file);
+    }
   }
 
   function switchFile(idx) {
     if (idx === activeFileIdx) return;
     setActiveFileIdx(idx);
     setPdfDoc(null);
+    setImageUrl(null);
     setItems([]);
     setSelectedItem(null);
-    loadPDF(fileList[idx]);
+    const file = fileList[idx];
+    if (file.type?.startsWith('image/')) loadImage(file);
+    else loadPDF(file);
   }
 
   // ── Item click → jump to page ──────────────────────────────────────────────
@@ -858,7 +958,7 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
             )}
           </div>
 
-          {!pdfDoc && !loading && (
+          {!pdfDoc && !loading && !imageUrl && (
             <div
               onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
               onDragLeave={() => setIsDragOver(false)}
@@ -870,10 +970,11 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
             >
               <iconify-icon icon="solar:upload-linear" width="18" class="text-zinc-600" />
               <p className="font-mono text-[10px] text-zinc-600 text-center">
-                Arraste um PDF ou <span className="text-yellow-400">clique para selecionar</span>
+                Arraste um PDF ou imagem (PNG, JPG) ou <span className="text-yellow-400">clique para selecionar</span>
               </p>
             </div>
           )}
+
 
           {items.length === 0 && pdfDoc && !loading && (
             <p className="px-4 py-4 font-mono text-[10px] text-zinc-700 text-center">Analisando PDF...</p>
@@ -1176,23 +1277,49 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf"
+        accept=".pdf,image/png,image/jpeg,image/jpg"
         onChange={handleFileChange}
         className="hidden"
       />
 
-      {/* ══ LADO DIREITO — PDF Viewer ════════════════════════════════════════ */}
+      {/* ══ LADO DIREITO — PDF Viewer ou Image Preview ════════════════════ */}
       <div className="flex flex-col w-1/2 overflow-hidden">
-        <PDFViewer
-          pdfDoc={pdfDoc}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          scale={scale}
-          setScale={setScale}
-          fileName={fileName}
-          onClose={() => { setPdfDoc(null); setItems([]); setFileName(''); setSelectedItem(null); }}
-          onSwap={() => fileInputRef.current?.click()}
-        />
+        {imageUrl ? (
+          <div className="flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-zinc-800 bg-zinc-950">
+              <iconify-icon icon="solar:gallery-linear" width="11" class="text-yellow-400 shrink-0" />
+              <span className="font-mono text-[10px] text-zinc-400 truncate flex-1 min-w-0">{fileName}</span>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                title="Trocar arquivo"
+                className="w-5 h-5 flex items-center justify-center text-zinc-600 hover:text-zinc-300 transition-colors"
+              >
+                <iconify-icon icon="solar:refresh-linear" width="11" />
+              </button>
+              <button
+                onClick={() => { setImageUrl(null); setItems([]); setFileName(''); setSelectedItem(null); }}
+                title="Fechar imagem"
+                className="w-5 h-5 flex items-center justify-center text-zinc-600 hover:text-red-400 transition-colors"
+              >
+                <iconify-icon icon="solar:close-linear" width="11" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto flex justify-center p-4">
+              <img src={imageUrl} alt={fileName} className="max-w-full object-contain shadow-xl" />
+            </div>
+          </div>
+        ) : (
+          <PDFViewer
+            pdfDoc={pdfDoc}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            scale={scale}
+            setScale={setScale}
+            fileName={fileName}
+            onClose={() => { setPdfDoc(null); setItems([]); setFileName(''); setSelectedItem(null); }}
+            onSwap={() => fileInputRef.current?.click()}
+          />
+        )}
       </div>
     </div>
 
