@@ -634,7 +634,7 @@ export default function Carrinho() {
           .select('id').single();
         if (e2) throw new Error(e2.message);
         const { data: ops } = await supabase.from('orcamento_pecas')
-          .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total')
+          .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total, ambiente_nome')
           .eq('orcamento_id', v.id);
         if (ops?.length) await supabase.from('orcamento_pecas').insert(ops.map(op => ({ ...op, orcamento_id: no.id })));
         versoesCopia.push({ ...v, id: no.id, pecas: v.pecas.map(p => ({ ...p })) });
@@ -685,7 +685,7 @@ export default function Carrinho() {
         .select('id').single();
       if (e1) throw new Error(e1.message);
       const { data: ops } = await supabase.from('orcamento_pecas')
-        .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total')
+        .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total, ambiente_nome')
         .eq('orcamento_id', versaoId);
       if (ops?.length) await supabase.from('orcamento_pecas').insert(ops.map(op => ({ ...op, orcamento_id: no.id })));
       const copia = { ...v, id: no.id, nome: `${v.nome} (Cópia)`, pecas: v.pecas.map(p => ({ ...p })) };

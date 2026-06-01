@@ -32,7 +32,7 @@ export const STATUS_CONFIG = {
 };
 
 export const MEDICAO_STATUS = {
-    agendada:   { label: 'Agendada',   color: 'text-blue-700 dark:text-zinc-400',   border: 'border-blue-200 dark:border-zinc-700',         bg: 'bg-blue-50 dark:bg-zinc-900',       dot: 'bg-blue-500 dark:bg-zinc-500'   },
+    agendada:   { label: 'Agendada',   color: 'text-orange-700 dark:text-orange-400', border: 'border-orange-300 dark:border-orange-400/30', bg: 'bg-orange-50 dark:bg-orange-400/5', dot: 'bg-orange-500 dark:bg-orange-400' },
     enviada:    { label: 'Enviada',    color: 'text-green-800 dark:text-yellow-400', border: 'border-green-200 dark:border-yellow-400/30', bg: 'bg-green-50 dark:bg-yellow-400/5',  dot: 'bg-green-600 dark:bg-yellow-400' },
     processada: { label: 'Processada', color: 'text-violet-700 dark:text-violet-400', border: 'border-violet-300 dark:border-violet-400/30', bg: 'bg-violet-50 dark:bg-violet-400/5', dot: 'bg-violet-500 dark:bg-violet-400' },
     concluida:  { label: 'Aprovada',   color: 'text-green-700 dark:text-green-400',  border: 'border-green-300 dark:border-green-500/30',  bg: 'bg-green-50 dark:bg-green-400/5',   dot: 'bg-green-500 dark:bg-green-400'  },
@@ -435,6 +435,7 @@ export function normalizarAmbiente(amb) {
                 valor_acabamentos: op.valor_acabamentos ?? 0,
                 recortes:         [],
                 ambiente_id:      op.pecas?.ambiente_id ?? null,
+                ambiente_nome:    op.ambiente_nome ?? null,
                 item_nome:        op.item_nome ?? op.pecas?.dimensoes?.item_nome ?? null,
                 acabamentos:      op.acabamentos ?? [],
             };

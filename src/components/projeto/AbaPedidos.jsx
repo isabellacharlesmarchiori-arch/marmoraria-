@@ -1,23 +1,10 @@
 import React, { useState } from 'react';
 import { fmtBRL } from '../../utils/projetoUtils';
-
-function getTipoMedicao(m) {
-    if (m.tipo) return m.tipo;
-    const t = m?.json_medicao?.ambientes?.[0]?.tipo_medicao;
-    return t === 'producao' ? 'producao' : 'preliminar';
-}
-
-function getAmbsProducao(medicao) {
-    return new Set(
-        (medicao?.json_medicao?.ambientes ?? [])
-            .filter(a => a.tipo_medicao === 'producao')
-            .map(a => a.nome)
-            .filter(Boolean)
-    );
-}
+import { calcularCoberturaProducao, getAmbientesProducao } from '../../utils/medicaoUtils';
 
 export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medicoes = [], onAgendarProducao, onEditarProducao, actions, loadingPdf, setPdfModal }) {
     const [pedidosAbertos, setPedidosAbertos] = useState({});
+    const [faltantesAbertos, setFaltantesAbertos] = useState({});
 
     const pedidosOrdenados = [...pedidosFechados].reverse();
 
@@ -53,22 +40,10 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
 
                         const cenarios = (pedido.cenario_ids ?? []).map(cid => orcamentosMap[cid]).filter(Boolean);
                         const valorTotal = cenarios.reduce((s, o) => s + (o.valor_total ?? 0), 0);
-                        const pedidoAmbientes = new Set(cenarios.map(o => o.ambiente_nome).filter(Boolean));
 
-                        const medicoesProd = medicoes.filter(m => {
-                            if (getTipoMedicao(m) !== 'producao') return false;
-                            // match direto por pedido_id (medições novas)
-                            if (m.pedido_id) return m.pedido_id === pedido.id;
-                            // fallback por ambiente (medições antigas sem pedido_id)
-                            const ambs = getAmbsProducao(m);
-                            if (ambs.size === 0) return false;
-                            return [...pedidoAmbientes].some(n => ambs.has(n));
-                        });
-
-                        const temRecebida = medicoesProd.some(m =>
-                            ['concluida', 'processada', 'aprovada'].includes(m.status)
-                        );
-                        const temAgendada = medicoesProd.some(m => m.status === 'agendada');
+                        const { total, prontos, faltantes, status: cobStatus, medicoesCobrem, temAgendada } =
+                            calcularCoberturaProducao(pedido, orcamentosMap, medicoes);
+                        const nCompletas = medicoesCobrem.filter(m => m.status === 'enviada').length;
 
                         return (
                             <div key={pedido.id} className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
@@ -92,17 +67,39 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                                 {fmtBRL(valorTotal)}
                                             </span>
                                         )}
-                                        {temRecebida ? (
+                                        {cobStatus === 'completo' ? (
                                             <span className="font-mono text-[9px] px-2 py-0.5 border border-green-500/40 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-400/5">
-                                                Medição recebida{medicoesProd.length > 1 ? ` · ${medicoesProd.length}` : ''}
+                                                Já medido como produção{nCompletas > 1 ? ` · ${nCompletas}` : ''}
+                                            </span>
+                                        ) : cobStatus === 'parcial' && !temAgendada ? (
+                                            <span
+                                                onClick={e => { e.stopPropagation(); setFaltantesAbertos(prev => ({ ...prev, [pedido.id]: !prev[pedido.id] })); }}
+                                                className="flex items-center gap-1 font-mono text-[9px] px-2 py-0.5 border border-sky-400/40 text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-400/5 cursor-pointer hover:bg-sky-100 dark:hover:bg-sky-400/10 transition-colors select-none"
+                                            >
+                                                Sem medição agendada ({prontos}/{total})
+                                                <iconify-icon
+                                                    icon={faltantesAbertos[pedido.id] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
+                                                    width="10"
+                                                ></iconify-icon>
+                                            </span>
+                                        ) : cobStatus === 'parcial' ? (
+                                            <span
+                                                onClick={e => { e.stopPropagation(); setFaltantesAbertos(prev => ({ ...prev, [pedido.id]: !prev[pedido.id] })); }}
+                                                className="flex items-center gap-1 font-mono text-[9px] px-2 py-0.5 border border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/5 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-400/10 transition-colors select-none"
+                                            >
+                                                Medição agendada ({prontos}/{total})
+                                                <iconify-icon
+                                                    icon={faltantesAbertos[pedido.id] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
+                                                    width="10"
+                                                ></iconify-icon>
                                             </span>
                                         ) : temAgendada ? (
-                                            <span className="font-mono text-[9px] px-2 py-0.5 border border-blue-400/40 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/5">
+                                            <span className="font-mono text-[9px] px-2 py-0.5 border border-orange-400/40 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-400/5">
                                                 Medição agendada
                                             </span>
                                         ) : (
                                             <span className="font-mono text-[9px] px-2 py-0.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500">
-                                                Sem medição de produção
+                                                Sem medição de produção agendada
                                             </span>
                                         )}
                                     </div>
@@ -112,6 +109,22 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                         className="text-gray-400 dark:text-zinc-500 shrink-0 ml-2"
                                     ></iconify-icon>
                                 </button>
+
+                                {cobStatus === 'parcial' && faltantesAbertos[pedido.id] && (
+                                    <div className="px-5 py-3 border-b border-amber-400/20 bg-amber-50/60 dark:bg-amber-400/[0.03]">
+                                        <p className="font-mono text-[9px] uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60 mb-1.5">
+                                            Faltam medir como produção
+                                        </p>
+                                        <ul className="flex flex-col gap-1">
+                                            {[...faltantes].map(nome => (
+                                                <li key={nome} className="flex items-center gap-1.5 font-mono text-[10px] text-gray-700 dark:text-zinc-300">
+                                                    <span className="w-1 h-1 rounded-full bg-amber-400 shrink-0"></span>
+                                                    {nome}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
 
                                 {aberto && (
                                     <div className="border-t border-gray-300 dark:border-zinc-800">
@@ -133,9 +146,9 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                             </div>
                                             <div className="col-span-2">
                                                 <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Medição de Produção</div>
-                                                {medicoesProd.length > 0 ? (
-                                                    <div className="flex flex-col gap-2">
-                                                        {medicoesProd.map(m => (
+                                                {medicoesCobrem.length > 0 && (
+                                                    <div className="flex flex-col gap-2 mb-2">
+                                                        {medicoesCobrem.map(m => (
                                                             <div key={m.id} className="flex items-center gap-3 flex-wrap">
                                                                 <iconify-icon
                                                                     icon={['concluida','processada','aprovada'].includes(m.status) ? 'solar:check-circle-linear' : 'solar:calendar-linear'}
@@ -153,28 +166,33 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                                                         <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                                                     </button>
                                                                 )}
-                                                                <button
-                                                                    disabled
-                                                                    title="Disponível em breve"
-                                                                    className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed"
-                                                                >
-                                                                    <iconify-icon icon="solar:eye-linear" width="11"></iconify-icon>
-                                                                    Ver Diferença
-                                                                </button>
+                                                                {getAmbientesProducao(m).size > 0 && (
+                                                                    <button
+                                                                        disabled
+                                                                        title="Disponível em breve"
+                                                                        className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed"
+                                                                    >
+                                                                        <iconify-icon icon="solar:eye-linear" width="11"></iconify-icon>
+                                                                        Ver Diferença
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
-                                                ) : (
+                                                )}
+                                                {cobStatus !== 'completo' && !temAgendada && (
                                                     <div className="flex items-center gap-3">
-                                                        <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">
-                                                            Sem medição de produção
-                                                        </span>
+                                                        {medicoesCobrem.length === 0 && (
+                                                            <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">
+                                                                Sem medição de produção
+                                                            </span>
+                                                        )}
                                                         <button
                                                             onClick={() => onAgendarProducao?.(pedido, numero)}
                                                             className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 px-3 py-1 hover:border-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
                                                         >
                                                             <iconify-icon icon="solar:calendar-add-linear" width="11"></iconify-icon>
-                                                            Agendar Medição de Produção
+                                                            {cobStatus === 'parcial' ? 'Agendar Restantes' : 'Agendar Medição de Produção'}
                                                         </button>
                                                     </div>
                                                 )}

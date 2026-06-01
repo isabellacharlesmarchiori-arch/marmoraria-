@@ -1,21 +1,7 @@
 import React, { useState } from 'react';
 import { MedicaoPill, parseSvgUrl } from '../../utils/projetoUtils';
 import { formatarEndereco } from '../../utils/endereco';
-
-function getTipoMedicao(m) {
-    if (m.tipo) return m.tipo;
-    const t = m?.json_medicao?.ambientes?.[0]?.tipo_medicao;
-    return t === 'producao' ? 'producao' : 'preliminar';
-}
-
-function getAmbsProducao(medicao) {
-    return new Set(
-        (medicao?.json_medicao?.ambientes ?? [])
-            .filter(a => a.tipo_medicao === 'producao')
-            .map(a => a.nome)
-            .filter(Boolean)
-    );
-}
+import { getTipoMedicao, getAmbientesProducao, calcularCoberturaProducao, getPedidosComProducaoPendente } from '../../utils/medicaoUtils';
 
 const TABLE_HEADER = (
     <div className="grid grid-cols-12 px-4 py-2.5 border-b border-gray-300 dark:border-zinc-800">
@@ -65,7 +51,7 @@ export default function AbaMedicoes({
         // fallback: cruzamento por nome de ambiente (medições antigas sem pedido_id)
         // Usa maior sobreposição em vez de first-match, para evitar falsos positivos
         // quando múltiplos pedidos têm algum ambiente em comum com a medição.
-        const ambs = getAmbsProducao(medicao);
+        const ambs = getAmbientesProducao(medicao);
         if (ambs.size === 0) return null;
         let bestIdx = -1;
         let bestScore = 0;
@@ -81,32 +67,7 @@ export default function AbaMedicoes({
         return bestIdx === -1 ? null : bestIdx + 1;
     }
 
-    // IDs of pedidos que já têm ao menos uma medição de produção vinculada
-    const pedidosComMedicao = new Set();
-    for (const m of medProducao) {
-        if (m.pedido_id) {
-            pedidosComMedicao.add(m.pedido_id);
-            continue;
-        }
-        // fallback para medições antigas
-        const ambs = getAmbsProducao(m);
-        if (ambs.size === 0) continue;
-        for (const pedido of pedidosOrdenados) {
-            const pedidoAmbientes = new Set(
-                (pedido.cenario_ids ?? [])
-                    .map(cid => orcamentosMap[cid]?.ambiente_nome)
-                    .filter(Boolean)
-            );
-            if ([...pedidoAmbientes].some(n => ambs.has(n))) {
-                pedidosComMedicao.add(pedido.id);
-            }
-        }
-    }
-
-    const temPreliminar = medicoesPrelim.length > 0;
-    const pedidosPendentes = temPreliminar
-        ? pedidosOrdenados.filter(p => !pedidosComMedicao.has(p.id))
-        : [];
+    const pedidosPendentes = getPedidosComProducaoPendente(pedidosOrdenados, orcamentosMap, medicoesList);
 
     function renderPrelimRow(m, i, total) {
         const isAprovada = m?.status === 'aprovada' || m?.status === 'concluida';
@@ -208,7 +169,7 @@ export default function AbaMedicoes({
                     <MedicaoPill status={m?.status ?? 'agendada'} />
                 </div>
                 <div className="col-span-3 flex items-center justify-end gap-1.5">
-                    {(() => {
+                    {m?.status !== 'agendada' && (() => {
                         const svgUrl = parseSvgUrl(m?.svg_url);
                         return svgUrl ? (
                             <button
@@ -228,7 +189,7 @@ export default function AbaMedicoes({
                             </span>
                         );
                     })()}
-                    {(() => {
+                    {m?.status !== 'agendada' && (() => {
                         const canDiff = !!m?.json_medicao && pedidoNum !== null;
                         return (
                             <button
@@ -315,11 +276,7 @@ export default function AbaMedicoes({
 
                     {pedidosPendentes.map((pedido, i) => {
                         const pedidoNum = pedidosOrdenados.indexOf(pedido) + 1;
-                        const pedidoAmbientes = [...new Set(
-                            (pedido.cenario_ids ?? [])
-                                .map(cid => orcamentosMap[cid]?.ambiente_nome)
-                                .filter(Boolean)
-                        )];
+                        const { total, faltantes } = calcularCoberturaProducao(pedido, orcamentosMap, medicoesList);
                         const rowIdx = medProducao.length + i;
                         return (
                             <div
@@ -334,7 +291,7 @@ export default function AbaMedicoes({
                                         <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">Pendente</span>
                                         <span className="font-mono text-[9px] text-blue-500 dark:text-blue-400/70 uppercase tracking-widest">
                                             Pedido {pedidoNum}
-                                            {pedidoAmbientes.length > 0 && ` · ${pedidoAmbientes.join(', ')}`}
+                                            {total > 0 && ` · ${faltantes.size}/${total} ambientes`}
                                         </span>
                                     </div>
                                 </div>

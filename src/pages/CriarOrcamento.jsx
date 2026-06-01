@@ -1029,6 +1029,7 @@ export default function CriarOrcamento() {
               peca_id:           pWrapper.idBase,
               material_id:       materialId,
               item_nome:         pWrapper.item_nome ?? null,
+              ambiente_nome:     pWrapper.ambiente_nome ?? null,
               valor_area:        valorArea,
               valor_acabamentos: valorAcabamentosTotal,
               valor_recortes:    valorRecortesTotal,

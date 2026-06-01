@@ -72,7 +72,7 @@ export function useProjectActions(projectId, {
             .select('id')
             .single();
         if (error) { alert(`Erro ao criar medição: ${error.message}`); return; }
-        let qRefetch = supabase.from('medicoes').select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
+        let qRefetch = supabase.from('medicoes').select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url, tipo, pedido_id')
             .eq('projeto_id', projectId);
         if (profile?.empresa_id) qRefetch = qRefetch.eq('empresa_id', profile.empresa_id);
         await qRefetch.order('data_medicao', { ascending: false })
@@ -140,7 +140,7 @@ export function useProjectActions(projectId, {
                         ...(isMedidor ? { status: 'concluida' } : {}),
                     })
                     .eq('id', editingMedicaoId)
-                    .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
+                    .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url, tipo, pedido_id')
                     .single();
                 if (errUpd) { setErroAgendar(`Erro: ${errUpd.message}`); return; }
                 setMedicoes(prev => prev.map(m => m.id === editingMedicaoId ? formatarParaLista(updated) : m));
@@ -173,7 +173,7 @@ export function useProjectActions(projectId, {
                         status:             'agendada',
                         tipo:               'preliminar',
                     })
-                    .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url')
+                    .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url, tipo, pedido_id')
                     .single();
                 if (errMed) { setErroAgendar(`Erro: ${errMed.message}`); return; }
                 setMedicoes(prev => [formatarParaLista(med), ...prev]);
@@ -198,6 +198,13 @@ export function useProjectActions(projectId, {
 
     async function handleAgendarMedicaoProducao({ pedidoId, medidorId, dataStr, observacoes }) {
         if (!projectId || !profile?.empresa_id) throw new Error('Sessão inválida. Recarregue a página.');
+        const { data: existente } = await supabase
+            .from('medicoes')
+            .select('id')
+            .eq('pedido_id', pedidoId)
+            .eq('tipo', 'producao')
+            .maybeSingle();
+        if (existente) return;
         const medidorSel = medidores.find(m => m.id === medidorId);
         const { data: med, error } = await supabase
             .from('medicoes')
@@ -727,7 +734,7 @@ export function useProjectActions(projectId, {
 
             const { data: pecasDB, error: ePecas } = await supabase
                 .from('orcamento_pecas')
-                .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total, orcamento_id')
+                .select('peca_id, material_id, incluida, valor_area, valor_acabamentos, valor_recortes, valor_total, ambiente_nome, orcamento_id')
                 .in('orcamento_id', mesclarIds);
             if (ePecas) throw new Error(ePecas.message);
 
@@ -803,6 +810,7 @@ export function useProjectActions(projectId, {
             return s + (orc?.valor_total ?? 0);
         }, 0);
 
+        console.log('[FECHAR] cenario_ids:', fecharIds);
         setLoadingFechar(true);
         try {
             const { data: pedido, error: ePedido } = await supabase

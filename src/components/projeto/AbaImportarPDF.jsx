@@ -858,6 +858,7 @@ const [fileName,     setFileName]     = useState('');
         return {
           peca_id: p.id, material_id: item.material_id ?? null,
           item_nome: item.descricao,
+          ambiente_nome: item.ambiente ?? 'Geral',
           valor_area: valorArea, valor_acabamentos: 0, valor_recortes: 0,
           valor_total: valorArea,
           acabamentos: [], recortes: p.recortes,

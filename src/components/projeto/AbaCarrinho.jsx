@@ -57,6 +57,11 @@ export default function AbaCarrinho({
     const pedidosOrdenados = [...pedidosFechados].reverse(); // oldest first → Pedido 1, 2, 3...
 
     function handleToggleFecharId(orcId) {
+        console.log('[TOGGLE] orcId:', orcId,
+            'fecharIds atual:', fecharIds,
+            'pedidoIdx:', pedidosOrdenados.findIndex(
+              p => (p.cenario_ids ?? []).includes(orcId)
+            ))
         if (fecharIds.includes(orcId)) {
             toggleFecharId(orcId);
             return;
@@ -1136,16 +1141,16 @@ export default function AbaCarrinho({
                     </div>
                     <div className="flex gap-2">
                         <button
-                            onClick={() => setAvisoIncluido(null)}
-                            className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2 transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button
                             onClick={() => { toggleFecharId(avisoIncluido.orcId); setAvisoIncluido(null); }}
                             className="flex-1 bg-yellow-400 text-black font-bold font-mono text-[10px] uppercase tracking-widest py-2 hover:bg-yellow-300 transition-colors"
                         >
                             Incluir mesmo assim
+                        </button>
+                        <button
+                            onClick={() => setAvisoIncluido(null)}
+                            className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2 transition-colors"
+                        >
+                            Cancelar
                         </button>
                     </div>
                 </div>
