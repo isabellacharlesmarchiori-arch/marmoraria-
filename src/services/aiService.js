@@ -8,7 +8,10 @@ const MODEL_PRIMARY  = 'gemini-2.5-flash';
 const MODEL_FALLBACK = 'gemini-2.5-flash-lite';
 export const MODEL_NAME = MODEL_PRIMARY;
 export const MAX_HISTORY_MESSAGES = 20;
-export const isConfigured = !!GEMINI_API_KEY;
+// Em dev local com VITE_GEMINI_API_KEY: chama Gemini diretamente.
+// Em produção (Vercel, sem VITE_): delega para /api/gemini que usa GEMINI_API_KEY server-side.
+const USE_PROXY = !GEMINI_API_KEY;
+export const isConfigured = !!GEMINI_API_KEY || import.meta.env.PROD;
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
 
@@ -274,17 +277,55 @@ export const PLANTA_CHAT_SYSTEM = `Você é assistente de análise de plantas ba
 
 // ── callGemini — chamada única de chat (sem loop) ─────────────────────────────
 
+async function callGeminiDirect({ systemPrompt, history, tools, fluxo, empresaId }) {
+  const declarations  = toFunctionDeclarations(tools);
+  const model         = getModel(declarations.length ? declarations : null);
+  const fallback      = getModel(declarations.length ? declarations : null, MODEL_FALLBACK);
+  const safeHistory   = sanitizeGeminiHistory(history);
+
+  if (!safeHistory.length) throw new Error('Histórico resultou vazio após sanitização — verifique a sequência de mensagens.');
+
+  const result   = await generateWithRetry(model, { contents: safeHistory, systemInstruction: systemPrompt }, fallback);
+  const response = result.response;
+
+  const rawCalls      = response.functionCalls();
+  const hasCalls      = rawCalls?.length > 0;
+  const functionCalls = hasCalls ? rawCalls : null;
+  const text          = hasCalls ? null : (response.text() || null);
+  const tokensEntrada = response.usageMetadata?.promptTokenCount     ?? 0;
+  const tokensSaida   = response.usageMetadata?.candidatesTokenCount ?? 0;
+
+  await logUsage({ fluxo, empresaId, tokensEntrada, tokensSaida, fromCache: false });
+  return { text, functionCalls, tokensEntrada, tokensSaida, fromCache: false };
+}
+
+async function callGeminiProxy({ systemPrompt, history, tools, fluxo, empresaId }) {
+  const safeHistory = sanitizeGeminiHistory(history);
+  if (!safeHistory.length) throw new Error('Histórico resultou vazio após sanitização — verifique a sequência de mensagens.');
+
+  const res = await fetch('/api/gemini', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ type: 'chat', systemPrompt, history: safeHistory, tools }),
+  });
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error);
+  }
+  const data = await res.json();
+  await logUsage({ fluxo, empresaId, tokensEntrada: data.tokensEntrada ?? 0, tokensSaida: data.tokensSaida ?? 0, fromCache: false });
+  return { text: data.text, functionCalls: data.functionCalls, tokensEntrada: data.tokensEntrada, tokensSaida: data.tokensSaida, fromCache: false };
+}
+
 export async function callGemini({
   systemPrompt,
-  history,         // Gemini-format: [{role:'user'|'model', parts:[...]}]
-  tools,           // OpenAI-format tool definitions (converted internally)
+  history,
+  tools,
   economyMode = false,
-  fluxo           = 'chat_vendedor',
-  empresaId       = null,
+  fluxo       = 'chat_vendedor',
+  empresaId   = null,
 }) {
-  if (!GEMINI_API_KEY) throw new Error('VITE_GEMINI_API_KEY não configurada.');
-
-  // Cache lookup (skip cache when tools are present — respostas dependem do estado do banco)
+  // Cache lookup (sem cache quando há tools — respostas dependem do estado do banco)
   const canCache = !tools?.length;
   if (canCache) {
     pruneCache();
@@ -297,49 +338,27 @@ export async function callGemini({
     }
   }
 
-  const declarations  = toFunctionDeclarations(tools);
-  const model         = getModel(declarations.length ? declarations : null);
-  const fallback      = getModel(declarations.length ? declarations : null, MODEL_FALLBACK);
-  const safeHistory   = sanitizeGeminiHistory(history);
+  const result = USE_PROXY
+    ? await callGeminiProxy({ systemPrompt, history, tools, fluxo, empresaId })
+    : await callGeminiDirect({ systemPrompt, history, tools, fluxo, empresaId });
 
-  if (!safeHistory.length) throw new Error('Histórico resultou vazio após sanitização — verifique a sequência de mensagens.');
-
-  const result   = await generateWithRetry(model, { contents: safeHistory, systemInstruction: systemPrompt }, fallback);
-  const response = result.response;
-
-  const rawCalls     = response.functionCalls();
-  const hasCalls     = rawCalls?.length > 0;
-  const functionCalls = hasCalls ? rawCalls : null; // [{name, args}]
-  const text          = hasCalls ? null : (response.text() || null);
-
-  const tokensEntrada = response.usageMetadata?.promptTokenCount     ?? 0;
-  const tokensSaida   = response.usageMetadata?.candidatesTokenCount ?? 0;
-
-  // Cache text-only responses
-  if (canCache && text) {
+  if (canCache && result.text) {
     const cacheKey = hashPrompt(systemPrompt.slice(0, 150) + JSON.stringify(history.slice(-3)));
-    responseCache.set(cacheKey, { text, ts: Date.now() });
+    responseCache.set(cacheKey, { text: result.text, ts: Date.now() });
   }
 
-  await logUsage({ fluxo, empresaId, tokensEntrada, tokensSaida, fromCache: false });
-
-  return { text, functionCalls, tokensEntrada, tokensSaida, fromCache: false };
+  return result;
 }
 
 // ── analyzePlantPDF — análise de imagens de páginas do PDF ───────────────────
 
-export async function analyzePlantPDF({ pageImages, economyMode = false, empresaId = null }) {
-  if (!GEMINI_API_KEY) throw new Error('VITE_GEMINI_API_KEY não configurada.');
-  if (!pageImages?.length) throw new Error('Nenhuma imagem de página fornecida.');
-
+async function analyzePlantPDFDirect({ pageImages, economyMode, empresaId }) {
   const systemPrompt = economyMode ? PLANTA_SYSTEM_ECONOMY : PLANTA_SYSTEM_FULL;
-
-  const imageParts = pageImages.map((dataUrl) => {
+  const imageParts   = pageImages.map((dataUrl) => {
     const [header, data] = dataUrl.split(',');
     const mimeType       = header.match(/:(.*?);/)[1];
     return { inlineData: { data, mimeType } };
   });
-
   const contents = [{
     role:  'user',
     parts: [
@@ -348,20 +367,36 @@ export async function analyzePlantPDF({ pageImages, economyMode = false, empresa
       { text: 'Retorne o JSON array dos itens encontrados.' },
     ],
   }];
-
   const model    = getModel(null, MODEL_PRIMARY,  { temperature: 0 });
   const fallback = getModel(null, MODEL_FALLBACK, { temperature: 0 });
   const result   = await generateWithRetry(model, { contents, systemInstruction: systemPrompt }, fallback);
-  const response = result.response;
-  const rawText  = response.text();
-
-  const tokensEntrada = response.usageMetadata?.promptTokenCount     ?? 0;
-  const tokensSaida   = response.usageMetadata?.candidatesTokenCount ?? 0;
-
+  const rawText  = result.response.text();
+  const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+  const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
   await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada, tokensSaida, fromCache: false });
-
   const jsonMatch = rawText.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
-
   return JSON.parse(jsonMatch[0]);
+}
+
+async function analyzePlantPDFProxy({ pageImages, economyMode, empresaId }) {
+  const res = await fetch('/api/gemini', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ type: 'analyze_pdf', pageImages, economyMode }),
+  });
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error);
+  }
+  const { items, tokensEntrada, tokensSaida } = await res.json();
+  await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false });
+  return items;
+}
+
+export async function analyzePlantPDF({ pageImages, economyMode = false, empresaId = null }) {
+  if (!pageImages?.length) throw new Error('Nenhuma imagem de página fornecida.');
+  return USE_PROXY
+    ? analyzePlantPDFProxy({ pageImages, economyMode, empresaId })
+    : analyzePlantPDFDirect({ pageImages, economyMode, empresaId });
 }
