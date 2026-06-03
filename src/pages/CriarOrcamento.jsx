@@ -1583,6 +1583,7 @@ export default function CriarOrcamento() {
                 const temAmbientes = grupos.some(g => g !== '');
                 return grupos.map(amb => {
                   const isEditandoEsteAmb = editandoAmbNome?.amb === amb;
+                  const temMaterialAmb = mapa.get(amb).some(p => p.materiais.length > 0);
                   return (
                     <div key={amb}>
                       {/* ── Cabeçalho do ambiente ── */}
@@ -1615,7 +1616,11 @@ export default function CriarOrcamento() {
                                 <button
                                   onClick={() => setPainelMaterialAmbNome(amb)}
                                   title="Aplicar material a todas as peças deste ambiente"
-                                  className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors"
+                                  className={`flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border transition-colors ${
+                                    temMaterialAmb
+                                      ? 'border-yellow-400/60 text-yellow-400 bg-yellow-400/5'
+                                      : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/40 hover:text-yellow-400'
+                                  }`}
                                 >
                                   <iconify-icon icon="solar:layers-linear" width="11"></iconify-icon>
                                   Material
@@ -1669,6 +1674,7 @@ export default function CriarOrcamento() {
                           const geKey = `${amb}::${gKey}`;
                           const ge = grupoExtras[geKey] ?? { acabamentos: [], furos: [] };
                           const isEditandoEsteItem = editandoItemNome?.amb === amb && editandoItemNome?.gKey === gKey;
+                          const temMaterialGrupo = gMap.get(gKey).some(p => p.materiais.length > 0);
                           return [
                             // Cabeçalho do grupo
                             ...(grupoLabel ? [
@@ -1696,7 +1702,11 @@ export default function CriarOrcamento() {
                                     <button
                                       onClick={() => setPainelMaterialGrupoKey(geKey)}
                                       title="Aplicar material a todas as peças deste item"
-                                      className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors shrink-0"
+                                      className={`flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 border transition-colors shrink-0 ${
+                                        temMaterialGrupo
+                                          ? 'border-yellow-400/60 text-yellow-400 bg-yellow-400/5'
+                                          : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-yellow-400/40 hover:text-yellow-400'
+                                      }`}
                                     >
                                       <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
                                       Mat.

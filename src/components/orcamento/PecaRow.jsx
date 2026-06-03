@@ -104,8 +104,8 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
             onClick={() => onAbrirMaterial(peca.id)}
             className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 border transition-colors flex items-center gap-1.5 ${
               temMaterial
-                ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                ? 'border-yellow-400/60 text-yellow-400 bg-yellow-400/5'
+                : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/40 hover:text-yellow-400'
             }`}
           >
             <iconify-icon icon="solar:layers-linear" width="11"></iconify-icon>

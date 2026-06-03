@@ -60,9 +60,12 @@ export function calcularCoberturaProducao(pedido, orcamentosMap, medicoes) {
     for (const m of medicoes) {
         const ambsProd = getAmbientesProducao(m);
 
+        // Fallback por nome só aplica quando a medição não tem pedido_id (legado).
+        // Se pedido_id está preenchido, apenas o match direto vale — evita vazar
+        // a mesma medição para múltiplos pedidos que compartilham nomes de ambiente.
         const relevant =
             (m.pedido_id && m.pedido_id === pedido.id) ||
-            (ambsProd.size > 0 && [...ambientesDoPedido].some(n => ambsProd.has(n)));
+            (!m.pedido_id && ambsProd.size > 0 && [...ambientesDoPedido].some(n => ambsProd.has(n)));
 
         if (!relevant) continue;
         medicoesCobrem.push(m);
@@ -79,24 +82,6 @@ export function calcularCoberturaProducao(pedido, orcamentosMap, medicoes) {
     const prontos = ambientesCobertos.size;
     const faltantes = new Set([...ambientesDoPedido].filter(n => !ambientesCobertos.has(n)));
     const status = prontos === total ? 'completo' : prontos > 0 ? 'parcial' : 'nenhum';
-
-    console.log('🧪 [cobertura]', {
-        pedido_id: pedido?.id,
-        cenario_ids: pedido?.cenario_ids,
-        orcamentos_envolvidos: (pedido?.cenario_ids ?? []).map(cid => {
-            const orc = orcamentosMap[cid];
-            return {
-                id: cid,
-                ambiente_nome_pai: orc?.ambiente_nome,
-                pecas_count: orc?.pecas?.length ?? 0,
-                ambientes_das_pecas: (orc?.pecas ?? []).map(p => p.ambiente_nome),
-            };
-        }),
-        ambientesDoPedido_final: [...ambientesDoPedido],
-        status_resultado: status,
-        prontos,
-        total,
-    });
 
     return { total, prontos, faltantes, status, medicoesCobrem, temAgendada };
 }

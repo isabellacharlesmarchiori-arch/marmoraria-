@@ -189,7 +189,7 @@ export default function AbaMedicoes({
                             </span>
                         );
                     })()}
-                    {m?.status !== 'agendada' && (() => {
+                    {m?.status !== 'agendada' && getAmbientesProducao(m).size > 0 && (() => {
                         const canDiff = !!m?.json_medicao && pedidoNum !== null;
                         return (
                             <button

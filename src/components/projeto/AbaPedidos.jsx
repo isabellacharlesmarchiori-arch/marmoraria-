@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { fmtBRL } from '../../utils/projetoUtils';
-import { calcularCoberturaProducao, getAmbientesProducao } from '../../utils/medicaoUtils';
+import { calcularCoberturaProducao, getAmbientesProducao, getTipoMedicao } from '../../utils/medicaoUtils';
 
 export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medicoes = [], onAgendarProducao, onEditarProducao, actions, loadingPdf, setPdfModal }) {
     const [pedidosAbertos, setPedidosAbertos] = useState({});
@@ -44,6 +44,9 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                         const { total, prontos, faltantes, status: cobStatus, medicoesCobrem, temAgendada } =
                             calcularCoberturaProducao(pedido, orcamentosMap, medicoes);
                         const nCompletas = medicoesCobrem.filter(m => m.status === 'enviada').length;
+                        const medicaoComProducao = medicoesCobrem.find(m =>
+                            getAmbientesProducao(m).size > 0 && getTipoMedicao(m) !== 'producao'
+                        ) ?? null;
 
                         return (
                             <div key={pedido.id} className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
@@ -166,19 +169,19 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                                                         <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                                                     </button>
                                                                 )}
-                                                                {getAmbientesProducao(m).size > 0 && (
-                                                                    <button
-                                                                        disabled
-                                                                        title="Disponível em breve"
-                                                                        className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed"
-                                                                    >
-                                                                        <iconify-icon icon="solar:eye-linear" width="11"></iconify-icon>
-                                                                        Ver Diferença
-                                                                    </button>
-                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
+                                                )}
+                                                {medicaoComProducao && (
+                                                    <button
+                                                        disabled
+                                                        title="Disponível em breve"
+                                                        className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed mb-2"
+                                                    >
+                                                        <iconify-icon icon="solar:eye-linear" width="11"></iconify-icon>
+                                                        Ver Diferença
+                                                    </button>
                                                 )}
                                                 {cobStatus !== 'completo' && !temAgendada && (
                                                     <div className="flex items-center gap-3">
