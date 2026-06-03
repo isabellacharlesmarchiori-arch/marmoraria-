@@ -196,7 +196,7 @@ export function useProjectActions(projectId, {
         }
     }
 
-    async function handleAgendarMedicaoProducao({ pedidoId, medidorId, dataStr, observacoes }) {
+    async function handleAgendarMedicaoProducao({ pedidoId, medidorId, dataStr, observacoes, endereco }) {
         if (!projectId || !profile?.empresa_id) throw new Error('Sessão inválida. Recarregue a página.');
         const { data: existente } = await supabase
             .from('medicoes')
@@ -217,6 +217,7 @@ export function useProjectActions(projectId, {
                 status:             'agendada',
                 tipo:               'producao',
                 pedido_id:          pedidoId,
+                endereco:           endereco || null,
                 observacoes_acesso: observacoes ?? null,
             })
             .select('id, data_medicao, responsavel, medidor_id, status, json_medicao, svg_url, tipo, pedido_id')

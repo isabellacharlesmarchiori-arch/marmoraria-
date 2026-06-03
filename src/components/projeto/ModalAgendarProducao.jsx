@@ -15,6 +15,7 @@ export default function ModalAgendarProducao({
     profile,
     modo = 'agendar',        // 'agendar' | 'editar'
     medicaoInicial = null,   // objeto medição para pré-preencher no modo editar
+    enderecoCliente = null,  // endereço do cliente, copiado automaticamente para a medição
     onConfirmar,
     onClose,
 }) {
@@ -48,7 +49,7 @@ export default function ModalAgendarProducao({
         setSalvando(true);
         setErro('');
         try {
-            await onConfirmar({ medidorId, dataStr: data, observacoes: observacoes.trim() || null });
+            await onConfirmar({ medidorId, dataStr: data, observacoes: observacoes.trim() || null, endereco: enderecoCliente ?? null });
         } catch (e) {
             setErro(e.message ?? 'Erro ao salvar. Tente novamente.');
         } finally {

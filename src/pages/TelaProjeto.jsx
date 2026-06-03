@@ -608,28 +608,34 @@ export default function TelaProjetoVendedor() {
         )}
 
         {/* ══ MODAL — Agendar Medição de Produção ══════════════════════ */}
-        {modalAgendarProd && (
-            <ModalAgendarProducao
-                pedido={modalAgendarProd.pedido}
-                pedidoNumero={modalAgendarProd.numero}
-                medidores={medidores}
-                profile={profile}
-                modo={modalAgendarProd.medicao ? 'editar' : 'agendar'}
-                medicaoInicial={modalAgendarProd.medicao}
-                onConfirmar={({ medidorId, dataStr, observacoes }) =>
-                    modalAgendarProd.medicao
-                        ? actions.handleEditarMedicaoProducao({
-                              medicaoId: modalAgendarProd.medicao.id,
-                              medidorId, dataStr, observacoes,
-                          }).then(() => setModalAgendarProd(null))
-                        : actions.handleAgendarMedicaoProducao({
-                              pedidoId: modalAgendarProd.pedido.id,
-                              medidorId, dataStr, observacoes,
-                          }).then(() => setModalAgendarProd(null))
-                }
-                onClose={() => setModalAgendarProd(null)}
-            />
-        )}
+        {modalAgendarProd && (() => {
+            const rawEndereco = projeto?.clientes?.endereco ?? '';
+            const { rua, numero, bairro, cidade } = parseEnderecoCliente(rawEndereco);
+            const enderecoCliente = [rua, numero, bairro, cidade].filter(Boolean).join(', ') || null;
+            return (
+                <ModalAgendarProducao
+                    pedido={modalAgendarProd.pedido}
+                    pedidoNumero={modalAgendarProd.numero}
+                    medidores={medidores}
+                    profile={profile}
+                    modo={modalAgendarProd.medicao ? 'editar' : 'agendar'}
+                    medicaoInicial={modalAgendarProd.medicao}
+                    enderecoCliente={enderecoCliente}
+                    onConfirmar={({ medidorId, dataStr, observacoes, endereco }) =>
+                        modalAgendarProd.medicao
+                            ? actions.handleEditarMedicaoProducao({
+                                  medicaoId: modalAgendarProd.medicao.id,
+                                  medidorId, dataStr, observacoes,
+                              }).then(() => setModalAgendarProd(null))
+                            : actions.handleAgendarMedicaoProducao({
+                                  pedidoId: modalAgendarProd.pedido.id,
+                                  medidorId, dataStr, observacoes, endereco,
+                              }).then(() => setModalAgendarProd(null))
+                    }
+                    onClose={() => setModalAgendarProd(null)}
+                />
+            );
+        })()}
 
         {/* ══ MODAL — Orçamento Manual ══════════════════════════════════ */}
         {modalOrcManual && (
