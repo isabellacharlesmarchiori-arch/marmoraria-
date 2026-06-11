@@ -373,6 +373,7 @@ export default function CriarOrcamento() {
             item_nome:         r.item_nome ?? null,
             grupo_nome:        r.grupo_nome ?? null,
             grupo_index:       r.grupo_index ?? null,
+            grupo_quantidade:  r.grupo_quantidade ?? 1,
             area_liq:          Number(r.area_liquida_m2 ?? 0),
             espessura:         Number(r.espessura_cm    ?? 2),
             meia_esquadria_ml: Number(r.acabamentos?.meia_esquadria_ml ?? 0),
@@ -954,7 +955,10 @@ export default function CriarOrcamento() {
           });
 
         const valorPecas = versao.pecasList.reduce((s, pWrapper) => {
-          if (pWrapper.tipo === 'acabamento') return s + (pWrapper.precoManual != null ? pWrapper.precoManual : precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares, pWrapper.precoMlOverride ?? null));
+          if (pWrapper.tipo === 'acabamento') {
+            const gQtd = versao.pecasList.find(p => p.uid === pWrapper.idPedraUid)?.grupo_quantidade ?? 1;
+            return s + gQtd * (pWrapper.precoManual != null ? pWrapper.precoManual : precoAcabamento(pWrapper.ml, pWrapper.matLinearId, matLineares, pWrapper.precoMlOverride ?? null));
+          }
           if (pWrapper.tipo === 'recorte')    return s + (pWrapper.precoUnit ?? 0);
           const rawMat = pWrapper.matId;
           const matId  = rawMat && typeof rawMat === 'object' ? (rawMat.id ?? null) : (rawMat ?? null);
@@ -1010,9 +1014,10 @@ export default function CriarOrcamento() {
             const valorArea = pWrapper.precoManual != null ? pWrapper.precoManual : precoPeca(pSource, materialId, materiais, pWrapper.matAcabamento);
 
             // Agrega acabamentos vinculados a esta pedra
+            const gQtd = pWrapper.grupo_quantidade ?? 1;
             const filhos = acabamentosPorPedra.get(pWrapper.uid) ?? [];
             const valorAcabamentosTotal = filhos.reduce((s, ac) =>
-              s + precoAcabamento(ac.ml, ac.matLinearId, matLineares, ac.precoMlOverride ?? null), 0);
+              s + precoAcabamento(ac.ml, ac.matLinearId, matLineares, ac.precoMlOverride ?? null), 0) * gQtd;
             const acabamentosJson = filhos.map(ac => ({
               tipo:         ac.tipoAcabamento,
               ml:           ac.ml,
@@ -1030,6 +1035,7 @@ export default function CriarOrcamento() {
               material_id:       materialId,
               item_nome:         pWrapper.item_nome ?? null,
               ambiente_nome:     pWrapper.ambiente_nome ?? null,
+              grupo_quantidade:  pWrapper.grupo_quantidade ?? 1,
               valor_area:        valorArea,
               valor_acabamentos: valorAcabamentosTotal,
               valor_recortes:    valorRecortesTotal,
@@ -1697,6 +1703,17 @@ export default function CriarOrcamento() {
                                     <button onClick={() => toggleSecaoGrupo(geKey)} className="flex items-center gap-1 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity">
                                       <iconify-icon icon="solar:alt-arrow-down-linear" width="9" className={`text-gray-400 dark:text-zinc-700 shrink-0 transition-transform duration-200 ${openGrupos.has(geKey) ? '' : '-rotate-90'}`}></iconify-icon>
                                       <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest truncate">{grupoLabel}</span>
+                                      {(() => {
+                                        const qtd = gMap.get(gKey)[0]?.grupo_quantidade ?? 1;
+                                        if (qtd <= 1) return null;
+                                        const nPecas = gMap.get(gKey).length;
+                                        return (
+                                          <>
+                                            <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtd}</span>
+                                            <span className="font-mono text-[9px] text-zinc-500 shrink-0">{nPecas * qtd} peças</span>
+                                          </>
+                                        );
+                                      })()}
                                     </button>
                                     {/* Ajuste 3: botão Material por item */}
                                     <button
@@ -1730,7 +1747,9 @@ export default function CriarOrcamento() {
                                 {gMap.get(gKey).map(p => (
                                   <PecaRow key={p.id} peca={p} onToggle={toggleIncluida} onAbrirMaterial={setPainelMaterialPecaId} onDuplicar={duplicarPecaPrincipal} onRenomear={renomearPeca} todosM={materiais} />
                                 ))}
-                                {ge.acabamentos.map(ac => (
+                                {ge.acabamentos.map(ac => {
+                                  const acQtd = gMap.get(gKey)[0]?.grupo_quantidade ?? 1;
+                                  return (
                                   <div key={ac.id} className="flex items-center gap-2 pl-6 pr-4 py-1.5 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-900/20 group">
                                     <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-500/70 shrink-0"></iconify-icon>
                                     <select
@@ -1752,14 +1771,22 @@ export default function CriarOrcamento() {
                                         onChange={e => updateGrupoAcabamento(geKey, ac.id, 'ml', parseFloat(e.target.value) || 0)}
                                         className="w-14 bg-transparent border border-amber-900/40 text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
                                       />
-                                      <span className="font-mono text-[9px] text-amber-700">ml</span>
+                                      {acQtd > 1 ? (
+                                        <div className="flex flex-col items-start shrink-0">
+                                          <span className="font-mono text-[8px] text-amber-700/60">ml/un.</span>
+                                          <span className="font-mono text-[8px] text-yellow-400/70">{(ac.ml * acQtd).toFixed(2)} ml ({acQtd}×)</span>
+                                        </div>
+                                      ) : (
+                                        <span className="font-mono text-[9px] text-amber-700">ml</span>
+                                      )}
                                     </div>
                                     <span className="flex-1"></span>
                                     <button onClick={() => removeGrupoAcabamento(geKey, ac.id)} className="p-1 text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                                       <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                     </button>
                                   </div>
-                                ))}
+                                  );
+                                })}
                                 {(() => {
                                   const tiposMap = new Map();
                                   ge.furos.forEach(fu => {

@@ -164,35 +164,50 @@ function SecaoLabel({ icon, label }) {
 function PecasAmbiente({ pecas }) {
     if (!pecas || pecas.length === 0) return null;
 
-    // Group by item_nome
+    // Agrupa por grupo_nome (Flutter 2.0) com fallback para item_nome (legado)
     const itensOrdem = [];
     const itensMapa  = new Map();
     pecas.forEach(r => {
-        const k = r.item_nome ?? '__sem_item__';
+        const k = r.grupo_nome ?? r.item_nome ?? '__sem_item__';
         if (!itensMapa.has(k)) { itensMapa.set(k, []); itensOrdem.push(k); }
         itensMapa.get(k).push(r);
     });
 
     return (
         <div className="bg-black border border-zinc-900 px-4 py-3">
-            <SecaoLabel icon="solar:ruler-pen-linear" label={`Peças (${pecas.length})`} />
+            <SecaoLabel icon="solar:ruler-pen-linear" label={`Peças (${pecas.reduce((s, p) => s + (p.grupo_quantidade ?? 1), 0)})`} />
             <div className="flex flex-col gap-2">
                 {itensOrdem.map(itemKey => {
                     const nomeItem = itemKey === '__sem_item__' ? null : itemKey;
+                    const qtdGrupo = itensMapa.get(itemKey)[0]?.grupo_quantidade ?? 1;
                     return (
                         <div key={itemKey}>
                             {nomeItem && (
                                 <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 mb-1.5 ml-1 flex items-center gap-1.5">
                                     <iconify-icon icon="solar:folder-linear" width="10" className="text-zinc-700 shrink-0"></iconify-icon>
                                     {nomeItem}
+                                    {qtdGrupo > 1 && (
+                                        <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60">x{qtdGrupo}</span>
+                                    )}
                                 </div>
                             )}
                             <div className={`flex flex-col gap-1.5 ${nomeItem ? 'ml-2' : ''}`}>
-                                {itensMapa.get(itemKey).map((r, i) => (
+                                {itensMapa.get(itemKey).map((r, i) => {
+                                    const qtd      = r.grupo_quantidade ?? 1;
+                                    const areaTotal = r.area_liquida_m2 ?? 0;
+                                    const areaUnit  = qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
+                                    return (
                                     <div key={i} className="border border-zinc-900 px-3 py-2.5 bg-zinc-950">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-white font-semibold text-sm">{r.nome ?? 'Peça'}</span>
-                                            <span className="font-mono text-sm text-yellow-400 font-bold">{r.area_liquida_m2 ?? 0} m²</span>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-white font-semibold text-sm truncate">{r.nome ?? 'Peça'}</span>
+                                            {areaUnit !== null ? (
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    <span className="font-mono text-[9px] text-zinc-500">{areaUnit} m²/un.</span>
+                                                    <span className="font-mono text-sm text-yellow-400 font-bold">{areaTotal} m² ({qtd}×)</span>
+                                                </div>
+                                            ) : (
+                                                <span className="font-mono text-sm text-yellow-400 font-bold shrink-0">{areaTotal} m²</span>
+                                            )}
                                         </div>
                                         {/* Dimensões do retângulo */}
                                         {Array.isArray(r.segmentos) && r.segmentos.length >= 2 && r.type === 'retangulo' && (() => {
@@ -259,7 +274,8 @@ function PecasAmbiente({ pecas }) {
                                             </div>
                                         )}
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     );
@@ -368,20 +384,14 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
     // Tipo global: usa o primeiro ambiente como referência
     const tipoGlobal = rawAmbientes[0]?.tipo_medicao ?? rawAmbientes[0]?.extras?.tipo_medicao ?? 'producao';
 
-    // Totais gerais
-    const totalArea = Math.round(pecas.reduce((s, p) => s + (p.area_liquida_m2 ?? 0), 0) * 10000) / 10000;
-    const totalME   = jsonNorm?.totais_acabamentos?.meia_esquadria_ml
-        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100) / 100;
-    const totalRS   = jsonNorm?.totais_acabamentos?.reto_simples_ml
-        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml   ?? 0), 0) * 100) / 100;
-    const totalBO   = jsonNorm?.totais_acabamentos?.boleado_ml
-        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_ml        ?? 0), 0) * 100) / 100;
-    const totalBD   = jsonNorm?.totais_acabamentos?.boleado_duplo_ml
-        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_duplo_ml  ?? 0), 0) * 100) / 100;
-    const totalRD   = jsonNorm?.totais_acabamentos?.reto_duplo_ml
-        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_duplo_ml     ?? 0), 0) * 100) / 100;
-    const totalCF   = jsonNorm?.totais_acabamentos?.chanfrado_ml
-        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.chanfrado_ml      ?? 0), 0) * 100) / 100;
+    // Totais gerais — sempre calculados pelo dash (grupo_quantidade × valor unitário)
+    const totalArea = Math.round(pecas.reduce((s, p) => s + (p.area_liquida_m2 ?? 0) * (p.grupo_quantidade ?? 1), 0) * 10000) / 10000;
+    const totalME   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
+    const totalRS   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml   ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
+    const totalBO   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_ml        ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
+    const totalBD   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_duplo_ml  ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
+    const totalRD   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_duplo_ml     ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
+    const totalCF   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.chanfrado_ml      ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
 
     function handleClose() { onClose(); setZoomedUrl(null); }
 
@@ -440,16 +450,21 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                         const obsAcesso = parseObsAcesso(medicao?.observacoes_acesso, ambNome, i, rawAmbientes.length);
                         const infoAmb   = (amb.extras?.info_adicional ?? '').trim();
                         const itensComInfo  = (amb.itens ?? []).filter(it => (it.info_adicional ?? '').trim() !== '');
-                        // Mapa faixa-id → grupo_nome a partir dos grupos do ambiente
+                        // Mapa faixa-id → { nome, qtd } a partir dos grupos do ambiente
                         const faixaGrupoMap = new Map();
                         (amb.grupos ?? []).forEach((g, gi) => {
                             const gNome = g.nome ?? `Grupo ${gi + 1}`;
-                            (g.elemento_ids ?? []).forEach(eId => faixaGrupoMap.set(eId, gNome));
+                            const gQtd  = g.quantidade ?? 1;
+                            (g.elemento_ids ?? []).forEach(eId => faixaGrupoMap.set(eId, { nome: gNome, qtd: gQtd }));
                         });
-                        const faixasDoAmb = (amb.faixas ?? []).map(f => ({
-                            ...f,
-                            grupo_nome: faixaGrupoMap.get(f.id ?? f.peca_id) ?? null,
-                        }));
+                        const faixasDoAmb = (amb.faixas ?? []).map(f => {
+                            const info = faixaGrupoMap.get(f.id ?? f.peca_id);
+                            return {
+                                ...f,
+                                grupo_nome:       info?.nome ?? null,
+                                grupo_quantidade: info?.qtd  ?? 1,
+                            };
+                        });
                         const gruposDoAmb   = (amb.grupos ?? []).filter(g =>
                             (g.info ?? '').trim() !== '' || g.vai_descer || g.vai_embutir
                         );
@@ -509,6 +524,11 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                                 <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-1">
                                                     <div className="flex items-center flex-wrap gap-1.5">
                                                         <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{g.nome}</span>
+                                                        {(g.quantidade ?? 1) > 1 && (
+                                                            <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60">
+                                                                x{g.quantidade}
+                                                            </span>
+                                                        )}
                                                         {g.vai_descer && (
                                                             <span className="font-mono text-[9px] px-1.5 py-0.5 border border-blue-400/40 text-blue-400 bg-blue-400/5">
                                                                 ↓ Vai Descer
@@ -549,15 +569,23 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                                 return gOrder.flatMap(gKey => {
                                                     const grupoNome = gKey === '__sem_grupo__' ? null : gKey;
                                                     const grupoLabel = grupoNome ?? (temGrupos ? 'Avulsas' : null);
+                                                    const qtdGrupoFaixa = gMap.get(gKey)[0]?.grupo_quantidade ?? 1;
                                                     return [
                                                         ...(grupoLabel ? [
                                                             <div key={`fg-${gKey}`} className="flex items-center gap-1.5 mt-1 mb-0.5">
                                                                 <iconify-icon icon="solar:folder-linear" width="9" className="text-zinc-700 shrink-0"></iconify-icon>
                                                                 <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{grupoLabel}</span>
+                                                                {qtdGrupoFaixa > 1 && (
+                                                                    <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60">
+                                                                        x{qtdGrupoFaixa}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         ] : []),
                                                         ...gMap.get(gKey).map((f, j) => {
-                                                            const area = f.area_m2 != null ? parseFloat(f.area_m2) : null;
+                                                            const qtdF = f.grupo_quantidade ?? 1;
+                                                            const rawArea = f.area_m2 != null ? parseFloat(f.area_m2) : null;
+                                                            const area = rawArea != null ? Math.round(rawArea * qtdF * 10000) / 10000 : null;
                                                             const dim = [f.largura_cm, f.comprimento_cm, f.espessura_cm]
                                                                 .filter(v => v != null).join('×');
                                                             return (
@@ -611,7 +639,7 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                             <div className="bg-black border border-zinc-900 px-4 py-3 flex flex-col gap-2">
                                 <div className="flex items-center justify-between">
                                     <span className="font-mono text-[11px] text-zinc-300">Peças</span>
-                                    <span className="font-mono text-[11px] text-white font-bold">{pecas.length}</span>
+                                    <span className="font-mono text-[11px] text-white font-bold">{pecas.reduce((s, p) => s + (p.grupo_quantidade ?? 1), 0)}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="font-mono text-[11px] text-zinc-300">Área total</span>

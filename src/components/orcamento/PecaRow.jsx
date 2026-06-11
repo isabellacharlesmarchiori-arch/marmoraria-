@@ -58,17 +58,38 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
         {peca.descricao && (
           <span className="font-mono text-[9px] text-zinc-500 block">{peca.descricao}</span>
         )}
-        {peca.meia_esquadria_ml > 0 && (
-          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Meia-Esquadria · {peca.meia_esquadria_ml.toFixed(2)}ml</span>
-        )}
-        {peca.reto_simples_ml > 0 && (
-          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Reto Simples · {peca.reto_simples_ml.toFixed(2)}ml</span>
-        )}
+        {peca.meia_esquadria_ml > 0 && (() => {
+          const qtd = peca.grupo_quantidade ?? 1;
+          const mlUnit = peca.meia_esquadria_ml;
+          return qtd > 1
+            ? <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Meia-Esquadria · {mlUnit.toFixed(2)}ml/un. · {(mlUnit * qtd).toFixed(2)}ml ({qtd}×)</span>
+            : <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Meia-Esquadria · {mlUnit.toFixed(2)}ml</span>;
+        })()}
+        {peca.reto_simples_ml > 0 && (() => {
+          const qtd = peca.grupo_quantidade ?? 1;
+          const mlUnit = peca.reto_simples_ml;
+          return qtd > 1
+            ? <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Reto Simples · {mlUnit.toFixed(2)}ml/un. · {(mlUnit * qtd).toFixed(2)}ml ({qtd}×)</span>
+            : <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Reto Simples · {mlUnit.toFixed(2)}ml</span>;
+        })()}
       </div>
 
       {/* Área / espessura */}
       <div className="col-span-2 pr-2">
-        <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{peca.area_liq.toFixed(2)} m²</span>
+        {(() => {
+          const qtd = peca.grupo_quantidade ?? 1;
+          const areaTotal = peca.area_liq;
+          if (qtd > 1) {
+            const areaUnit = Math.round(areaTotal / qtd * 10000) / 10000;
+            return (
+              <>
+                <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{areaUnit.toFixed(2)} m²/un.</span>
+                <div className="font-mono text-[9px] text-yellow-500 dark:text-yellow-400/80">{areaTotal.toFixed(2)} m² ({qtd}×)</div>
+              </>
+            );
+          }
+          return <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{areaTotal.toFixed(2)} m²</span>;
+        })()}
         <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{peca.espessura}cm · {peca.cortes} corte{peca.cortes !== 1 ? 's' : ''}</div>
       </div>
 

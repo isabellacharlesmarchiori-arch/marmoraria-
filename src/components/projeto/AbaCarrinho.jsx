@@ -210,7 +210,7 @@ export default function AbaCarrinho({
             ) : (
                 <div className="flex flex-col gap-3">
                     {orcamentosCarrinho.map((orc, idx) => {
-                        const nPecas = (orc.pecas?.length ?? 0) + (orc.itens_manuais?.length ?? 0);
+                        const nPecas = (orc.pecas ?? []).reduce((s, p) => s + (p.grupo_quantidade ?? 1), 0) + (orc.itens_manuais?.length ?? 0);
                         const statusCfg = STATUS_CONFIG[orc.status] ?? STATUS_CONFIG.orcado;
                         const isExp = !!carrinhoExpandido[orc.id];
                         const isEditNome = carrinhoEditandoNome?.id === orc.id;
@@ -636,26 +636,47 @@ export default function AbaCarrinho({
                                                                 // Agrega acabamentos de todas as peças
                                                                 const acabFlatMap = new Map();
                                                                 pecasGrupo.forEach(p => {
+                                                                    const gQtd = p.grupo_quantidade ?? 1;
                                                                     (p.acabamentos ?? []).forEach(ac => {
                                                                         if (Number(ac.ml ?? 0) <= 0) return;
                                                                         if (!acabFlatMap.has(ac.tipo)) acabFlatMap.set(ac.tipo, { ml: 0, valor: 0 });
                                                                         const e = acabFlatMap.get(ac.tipo);
-                                                                        e.ml    += Number(ac.ml ?? 0);
-                                                                        e.valor += Number(ac.valor ?? 0);
+                                                                        e.ml    += Number(ac.ml ?? 0) * gQtd;
+                                                                        e.valor += Number(ac.valor ?? 0) * gQtd;
                                                                     });
                                                                 });
                                                                 return [
                                                                     ...pecasGrupo.map((p, pi) => {
+                                                                        const qtd = p.grupo_quantidade ?? 1;
                                                                         const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0);
+                                                                        const areaTotal = p.area != null ? Number(p.area) : null;
+                                                                        const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
+                                                                        const valorUnit = qtd > 1 ? valorPedra / qtd : null;
                                                                         return (
                                                                             <div key={p.id ?? pi} className="flex items-center justify-between px-5 py-2 border-b border-gray-100/30 dark:border-zinc-900/30 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors">
                                                                                 <div className="flex items-center gap-3 min-w-0">
                                                                                     <div className="w-px h-5 bg-gray-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                                    <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{p.nome ?? 'Peça'}</span>
-                                                                                    {p.area != null && <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{Number(p.area).toFixed(2)} m²</span>}
+                                                                                    <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
+                                                                                    {areaTotal != null && (
+                                                                                        areaUnit != null ? (
+                                                                                            <div className="flex flex-col items-end shrink-0">
+                                                                                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
+                                                                                                <span className="font-mono text-[9px] text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
+                                                                                        )
+                                                                                    )}
                                                                                     {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
                                                                                 </div>
-                                                                                <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                                                {valorUnit != null ? (
+                                                                                    <div className="flex flex-col items-end shrink-0 ml-3">
+                                                                                        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
+                                                                                        <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                                                )}
                                                                             </div>
                                                                         );
                                                                     }),
@@ -693,13 +714,14 @@ export default function AbaCarrinho({
                                                                 // Agrega acabamentos de todas as peças do item por tipo
                                                                 const acabByTipo = new Map();
                                                                 pecasItem.forEach(p => {
+                                                                    const gQtd = p.grupo_quantidade ?? 1;
                                                                     (p.acabamentos ?? []).forEach(ac => {
                                                                         if (Number(ac.ml ?? 0) <= 0) return;
                                                                         const t = ac.tipo;
                                                                         if (!acabByTipo.has(t)) acabByTipo.set(t, { ml: 0, valor: 0 });
                                                                         const e = acabByTipo.get(t);
-                                                                        e.ml    += Number(ac.ml    ?? 0);
-                                                                        e.valor += Number(ac.valor ?? 0);
+                                                                        e.ml    += Number(ac.ml    ?? 0) * gQtd;
+                                                                        e.valor += Number(ac.valor ?? 0) * gQtd;
                                                                     });
                                                                 });
                                                                 const acabRows = [...acabByTipo.entries()];
@@ -728,7 +750,10 @@ export default function AbaCarrinho({
                                                                                 </>
                                                                             ) : (
                                                                                 <>
-                                                                                    <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 flex-1">{nomeItem}</span>
+                                                                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 truncate">{nomeItem}</span>
+                                                                                        {(() => { const qtd = pecasItem[0]?.grupo_quantidade ?? 1; return qtd > 1 ? <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtd}</span> : null; })()}
+                                                                                    </div>
                                                                                     <button
                                                                                         onClick={() => setEditandoItemCarrinho({ orcId: orc.id, itemNome: nomeItem, novo: nomeItem })}
                                                                                         className="opacity-0 group-hover/item:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
@@ -743,7 +768,11 @@ export default function AbaCarrinho({
                                                                     ] : []),
                                                                     // Linhas de pedra (valor = total − acabamentos)
                                                                     ...pecasItem.map((p, pi) => {
+                                                                        const qtd = p.grupo_quantidade ?? 1;
                                                                         const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0);
+                                                                        const areaTotal = p.area != null ? Number(p.area) : null;
+                                                                        const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
+                                                                        const valorUnit = qtd > 1 ? valorPedra / qtd : null;
                                                                         const isEditPeca = editandoPecaCarrinho?.orcId === orc.id && editandoPecaCarrinho?.pecaId === p.id;
                                                                         return (
                                                                             <div key={p.id ?? pi} className={`flex items-center justify-between py-2 border-b border-gray-100/30 dark:border-zinc-900/30 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors group/peca ${px}`}>
@@ -763,7 +792,7 @@ export default function AbaCarrinho({
                                                                                         />
                                                                                     ) : (
                                                                                         <>
-                                                                                            <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{p.nome ?? 'Peça'}</span>
+                                                                                            <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
                                                                                             <button
                                                                                                 onClick={() => setEditandoPecaCarrinho({ orcId: orc.id, pecaId: p.id, pecaDbId: p.peca_id ?? null, nome: p.nome ?? '' })}
                                                                                                 className="opacity-0 group-hover/peca:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
@@ -773,10 +802,26 @@ export default function AbaCarrinho({
                                                                                             </button>
                                                                                         </>
                                                                                     )}
-                                                                                    {p.area != null && <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{Number(p.area).toFixed(2)} m²</span>}
+                                                                                    {areaTotal != null && (
+                                                                                        areaUnit != null ? (
+                                                                                            <div className="flex flex-col items-end shrink-0">
+                                                                                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
+                                                                                                <span className="font-mono text-[9px] text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
+                                                                                        )
+                                                                                    )}
                                                                                     {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
                                                                                 </div>
-                                                                                <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                                                {valorUnit != null ? (
+                                                                                    <div className="flex flex-col items-end shrink-0 ml-3">
+                                                                                        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
+                                                                                        <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                                                )}
                                                                             </div>
                                                                         );
                                                                     }),

@@ -81,6 +81,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
               matId: v.mats[p.id] ?? null,
               matAcabamento: v.acabamentos?.[p.id] ?? null,
               area_liq: p.area_liq ?? 0,
+              grupo_quantidade: p.grupo_quantidade ?? 1,
               espessura: p.espessura ?? 2,
               meia_esquadria_ml: p.meia_esquadria_ml ?? 0,
               reto_simples_ml:   p.reto_simples_ml   ?? 0,
@@ -399,7 +400,10 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
     if (!v) return 0;
     const tPecas = v.pecasList.reduce((s, pw) => {
-      if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
+      if (pw.tipo === 'acabamento') {
+        const gQtd = v.pecasList.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
+        return s + gQtd * (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
+      }
       if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
       const pOrig = pecas.find(p => p.id === pw.idBase);
       return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
@@ -451,7 +455,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
       pcsGroup.forEach((p, idx) => {
         const stoneUid = `${p.id}-${Math.random()}`;
         if (idx === 0) firstStoneUid = stoneUid;
-        pecasListRaw.push({ uid: stoneUid, idBase: p.id, tipo: 'pedra', nome: p.nome, ambiente_nome: p.ambiente_nome ?? null, item_nome: grupoNomeVal, matId: null, matAcabamento: null, area_liq: p.area_liq ?? 0, espessura: p.espessura ?? 2, meia_esquadria_ml: p.meia_esquadria_ml ?? 0, reto_simples_ml: p.reto_simples_ml ?? 0, boleado_ml: p.boleado_ml ?? 0, boleado_duplo_ml: p.boleado_duplo_ml ?? 0, reto_duplo_ml: p.reto_duplo_ml ?? 0, chanfrado_ml: p.chanfrado_ml ?? 0, cortes: p.cortes ?? 0 });
+        pecasListRaw.push({ uid: stoneUid, idBase: p.id, tipo: 'pedra', nome: p.nome, ambiente_nome: p.ambiente_nome ?? null, item_nome: grupoNomeVal, matId: null, matAcabamento: null, area_liq: p.area_liq ?? 0, grupo_quantidade: p.grupo_quantidade ?? 1, espessura: p.espessura ?? 2, meia_esquadria_ml: p.meia_esquadria_ml ?? 0, reto_simples_ml: p.reto_simples_ml ?? 0, boleado_ml: p.boleado_ml ?? 0, boleado_duplo_ml: p.boleado_duplo_ml ?? 0, reto_duplo_ml: p.reto_duplo_ml ?? 0, chanfrado_ml: p.chanfrado_ml ?? 0, cortes: p.cortes ?? 0 });
       });
       const geKey = `${amb}::${gKey}`;
       const ge = grupoExtras[geKey];
@@ -1019,8 +1023,9 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                             {(() => {
                               // Helper: renderiza uma linha de acabamento linear
                               const renderAcabamento = (pw, indent = false) => {
+                                const gQtd = v.pecasList.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
                                 const subAcComputed = precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null);
-                                const subAc = pw.precoManual != null ? pw.precoManual : subAcComputed;
+                                const subAc = (pw.precoManual != null ? pw.precoManual : subAcComputed) * gQtd;
                                 const isEditingPM = editandoPrecoManual?.uid === pw.uid;
                                 return (
                                   <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-200 dark:border-amber-900/20 last:border-b-0 bg-amber-50 dark:bg-amber-950/20 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
@@ -1038,7 +1043,14 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         onChange={e => editarAcabamentoMl(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
                                         className="w-14 bg-gray-50 dark:bg-black border border-amber-400 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
                                       />
-                                      <span className="font-mono text-[10px] text-amber-700">ml</span>
+                                      {gQtd > 1 ? (
+                                        <div className="flex flex-col items-start shrink-0">
+                                          <span className="font-mono text-[8px] text-amber-700/60">ml/un.</span>
+                                          <span className="font-mono text-[8px] text-yellow-400/70">{(pw.ml * gQtd).toFixed(2)} ml ({gQtd}×)</span>
+                                        </div>
+                                      ) : (
+                                        <span className="font-mono text-[10px] text-amber-700">ml</span>
+                                      )}
                                     </div>
                                     {pw.matLinearId
                                       ? <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-amber-500 dark:border-amber-600/40 text-amber-700 dark:text-amber-400 shrink-0 flex items-center gap-1 hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-colors">
@@ -1210,9 +1222,22 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
                                         />
                                       ) : (
-                                        <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
+                                        <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{(pw.grupo_quantidade ?? 1) > 1 ? `${pw.grupo_quantidade}× ${pw.nome}` : pw.nome}</span>
                                       )}
-                                      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{pOrig.area_liq.toFixed(2)} m²</span>
+                                      {(() => {
+                                        const qtdF = pw.grupo_quantidade ?? 1;
+                                        const areaT = pOrig.area_liq;
+                                        if (qtdF > 1) {
+                                          const areaU = Math.round(areaT / qtdF * 10000) / 10000;
+                                          return (
+                                            <div className="flex flex-col items-end shrink-0">
+                                              <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">{areaU.toFixed(2)} m²/un.</span>
+                                              <span className="font-mono text-[9px] text-yellow-400/70">{areaT.toFixed(2)} m² ({qtdF}×)</span>
+                                            </div>
+                                          );
+                                        }
+                                        return <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{areaT.toFixed(2)} m²</span>;
+                                      })()}
                                       <button
                                         onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
                                         className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
@@ -1232,11 +1257,22 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
                                           className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
                                         />
-                                      ) : (
-                                        <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
-                                          {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
-                                        </span>
-                                      )}
+                                      ) : (() => {
+                                        const qtdF = pw.grupo_quantidade ?? 1;
+                                        if (qtdF > 1 && sub > 0 && pw.precoManual == null) {
+                                          return (
+                                            <div className="flex flex-col items-end shrink-0">
+                                              <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-500">{fmt(sub / qtdF)}/un.</span>
+                                              <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmt(sub)}</span>
+                                            </div>
+                                          );
+                                        }
+                                        return (
+                                          <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
+                                            {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
+                                          </span>
+                                        );
+                                      })()}
                                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                         <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                           <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
@@ -1272,7 +1308,10 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 const matIdItem = pwsItem.find(pw => pw.tipo === 'pedra')?.matId ?? '';
                                 // Subtotal inclui pedras + acabamentos + recortes
                                 const subtotalItem = pwsItem.reduce((s, pw) => {
-                                  if (pw.tipo === 'acabamento') return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
+                                  if (pw.tipo === 'acabamento') {
+                                    const gQtd = pwsItem.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
+                                    return s + gQtd * (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
+                                  }
                                   if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
@@ -1297,7 +1336,10 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                             className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
                                           />
                                         ) : (
-                                          <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-400 flex-1 min-w-0 truncate">{nomeItem}</span>
+                                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                            <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-400 truncate">{nomeItem}</span>
+                                            {(() => { const qtd = pwsItem.find(pw => pw.tipo === 'pedra')?.grupo_quantidade ?? 1; return qtd > 1 ? <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtd}</span> : null; })()}
+                                          </div>
                                         )}
                                         {/* Material selecionado por item */}
                                         <button
@@ -1355,7 +1397,20 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           ) : (
                                             <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
                                           )}
-                                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{pOrig.area_liq.toFixed(2)} m²</span>
+                                          {(() => {
+                                            const qtdI = pw.grupo_quantidade ?? 1;
+                                            const areaT = pOrig.area_liq;
+                                            if (qtdI > 1) {
+                                              const areaU = Math.round(areaT / qtdI * 10000) / 10000;
+                                              return (
+                                                <div className="flex flex-col items-end shrink-0">
+                                                  <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">{areaU.toFixed(2)} m²/un.</span>
+                                                  <span className="font-mono text-[9px] text-yellow-400/70">{areaT.toFixed(2)} m² ({qtdI}×)</span>
+                                                </div>
+                                              );
+                                            }
+                                            return <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{areaT.toFixed(2)} m²</span>;
+                                          })()}
                                           <button
                                             onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
                                             className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
@@ -1375,11 +1430,22 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                               onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
                                               className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
                                             />
-                                          ) : (
-                                            <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
-                                              {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
-                                            </span>
-                                          )}
+                                          ) : (() => {
+                                            const qtdI = pw.grupo_quantidade ?? 1;
+                                            if (qtdI > 1 && sub > 0 && pw.precoManual == null) {
+                                              return (
+                                                <div className="flex flex-col items-end shrink-0">
+                                                  <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-500">{fmt(sub / qtdI)}/un.</span>
+                                                  <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmt(sub)}</span>
+                                                </div>
+                                              );
+                                            }
+                                            return (
+                                              <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
+                                                {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
+                                              </span>
+                                            );
+                                          })()}
                                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                             <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
                                               <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>

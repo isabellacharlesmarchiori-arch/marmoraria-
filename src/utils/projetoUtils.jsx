@@ -145,6 +145,15 @@ function _appendGuarnicoesFromCanvas(json, resumo) {
 export function normalizarJsonMedicao(json) {
     if (!json) return null;
 
+    // _canvas pode conter grupos com quantidade quando o Flutter os envia
+    // somente na estrutura interna do canvas (não em json.ambientes[i].grupos)
+    let canvas = null;
+    if (json._canvas) {
+        try {
+            canvas = typeof json._canvas === 'string' ? JSON.parse(json._canvas) : json._canvas;
+        } catch {}
+    }
+
     if (Array.isArray(json.resumo_por_peca) && json.resumo_por_peca.length > 0) {
         if (json.resumo_por_peca[0]?.ambiente_index != null && json.resumo_por_peca[0]?.grupo_nome !== undefined) return json;
         const ambIndexMap = new Map();
@@ -154,11 +163,14 @@ export function normalizarJsonMedicao(json) {
                 .forEach(n => { if (!ambIndexMap.has(n)) ambIndexMap.set(n, idx); });
         });
         const grupoByPecaId = new Map();
-        (json.ambientes ?? []).forEach(amb => {
-            (amb.grupos ?? []).forEach((grupo, grupoIdx) => {
-                (grupo.elemento_ids ?? []).forEach(eId => {
+        (json.ambientes ?? []).forEach((amb, ambIdx) => {
+            // Prefere grupos do _canvas (contém quantidade) sobre json.ambientes[i].grupos
+            const grupos = canvas?.ambientes?.[ambIdx]?.groups ?? amb.grupos ?? [];
+            grupos.forEach((grupo, grupoIdx) => {
+                const qtd = grupo.quantidade ?? 1;
+                (grupo.elemento_ids ?? grupo.elementIds ?? []).forEach(eId => {
                     if (!grupoByPecaId.has(eId))
-                        grupoByPecaId.set(eId, { grupo_nome: grupo.nome ?? `Grupo ${grupoIdx + 1}`, grupo_index: grupoIdx });
+                        grupoByPecaId.set(eId, { grupo_nome: grupo.nome ?? `Grupo ${grupoIdx + 1}`, grupo_index: grupoIdx, grupo_quantidade: qtd });
                 });
             });
         });
@@ -168,9 +180,10 @@ export function normalizarJsonMedicao(json) {
                 const gi = p.peca_id ? grupoByPecaId.get(p.peca_id) : null;
                 return {
                     ...p,
-                    ambiente_index: p.ambiente_index ?? ambIndexMap.get(p.ambiente_nome) ?? null,
-                    grupo_nome:  p.grupo_nome  ?? gi?.grupo_nome  ?? p.item_nome  ?? null,
-                    grupo_index: p.grupo_index ?? gi?.grupo_index ?? null,
+                    ambiente_index:   p.ambiente_index   ?? ambIndexMap.get(p.ambiente_nome) ?? null,
+                    grupo_nome:       p.grupo_nome        ?? gi?.grupo_nome        ?? p.item_nome  ?? null,
+                    grupo_index:      p.grupo_index       ?? gi?.grupo_index       ?? null,
+                    grupo_quantidade: p.grupo_quantidade  ?? gi?.grupo_quantidade  ?? 1,
                 };
             }),
         };
@@ -244,14 +257,31 @@ export function normalizarJsonMedicao(json) {
                     faixasDoAmb.push(faixa);
                     resumo.push(faixa);
                 });
-                // Enrich pieces and faixas with grupo_nome from amb.grupos[]
-                (amb.grupos ?? []).forEach((grupo, grupoIdx) => {
+                // Enrich pieces and faixas with grupo_nome/grupo_quantidade.
+                // Prefere canvas.ambientes[i].grupos (contém quantidade) sobre amb.grupos.
+                const grupos = canvas?.ambientes?.[ambIdx]?.groups ?? amb.grupos ?? [];
+                grupos.forEach((grupo, grupoIdx) => {
                     const nome = grupo.nome ?? `Grupo ${grupoIdx + 1}`;
-                    (grupo.elemento_ids ?? []).forEach(eId => {
+                    const qtd  = grupo.quantidade ?? 1;
+                    // Flutter pode enviar snake_case (elemento_ids) ou camelCase (elementIds)
+                    const eIds = grupo.elemento_ids ?? grupo.elementIds ?? [];
+                    eIds.forEach(eId => {
                         const piece = pecasDoAmb.find(p => p.peca_id === eId);
-                        if (piece) { piece.grupo_nome = nome; piece.grupo_index = grupoIdx; }
+                        if (piece) {
+                            piece.grupo_nome       = nome;
+                            piece.grupo_index      = grupoIdx;
+                            piece.grupo_quantidade = qtd;
+                            if (qtd > 1)
+                                piece.area_liquida_m2 = Math.round(piece.area_liquida_m2 * qtd * 10000) / 10000;
+                        }
                         const faixa = faixasDoAmb.find(f => f.peca_id === eId);
-                        if (faixa) { faixa.grupo_nome = nome; faixa.grupo_index = grupoIdx; }
+                        if (faixa) {
+                            faixa.grupo_nome       = nome;
+                            faixa.grupo_index      = grupoIdx;
+                            faixa.grupo_quantidade = qtd;
+                            if (qtd > 1)
+                                faixa.area_liquida_m2 = Math.round(faixa.area_liquida_m2 * qtd * 10000) / 10000;
+                        }
                     });
                 });
                 // Fonte única: metadados_ambiente calculados pelo Flutter.
@@ -433,6 +463,7 @@ export function normalizarAmbiente(amb) {
                 acabamento:       '—',
                 valor:            op.valor_total ?? 0,
                 valor_acabamentos: op.valor_acabamentos ?? 0,
+                grupo_quantidade: op.grupo_quantidade ?? 1,
                 recortes:         [],
                 ambiente_id:      op.pecas?.ambiente_id ?? null,
                 ambiente_nome:    op.ambiente_nome ?? null,

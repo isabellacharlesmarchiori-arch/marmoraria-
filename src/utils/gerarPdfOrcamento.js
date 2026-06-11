@@ -445,24 +445,37 @@ async function buildOrcamentoPdf(
             p.espessura && p.espessura !== '—' ? `${p.espessura} cm` : null,
           ].filter(Boolean);
           const matEspStr = matEspParts.join('  ·  ');
-          const PEDRA_H   = matEspStr ? 11 : 8.5;
+          const pQtd    = p.grupo_quantidade ?? 1;
+          const PEDRA_H = (matEspStr || pQtd > 1) ? 11 : 8.5;
 
           if (needPage(PEDRA_H + 2)) drawColHdr();
 
           const indent = nomeItem ? ML + 6 : ML;
 
-          txt(doc, p.nome ?? 'Peça', indent, y + 5, 10, C.ink, 'normal',
+          const pNome = pQtd > 1 ? `${p.nome ?? 'Peça'}  ×${pQtd}` : (p.nome ?? 'Peça');
+          txt(doc, pNome, indent, y + 5, 10, C.ink, 'normal',
               { maxWidth: C_DIM - indent - 4 });
 
           let dimStr = '';
-          if (mostrarMed && p.area != null) dimStr = `${Number(p.area).toFixed(3)} m²`;
+          if (mostrarMed && p.area != null) {
+            const areaTotal = Number(p.area);
+            if (pQtd > 1) {
+              const areaUnit = Math.round(areaTotal / pQtd * 1000) / 1000;
+              dimStr = `${areaUnit.toFixed(3)} m²/un. — ${areaTotal.toFixed(3)} m² total`;
+            } else {
+              dimStr = `${areaTotal.toFixed(3)} m²`;
+            }
+          }
           txt(doc, dimStr || (mostrarMed ? '—' : ''), C_DIM, y + 5, 9, C.muted);
 
           if (matEspStr)
             txt(doc, matEspStr, C_DIM, y + 8.5, 8, C.muted, 'italic');
 
-          if (mostrarValPecas)
+          if (mostrarValPecas) {
             txt(doc, fmtBRL(valorPedra), C_VAL, y + 5, 10, C.ink, 'bold', { align: 'right' });
+            if (pQtd > 1)
+              txt(doc, `${fmtBRL(valorPedra / pQtd)}/un.`, C_VAL, y + 8.5, 8, C.muted, 'normal', { align: 'right' });
+          }
 
           y += PEDRA_H;
           hLine(doc, y, ML, RIGHT, C.rule, 0.15);
@@ -472,12 +485,13 @@ async function buildOrcamentoPdf(
         if (mostrarAcab) {
           const acabByTipo = new Map();
           pecasItem.forEach(p => {
+            const gQtd = p.grupo_quantidade ?? 1;
             (Array.isArray(p.acabamentos) ? p.acabamentos : []).forEach(ac => {
               if (Number(ac.ml ?? 0) <= 0) return;
               if (!acabByTipo.has(ac.tipo)) acabByTipo.set(ac.tipo, { ml: 0, valor: 0 });
               const e = acabByTipo.get(ac.tipo);
-              e.ml    += Number(ac.ml    ?? 0);
-              e.valor += Number(ac.valor ?? 0);
+              e.ml    += Number(ac.ml    ?? 0) * gQtd;
+              e.valor += Number(ac.valor ?? 0) * gQtd;
             });
           });
 

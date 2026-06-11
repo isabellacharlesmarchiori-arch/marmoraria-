@@ -188,6 +188,7 @@ export function useProjectData(projectId, activeTab) {
                             acabamento:        '—',
                             valor:             op.valor_total ?? 0,
                             valor_acabamentos: op.valor_acabamentos ?? 0,
+                            grupo_quantidade:  op.grupo_quantidade ?? 1,
                             recortes:          [],
                             ambiente_id:       op.pecas?.ambiente_id ?? null,
                             item_nome:         op.item_nome ?? op.pecas?.dimensoes?.item_nome ?? null,
