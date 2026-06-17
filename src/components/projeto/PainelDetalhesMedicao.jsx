@@ -194,8 +194,9 @@ function PecasAmbiente({ pecas }) {
                             <div className={`flex flex-col gap-1.5 ${nomeItem ? 'ml-2' : ''}`}>
                                 {itensMapa.get(itemKey).map((r, i) => {
                                     const qtd      = r.grupo_quantidade ?? 1;
-                                    const areaTotal = r.area_liquida_m2 ?? 0;
-                                    const areaUnit  = qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
+                                    const rawArea  = r.area_liquida_m2 ?? 0;
+                                    const areaTotal = Math.round(rawArea * qtd * 10000) / 10000;
+                                    const areaUnit  = qtd > 1 ? rawArea : null;
                                     return (
                                     <div key={i} className="border border-zinc-900 px-3 py-2.5 bg-zinc-950">
                                         <div className="flex items-center justify-between gap-2">
@@ -384,14 +385,22 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
     // Tipo global: usa o primeiro ambiente como referência
     const tipoGlobal = rawAmbientes[0]?.tipo_medicao ?? rawAmbientes[0]?.extras?.tipo_medicao ?? 'producao';
 
-    // Totais gerais — sempre calculados pelo dash (grupo_quantidade × valor unitário)
+    // area_liquida_m2 = valor unitário por peça; totalArea multiplica por grupo_quantidade aqui.
+    // Acabamentos: usa totais_acabamentos do normalize (Flutter2) — já são totais do ambiente —
+    // com fallback para soma direta quando o campo não existe (outros formatos).
     const totalArea = Math.round(pecas.reduce((s, p) => s + (p.area_liquida_m2 ?? 0) * (p.grupo_quantidade ?? 1), 0) * 10000) / 10000;
-    const totalME   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
-    const totalRS   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml   ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
-    const totalBO   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_ml        ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
-    const totalBD   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_duplo_ml  ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
-    const totalRD   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_duplo_ml     ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
-    const totalCF   = Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.chanfrado_ml      ?? 0) * (p.grupo_quantidade ?? 1), 0) * 100) / 100;
+    const totalME   = jsonNorm?.totais_acabamentos?.meia_esquadria_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100) / 100;
+    const totalRS   = jsonNorm?.totais_acabamentos?.reto_simples_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_simples_ml   ?? 0), 0) * 100) / 100;
+    const totalBO   = jsonNorm?.totais_acabamentos?.boleado_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_ml        ?? 0), 0) * 100) / 100;
+    const totalBD   = jsonNorm?.totais_acabamentos?.boleado_duplo_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.boleado_duplo_ml  ?? 0), 0) * 100) / 100;
+    const totalRD   = jsonNorm?.totais_acabamentos?.reto_duplo_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.reto_duplo_ml     ?? 0), 0) * 100) / 100;
+    const totalCF   = jsonNorm?.totais_acabamentos?.chanfrado_ml
+        ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.chanfrado_ml      ?? 0), 0) * 100) / 100;
 
     function handleClose() { onClose(); setZoomedUrl(null); }
 

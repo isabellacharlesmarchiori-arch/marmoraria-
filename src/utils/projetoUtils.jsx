@@ -271,16 +271,14 @@ export function normalizarJsonMedicao(json) {
                             piece.grupo_nome       = nome;
                             piece.grupo_index      = grupoIdx;
                             piece.grupo_quantidade = qtd;
-                            if (qtd > 1)
-                                piece.area_liquida_m2 = Math.round(piece.area_liquida_m2 * qtd * 10000) / 10000;
+                            // area_liquida_m2 mantido como valor unitário por peça;
+                            // a multiplicação por qtd fica a cargo de quem exibe o total.
                         }
                         const faixa = faixasDoAmb.find(f => f.peca_id === eId);
                         if (faixa) {
                             faixa.grupo_nome       = nome;
                             faixa.grupo_index      = grupoIdx;
                             faixa.grupo_quantidade = qtd;
-                            if (qtd > 1)
-                                faixa.area_liquida_m2 = Math.round(faixa.area_liquida_m2 * qtd * 10000) / 10000;
                         }
                     });
                 });
