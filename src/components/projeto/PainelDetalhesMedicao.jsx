@@ -194,9 +194,8 @@ function PecasAmbiente({ pecas }) {
                             <div className={`flex flex-col gap-1.5 ${nomeItem ? 'ml-2' : ''}`}>
                                 {itensMapa.get(itemKey).map((r, i) => {
                                     const qtd      = r.grupo_quantidade ?? 1;
-                                    const rawArea  = r.area_liquida_m2 ?? 0;
-                                    const areaTotal = Math.round(rawArea * qtd * 10000) / 10000;
-                                    const areaUnit  = qtd > 1 ? rawArea : null;
+                                    const areaTotal = r.area_liquida_m2 ?? 0;
+                                    const areaUnit  = qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
                                     return (
                                     <div key={i} className="border border-zinc-900 px-3 py-2.5 bg-zinc-950">
                                         <div className="flex items-center justify-between gap-2">
@@ -380,15 +379,13 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
     const jsonNorm     = normalizarJsonMedicao(medicao?.json_medicao);
     const pecas        = jsonNorm?.resumo_por_peca ?? [];
     const isFlutter    = jsonNorm?._fonte === 'flutter' || jsonNorm?._fonte === 'flutter2';
-
-
     // Tipo global: usa o primeiro ambiente como referência
     const tipoGlobal = rawAmbientes[0]?.tipo_medicao ?? rawAmbientes[0]?.extras?.tipo_medicao ?? 'producao';
 
-    // area_liquida_m2 = valor unitário por peça; totalArea multiplica por grupo_quantidade aqui.
+    // area_liquida_m2 = valor TOTAL já gravado pelo Flutter (unit × grupo_quantidade).
     // Acabamentos: usa totais_acabamentos do normalize (Flutter2) — já são totais do ambiente —
     // com fallback para soma direta quando o campo não existe (outros formatos).
-    const totalArea = Math.round(pecas.reduce((s, p) => s + (p.area_liquida_m2 ?? 0) * (p.grupo_quantidade ?? 1), 0) * 10000) / 10000;
+    const totalArea = Math.round(pecas.reduce((s, p) => s + (p.area_liquida_m2 ?? 0), 0) * 10000) / 10000;
     const totalME   = jsonNorm?.totais_acabamentos?.meia_esquadria_ml
         ?? Math.round(pecas.reduce((s, p) => s + (p.acabamentos?.meia_esquadria_ml ?? 0), 0) * 100) / 100;
     const totalRS   = jsonNorm?.totais_acabamentos?.reto_simples_ml
