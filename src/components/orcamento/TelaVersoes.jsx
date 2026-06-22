@@ -236,6 +236,9 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matLineares]);
 
+  // Exclusões da seleção atual (cenário implícito). Por ambiente → uids de peças desmarcadas.
+  const [excluidos, setExcluidos] = useState({});
+
   // ── Cenários ─────────────────────────────────────────────────────
   const [cenarios, setCenarios] = useState([]);
   const [editandoNomeCenario, setEditandoNomeCenario] = useState(null); // id do cenário
@@ -361,16 +364,6 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     }));
   }
 
-  function editarRecortePreco(amb, vId, uid, precoUnit) {
-    setAmbiVersoes(prev => ({
-      ...prev,
-      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
-        ...v,
-        pecasList: v.pecasList.map(pw => pw.uid === uid ? { ...pw, precoUnit } : pw),
-      }),
-    }));
-  }
-
   function editarRecorteTipoPreco(amb, vId, nome, precoUnit) {
     setAmbiVersoes(prev => ({
       ...prev,
@@ -438,11 +431,50 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     return () => { clearTimeout(t); observer.disconnect(); };
   }, []);
 
+  // ── Inclusão/exclusão de peças (checkbox por linha) ──────────────
+  // Desmarcar uma pedra arrasta seus filhos (acabamentos/recortes com idPedraUid
+  // correspondente). Remarcar a pedra NÃO resmarca os filhos — cada um volta independente.
+  // Escreve no `excluidos` da seleção atual (cenário implícito), nunca em ambiVersoes —
+  // assim cada cenário tem suas próprias exclusões e não interferem entre si.
+  function togglePecaAtiva(amb, vId, uid) {
+    setExcluidos(prev => {
+      const lista = prev[amb] ?? [];
+      if (lista.includes(uid)) {
+        // Re-incluir: remove só este uid. Filhos arrastados continuam excluídos (voltam independentes).
+        return { ...prev, [amb]: lista.filter(u => u !== uid) };
+      }
+      // Excluir: adiciona o uid; se for pedra, arrasta os filhos (idPedraUid).
+      const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
+      const alvo = v?.pecasList.find(pw => pw.uid === uid);
+      const novos = new Set(lista);
+      novos.add(uid);
+      if (alvo?.tipo === 'pedra') {
+        (v?.pecasList ?? []).forEach(pw => { if (pw.idPedraUid === uid) novos.add(pw.uid); });
+      }
+      return { ...prev, [amb]: [...novos] };
+    });
+  }
+
+  // Sufixo visual " (sem nome1, nome2)" com as peças excluídas das versões selecionadas.
+  // Só visual no label — não altera cen.nome / v.nome salvos.
+  function sufixoExcluidos(selecoesObj, excludeMap = {}) {
+    const nomes = [];
+    Object.entries(selecoesObj).forEach(([amb, vId]) => {
+      const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
+      const ex = excludeMap[amb] ?? [];
+      (v?.pecasList ?? []).forEach(pw => {
+        if (ex.includes(pw.uid) && pw.nome && !nomes.includes(pw.nome)) nomes.push(pw.nome);
+      });
+    });
+    if (nomes.length === 0) return '';
+    return ` (sem ${nomes.slice(0, 3).join(', ')}${nomes.length > 3 ? ', ...' : ''})`;
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────
-  function totalAmbiVersao(amb, vId) {
+  function totalAmbiVersao(amb, vId, excluidosAmb = []) {
     const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
     if (!v) return 0;
-    const tPecas = v.pecasList.reduce((s, pw) => {
+    const tPecas = v.pecasList.filter(pw => !excluidosAmb.includes(pw.uid)).reduce((s, pw) => {
       if (pw.tipo === 'acabamento') {
         const gQtd = v.pecasList.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
         return s + gQtd * (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
@@ -463,7 +495,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   }
 
   function subtotalCenario(cen) {
-    return Object.keys(cen.selecoes).reduce((s, amb) => s + totalAmbiVersao(amb, cen.selecoes[amb]), 0);
+    return Object.keys(cen.selecoes).reduce((s, amb) => s + totalAmbiVersao(amb, cen.selecoes[amb], cen.excluidos?.[amb] ?? []), 0);
   }
 
   function descontoCenario(cen) {
@@ -655,15 +687,6 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
       }),
     }));
   }
-  function editarRecorteTipo(amb, vId, uid, novoTipo, novoPreco) {
-    setAmbiVersoes(prev => ({
-      ...prev,
-      [amb]: (prev[amb] ?? []).map(v => v.id !== vId ? v : {
-        ...v,
-        pecasList: v.pecasList.map(pw => pw.uid === uid ? { ...pw, nome: novoTipo, precoUnit: novoPreco } : pw),
-      }),
-    }));
-  }
 
   // ── Avulsos ───────────────────────────────────────────────────────
   function adicionarAvulso(amb, vId, prod) {
@@ -781,6 +804,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
       id,
       nome: gerarNomeCenario(selAtivos),
       selecoes: selAtivos,
+      excluidos: JSON.parse(JSON.stringify(excluidos)),
       descontoValor: '',
       descontoTipo: '%',
     }]);
@@ -822,14 +846,15 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
 
     const base = cenarios.length > 0
       ? cenarios
-      : [{ id: 'auto', nome: 'Orçamento', selecoes: selAtivos }];
+      : [{ id: 'auto', nome: 'Orçamento', selecoes: selAtivos, excluidos }];
 
     const versoesFinais = base.map(cen => ({
       nome: cen.nome,
       descontoValor: parseFloat(String(cen.descontoValor ?? '').replace(',', '.')) || 0,
       descontoTipo:  cen.descontoTipo ?? '%',
       pecasList: Object.entries(cen.selecoes).flatMap(([amb, vId]) =>
-        (ambiVersoes[amb] ?? []).find(v => v.id === vId)?.pecasList ?? []
+        ((ambiVersoes[amb] ?? []).find(v => v.id === vId)?.pecasList ?? [])
+          .filter(pw => !(cen.excluidos?.[amb] ?? []).includes(pw.uid))
       ),
       // Avulsos da versão selecionada neste cenário.
       avulsos: Object.entries(cen.selecoes).flatMap(([amb, vId]) =>
@@ -845,8 +870,8 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   const totalSelecaoAtual = useMemo(
     () => listaAmbientes
       .filter(amb => ambientesAtivos[amb])
-      .reduce((s, amb) => s + totalAmbiVersao(amb, selecoes[amb]), 0),
-    [listaAmbientes, ambientesAtivos, selecoes, ambiVersoes, matLineares]
+      .reduce((s, amb) => s + totalAmbiVersao(amb, selecoes[amb], excluidos[amb] ?? []), 0),
+    [listaAmbientes, ambientesAtivos, selecoes, ambiVersoes, matLineares, excluidos]
   );
   const totalVersoes = useMemo(
     () => listaAmbientes.reduce((s, amb) => s + (ambiVersoes[amb]?.length ?? 0), 0),
@@ -1030,7 +1055,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                               title="Renomear versão"
                               className={`flex-1 text-left text-sm font-medium transition-colors truncate min-w-0 ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white'}`}
                             >
-                              {v.nome}
+                              {v.nome}<span className="text-gray-400 dark:text-zinc-500 font-normal">{sufixoExcluidos({ [amb]: v.id }, excluidos)}</span>
                             </button>
                           )}
 
@@ -1093,8 +1118,16 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 const subAcComputed = precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null);
                                 const subAc = (pw.precoManual != null ? pw.precoManual : subAcComputed) * gQtd;
                                 const isEditingPM = editandoPrecoManual?.uid === pw.uid;
+                                const excluida = (excluidos[amb] ?? []).includes(pw.uid);
                                 return (
-                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-200 dark:border-amber-900/20 last:border-b-0 bg-amber-50 dark:bg-amber-950/20 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-200 dark:border-amber-900/20 last:border-b-0 bg-amber-50 dark:bg-amber-950/20 group ${excluida ? 'opacity-40' : ''} ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                    <button
+                                      onClick={() => togglePecaAtiva(amb, v.id, pw.uid)}
+                                      title={excluida ? 'Incluir no orçamento' : 'Excluir do orçamento'}
+                                      className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${!excluida ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
+                                    >
+                                      {!excluida && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
+                                    </button>
                                     {/* Conector visual "filho da peça acima" */}
                                     <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
                                       <div className="w-px h-2 bg-amber-600/30"></div>
@@ -1178,49 +1211,10 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 );
                               };
 
-                              // Helper: renderiza uma linha de recorte/furo
-                              const renderRecorte = (pw, indent = false) => (
-                                <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-teal-200 dark:border-teal-900/20 last:border-b-0 bg-teal-50 dark:bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
-                                  <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
-                                    <div className="w-px h-2 bg-teal-600/30"></div>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-teal-600/50"></div>
-                                  </div>
-                                  <iconify-icon icon="solar:scissors-linear" width="12" className="text-teal-500/70 shrink-0"></iconify-icon>
-                                  {acabamentosUnitarios.length > 0 ? (
-                                    <select
-                                      value={pw.nome}
-                                      onChange={e => { const sel = acabamentosUnitarios.find(a => a.nome === e.target.value); editarRecorteTipo(amb, v.id, pw.uid, e.target.value, sel?.preco_unitario ?? pw.precoUnit); }}
-                                      className="font-mono text-[10px] text-teal-700 dark:text-teal-400/80 min-w-[90px] uppercase tracking-wide bg-transparent border border-teal-400 dark:border-teal-900/40 px-1 py-0.5 outline-none focus:border-teal-600 dark:focus:border-teal-500/60 shrink-0"
-                                    >
-                                      {acabamentosUnitarios.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)}
-                                      {!acabamentosUnitarios.find(a => a.nome === pw.nome) && <option value={pw.nome}>{pw.nome}</option>}
-                                    </select>
-                                  ) : (
-                                    <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400/80 min-w-[90px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
-                                  )}
-                                  {pw.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{pw.formato}</span>}
-                                  <span className="flex-1"></span>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <span className="font-mono text-[10px] text-teal-700">R$</span>
-                                    <input
-                                      type="number" min="0" step="0.01"
-                                      value={pw.precoUnit}
-                                      onChange={e => editarRecortePreco(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
-                                      className="w-20 bg-gray-50 dark:bg-black border border-teal-400 dark:border-teal-900/40 text-teal-800 dark:text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
-                                    />
-                                  </div>
-                                  <span className="font-mono text-[11px] text-teal-400 shrink-0 w-20 text-right font-semibold">{pw.precoUnit > 0 ? fmt(pw.precoUnit) : '—'}</span>
-                                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                    <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover recorte" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
-                                      <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-
                               const renderRecortesGrupados = (recortes, indent = false) => {
                                 const tiposMap = new Map();
-                                recortes.forEach(pw => {
+                                // Exclui recortes desmarcados (inclusive os arrastados pela cascata da pedra)
+                                recortes.filter(pw => !(excluidos[amb] ?? []).includes(pw.uid)).forEach(pw => {
                                   if (!tiposMap.has(pw.nome)) tiposMap.set(pw.nome, []);
                                   tiposMap.get(pw.nome).push(pw);
                                 });
@@ -1260,101 +1254,116 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 });
                               };
 
+                              // Helper: renderiza uma linha de peça de pedra (compartilhado entre o
+                              // caminho plano e o agrupado). indent => recuo quando dentro de item nomeado.
+                              const renderPeca = (pw, indent, amb, vId) => {
+                                const pOrig = pecas.find(p => p.id === pw.idBase);
+                                if (!pOrig) return null;
+                                const subComputed = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
+                                const sub = pw.precoManual != null ? pw.precoManual : subComputed;
+                                const isNomePecaEdit = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === vId && editandoNomePeca?.uid === pw.uid;
+                                const isEditingPM = editandoPrecoManual?.uid === pw.uid;
+                                const excluida = (excluidos[amb] ?? []).includes(pw.uid);
+                                return (
+                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group ${excluida ? 'opacity-40' : ''} ${indent ? 'px-7' : 'px-4'}`}>
+                                    <button
+                                      onClick={() => togglePecaAtiva(amb, vId, pw.uid)}
+                                      title={excluida ? 'Incluir no orçamento' : 'Excluir do orçamento'}
+                                      className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${!excluida ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
+                                    >
+                                      {!excluida && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
+                                    </button>
+                                    <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
+                                    {isNomePecaEdit ? (
+                                      <input
+                                        autoFocus
+                                        value={editandoNomePeca.novo}
+                                        onChange={e => setEditandoNomePeca(prev => ({ ...prev, novo: e.target.value }))}
+                                        onBlur={() => { editarNomePeca(amb, vId, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }}
+                                        onKeyDown={e => {
+                                          if (e.key === 'Enter') { editarNomePeca(amb, vId, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }
+                                          if (e.key === 'Escape') setEditandoNomePeca(null);
+                                        }}
+                                        className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
+                                      />
+                                    ) : (
+                                      <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
+                                    )}
+                                    {(() => {
+                                      const qtdI = pw.grupo_quantidade ?? 1;
+                                      const areaT = pOrig.area_liq;
+                                      if (qtdI > 1) {
+                                        const areaU = Math.round(areaT / qtdI * 10000) / 10000;
+                                        return (
+                                          <div className="flex flex-col items-end shrink-0">
+                                            <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">{areaU.toFixed(2)} m²/un.</span>
+                                            <span className="font-mono text-[9px] text-yellow-400/70">{areaT.toFixed(2)} m² ({qtdI}×)</span>
+                                          </div>
+                                        );
+                                      }
+                                      return <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{areaT.toFixed(2)} m²</span>;
+                                    })()}
+                                    <button
+                                      onClick={() => setPainelMatVersao({ amb, vId, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
+                                      className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
+                                        pw.matId
+                                          ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
+                                          : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                                      }`}
+                                    >
+                                      <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
+                                      {pw.matId ? (todosM.find(m => m.id === pw.matId)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
+                                    </button>
+                                    {isEditingPM ? (
+                                      <input
+                                        type="number" autoFocus min="0" step="0.01"
+                                        defaultValue={pw.precoManual ?? subComputed}
+                                        onBlur={e => { editarPrecoManual(amb, vId, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
+                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, vId, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
+                                        className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                      />
+                                    ) : (() => {
+                                      const qtdI = pw.grupo_quantidade ?? 1;
+                                      if (qtdI > 1 && sub > 0 && pw.precoManual == null) {
+                                        return (
+                                          <div className="flex flex-col items-end shrink-0">
+                                            <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-500">{fmt(sub / qtdI)}/un.</span>
+                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmt(sub)}</span>
+                                          </div>
+                                        );
+                                      }
+                                      return (
+                                        <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
+                                          {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
+                                        </span>
+                                      );
+                                    })()}
+                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                      <button onClick={() => setEditandoNomePeca({ amb, vId, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                        <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
+                                      </button>
+                                      <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                        <iconify-icon icon="solar:dollar-minimalistic-linear" width="11"></iconify-icon>
+                                      </button>
+                                      <button onClick={() => duplicarPecaDaVersao(amb, vId, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                        <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
+                                      </button>
+                                      <button onClick={() => excluirPecaDaVersao(amb, vId, pw.uid)} title="Excluir peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
+                                        <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              };
+
                               const temItens = v.pecasList.some(pw => pw.item_nome && pw.tipo !== 'acabamento');
                               if (!temItens) {
                                 // Sem itens: lista plana
                                 const recortesFlat = v.pecasList.filter(pw => pw.tipo === 'recorte');
                                 return [
                                   ...v.pecasList.filter(pw => pw.tipo !== 'recorte').map(pw => {
-                                  if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
-                                  const pOrig = pecas.find(p => p.id === pw.idBase);
-                                  if (!pOrig) {
-                                    return null;
-                                  }
-                                  const subComputed = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
-                                  const sub = pw.precoManual != null ? pw.precoManual : subComputed;
-                                  const isNomePecaEdit = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
-                                  const isEditingPMPedra = editandoPrecoManual?.uid === pw.uid;
-                                  return (
-                                    <div key={pw.uid} className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group">
-                                      <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
-                                      {isNomePecaEdit ? (
-                                        <input
-                                          autoFocus
-                                          value={editandoNomePeca.novo}
-                                          onChange={e => setEditandoNomePeca(prev => ({ ...prev, novo: e.target.value }))}
-                                          onBlur={() => { editarNomePeca(amb, v.id, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }}
-                                          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarNomePeca(amb, v.id, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); } }}
-                                          className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
-                                        />
-                                      ) : (
-                                        <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{(pw.grupo_quantidade ?? 1) > 1 ? `${pw.grupo_quantidade}× ${pw.nome}` : pw.nome}</span>
-                                      )}
-                                      {(() => {
-                                        const qtdF = pw.grupo_quantidade ?? 1;
-                                        const areaT = pOrig.area_liq;
-                                        if (qtdF > 1) {
-                                          const areaU = Math.round(areaT / qtdF * 10000) / 10000;
-                                          return (
-                                            <div className="flex flex-col items-end shrink-0">
-                                              <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">{areaU.toFixed(2)} m²/un.</span>
-                                              <span className="font-mono text-[9px] text-yellow-400/70">{areaT.toFixed(2)} m² ({qtdF}×)</span>
-                                            </div>
-                                          );
-                                        }
-                                        return <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{areaT.toFixed(2)} m²</span>;
-                                      })()}
-                                      <button
-                                        onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
-                                        className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
-                                          pw.matId
-                                            ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                                            : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
-                                        }`}
-                                      >
-                                        <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
-                                        {pw.matId ? (todosM.find(m => m.id === pw.matId)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
-                                      </button>
-                                      {isEditingPMPedra ? (
-                                        <input
-                                          type="number" autoFocus min="0" step="0.01"
-                                          defaultValue={pw.precoManual ?? subComputed}
-                                          onBlur={e => { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
-                                          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
-                                          className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
-                                        />
-                                      ) : (() => {
-                                        const qtdF = pw.grupo_quantidade ?? 1;
-                                        if (qtdF > 1 && sub > 0 && pw.precoManual == null) {
-                                          return (
-                                            <div className="flex flex-col items-end shrink-0">
-                                              <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-500">{fmt(sub / qtdF)}/un.</span>
-                                              <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmt(sub)}</span>
-                                            </div>
-                                          );
-                                        }
-                                        return (
-                                          <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
-                                            {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
-                                          </span>
-                                        );
-                                      })()}
-                                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                        <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
-                                          <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
-                                        </button>
-                                        <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
-                                          <iconify-icon icon="solar:dollar-minimalistic-linear" width="11"></iconify-icon>
-                                        </button>
-                                        <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
-                                          <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
-                                        </button>
-                                        <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Excluir peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
-                                          <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
+                                    if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
+                                    return renderPeca(pw, false, amb, v.id);
                                   }),
                                   ...renderRecortesGrupados(recortesFlat, false),
                                 ];
@@ -1373,7 +1382,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 // matId do item: considera apenas pedras
                                 const matIdItem = pwsItem.find(pw => pw.tipo === 'pedra')?.matId ?? '';
                                 // Subtotal inclui pedras + acabamentos + recortes
-                                const subtotalItem = pwsItem.reduce((s, pw) => {
+                                const subtotalItem = pwsItem.filter(pw => !(excluidos[amb] ?? []).includes(pw.uid)).reduce((s, pw) => {
                                   if (pw.tipo === 'acabamento') {
                                     const gQtd = pwsItem.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
                                     return s + gQtd * (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
@@ -1437,97 +1446,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                     {/* Peças do item */}
                                     {pwsItem.filter(pw => pw.tipo !== 'recorte').map(pw => {
                                       if (pw.tipo === 'acabamento') return renderAcabamento(pw, true);
-                                      const pOrig = pecas.find(p => p.id === pw.idBase);
-                                      if (!pOrig) {
-                                        return null;
-                                      }
-                                      const subComputedItem = precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento);
-                                      const sub = pw.precoManual != null ? pw.precoManual : subComputedItem;
-                                      const isNomePecaEditItem = editandoNomePeca?.amb === amb && editandoNomePeca?.vId === v.id && editandoNomePeca?.uid === pw.uid;
-                                      const isEditingPMItem = editandoPrecoManual?.uid === pw.uid;
-                                      return (
-                                        <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group ${nomeItem ? 'px-7' : 'px-4'}`}>
-                                          <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
-                                          {isNomePecaEditItem ? (
-                                            <input
-                                              autoFocus
-                                              value={editandoNomePeca.novo}
-                                              onChange={e => setEditandoNomePeca(prev => ({ ...prev, novo: e.target.value }))}
-                                              onBlur={() => { editarNomePeca(amb, v.id, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }}
-                                              onKeyDown={e => {
-                                                if (e.key === 'Enter') { editarNomePeca(amb, v.id, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }
-                                                if (e.key === 'Escape') setEditandoNomePeca(null);
-                                              }}
-                                              className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
-                                            />
-                                          ) : (
-                                            <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
-                                          )}
-                                          {(() => {
-                                            const qtdI = pw.grupo_quantidade ?? 1;
-                                            const areaT = pOrig.area_liq;
-                                            if (qtdI > 1) {
-                                              const areaU = Math.round(areaT / qtdI * 10000) / 10000;
-                                              return (
-                                                <div className="flex flex-col items-end shrink-0">
-                                                  <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">{areaU.toFixed(2)} m²/un.</span>
-                                                  <span className="font-mono text-[9px] text-yellow-400/70">{areaT.toFixed(2)} m² ({qtdI}×)</span>
-                                                </div>
-                                              );
-                                            }
-                                            return <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{areaT.toFixed(2)} m²</span>;
-                                          })()}
-                                          <button
-                                            onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
-                                            className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
-                                              pw.matId
-                                                ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                                                : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
-                                            }`}
-                                          >
-                                            <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
-                                            {pw.matId ? (todosM.find(m => m.id === pw.matId)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
-                                          </button>
-                                          {isEditingPMItem ? (
-                                            <input
-                                              type="number" autoFocus min="0" step="0.01"
-                                              defaultValue={pw.precoManual ?? subComputedItem}
-                                              onBlur={e => { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
-                                              onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
-                                              className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
-                                            />
-                                          ) : (() => {
-                                            const qtdI = pw.grupo_quantidade ?? 1;
-                                            if (qtdI > 1 && sub > 0 && pw.precoManual == null) {
-                                              return (
-                                                <div className="flex flex-col items-end shrink-0">
-                                                  <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-500">{fmt(sub / qtdI)}/un.</span>
-                                                  <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmt(sub)}</span>
-                                                </div>
-                                              );
-                                            }
-                                            return (
-                                              <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
-                                                {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
-                                              </span>
-                                            );
-                                          })()}
-                                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                            <button onClick={() => setEditandoNomePeca({ amb, vId: v.id, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
-                                              <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
-                                            </button>
-                                            <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
-                                              <iconify-icon icon="solar:dollar-minimalistic-linear" width="11"></iconify-icon>
-                                            </button>
-                                            <button onClick={() => duplicarPecaDaVersao(amb, v.id, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
-                                              <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
-                                            </button>
-                                            <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Excluir peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
-                                              <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
-                                            </button>
-                                          </div>
-                                        </div>
-                                      );
+                                      return renderPeca(pw, !!nomeItem, amb, v.id);
                                     })}
                                     {renderRecortesGrupados(pwsItem.filter(pw => pw.tipo === 'recorte'), true)}
                                   </div>
@@ -1658,7 +1577,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                           title="Renomear cenário"
                           className="flex-1 text-left text-sm font-bold text-gray-900 dark:text-white hover:text-yellow-400/80 transition-colors truncate min-w-0"
                         >
-                          {cen.nome}
+                          {cen.nome}<span className="text-gray-400 dark:text-zinc-500 font-normal">{sufixoExcluidos(cen.selecoes, cen.excluidos ?? {})}</span>
                         </button>
                       )}
 
@@ -1682,7 +1601,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                       <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 truncate">{resumo || '—'}</span>
                       <div className="divide-x divide-gray-200 dark:divide-zinc-900 flex shrink-0 flex-wrap">
                         {Object.entries(cen.selecoes).map(([amb, vId]) => {
-                          const sub = vId ? totalAmbiVersao(amb, vId) : 0;
+                          const sub = vId ? totalAmbiVersao(amb, vId, cen.excluidos?.[amb] ?? []) : 0;
                           const v   = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
                           return (
                             <div key={amb} className="flex items-center gap-2 px-3 first:pl-0">
