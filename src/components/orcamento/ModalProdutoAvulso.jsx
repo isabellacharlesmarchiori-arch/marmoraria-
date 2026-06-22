@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { fmt } from '../../utils/orcamentoUtils';
 
 export default function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCatalogo = [] }) {
   const [busca, setBusca] = useState('');
@@ -10,7 +11,7 @@ export default function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCata
 
   const filtrados = useMemo(() =>
     catalogo.filter(p =>
-      busca === '' || p.nome.toLowerCase().includes(busca.toLowerCase()) || p.subcategoria.toLowerCase().includes(busca.toLowerCase())
+      busca === '' || (p.nome ?? '').toLowerCase().includes(busca.toLowerCase()) || (p.subcategoria ?? '').toLowerCase().includes(busca.toLowerCase())
     ), [busca, catalogo]);
 
   const preco = precoCustom !== '' ? parseFloat(precoCustom.replace(',', '.')) || 0 : (prodSel?.preco ?? 0);

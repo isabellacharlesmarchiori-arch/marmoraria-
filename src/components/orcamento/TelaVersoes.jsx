@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import PainelMaterial from './PainelMaterial';
 import PainelMaterialLinear from './PainelMaterialLinear';
 import ModalProdutoAvulso from './ModalProdutoAvulso';
+import ModalServicoExtra from './ModalServicoExtra';
 import { fmt, precoPeca, precoAcabamento, ACAB_TIPO_NOME, aplicarAutoMatchNaLista } from '../../utils/orcamentoUtils';
 
-export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, onSalvar, onVoltar, todosM, matLineares = [], precosCatMaterial = [], acabamentosUnitarios = [], salvando = false, grupoExtras = {} }) {
+export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, avulsosSalvos = {}, onSalvar, onVoltar, todosM, matLineares = [], precosCatMaterial = [], acabamentosUnitarios = [], salvando = false, grupoExtras = {} }) {
 
   // ── Lista de ambientes (mutável: suporta rename/delete/duplicate) ─
   const [listaAmbientes, setListaAmbientes] = useState(() => {
@@ -150,7 +151,17 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
           id: `v-${amb}-${Date.now()}-${vIdx}`,
           nome: vNome,
           pecasList: aplicarAutoMatchNaLista(pecasList, todosM, matLineares, precosCatMaterial),
-          avulsos: [],
+          // Globais (serviços extras / avulsos do passo 1) entram só na 1ª versão
+          // do 1º ambiente para não duplicar entre ambientes.
+          avulsos: (amb === listaAmbientes[0] && vIdx === 0) ? (produtos ?? []).map(p => ({
+            uid: `av-global-${p.id ?? p.nome}-${Math.random()}`,
+            produtoId: p.id ?? null,
+            nome: p.nome ?? null,
+            subcategoria: p.subcategoria ?? 'Avulso',
+            qty: Number(p.qty ?? 1),
+            valorUnit: Number(p.preco ?? 0),
+            isGlobal: true,   // flag para identificar origem
+          })) : [],
         };
       });
     });
@@ -174,6 +185,37 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Avulsos salvos (Opção A): anexa os avulsos persistidos na 1ª versão de cada
+  //    ambiente correspondente. Dedupe por uid → idempotente e sem duplicar entre
+  //    orçamentos. Anexa só na 1ª versão para o handleSalvar (flatMap de todas) não duplicar.
+  //    Apenas produtos de catálogo (produto_id não null) são rehidratados; serviços
+  //    extras (produto_id null) NÃO reaparecem ao reabrir o editor.
+  useEffect(() => {
+    console.log('[AVULSOS-PROP]', JSON.stringify(avulsosSalvos), '| ambiVersoes keys=', JSON.stringify(Object.keys(ambiVersoes)));
+    if (!avulsosSalvos || Object.keys(avulsosSalvos).length === 0) return;
+    console.log('[AVULSOS-SAVED]', JSON.stringify(avulsosSalvos));
+    setAmbiVersoes(prev => {
+      const next = { ...prev };
+      Object.entries(avulsosSalvos).forEach(([amb, lista]) => {
+        let key = amb;
+        if (!next[key]) {
+          const keys = Object.keys(next);
+          if (keys.length === 1) key = keys[0];   // fallback: ambiente único, nome divergente
+          else return;
+        }
+        const versoesAmb = next[key];
+        if (!versoesAmb || versoesAmb.length === 0) return;
+        const existentes = new Set((versoesAmb[0].avulsos ?? []).map(a => a.uid));
+        const novos = lista
+          .filter(a => a.produtoId !== null && a.produtoId !== undefined)
+          .filter(a => !existentes.has(a.uid));
+        if (novos.length === 0) return;
+        next[key] = versoesAmb.map((v, i) => i === 0 ? { ...v, avulsos: [...(v.avulsos ?? []), ...novos] } : v);
+      });
+      return next;
+    });
+  }, [avulsosSalvos]);
 
   // ── Auto-match: quando matLineares carrega, preenche matLinearId nos acabamentos ─
   // Busca por palavras-chave no nome do material linear; desambigua pelo material da pedra mãe.
@@ -202,6 +244,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   const [expandido, setExpandido] = useState(null);              // { amb, vId }
   const [editandoNomeVersao, setEditandoNomeVersao] = useState(null); // { amb, vId }
   const [modalAvulsoKey, setModalAvulsoKey] = useState(null);   // { amb, vId }
+  const [modalServicoKey, setModalServicoKey] = useState(null); // { amb, vId }
   const [editandoAvulso, setEditandoAvulso] = useState(null);   // { amb, vId, uid }
   const [editandoNomeItem, setEditandoNomeItem] = useState(null); // { amb, vId, itemKey, novo }
   const [editandoNomePeca, setEditandoNomePeca] = useState(null); // { amb, vId, uid, novo }
@@ -643,6 +686,27 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     setModalAvulsoKey(null);
   }
 
+  // Serviço extra: avulso de texto livre, sem produto de catálogo (produtoId null).
+  function adicionarServicoExtra(amb, vId, { nome, preco }) {
+    setAmbiVersoes(prev => ({
+      ...prev,
+      [amb]: (prev[amb] ?? []).map(v =>
+        v.id !== vId ? v : {
+          ...v,
+          avulsos: [...(v.avulsos ?? []), {
+            uid: `av-${Math.random()}`,
+            produtoId: null,
+            nome,
+            subcategoria: 'Serviço Extra',
+            qty: 1,
+            valorUnit: preco ?? 0,
+          }],
+        }
+      ),
+    }));
+    setModalServicoKey(null);
+  }
+
   function removerAvulso(amb, vId, aUid) {
     setAmbiVersoes(prev => ({
       ...prev,
@@ -767,11 +831,13 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
       pecasList: Object.entries(cen.selecoes).flatMap(([amb, vId]) =>
         (ambiVersoes[amb] ?? []).find(v => v.id === vId)?.pecasList ?? []
       ),
+      // Avulsos da versão selecionada neste cenário.
       avulsos: Object.entries(cen.selecoes).flatMap(([amb, vId]) =>
         (ambiVersoes[amb] ?? []).find(v => v.id === vId)?.avulsos ?? []
       ),
     }));
 
+    console.log('[TELAVERSOES-SALVAR] versoesFinais.avulsos=', JSON.stringify(versoesFinais.map(v => v.avulsos)), '| ambiVersoes=', JSON.stringify(Object.fromEntries(Object.entries(ambiVersoes).map(([amb, vs]) => [amb, vs.map(v => ({ id: v.id, avulsos: v.avulsos }))]))), '| selecoes=', JSON.stringify(selecoes), '| ativos=', JSON.stringify(ambientesAtivos));
     onSalvar(versoesFinais);
   }
 
@@ -1473,13 +1539,22 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                             <div className="border-t border-gray-300 dark:border-zinc-800/50">
                               <div className="flex items-center justify-between px-4 py-2 bg-gray-200/40 dark:bg-zinc-950/40">
                                 <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Produtos avulsos</span>
-                                <button
-                                  onClick={() => setModalAvulsoKey({ amb, vId: v.id })}
-                                  className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-yellow-400 transition-colors"
-                                >
-                                  <iconify-icon icon="solar:add-circle-linear" width="10"></iconify-icon>
-                                  Adicionar
-                                </button>
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    onClick={() => setModalAvulsoKey({ amb, vId: v.id })}
+                                    className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-yellow-400 transition-colors"
+                                  >
+                                    <iconify-icon icon="solar:add-circle-linear" width="10"></iconify-icon>
+                                    Adicionar
+                                  </button>
+                                  <button
+                                    onClick={() => setModalServicoKey({ amb, vId: v.id })}
+                                    className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-yellow-400 transition-colors"
+                                  >
+                                    <iconify-icon icon="solar:wrench-linear" width="10"></iconify-icon>
+                                    Serviço Extra
+                                  </button>
+                                </div>
                               </div>
                               {(v.avulsos ?? []).length === 0 ? (
                                 <div className="px-4 py-2.5 text-center">
@@ -1693,6 +1768,14 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
           produtosCatalogo={produtosCatalogo}
           onConfirmar={prod => adicionarAvulso(modalAvulsoKey.amb, modalAvulsoKey.vId, prod)}
           onFechar={() => setModalAvulsoKey(null)}
+        />
+      )}
+
+      {/* Modal: adicionar serviço extra */}
+      {modalServicoKey && (
+        <ModalServicoExtra
+          onConfirmar={dados => adicionarServicoExtra(modalServicoKey.amb, modalServicoKey.vId, dados)}
+          onFechar={() => setModalServicoKey(null)}
         />
       )}
 

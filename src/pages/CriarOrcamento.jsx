@@ -19,6 +19,7 @@ import PecaRow from '../components/orcamento/PecaRow';
 import PainelMaterial from '../components/orcamento/PainelMaterial';
 import PainelMaterialLinear from '../components/orcamento/PainelMaterialLinear';
 import ModalProdutoAvulso from '../components/orcamento/ModalProdutoAvulso';
+import ModalServicoExtra from '../components/orcamento/ModalServicoExtra';
 import TelaVersoes from '../components/orcamento/TelaVersoes';
 
 
@@ -41,6 +42,7 @@ export default function CriarOrcamento() {
   const [produtosCatalogo, setProdutosCatalogo] = useState([]); // catálogo bruto do Supabase
   const [bulkMaterialId, setBulkMaterialId] = useState('');     // bulk action: material único
   const [processedMedicaoId, setProcessedMedicaoId] = useState(null);
+  const [avulsosSalvos, setAvulsosSalvos] = useState({});  // { ambiente_nome: [avulso] } — carregados de orçamentos salvos (Opção A)
 
   // ── Fluxo manual (sem medição) ────────────────────────────────────────────
   const modoManual = searchParams.get('modo') === 'manual';
@@ -466,6 +468,42 @@ export default function CriarOrcamento() {
     }
   }, [projetoId, medicaoIdFromUrl]);
 
+  // ── Carrega avulsos/serviços extras já salvos em orçamentos desta medição ──────
+  // Opção A: ao reabrir o editor, os avulsos persistidos reaparecem nas versões.
+  useEffect(() => {
+    const medId = medicaoIdFromUrl || processedMedicaoId;
+    if (!isValidUUID(medId) || !profile?.empresa_id) { setAvulsosSalvos({}); return; }
+    let cancelado = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('orcamentos')
+        .select('id, descartado_em, ambientes!inner(nome, medicao_id), orcamento_avulsos(id, produto_id, nome, quantidade, valor_unitario, produtos_avulsos(nome))')
+        .eq('ambientes.medicao_id', medId)
+        .eq('empresa_id', profile.empresa_id)
+        .is('descartado_em', null);
+      console.log('[AVULSOS-SALVOS] query medId=', medId, '| error=', error?.message ?? null, '| rows=', data?.length ?? 0, '| raw=', JSON.stringify(data));
+      if (error) { console.error('[CriarOrcamento] erro ao carregar avulsos salvos:', error.message); return; }
+      if (cancelado) return;
+      const map = {};
+      (data ?? []).forEach(orc => {
+        const ambNome = orc.ambientes?.nome ?? '';
+        (orc.orcamento_avulsos ?? []).forEach(av => {
+          (map[ambNome] ??= []).push({
+            uid:          av.id,                       // orcamento_avulsos.id — chave de dedupe
+            produtoId:    av.produto_id ?? null,
+            nome:         av.produtos_avulsos?.nome ?? av.nome ?? 'Item',
+            subcategoria: av.produto_id == null ? 'Serviço Extra' : '',
+            qty:          av.quantidade ?? 1,
+            valorUnit:    av.valor_unitario ?? 0,
+          });
+        });
+      });
+      console.log('[AVULSOS-SALVOS]', JSON.stringify(map));
+      setAvulsosSalvos(map);
+    })();
+    return () => { cancelado = true; };
+  }, [medicaoIdFromUrl, processedMedicaoId, profile?.empresa_id]);
+
   // ── Estado de acabamentos/furos por grupo (chave: "${amb}::${grupo}") ──────
   const [grupoExtras, setGrupoExtras] = useState({});
 
@@ -501,6 +539,8 @@ export default function CriarOrcamento() {
   const [openGrupos, setCollapsedGrupos] = useState(new Set());
   const [painelMaterialPecaId, setPainelMaterialPecaId] = useState(null);
   const [modalProduto, setModalProduto] = useState(false);
+  const [modalServico, setModalServico] = useState(false);     // serviço extra (passo 1)
+  const [servicoAmbId, setServicoAmbId] = useState(null);      // serviço extra (fluxo manual) — ambiente alvo
   const [versoesCriadas, setVersoesCriadas] = useState(null);
   const [salvandoOrc, setSalvandoOrc] = useState(false);
   const [addFuroMenuKey, setAddFuroMenuKey] = useState(null);
@@ -678,6 +718,23 @@ export default function CriarOrcamento() {
   function adicionarProduto(prod) {
     setProdutos(prev => [...prev, prod]);
     setModalProduto(false);
+  }
+
+  // Serviço extra (passo 1): entra no array global `produtos` com produto_id null (id null).
+  function adicionarServicoExtra({ nome, preco }) {
+    setProdutos(prev => [...prev, { id: null, nome, subcategoria: 'Serviço Extra', preco, qty: 1, ehServico: true }]);
+    setModalServico(false);
+  }
+
+  // Serviço extra (fluxo manual): entra em avulsosManual do ambiente; depois é mesclado em `produtos`.
+  function addServicoExtraManual(ambId, { nome, preco }) {
+    setAmbientesManual(prev => prev.map(a => a.id === ambId ? {
+      ...a, avulsosManual: [...a.avulsosManual, {
+        id: crypto.randomUUID(), produto_id: null, nome,
+        subcategoria: 'Serviço Extra', preco, quantidade: 1,
+      }],
+    } : a));
+    setServicoAmbId(null);
   }
 
   function handleContinuar() {
@@ -930,7 +987,7 @@ export default function CriarOrcamento() {
 
     setSalvandoOrc(true);
     try {
-      for (const versao of versoesFinais) {
+      for (const [vIdx, versao] of versoesFinais.entries()) {
         // 0. Garante que cada peça da versão existe na tabela `pecas` antes de
         //    tentar inserir em orcamento_pecas (que tem FK → pecas.id).
         //    Retorna Set<string> com os IDs confirmados no banco.
@@ -965,7 +1022,9 @@ export default function CriarOrcamento() {
           const pSrc   = pecas.find(p => p.id === pWrapper.idBase) ?? pWrapper;
           return s + (pWrapper.precoManual != null ? pWrapper.precoManual : precoPeca(pSrc, matId, materiais, pWrapper.matAcabamento));
         }, 0);
-        const valorAvulsos = produtos.reduce((s, p) => s + p.preco * p.qty, 0);
+        // Avulsos globais (passo 1 / fluxo manual) entram só no 1º orçamento p/ não duplicar entre cenários.
+        const valorGlobais = vIdx === 0 ? produtos.reduce((s, p) => s + Number(p.preco ?? 0) * Number(p.qty ?? 1), 0) : 0;
+        const valorAvulsos = valorGlobais + (versao.avulsos ?? []).reduce((s, a) => s + Number(a.valorUnit ?? 0) * Number(a.qty ?? 1), 0);
         const subtotal     = valorPecas + valorAvulsos;
 
         // Desconto passado pelo TelaVersoes
@@ -1056,15 +1115,29 @@ export default function CriarOrcamento() {
           }
         }
 
-        // 3. Insert em orcamento_avulsos
-        if (produtos.length > 0) {
-          const avulsosRows = produtos.map(p => ({
-            orcamento_id:   orcamentoId,
-            produto_id:     p.id.startsWith('pr') ? null : p.id,
-            quantidade:     p.qty,
-            valor_unitario: p.preco,
-            valor_total:    p.preco * p.qty,
-          }));
+        // 3. Insert em orcamento_avulsos (produtos avulsos do catálogo + serviços extras)
+        //    Todos vêm de `versao.avulsos` (TelaVersoes). Os globais do passo 1 / fluxo
+        //    manual entram via flag isGlobal e são incluídos só no 1º orçamento (vIdx === 0),
+        //    filtrados dos demais cenários para não duplicar.
+        //    Serviço extra => produto_id NULL + nome livre. Produto de catálogo => produto_id.
+        const avulsosRows = [
+          ...(versao.avulsos ?? [])
+            .filter(a => !a.isGlobal || vIdx === 0)
+            .map(a => {
+              const qty = Number(a.qty ?? 1);
+              const vu  = Number(a.valorUnit ?? 0);
+              return {
+                orcamento_id:   orcamentoId,
+                produto_id:     isValidUUID(a.produtoId) ? a.produtoId : null,
+                nome:           a.nome ?? null,
+                quantidade:     qty,
+                valor_unitario: vu,
+                valor_total:    vu * qty,
+              };
+            }),
+        ];
+        console.log('[INSERT-AVULSOS] vIdx=', vIdx, '| versao.avulsos=', JSON.stringify(versao.avulsos), '| produtos=', JSON.stringify(produtos), '| avulsosRows=', JSON.stringify(avulsosRows));
+        if (avulsosRows.length > 0) {
           const { error: errAvulsos } = await supabase.from('orcamento_avulsos').insert(avulsosRows);
           if (errAvulsos) console.error(`ERRO CRÍTICO SUPABASE: ${errAvulsos.message} - Detalhes: ${errAvulsos.details}`);
         }
@@ -1087,6 +1160,7 @@ export default function CriarOrcamento() {
         versoes={versoesCriadas}
         pecas={pecas}
         produtos={produtos}
+        avulsosSalvos={avulsosSalvos}
         onSalvar={handleSalvar}
         onVoltar={() => setVersoesCriadas(null)}
         todosM={materiais}
@@ -1426,6 +1500,15 @@ export default function CriarOrcamento() {
                   </button>
                 )}
 
+                {/* Botão + Serviço Extra */}
+                <button
+                  onClick={() => setServicoAmbId(amb.id)}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-gray-500 dark:text-zinc-600 font-mono text-[9px] uppercase tracking-widest hover:text-gray-500 dark:hover:text-zinc-400 hover:bg-gray-200/30 dark:hover:bg-zinc-900/30 border-t border-gray-200 dark:border-zinc-900 transition-colors"
+                >
+                  <iconify-icon icon="solar:wrench-linear" width="12"></iconify-icon>
+                  + Serviço Extra
+                </button>
+
                 {/* ── Acabamentos ───────────────────────────────────────── */}
                 <div className="border-t border-gray-300 dark:border-zinc-800 px-5 py-3">
                   <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-2">Acabamentos</div>
@@ -1501,6 +1584,14 @@ export default function CriarOrcamento() {
             <iconify-icon icon="solar:arrow-right-linear" width="14"></iconify-icon>
           </button>
         </div>
+
+        {/* ── Modal: serviço extra (fluxo manual) ─────── */}
+        {servicoAmbId && (
+          <ModalServicoExtra
+            onConfirmar={dados => addServicoExtraManual(servicoAmbId, dados)}
+            onFechar={() => setServicoAmbId(null)}
+          />
+        )}
       </div>
     );
   }
@@ -1864,13 +1955,22 @@ export default function CriarOrcamento() {
             <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
               02 // Produtos avulsos
             </div>
-            <button
-              onClick={() => setModalProduto(true)}
-              className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-2 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>
-              Adicionar produto
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setModalProduto(true)}
+                className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-2 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>
+                Adicionar produto
+              </button>
+              <button
+                onClick={() => setModalServico(true)}
+                className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-3 py-2 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <iconify-icon icon="solar:wrench-linear" width="12"></iconify-icon>
+                Serviço Extra
+              </button>
+            </div>
           </div>
 
           <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
@@ -2012,6 +2112,14 @@ export default function CriarOrcamento() {
         <ModalProdutoAvulso
           onConfirmar={adicionarProduto}
           onFechar={() => setModalProduto(false)}
+        />
+      )}
+
+      {/* ── Modal: serviço extra ─────────────────────── */}
+      {modalServico && (
+        <ModalServicoExtra
+          onConfirmar={adicionarServicoExtra}
+          onFechar={() => setModalServico(false)}
         />
       )}
 

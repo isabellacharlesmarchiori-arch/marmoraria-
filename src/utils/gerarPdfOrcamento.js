@@ -530,7 +530,16 @@ async function buildOrcamentoPdf(
   // SERVIÇOS / PRODUTOS AVULSOS
   // ═══════════════════════════════════════════════════════════════════════════
   const itensManuais = orc.itens_manuais ?? [];
-  if (itensManuais.length > 0) {
+  // Normaliza avulsos (orcamento_avulsos) para o mesmo formato de linha dos itens manuais.
+  // Serviço extra (produto_id null) recebe sufixo no nome para distinguir de produto de catálogo.
+  const itensAvulsos = (orc.avulsos ?? []).map(av => ({
+    nome:       av.produto_id == null ? `${av.nome} (Serviço Extra)` : av.nome,
+    tipo:       'un',
+    quantidade: av.quantidade ?? 1,
+    total:      av.valor_total ?? 0,
+  }));
+  const itensSecaoAvulsa = [...itensManuais, ...itensAvulsos];
+  if (itensSecaoAvulsa.length > 0) {
     needPage(32);
     hLine(doc, y, ML, RIGHT, C.ink, 0.4);
     y += 1;
@@ -547,7 +556,7 @@ async function buildOrcamentoPdf(
     y += 4;
 
     let subtManuais = 0;
-    for (const item of itensManuais) {
+    for (const item of itensSecaoAvulsa) {
       needPage(11);
       const qty  = Number(item.quantidade ?? 0);
       const unit = item.tipo === 'area' ? 'm²' : (item.tipo === 'ml' ? 'ml' : 'un');

@@ -917,6 +917,7 @@ export function useProjectActions(projectId, {
                 nome:                   `Pedido #${pedidoFechado.id.slice(-8).toUpperCase()}`,
                 pecas:                  todasPecas,
                 itens_manuais:          orcsSel.flatMap(o => o.itens_manuais ?? []),
+                avulsos:                orcsSel.flatMap(o => o.avulsos ?? []),
                 valor_frete:            orcsSel.reduce((s, o) => s + (o.valor_frete ?? 0), 0),
                 desconto_total:         orcsSel.reduce((s, o) => s + (o.desconto_total ?? 0), 0),
                 majoramento_percentual: orcsSel[0]?.majoramento_percentual ?? 0,

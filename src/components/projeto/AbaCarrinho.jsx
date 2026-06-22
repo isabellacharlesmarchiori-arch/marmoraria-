@@ -873,6 +873,9 @@ export default function AbaCarrinho({
                                                             <div className="flex items-center gap-3 min-w-0">
                                                                 <div className="w-px h-5 bg-gray-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
                                                                 <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{av.nome}</span>
+                                                                {av.produto_id == null && (
+                                                                    <span className="font-mono text-[8px] uppercase tracking-widest text-amber-600 dark:text-amber-500 border border-amber-600/30 dark:border-amber-500/30 px-1 py-0.5 shrink-0">Serviço Extra</span>
+                                                                )}
                                                                 <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{av.quantidade}x {fmtBRL(av.valor_unitario)}</span>
                                                             </div>
                                                             <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(av.valor_total)}</span>
