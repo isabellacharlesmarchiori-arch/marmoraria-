@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartstone-20260623';
+const CACHE_NAME = 'smartstone-20260623b';
 const urlsToCache = [
   '/',
   '/index.html',

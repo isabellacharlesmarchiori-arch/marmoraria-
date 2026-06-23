@@ -749,7 +749,7 @@ export default function Carrinho() {
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="min-h-screen bg-gray-100 dark:bg-[#050505] flex flex-col items-center justify-center text-gray-500 dark:text-zinc-600 gap-4">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-600 gap-4">
       <iconify-icon icon="solar:spinner-linear" width="40" class="animate-spin" />
       <p className="font-mono text-xs uppercase tracking-widest">Carregando orçamento...</p>
     </div>
@@ -757,55 +757,58 @@ export default function Carrinho() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-[#050505] text-gray-900 dark:text-white flex flex-col font-sans selection:bg-yellow-400/30">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-white flex flex-col font-sans selection:bg-orange-500 selection:text-white dark:selection:bg-yellow-400/30 dark:selection:text-white">
 
-      {/* Backgrounds — mesmo padrão do TelaProjeto */}
-      <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid" />
-      <div className="fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]" />
+      {/* Backgrounds — light */}
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:hidden" />
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.15] bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.1),transparent_70%)] dark:hidden" />
+      {/* Backgrounds — dark */}
+      <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block opacity-100 bg-grid" />
+      <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]" />
 
       <main className="relative z-10 max-w-[1100px] mx-auto w-full p-4 md:p-8 pt-10 pb-40">
 
         {/* Toast sucesso */}
         {toastSucesso && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-950 border border-green-700/50 px-5 py-3 flex items-center gap-3 shadow-xl max-w-md w-full">
-            <iconify-icon icon="solar:check-circle-linear" width="16" class="text-green-400 shrink-0" />
-            <span className="font-mono text-[11px] text-green-300 flex-1">{toastSucesso}</span>
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-700/50 px-5 py-3 flex items-center gap-3 shadow-xl max-w-md w-full rounded-xl dark:rounded-none">
+            <iconify-icon icon="solar:check-circle-linear" width="16" class="text-green-600 dark:text-green-400 shrink-0" />
+            <span className="font-mono text-[11px] text-green-700 dark:text-green-300 flex-1">{toastSucesso}</span>
           </div>
         )}
 
         {/* Toast erro */}
         {erro && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-950 border border-red-700/50 px-5 py-3 flex items-center gap-3 shadow-xl max-w-md w-full">
-            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-red-400 shrink-0" />
-            <span className="font-mono text-[11px] text-red-300 flex-1">{erro}</span>
-            <button onClick={() => setErro('')} className="text-red-500 hover:text-white">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-700/50 px-5 py-3 flex items-center gap-3 shadow-xl max-w-md w-full rounded-xl dark:rounded-none">
+            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-red-600 dark:text-red-400 shrink-0" />
+            <span className="font-mono text-[11px] text-red-700 dark:text-red-300 flex-1">{erro}</span>
+            <button onClick={() => setErro('')} className="text-red-500 hover:text-red-700 dark:hover:text-white">
               <iconify-icon icon="solar:close-linear" width="14" />
             </button>
           </div>
         )}
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-6">
-          <button onClick={() => navigate(`/projetos/${projetoId}`)} className="hover:text-yellow-400 transition-colors">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-zinc-500 mb-6 bg-white/50 dark:bg-transparent backdrop-blur-md border border-zinc-200/80 dark:border-transparent px-3 py-1.5 rounded-md dark:rounded-none w-max shadow-sm dark:shadow-none">
+          <button onClick={() => navigate(`/projetos/${projetoId}`)} className="font-semibold text-zinc-600 dark:text-zinc-400 hover:text-orange-500 dark:hover:text-yellow-400 transition-colors">
             {projetoNome}
           </button>
-          <iconify-icon icon="solar:alt-arrow-right-linear" width="10" class="text-zinc-700" />
+          <iconify-icon icon="solar:alt-arrow-right-linear" width="10" class="text-zinc-400 dark:text-zinc-700" />
           <span className="text-zinc-400">Gerar Orçamento</span>
         </div>
 
         {/* Header */}
         <section className="mb-6">
-          <div className="bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-0.5 mb-2">
+              <div className="text-[9px] font-mono font-medium text-zinc-500 dark:text-zinc-500 uppercase tracking-widest border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-transparent w-max px-2.5 py-1 mb-3 rounded-md dark:rounded-none">
                 11 // Carrinho
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Gerar Orçamento</h1>
-              {clienteNome && <p className="font-mono text-[11px] text-gray-500 dark:text-zinc-500 mt-0.5">{clienteNome}</p>}
+              <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">Gerar Orçamento</h1>
+              {clienteNome && <p className="font-mono text-[11px] text-zinc-500 dark:text-zinc-500 mt-0.5">{clienteNome}</p>}
             </div>
             <button
               onClick={() => navigate(`/projetos/${projetoId}`)}
-              className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors self-start md:self-auto"
+              className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-5 py-2.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:border-white dark:hover:bg-zinc-900 dark:hover:text-white transition-colors rounded-xl dark:rounded-none font-medium shadow-sm dark:shadow-none self-start md:self-auto"
             >
               <iconify-icon icon="solar:arrow-left-linear" width="13" />
               Voltar ao projeto
@@ -814,13 +817,13 @@ export default function Carrinho() {
         </section>
 
         {/* Label seção */}
-        <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-4">
+        <div className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 bg-white/50 dark:bg-transparent backdrop-blur-md w-max px-2.5 py-1 mb-5 rounded-md dark:rounded-none shadow-sm dark:shadow-none">
           02 // Ambientes e Versões
         </div>
 
         {/* Badge múltiplas medições */}
         {temMultiplasMedicoes && (
-          <div className="bg-blue-100 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-700/40 px-4 py-3 mb-4 flex items-center gap-2">
+          <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-700/40 px-4 py-3 mb-4 flex items-center gap-2 rounded-xl dark:rounded-none">
             <iconify-icon icon="solar:info-circle-linear" width="14" class="text-blue-700 dark:text-blue-400 shrink-0" />
             <p className="font-mono text-[11px] text-blue-800 dark:text-blue-300">
               Este orçamento contém itens de {numMedicoes} medições diferentes
@@ -830,14 +833,14 @@ export default function Carrinho() {
 
         {/* Estado vazio */}
         {ambientes.length === 0 ? (
-          <div className="bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-6 py-16 text-center">
-            <iconify-icon icon="solar:layers-linear" width="36" class="text-gray-300 dark:text-zinc-800 block mx-auto mb-4" />
-            <p className="font-mono text-[11px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 mb-6">
+          <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none px-6 py-16 text-center">
+            <iconify-icon icon="solar:layers-linear" width="36" class="text-zinc-300 dark:text-zinc-800 block mx-auto mb-4" />
+            <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700 mb-6">
               Este projeto ainda não tem ambientes com orçamento.
             </p>
             <button
               onClick={() => navigate(`/projetos/${projetoId}`)}
-              className="border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-5 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-5 py-2.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 dark:hover:border-white dark:hover:bg-transparent dark:hover:text-white transition-colors rounded-xl dark:rounded-none shadow-sm dark:shadow-none"
             >
               Ir para o projeto
             </button>
@@ -847,23 +850,23 @@ export default function Carrinho() {
             {Object.entries(gruposPorMedicao).map(([key, grupo]) => (
               <div key={key}>
                 {temMultiplasMedicoes && (
-                  <div className="flex items-center gap-3 mb-3 border-l-4 border-yellow-500 pl-4">
-                    <iconify-icon icon="solar:ruler-cross-pen-linear" width="14" class="text-yellow-500 shrink-0" />
-                    <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-3 mb-4 border-l-4 border-orange-500 dark:border-yellow-500 pl-4">
+                    <iconify-icon icon="solar:ruler-cross-pen-linear" width="14" class="text-orange-500 dark:text-yellow-500 shrink-0" />
+                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-white">
                       Medição {grupo.data_medicao ? new Date(grupo.data_medicao).toLocaleDateString('pt-BR') : '—'}
                     </h3>
                   </div>
                 )}
                 <div className="flex flex-col gap-4">
                 {grupo.ambientes.map(amb => (
-                  <div key={amb.id} className="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-zinc-800">
+                  <div key={amb.id} className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none overflow-hidden">
 
                 {/* ── Cabeçalho do Ambiente ── */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-zinc-800">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-transparent">
                   <div className="flex items-center gap-3">
-                    <iconify-icon icon="solar:layers-minimalistic-linear" width="14" class="text-gray-400 dark:text-zinc-600 shrink-0" />
-                    <span className="text-gray-900 dark:text-white font-semibold text-sm tracking-tight">{amb.nome}</span>
-                    <span className="px-2 py-0.5 border border-yellow-500/40 dark:border-yellow-400/30 text-[9px] font-mono uppercase text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-400/5">
+                    <iconify-icon icon="solar:layers-minimalistic-linear" width="14" class="text-zinc-400 dark:text-zinc-600 shrink-0" />
+                    <span className="text-zinc-900 dark:text-white font-semibold text-sm tracking-tight">{amb.nome}</span>
+                    <span className="px-2.5 py-0.5 border border-orange-200 dark:border-yellow-400/30 text-[9px] font-mono uppercase text-orange-700 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5 rounded-full dark:rounded-none font-medium">
                       {amb.versoes.length} {amb.versoes.length === 1 ? 'versão' : 'versões'}
                     </span>
                   </div>
@@ -871,20 +874,20 @@ export default function Carrinho() {
                   {/* Tríade do Ambiente */}
                   <div className="flex items-center gap-1.5">
                     {loadingAmbId === amb.id ? (
-                      <iconify-icon icon="solar:spinner-linear" width="16" class="animate-spin text-yellow-400 mx-2" />
+                      <iconify-icon icon="solar:spinner-linear" width="16" class="animate-spin text-orange-500 dark:text-yellow-400 mx-2" />
                     ) : (
                       <>
                         <button
                           title="Renomear ambiente"
                           onClick={e => { e.stopPropagation(); setEditingAmbNome({ id: amb.id, nome: amb.nome }); }}
-                          className="flex items-center border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-gray-700 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
+                          className="flex items-center border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-zinc-400 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors rounded-lg dark:rounded-none"
                         >
                           <iconify-icon icon="solar:pen-linear" width="12" />
                         </button>
                         <button
                           title="Duplicar ambiente"
                           onClick={e => duplicarAmbiente(e, amb.id)}
-                          className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-yellow-500 dark:hover:border-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
+                          className="flex items-center gap-1.5 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-orange-300 dark:hover:border-yellow-400 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors rounded-lg dark:rounded-none"
                         >
                           <iconify-icon icon="solar:copy-linear" width="12" />
                           Duplicar
@@ -892,7 +895,7 @@ export default function Carrinho() {
                         <button
                           title="Excluir ambiente"
                           onClick={e => excluirAmbiente(e, amb.id)}
-                          className="flex items-center border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-red-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                          className="flex items-center border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 text-[9px] font-mono px-2 py-1.5 hover:border-red-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg dark:rounded-none"
                         >
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="12" />
                         </button>
@@ -916,12 +919,12 @@ export default function Carrinho() {
                     return (
                       <div
                         key={v.id}
-                        className={`flex flex-col group transition-colors ${vi < amb.versoes.length - 1 ? 'border-b border-gray-100 dark:border-zinc-900' : ''} ${modoMesclar && isMesclarChecked ? 'bg-orange-400/5' : ''}`}
+                        className={`flex flex-col group transition-colors ${vi < amb.versoes.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-900' : ''} ${modoMesclar && isMesclarChecked ? 'bg-orange-400/5' : ''}`}
                       >
                         {/* Linha da versão */}
                         <div
                           onClick={e => modoMesclar ? toggleMesclarId(e, v.id) : toggleExpandido(e, v.id)}
-                          className="flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.01] cursor-pointer"
+                          className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 dark:hover:bg-white/[0.01] cursor-pointer"
                         >
                           {/* Esquerda: checkbox + ícone + nome */}
                           <div className="flex items-center gap-3">
@@ -929,28 +932,28 @@ export default function Carrinho() {
                             {modoMesclar ? (
                               <div
                                 onClick={e => toggleMesclarId(e, v.id)}
-                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors ${isMesclarChecked ? 'border-orange-400 bg-orange-400/20' : 'border-gray-400 dark:border-zinc-600 hover:border-orange-400'}`}
+                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors rounded dark:rounded-none ${isMesclarChecked ? 'border-orange-400 bg-orange-400/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-orange-400'}`}
                               >
                                 {isMesclarChecked && <iconify-icon icon="solar:check-read-linear" width="10" class="text-orange-400" />}
                               </div>
                             ) : (
                               <div
                                 onClick={e => toggleSelecionar(e, v.id)}
-                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors ${isChecked ? 'border-yellow-400 bg-yellow-400/10' : 'border-gray-400 dark:border-zinc-700 hover:border-yellow-400'}`}
+                                className={`w-4 h-4 flex items-center justify-center shrink-0 border cursor-pointer transition-colors rounded dark:rounded-none ${isChecked ? 'border-orange-400 bg-orange-50 shadow-[0_0_8px_rgba(249,115,22,0.3)] dark:border-yellow-400 dark:bg-yellow-400/10 dark:shadow-none' : 'border-zinc-300 bg-white dark:bg-transparent dark:border-zinc-700 hover:border-orange-400 dark:hover:border-yellow-400'}`}
                               >
-                                {isChecked && <iconify-icon icon="solar:check-read-linear" width="10" class="text-yellow-400" />}
+                                {isChecked && <iconify-icon icon="solar:check-read-linear" width="10" class="text-orange-500 dark:text-yellow-400" />}
                               </div>
                             )}
 
                             <iconify-icon
                               icon="solar:document-text-linear"
                               width="13"
-                              class={`transition-colors shrink-0 ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-zinc-700 group-hover:text-orange-400') : (isChecked ? 'text-yellow-400' : 'text-zinc-700 group-hover:text-yellow-400')}`}
+                              class={`transition-colors shrink-0 ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-zinc-400 dark:text-zinc-700 group-hover:text-orange-400') : (isChecked ? 'text-orange-500 dark:text-yellow-400' : 'text-zinc-400 dark:text-zinc-700 group-hover:text-orange-500 dark:group-hover:text-yellow-400')}`}
                             />
 
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className={`text-sm font-medium transition-colors ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-gray-900 dark:text-white group-hover:text-orange-400') : (isChecked ? 'text-yellow-400' : 'text-gray-900 dark:text-white group-hover:text-yellow-400')}`}>
+                                <span className={`text-sm font-medium transition-colors ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-zinc-900 dark:text-white group-hover:text-orange-400') : (isChecked ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-yellow-400')}`}>
                                   {v.nome}
                                 </span>
                                 {versoesUnificadas.has(v.id) && (
@@ -975,34 +978,34 @@ export default function Carrinho() {
                             {/* Tríade da versão (visível no hover, oculta no modo mesclar) */}
                             <div className={`flex items-center gap-1 transition-opacity mr-1 ${modoMesclar ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100'}`}>
                               {vBusy ? (
-                                <iconify-icon icon="solar:spinner-linear" width="14" class="animate-spin text-yellow-400" />
+                                <iconify-icon icon="solar:spinner-linear" width="14" class="animate-spin text-orange-500 dark:text-yellow-400" />
                               ) : (
                                 <>
                                   <button
                                     title="Renomear versão"
                                     onClick={e => { e.stopPropagation(); setEditingVersaoNome({ ambId: amb.id, id: v.id, nome: v.nome }); }}
-                                    className="p-1.5 text-zinc-500 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors rounded"
+                                    className="p-1.5 text-zinc-500 hover:text-orange-500 hover:bg-orange-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-400/10 transition-colors rounded-lg dark:rounded-none"
                                   >
                                     <iconify-icon icon="solar:pen-linear" width="13" />
                                   </button>
                                   <button
                                     title="Mudar material desta versão"
                                     onClick={e => { e.stopPropagation(); setEditingMaterial({ ambId: amb.id, versaoId: v.id, material: v.pecas?.[0]?.material || '' }); }}
-                                    className="p-1.5 text-zinc-500 hover:text-violet-400 hover:bg-violet-400/10 transition-colors rounded"
+                                    className="p-1.5 text-zinc-500 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:text-violet-400 dark:hover:bg-violet-400/10 transition-colors rounded-lg dark:rounded-none"
                                   >
                                     <iconify-icon icon="solar:paint-roller-linear" width="13" />
                                   </button>
                                   <button
                                     title="Duplicar versão"
                                     onClick={e => duplicarVersao(e, amb.id, v.id)}
-                                    className="p-1.5 text-zinc-500 hover:text-blue-400 hover:bg-blue-400/10 transition-colors rounded"
+                                    className="p-1.5 text-zinc-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-400/10 transition-colors rounded-lg dark:rounded-none"
                                   >
                                     <iconify-icon icon="solar:copy-linear" width="13" />
                                   </button>
                                   <button
                                     title="Excluir versão"
                                     onClick={e => excluirVersao(e, amb.id, v.id)}
-                                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors rounded"
+                                    className="p-1.5 text-zinc-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:text-red-400 dark:hover:bg-red-400/10 transition-colors rounded-lg dark:rounded-none"
                                   >
                                     <iconify-icon icon="solar:trash-bin-trash-linear" width="13" />
                                   </button>
@@ -1011,7 +1014,7 @@ export default function Carrinho() {
                             </div>
 
                             {/* Valor total */}
-                            <span className={`font-mono text-sm font-semibold ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-gray-900 dark:text-white') : (isChecked ? 'text-yellow-400' : 'text-gray-900 dark:text-white')}`}>
+                            <span className={`font-mono text-sm font-semibold ${modoMesclar ? (isMesclarChecked ? 'text-orange-400' : 'text-zinc-900 dark:text-white') : (isChecked ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-white')}`}>
                               {fmt(v.valor_total)}
                             </span>
 
@@ -1020,7 +1023,7 @@ export default function Carrinho() {
                               <iconify-icon
                                 icon={isExpandido ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
                                 width="13"
-                                class={`transition-colors ${isChecked ? 'text-yellow-400' : 'text-zinc-700 group-hover:text-yellow-400'}`}
+                                class={`transition-colors ${isChecked ? 'text-orange-500 dark:text-yellow-400' : 'text-zinc-400 dark:text-zinc-700 group-hover:text-orange-500 dark:group-hover:text-yellow-400'}`}
                               />
                             )}
                           </div>
@@ -1028,30 +1031,30 @@ export default function Carrinho() {
 
                         {/* Tabela de peças (expandida) */}
                         {isExpandido && (
-                          <div className="px-5 pb-4 flex flex-col gap-2 bg-gray-50/50 dark:bg-black/20">
+                          <div className="px-6 py-5 flex flex-col gap-3 bg-zinc-50/80 dark:bg-black/20">
                             {v.pecas.length === 0 ? (
-                              <div className="text-center py-6 border border-dashed border-gray-300 dark:border-zinc-800">
-                                <p className="font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700">Nenhuma peça nesta versão</p>
+                              <div className="text-center py-6 border border-dashed border-zinc-200/80 dark:border-zinc-800">
+                                <p className="font-mono text-[10px] uppercase text-zinc-400 dark:text-zinc-700">Nenhuma peça nesta versão</p>
                               </div>
                             ) : (
                               v.pecas.map(p => (
                                 <div
                                   key={p.id}
-                                  className="flex flex-col md:flex-row md:items-center justify-between p-3 border border-gray-200 dark:border-zinc-800 bg-white dark:bg-black gap-3 hover:border-gray-300 dark:hover:border-zinc-700 transition-colors"
+                                  className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-black rounded-[1rem] dark:rounded-none shadow-sm dark:shadow-none gap-4 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md dark:hover:shadow-none transition-all"
                                 >
                                   {/* Info da peça */}
                                   <div className="flex items-start md:items-center gap-4">
-                                    <div className="w-1.5 h-8 bg-gray-200 dark:bg-zinc-800 rounded-full shrink-0" />
+                                    <div className="w-1.5 h-8 bg-zinc-200 dark:bg-zinc-800 rounded-full shrink-0" />
                                     <div className="flex flex-col gap-1">
-                                      <div className="text-xs text-gray-900 dark:text-white font-medium tracking-wide">{p.nome}</div>
-                                      <div className="flex flex-wrap items-center gap-y-1 gap-x-2 font-mono text-[10px] text-gray-500 dark:text-zinc-500">
+                                      <div className="text-xs text-zinc-900 dark:text-white font-medium tracking-wide">{p.nome}</div>
+                                      <div className="flex flex-wrap items-center gap-y-1 gap-x-2 font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
                                         <span className="flex items-center gap-1">
                                           <iconify-icon icon="solar:box-linear" width="10" />
                                           {p.material}
                                         </span>
                                         {p.espessura && p.espessura !== '—' && (
                                           <>
-                                            <span className="w-1 h-1 bg-gray-300 dark:bg-zinc-700 rounded-full" />
+                                            <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
                                             <span className="flex items-center gap-1">
                                               <iconify-icon icon="solar:ruler-linear" width="10" />
                                               {p.espessura}
@@ -1060,7 +1063,7 @@ export default function Carrinho() {
                                         )}
                                         {p.area && p.area !== '—' && (
                                           <>
-                                            <span className="w-1 h-1 bg-gray-300 dark:bg-zinc-700 rounded-full" />
+                                            <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
                                             <span className="flex items-center gap-1">
                                               <iconify-icon icon="solar:ruler-cross-pen-linear" width="10" />
                                               {p.area}
@@ -1069,8 +1072,8 @@ export default function Carrinho() {
                                         )}
                                         {p.acabamento && p.acabamento !== '—' && (
                                           <>
-                                            <span className="w-1 h-1 bg-gray-300 dark:bg-zinc-700 rounded-full" />
-                                            <span className="text-gray-500 dark:text-zinc-400">{p.acabamento}</span>
+                                            <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
+                                            <span className="text-zinc-500 dark:text-zinc-400">{p.acabamento}</span>
                                           </>
                                         )}
                                       </div>
@@ -1078,7 +1081,7 @@ export default function Carrinho() {
                                   </div>
 
                                   {/* Valor da peça */}
-                                  <span className="font-mono text-xs text-gray-700 dark:text-zinc-300 md:ml-auto md:mr-4">
+                                  <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 md:ml-auto md:mr-4">
                                     {fmt(p.valor)}
                                   </span>
                                 </div>
@@ -1086,9 +1089,9 @@ export default function Carrinho() {
                             )}
 
                             {/* Total da versão */}
-                            <div className="flex items-center justify-between pt-1 px-1">
-                              <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">{v.pecas.length} peça{v.pecas.length !== 1 ? 's' : ''}</span>
-                              <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{fmt(v.valor_total)}</span>
+                            <div className="flex items-center justify-between pt-2 px-2 mt-1 border-t border-zinc-200/50 dark:border-zinc-800">
+                              <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 uppercase tracking-widest font-semibold">{v.pecas.length} peça{v.pecas.length !== 1 ? 's' : ''}</span>
+                              <span className="font-mono text-sm font-bold text-zinc-900 dark:text-white">{fmt(v.valor_total)}</span>
                             </div>
                           </div>
                         )}
@@ -1100,9 +1103,9 @@ export default function Carrinho() {
                 ))}
                 </div>
                 {temMultiplasMedicoes && (
-                  <div className="mt-3 flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800/50">
-                    <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 uppercase tracking-widest">Subtotal desta medição</span>
-                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="mt-4 flex items-center justify-between px-6 py-4 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/50 rounded-xl dark:rounded-none shadow-sm dark:shadow-none">
+                    <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Subtotal desta medição</span>
+                    <span className="font-mono text-base font-bold text-orange-600 dark:text-yellow-400">
                       {fmt(grupo.ambientes.flatMap(a => a.versoes).filter(v => selectedIds.includes(v.id)).reduce((s, v) => s + v.valor_total, 0))}
                     </span>
                   </div>
@@ -1114,7 +1117,7 @@ export default function Carrinho() {
       </main>
 
       {/* ── Rodapé fixo — Total selecionado + ações ──────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#050505] border-t border-gray-200 dark:border-zinc-800 p-4 flex items-center justify-between z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#050505] backdrop-blur-xl border-t border-zinc-200 dark:border-zinc-800 p-5 flex items-center justify-between z-50 shadow-[0_-20px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
         {modoMesclar ? (
           /* ── Modo Mesclar Cenários ── */
           <>
@@ -1135,7 +1138,7 @@ export default function Carrinho() {
             <div className="flex items-center gap-2">
               <button
                 onClick={cancelarMesclar}
-                className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-zinc-400 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors rounded-xl dark:rounded-none shadow-sm dark:shadow-none"
               >
                 <iconify-icon icon="solar:close-linear" width="13" />
                 Cancelar
@@ -1143,7 +1146,7 @@ export default function Carrinho() {
               <button
                 onClick={() => setModalMesclar({ nome: 'Cenário Mesclado' })}
                 disabled={mesclarIds.length < 2}
-                className="flex items-center gap-2 bg-orange-500 text-white text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 hover:bg-orange-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-orange-500 text-white text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 hover:bg-orange-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed rounded-xl dark:rounded-none shadow-md dark:shadow-none"
               >
                 <iconify-icon icon="solar:merge-linear" width="13" />
                 Mesclar ({mesclarIds.length})
@@ -1155,17 +1158,17 @@ export default function Carrinho() {
           <>
             <div className="flex items-center gap-4">
               <div>
-                <div className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 uppercase tracking-widest">
+                <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
                   Total selecionado ({selectedIds.length} {selectedIds.length === 1 ? 'versão' : 'versões'})
                 </div>
-                <div className="text-lg font-mono font-bold text-yellow-400">{fmt(totalSelecionado)}</div>
+                <div className="text-2xl font-mono font-bold text-orange-500 dark:text-yellow-400">{fmt(totalSelecionado)}</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={gerarPrint}
                 disabled={selectedIds.length === 0}
-                className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-5 py-3 hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-white dark:hover:bg-transparent hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-xl dark:rounded-none shadow-sm dark:shadow-none"
               >
                 <iconify-icon icon="solar:printer-linear" width="13" />
                 Imprimir / PDF
@@ -1173,14 +1176,14 @@ export default function Carrinho() {
               <button
                 onClick={() => setModalUnir({ nome: 'Cenário Unificado' })}
                 disabled={selectedIds.length < 2}
-                className="flex items-center gap-2 border border-violet-400/50 dark:border-violet-500/50 text-violet-700 dark:text-violet-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 border border-violet-300 dark:border-violet-500/50 bg-violet-50 dark:bg-transparent text-violet-700 dark:text-violet-300 text-[11px] font-mono uppercase tracking-widest px-5 py-3 hover:bg-violet-100 hover:border-violet-400 dark:hover:border-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-xl dark:rounded-none shadow-sm dark:shadow-none"
               >
                 <iconify-icon icon="solar:link-circle-linear" width="13" />
                 Unir Cenários ({selectedIds.length})
               </button>
               <button
                 disabled={selectedIds.length === 0}
-                className="flex items-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black text-[11px] font-bold uppercase tracking-widest px-6 py-3 hover:bg-orange-600 dark:hover:bg-yellow-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] dark:hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all disabled:opacity-30 disabled:cursor-not-allowed rounded-xl dark:rounded-none shadow-md dark:shadow-none"
               >
                 <iconify-icon icon="solar:chat-line-linear" width="13" />
                 Enviar WhatsApp
@@ -1193,10 +1196,10 @@ export default function Carrinho() {
       {/* ══ Modal: Renomear Ambiente ══════════════════════════════════════ */}
       {editingAmbNome && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-sm shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white font-bold">Renomear Ambiente</span>
-              <button onClick={() => setEditingAmbNome(null)} className="text-zinc-500 hover:text-white transition-colors">
+          <div className="bg-white dark:bg-[#0d0d0d] border border-zinc-200 dark:border-zinc-700 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Renomear Ambiente</span>
+              <button onClick={() => setEditingAmbNome(null)} className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                 <iconify-icon icon="solar:close-linear" width="16" />
               </button>
             </div>
@@ -1206,12 +1209,12 @@ export default function Carrinho() {
                 value={editingAmbNome.nome}
                 onChange={e => setEditingAmbNome(p => ({ ...p, nome: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter') salvarNomeAmbiente(); }}
-                className="w-full bg-black border border-zinc-800 focus:border-yellow-400 outline-none text-white text-sm font-mono px-3 py-2"
+                className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2"
                 placeholder="Nome do ambiente"
               />
               <div className="flex gap-2 mt-4">
-                <button onClick={() => setEditingAmbNome(null)} className="flex-1 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">Cancelar</button>
-                <button onClick={salvarNomeAmbiente} className="flex-1 bg-yellow-400 text-black font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-yellow-300">Salvar</button>
+                <button onClick={() => setEditingAmbNome(null)} className="flex-1 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">Cancelar</button>
+                <button onClick={salvarNomeAmbiente} className="flex-1 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-orange-600 dark:hover:bg-yellow-300">Salvar</button>
               </div>
             </div>
           </div>
@@ -1221,10 +1224,10 @@ export default function Carrinho() {
       {/* ══ Modal: Renomear Versão ════════════════════════════════════════ */}
       {editingVersaoNome && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-sm shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white font-bold">Renomear Versão</span>
-              <button onClick={() => setEditingVersaoNome(null)} className="text-zinc-500 hover:text-white transition-colors">
+          <div className="bg-white dark:bg-[#0d0d0d] border border-zinc-200 dark:border-zinc-700 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Renomear Versão</span>
+              <button onClick={() => setEditingVersaoNome(null)} className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                 <iconify-icon icon="solar:close-linear" width="16" />
               </button>
             </div>
@@ -1234,12 +1237,12 @@ export default function Carrinho() {
                 value={editingVersaoNome.nome}
                 onChange={e => setEditingVersaoNome(p => ({ ...p, nome: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter') salvarNomeVersao(); }}
-                className="w-full bg-black border border-zinc-800 focus:border-yellow-400 outline-none text-white text-sm font-mono px-3 py-2"
+                className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2"
                 placeholder="Nome da versão"
               />
               <div className="flex gap-2 mt-4">
-                <button onClick={() => setEditingVersaoNome(null)} className="flex-1 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">Cancelar</button>
-                <button onClick={salvarNomeVersao} className="flex-1 bg-yellow-400 text-black font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-yellow-300">Salvar</button>
+                <button onClick={() => setEditingVersaoNome(null)} className="flex-1 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">Cancelar</button>
+                <button onClick={salvarNomeVersao} className="flex-1 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-orange-600 dark:hover:bg-yellow-300">Salvar</button>
               </div>
             </div>
           </div>
@@ -1253,10 +1256,10 @@ export default function Carrinho() {
         );
         return (
           <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-md shadow-2xl">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-white font-bold">Unir Cenários Selecionados</span>
-                <button onClick={() => setModalUnir(null)} className="text-zinc-500 hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#0d0d0d] border border-zinc-200 dark:border-zinc-700 w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Unir Cenários Selecionados</span>
+                <button onClick={() => setModalUnir(null)} className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                   <iconify-icon icon="solar:close-linear" width="16" />
                 </button>
               </div>
@@ -1271,19 +1274,19 @@ export default function Carrinho() {
                     value={modalUnir.nome}
                     onChange={e => setModalUnir(p => ({ ...p, nome: e.target.value }))}
                     onKeyDown={e => { if (e.key === 'Enter' && !loadingUnir) unirCenarios(); }}
-                    className="w-full bg-black border border-zinc-800 focus:border-violet-400 outline-none text-white text-sm font-mono px-3 py-2"
+                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-violet-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2"
                     placeholder="Ex: Cenário Unificado"
                   />
                 </div>
 
                 {/* Lista de cenários que serão unidos */}
-                <div className="bg-zinc-900/60 border border-zinc-800 p-3">
+                <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 p-3">
                   <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-2">
                     Cenários que serão unidos ({versoesSel.length}):
                   </p>
                   <ul className="space-y-1.5 max-h-36 overflow-y-auto">
                     {versoesSel.map(v => (
-                      <li key={v.id} className="flex items-center gap-2 font-mono text-[11px] text-zinc-300">
+                      <li key={v.id} className="flex items-center gap-2 font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
                         <iconify-icon icon="solar:link-circle-linear" width="11" class="text-violet-400 shrink-0" />
                         <span className="text-zinc-500">{v.ambNome}</span>
                         <iconify-icon icon="solar:alt-arrow-right-linear" width="10" class="text-zinc-700 shrink-0" />
@@ -1301,7 +1304,7 @@ export default function Carrinho() {
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setModalUnir(null)}
-                    className="flex-1 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors"
+                    className="flex-1 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1336,13 +1339,13 @@ export default function Carrinho() {
           .flatMap(g => g.versoes).reduce((s, v) => s + v.valor_total, 0);
         return (
           <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-lg shadow-2xl">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+            <div className="bg-white dark:bg-[#0d0d0d] border border-zinc-200 dark:border-zinc-700 w-full max-w-lg shadow-2xl">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
                 <div className="flex items-center gap-3">
                   <iconify-icon icon="solar:merge-linear" width="14" class="text-orange-400" />
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-white font-bold">Mesclar Cenários</span>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Mesclar Cenários</span>
                 </div>
-                <button onClick={cancelarMesclar} className="text-zinc-500 hover:text-white transition-colors">
+                <button onClick={cancelarMesclar} className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                   <iconify-icon icon="solar:close-linear" width="16" />
                 </button>
               </div>
@@ -1357,13 +1360,13 @@ export default function Carrinho() {
                     value={modalMesclar.nome}
                     onChange={e => setModalMesclar(p => ({ ...p, nome: e.target.value }))}
                     onKeyDown={e => { if (e.key === 'Enter' && !loadingMesclar) mesclarCenarios(); }}
-                    className="w-full bg-black border border-zinc-800 focus:border-orange-400 outline-none text-white text-sm font-mono px-3 py-2"
+                    className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2"
                     placeholder="Ex: Proposta Final, Mescla Completa..."
                   />
                 </div>
 
                 {/* Preview da hierarquia */}
-                <div className="bg-zinc-900/60 border border-zinc-800 p-3">
+                <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 p-3">
                   <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-3">
                     Estrutura do novo cenário:
                   </p>
@@ -1372,14 +1375,14 @@ export default function Carrinho() {
                       <div key={gi} className="border border-zinc-800 bg-black/30">
                         <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50">
                           <iconify-icon icon="solar:layers-minimalistic-linear" width="11" class="text-orange-400 shrink-0" />
-                          <span className="font-mono text-[10px] text-orange-300 font-semibold">{ambNome}</span>
+                          <span className="font-mono text-[10px] text-orange-600 dark:text-orange-300 font-semibold">{ambNome}</span>
                           <span className="ml-auto font-mono text-[9px] text-zinc-600">
                             {fmt(versoes.reduce((s, v) => s + v.valor_total, 0))}
                           </span>
                         </div>
                         <ul className="px-3 py-2 space-y-1">
                           {versoes.map(v => (
-                            <li key={v.id} className="flex items-center gap-2 font-mono text-[10px] text-zinc-400">
+                            <li key={v.id} className="flex items-center gap-2 font-mono text-[10px] text-zinc-600 dark:text-zinc-400">
                               <iconify-icon icon="solar:document-text-linear" width="10" class="text-zinc-600 shrink-0" />
                               <span>{v.nome}</span>
                               <span className="w-1 h-1 rounded-full bg-zinc-700 shrink-0" />
@@ -1406,7 +1409,7 @@ export default function Carrinho() {
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={cancelarMesclar}
-                    className="flex-1 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors"
+                    className="flex-1 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1430,10 +1433,10 @@ export default function Carrinho() {
       {/* ══ Modal: Mudar Material em Massa ════════════════════════════════ */}
       {editingMaterial && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0d0d0d] border border-zinc-700 w-full max-w-sm shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white font-bold">Mudar Material da Versão</span>
-              <button onClick={() => setEditingMaterial(null)} className="text-zinc-500 hover:text-white transition-colors">
+          <div className="bg-white dark:bg-[#0d0d0d] border border-zinc-200 dark:border-zinc-700 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Mudar Material da Versão</span>
+              <button onClick={() => setEditingMaterial(null)} className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                 <iconify-icon icon="solar:close-linear" width="16" />
               </button>
             </div>
@@ -1446,12 +1449,12 @@ export default function Carrinho() {
                 value={editingMaterial.material}
                 onChange={e => setEditingMaterial(p => ({ ...p, material: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter') aplicarMaterial(); }}
-                className="w-full bg-black border border-zinc-800 focus:border-yellow-400 outline-none text-white text-sm font-mono px-3 py-2"
+                className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2"
                 placeholder="Ex: Calacata Gold, Branco Siena..."
               />
               <div className="flex gap-2 mt-4">
-                <button onClick={() => setEditingMaterial(null)} className="flex-1 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">Cancelar</button>
-                <button onClick={aplicarMaterial} className="flex-1 bg-yellow-400 text-black font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-yellow-300">Aplicar</button>
+                <button onClick={() => setEditingMaterial(null)} className="flex-1 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">Cancelar</button>
+                <button onClick={aplicarMaterial} className="flex-1 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-orange-600 dark:hover:bg-yellow-300">Aplicar</button>
               </div>
             </div>
           </div>
