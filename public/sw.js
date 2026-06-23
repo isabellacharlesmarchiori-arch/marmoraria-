@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartstone-v1';
+const CACHE_NAME = 'smartstone-20260623';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -24,7 +24,7 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -37,6 +37,12 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(event.request).catch(() => caches.match('/index.html'))
     );
+    return;
+  }
+
+  // Hashed build chunks (/assets/*.js, *.css): never cache here — the filename
+  // hash already busts the browser cache. Let the browser manage them directly.
+  if (event.request.url.includes('/assets/')) {
     return;
   }
 
