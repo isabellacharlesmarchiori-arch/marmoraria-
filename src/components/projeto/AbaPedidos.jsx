@@ -15,21 +15,21 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
     return (
         <div className="sys-reveal sys-delay-200">
             <div className="flex items-center justify-between mb-5">
-                <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+                <div className="text-[9px] font-mono font-medium text-zinc-500 dark:text-zinc-500 uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1">
                     03 // Pedidos
                 </div>
                 {pedidosOrdenados.length > 0 && (
-                    <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-600">
+                    <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-600">
                         {pedidosOrdenados.length} pedido{pedidosOrdenados.length !== 1 ? 's' : ''}
                     </span>
                 )}
             </div>
 
             {pedidosOrdenados.length === 0 ? (
-                <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-6 py-16 text-center">
-                    <iconify-icon icon="solar:document-text-linear" width="36" className="text-gray-300 dark:text-zinc-800 mb-4 block mx-auto"></iconify-icon>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Nenhum pedido fechado ainda</p>
-                    <p className="font-mono text-[10px] text-gray-400 dark:text-zinc-700 mt-2">Use a aba Orçamentos para fechar um pedido</p>
+                <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none px-6 py-16 text-center">
+                    <iconify-icon icon="solar:document-text-linear" width="36" className="text-zinc-300 dark:text-zinc-800 mb-4 block mx-auto"></iconify-icon>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Nenhum pedido fechado ainda</p>
+                    <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-700 mt-2">Use a aba Orçamentos para fechar um pedido</p>
                 </div>
             ) : (
                 <div className="flex flex-col gap-3">
@@ -49,24 +49,24 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                         ) ?? null;
 
                         return (
-                            <div key={pedido.id} className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
+                            <div key={pedido.id} className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none">
                                 {/* Header */}
                                 <button
                                     onClick={toggle}
-                                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-zinc-900/40 transition-colors text-left"
+                                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors text-left"
                                 >
                                     <div className="flex items-center gap-3 flex-wrap">
                                         <iconify-icon icon="solar:document-text-bold" width="15" className="text-blue-400 shrink-0"></iconify-icon>
-                                        <span className="font-mono text-[11px] uppercase tracking-widest font-bold text-gray-900 dark:text-white">
+                                        <span className="font-mono text-[11px] uppercase tracking-widest font-bold text-zinc-900 dark:text-white">
                                             Pedido {numero}
                                         </span>
                                         {pedido.created_at && (
-                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">
+                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
                                                 {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
                                             </span>
                                         )}
                                         {valorTotal > 0 && (
-                                            <span className="font-mono text-[11px] font-semibold text-yellow-400">
+                                            <span className="font-mono text-[11px] font-semibold text-orange-600 dark:text-yellow-400">
                                                 {fmtBRL(valorTotal)}
                                             </span>
                                         )}
@@ -101,7 +101,7 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                                 Medição agendada
                                             </span>
                                         ) : (
-                                            <span className="font-mono text-[9px] px-2 py-0.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500">
+                                            <span className="font-mono text-[9px] px-2 py-0.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 rounded-full dark:rounded-none">
                                                 Sem medição de produção agendada
                                             </span>
                                         )}
@@ -109,7 +109,7 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                     <iconify-icon
                                         icon={aberto ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
                                         width="14"
-                                        className="text-gray-400 dark:text-zinc-500 shrink-0 ml-2"
+                                        className="text-zinc-400 dark:text-zinc-500 shrink-0 ml-2"
                                     ></iconify-icon>
                                 </button>
 
@@ -120,7 +120,7 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                         </p>
                                         <ul className="flex flex-col gap-1">
                                             {[...faltantes].map(nome => (
-                                                <li key={nome} className="flex items-center gap-1.5 font-mono text-[10px] text-gray-700 dark:text-zinc-300">
+                                                <li key={nome} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-700 dark:text-zinc-300">
                                                     <span className="w-1 h-1 rounded-full bg-amber-400 shrink-0"></span>
                                                     {nome}
                                                 </li>
@@ -130,25 +130,25 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                 )}
 
                                 {aberto && (
-                                    <div className="border-t border-gray-300 dark:border-zinc-800">
+                                    <div className="border-t border-zinc-200/80 dark:border-zinc-800">
                                         <div className="p-5 grid grid-cols-2 gap-x-6 gap-y-4">
                                             <div>
-                                                <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-1">Pagamento</div>
-                                                <div className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">
+                                                <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-1">Pagamento</div>
+                                                <div className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
                                                     {pedido.forma_pagamento ?? '—'}
                                                     {pedido.parcelas ? ` · ${pedido.parcelas}x` : ''}
                                                 </div>
                                             </div>
                                             <div>
-                                                <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-1">Prazo de entrega</div>
-                                                <div className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">
+                                                <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-1">Prazo de entrega</div>
+                                                <div className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
                                                     {pedido.prazo_entrega
                                                         ? new Date(pedido.prazo_entrega).toLocaleDateString('pt-BR')
                                                         : '—'}
                                                 </div>
                                             </div>
                                             <div className="col-span-2">
-                                                <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Medição de Produção</div>
+                                                <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-2">Medição de Produção</div>
                                                 {medicoesCobrem.length > 0 && (
                                                     <div className="flex flex-col gap-2 mb-2">
                                                         {medicoesCobrem.map(m => (
@@ -158,13 +158,13 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                                                     width="13"
                                                                     className={['concluida','processada','aprovada'].includes(m.status) ? 'text-green-500 shrink-0' : 'text-blue-400 shrink-0'}
                                                                 ></iconify-icon>
-                                                                <span className="font-mono text-[11px] text-gray-700 dark:text-zinc-300">{m.data ?? '—'}</span>
-                                                                <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">{m.medidor ?? '—'}</span>
+                                                                <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">{m.data ?? '—'}</span>
+                                                                <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500">{m.medidor ?? '—'}</span>
                                                                 {m.status === 'agendada' && (
                                                                     <button
                                                                         onClick={() => onEditarProducao?.(m, numero)}
                                                                         title="Editar agendamento"
-                                                                        className="w-6 h-6 flex items-center justify-center border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-gray-500 dark:hover:border-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                                                        className="w-6 h-6 flex items-center justify-center border border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:border-zinc-500 dark:hover:border-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors rounded-md dark:rounded-none"
                                                                     >
                                                                         <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                                                     </button>
@@ -177,7 +177,7 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                                     <button
                                                         disabled
                                                         title="Disponível em breve"
-                                                        className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed mb-2"
+                                                        className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 px-3 py-1 opacity-40 cursor-not-allowed mb-2 rounded-md dark:rounded-none"
                                                     >
                                                         <iconify-icon icon="solar:eye-linear" width="11"></iconify-icon>
                                                         Ver Diferença
@@ -186,13 +186,13 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                                 {cobStatus !== 'completo' && !temAgendada && (
                                                     <div className="flex items-center gap-3">
                                                         {medicoesCobrem.length === 0 && (
-                                                            <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">
+                                                            <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-500">
                                                                 Sem medição de produção
                                                             </span>
                                                         )}
                                                         <button
                                                             onClick={() => onAgendarProducao?.(pedido, numero)}
-                                                            className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 px-3 py-1 hover:border-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
+                                                            className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-3 py-1 hover:border-orange-500 dark:hover:border-yellow-400 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors rounded-md dark:rounded-none"
                                                         >
                                                             <iconify-icon icon="solar:calendar-add-linear" width="11"></iconify-icon>
                                                             {cobStatus === 'parcial' ? 'Agendar Restantes' : 'Agendar Medição de Produção'}
@@ -203,26 +203,26 @@ export default function AbaPedidos({ pedidosFechados = [], ambientes = [], medic
                                         </div>
 
                                         {cenarios.length > 0 && (
-                                            <div className="border-t border-gray-300/60 dark:border-zinc-800/60 px-5 py-3">
-                                                <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">Cenários incluídos</div>
+                                            <div className="border-t border-zinc-200/80 dark:border-zinc-800/60 px-5 py-3">
+                                                <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-2">Cenários incluídos</div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {cenarios.map(orc => (
-                                                        <div key={orc.id} className="flex items-center gap-1.5 font-mono text-[10px] bg-gray-200 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 px-2.5 py-1">
-                                                            <span className="text-gray-400 dark:text-zinc-500 text-[9px]">{orc.ambiente_nome}</span>
-                                                            <span className="text-gray-300 dark:text-zinc-700">·</span>
+                                                        <div key={orc.id} className="flex items-center gap-1.5 font-mono text-[10px] bg-zinc-200 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 px-2.5 py-1 rounded-md dark:rounded-none">
+                                                            <span className="text-zinc-400 dark:text-zinc-500 text-[9px]">{orc.ambiente_nome}</span>
+                                                            <span className="text-zinc-300 dark:text-zinc-700">·</span>
                                                             <span>{orc.nome ?? orc.nome_versao ?? 'Orçamento'}</span>
-                                                            <span className="text-yellow-400/80 ml-1">{fmtBRL(orc.valor_total ?? 0)}</span>
+                                                            <span className="text-orange-600/80 dark:text-yellow-400/80 ml-1">{fmtBRL(orc.valor_total ?? 0)}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
                                         )}
 
-                                        <div className="border-t border-gray-300/60 dark:border-zinc-800/60 px-5 py-3 flex justify-end">
+                                        <div className="border-t border-zinc-200/80 dark:border-zinc-800/60 px-5 py-3 flex justify-end">
                                             <button
                                                 onClick={() => actions.openPdfModal('pedido', pedido, setPdfModal)}
                                                 disabled={!!loadingPdf}
-                                                className="flex items-center gap-2 border border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 hover:bg-yellow-100 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40"
+                                                className="flex items-center gap-2 border border-orange-300 dark:border-yellow-400/40 text-orange-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 hover:bg-orange-100 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40 rounded-md dark:rounded-none"
                                             >
                                                 {loadingPdf === 'pedido'
                                                     ? <><iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin"></iconify-icon> Gerando...</>

@@ -168,31 +168,31 @@ export default function AbaEmpresa() {
       <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleLogoSelect} />
 
       {/* Card 1 — Identidade */}
-      <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6 relative overflow-hidden">
+      <div className="bg-white/90 dark:bg-[#020202] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none p-8 space-y-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <iconify-icon icon="solar:buildings-linear" width="120"></iconify-icon>
         </div>
-        <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Identidade</h3>
+        <h3 className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500 tracking-widest">Identidade</h3>
 
         <div className="space-y-2">
-          <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Logo da Empresa</label>
+          <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Logo da Empresa</label>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <button type="button" onClick={() => fileInputRef.current?.click()}
-              className="w-24 h-24 border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black flex items-center justify-center relative overflow-hidden group hover:border-yellow-400/50 transition-colors shrink-0"
+              className="w-24 h-24 border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-black flex items-center justify-center relative overflow-hidden group hover:border-orange-500/50 dark:hover:border-yellow-400/50 transition-colors shrink-0"
               title="Clique para selecionar logo">
               {logoPreview
                 ? <img src={logoPreview} alt="Logo da empresa" loading="lazy" className="w-full h-full object-contain p-1" />
-                : <iconify-icon icon="solar:camera-add-linear" class="text-gray-500 dark:text-zinc-600 text-2xl group-hover:text-yellow-400 transition-colors"></iconify-icon>
+                : <iconify-icon icon="solar:camera-add-linear" class="text-zinc-500 dark:text-zinc-600 text-2xl group-hover:text-orange-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
               }
               {logoPreview && (
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <iconify-icon icon="solar:camera-add-linear" class="text-yellow-400 text-xl"></iconify-icon>
+                  <iconify-icon icon="solar:camera-add-linear" class="text-orange-600 dark:text-yellow-400 text-xl"></iconify-icon>
                 </div>
               )}
             </button>
             <div className="flex flex-col gap-2">
               <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="text-xs font-mono uppercase bg-transparent border border-gray-300 dark:border-zinc-700 hover:border-yellow-400 hover:text-yellow-400 text-gray-900 dark:text-white px-4 py-2 transition-colors flex items-center gap-2">
+                className="text-xs font-mono uppercase bg-transparent border border-zinc-200/80 dark:border-zinc-700 hover:border-orange-500 dark:hover:border-yellow-400 hover:text-orange-600 dark:hover:text-yellow-400 text-zinc-900 dark:text-white px-4 py-2 transition-colors flex items-center gap-2">
                 <iconify-icon icon="solar:upload-linear" width="13"></iconify-icon>
                 {logoPreview ? 'Trocar Imagem' : 'Selecionar Imagem'}
               </button>
@@ -204,9 +204,9 @@ export default function AbaEmpresa() {
                   Remover
                 </button>
               )}
-              <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-700">JPG, PNG ou WEBP · Máx. 2 MB</p>
+              <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-700">JPG, PNG ou WEBP · Máx. 2 MB</p>
               {fileToUpload && (
-                <p className="text-[10px] font-mono text-yellow-400/70 flex items-center gap-1">
+                <p className="text-[10px] font-mono text-orange-600/70 dark:text-yellow-400/70 flex items-center gap-1">
                   <iconify-icon icon="solar:info-circle-linear" width="11"></iconify-icon>
                   {fileToUpload.name} — salve para confirmar o upload
                 </p>
@@ -217,113 +217,113 @@ export default function AbaEmpresa() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Razão Social / Nome</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Razão Social / Nome</label>
             <input type="text" value={empresa.nome}
               onChange={e => setEmpresa({ ...empresa, nome: e.target.value })}
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">CNPJ</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">CNPJ</label>
             <input type="text" value={empresa.cnpj}
               onChange={e => setEmpresa({ ...empresa, cnpj: maskCNPJ(e.target.value) })}
               placeholder="00.000.000/0000-00"
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Inscrição Estadual</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Inscrição Estadual</label>
             <input type="text" value={empresa.inscricao_estadual}
               onChange={e => setEmpresa({ ...empresa, inscricao_estadual: e.target.value })}
               placeholder="Isento ou número"
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
           </div>
         </div>
       </div>
 
       {/* Card 2 — Contato */}
-      <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6">
-        <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Contato</h3>
+      <div className="bg-white/90 dark:bg-[#020202] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none p-8 space-y-6">
+        <h3 className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500 tracking-widest">Contato</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail de Contato</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">E-mail de Contato</label>
             <input type="email" value={empresa.email_contato}
               onChange={e => setEmpresa({ ...empresa, email_contato: e.target.value })}
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Telefone Fixo</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Telefone Fixo</label>
             <input type="text" value={empresa.telefone}
               onChange={e => setEmpresa({ ...empresa, telefone: maskTelefone(e.target.value) })}
               placeholder="(00) 0000-0000"
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">WhatsApp</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">WhatsApp</label>
             <input type="text" value={empresa.whatsapp}
               onChange={e => setEmpresa({ ...empresa, whatsapp: maskTelefone(e.target.value) })}
               placeholder="(00) 00000-0000"
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Website</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Website</label>
             <input type="url" value={empresa.website}
               onChange={e => setEmpresa({ ...empresa, website: e.target.value })}
               placeholder="https://"
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Endereço Completo</label>
+            <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Endereço Completo</label>
             <textarea value={empresa.endereco}
               onChange={e => setEmpresa({ ...empresa, endereco: e.target.value })}
               rows={2}
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm resize-none" />
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm resize-none" />
           </div>
         </div>
       </div>
 
       {/* Card 3 — Dados Bancários (admin only) */}
       {profile?.perfil === 'admin' && (
-        <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6">
-          <div className="flex items-center gap-2 text-gray-500 dark:text-zinc-500 text-[10px] font-mono uppercase">
-            <iconify-icon icon="solar:lock-password-linear" class="text-yellow-400/70" width="14"></iconify-icon>
+        <div className="bg-white/90 dark:bg-[#020202] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none p-8 space-y-6">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-500 text-[10px] font-mono uppercase">
+            <iconify-icon icon="solar:lock-password-linear" class="text-orange-600/70 dark:text-yellow-400/70" width="14"></iconify-icon>
             Visível apenas para perfil admin · Aparece no PDF de Pedido Fechado
           </div>
-          <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Dados Bancários</h3>
+          <h3 className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500 tracking-widest">Dados Bancários</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Banco</label>
+                <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Banco</label>
                 <input type="text" value={empresa.dados_bancarios.banco}
                   onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, banco: e.target.value } }))}
                   placeholder="Ex: Banco do Brasil — 001"
-                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Agência</label>
+                <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Agência</label>
                 <input type="text" value={empresa.dados_bancarios.agencia}
                   onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, agencia: e.target.value } }))}
                   placeholder="0000-0"
-                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Conta</label>
+                <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Conta</label>
                 <input type="text" value={empresa.dados_bancarios.conta}
                   onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, conta: e.target.value } }))}
                   placeholder="00000-0"
-                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Titular</label>
+                <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Titular</label>
                 <input type="text" value={empresa.dados_bancarios.titular}
                   onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, titular: e.target.value } }))}
-                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
               </div>
             </div>
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Tipo de Chave Pix</label>
+                <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Tipo de Chave Pix</label>
                 <select value={empresa.dados_bancarios.pix_tipo}
                   onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, pix_tipo: e.target.value } }))}
-                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm">
+                  className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm">
                   <option value="CNPJ">CNPJ</option>
                   <option value="CPF">CPF</option>
                   <option value="EMAIL">E-mail</option>
@@ -332,7 +332,7 @@ export default function AbaEmpresa() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Chave Pix</label>
+                <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Chave Pix</label>
                 <input type="text" value={empresa.dados_bancarios.pix_chave}
                   onChange={e => setEmpresa(prev => ({ ...prev, dados_bancarios: { ...prev.dados_bancarios, pix_chave: e.target.value } }))}
                   placeholder={
@@ -342,7 +342,7 @@ export default function AbaEmpresa() {
                     empresa.dados_bancarios.pix_tipo === 'TELEFONE' ? '+55 11 00000-0000'  :
                     'chave aleatória'
                   }
-                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 focus:outline-none focus:border-yellow-400 font-mono text-sm" />
+                  className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-sm" />
               </div>
             </div>
           </div>
@@ -351,28 +351,28 @@ export default function AbaEmpresa() {
 
       {/* Card 4 — Contrato Padrão (admin only) */}
       {profile?.perfil === 'admin' && (
-        <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 p-8 space-y-6">
-          <div className="flex items-center gap-2 text-gray-500 dark:text-zinc-500 text-[10px] font-mono uppercase">
-            <iconify-icon icon="solar:lock-password-linear" class="text-yellow-400/70" width="14"></iconify-icon>
+        <div className="bg-white/90 dark:bg-[#020202] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none p-8 space-y-6">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-500 text-[10px] font-mono uppercase">
+            <iconify-icon icon="solar:lock-password-linear" class="text-orange-600/70 dark:text-yellow-400/70" width="14"></iconify-icon>
             Visível apenas para perfil admin · Usado no PDF de Contrato
           </div>
-          <h3 className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 tracking-widest">Contrato Padrão</h3>
+          <h3 className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500 tracking-widest">Contrato Padrão</h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Texto das cláusulas</label>
+              <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Texto das cláusulas</label>
               <button
                 type="button"
                 onClick={() => updateContrato('contrato_texto', CONTRATO_PADRAO)}
-                className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 hover:text-yellow-400 transition-colors"
+                className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
               >↻ Restaurar texto padrão</button>
             </div>
             <textarea
               value={templates.contrato?.contrato_texto || CONTRATO_PADRAO}
               onChange={e => updateContrato('contrato_texto', e.target.value)}
               rows={12}
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-yellow-400 resize-none"
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none resize-none"
             />
-            <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-700">
+            <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-700">
               {'Placeholders: {{numero_pedido}} · {{valor_total}} · {{prazo_entrega}} · {{forma_pagamento}} · {{cidade_empresa}} · {{estado_empresa}}'}
             </p>
           </div>
@@ -380,7 +380,7 @@ export default function AbaEmpresa() {
             type="button"
             onClick={handleSalvarContrato}
             disabled={contratoSaving}
-            className="bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-6 py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black rounded-xl dark:rounded-none text-xs font-bold uppercase tracking-widest px-6 py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {contratoSaving ? (
               <><iconify-icon icon="solar:spinner-linear" class="animate-spin"></iconify-icon> Salvando...</>
@@ -396,7 +396,7 @@ export default function AbaEmpresa() {
         type="button"
         onClick={handleSalvarEmpresa}
         disabled={empresaSalvando}
-        className="bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-6 py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black rounded-xl dark:rounded-none text-xs font-bold uppercase tracking-widest px-6 py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {empresaSalvando ? (
           <>

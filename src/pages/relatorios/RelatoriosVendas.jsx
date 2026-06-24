@@ -29,8 +29,8 @@ const OUTROS_COLOR = '#3f3b1a';
 const fmtM2 = n => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtMl = n => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const SELECT_CLS = 'bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 font-mono text-[10px] uppercase tracking-wide px-3 py-2 focus:outline-none focus:border-yellow-400 dark:focus:border-yellow-400';
-const INPUT_CLS  = 'bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 font-mono text-[10px] px-3 py-2 focus:outline-none focus:border-yellow-400 dark:focus:border-yellow-400 placeholder:text-gray-400 dark:placeholder:text-zinc-600 w-[220px]';
+const SELECT_CLS = 'bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] uppercase tracking-wide px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none';
+const INPUT_CLS  = 'bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none placeholder:text-zinc-400 dark:placeholder:text-zinc-600 w-[220px]';
 
 const TOOLTIP_STYLE = {
   background: '#111', border: '1px solid #27272a',
@@ -41,55 +41,55 @@ const TOOLTIP_STYLE = {
 
 function MetricCard({ icon, label, value, sub, yellow }) {
   return (
-    <div className="bg-gray-100 dark:bg-[#0a0a0a] p-5 hover:-translate-y-0.5 transition-all relative group">
-      <iconify-icon icon={icon} width="16" className="text-gray-300 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
-      <div className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-2">{label}</div>
-      <div className={`text-3xl font-bold tracking-tighter mb-1 truncate ${yellow ? 'text-yellow-500 dark:text-yellow-400' : 'text-gray-900 dark:text-white'}`}>
+    <div className="bg-white dark:bg-[#0a0a0a] p-5 hover:-translate-y-0.5 transition-all relative group">
+      <iconify-icon icon={icon} width="16" className="text-zinc-300 dark:text-zinc-700 absolute top-5 right-5"></iconify-icon>
+      <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-2">{label}</div>
+      <div className={`text-3xl font-bold tracking-tighter mb-1 truncate ${yellow ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-white'}`}>
         {value}
       </div>
-      {sub && <div className="font-mono text-[9px] text-gray-400 dark:text-zinc-600">{sub}</div>}
+      {sub && <div className="font-mono text-[9px] text-zinc-400 dark:text-zinc-600">{sub}</div>}
     </div>
   );
 }
 
 function Top3Card({ title, items, valueKey, valueLabel, maxRef, formatValue }) {
   return (
-    <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 flex flex-col">
-      <div className="px-4 py-3 border-b border-gray-300 dark:border-zinc-800 shrink-0">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">{title}</span>
+    <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm shadow-zinc-100/60 dark:shadow-none rounded-[2rem] dark:rounded-none flex flex-col">
+      <div className="px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
+        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">{title}</span>
       </div>
       <div className="p-4 flex-1 space-y-3">
         {items.length === 0 ? (
-          <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700 text-center py-8">Sem dados</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700 text-center py-8">Sem dados</p>
         ) : items.slice(0, 3).map((item, i) => (
           <div
             key={item.nome + i}
             className={`p-3 border ${i === 0
-              ? 'border-yellow-400/30 dark:border-yellow-400/20 bg-yellow-50/50 dark:bg-yellow-400/5'
-              : 'border-gray-200 dark:border-zinc-800'
+              ? 'border-orange-500/30 dark:border-yellow-400/20 bg-orange-50/50 dark:bg-yellow-400/5'
+              : 'border-zinc-200/80 dark:border-zinc-800'
             }`}
           >
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2 min-w-0">
-                <span className={`font-mono text-[9px] font-bold shrink-0 ${i === 0 ? 'text-yellow-500 dark:text-yellow-400' : 'text-gray-400 dark:text-zinc-600'}`}>
+                <span className={`font-mono text-[9px] font-bold shrink-0 ${i === 0 ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-400 dark:text-zinc-600'}`}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className={`text-sm font-semibold truncate ${i === 0 ? 'text-yellow-700 dark:text-yellow-300' : 'text-gray-900 dark:text-white'}`}>
+                <span className={`text-sm font-semibold truncate ${i === 0 ? 'text-orange-700 dark:text-yellow-300' : 'text-zinc-900 dark:text-white'}`}>
                   {item.nome}
                 </span>
               </div>
-              <span className={`font-mono text-[11px] tabular-nums font-bold shrink-0 ${i === 0 ? 'text-yellow-500 dark:text-yellow-400' : 'text-gray-900 dark:text-white'}`}>
+              <span className={`font-mono text-[11px] tabular-nums font-bold shrink-0 ${i === 0 ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-white'}`}>
                 {formatValue(item[valueKey])} {valueLabel}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-[3px] bg-gray-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div className="flex-1 h-[3px] bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${i === 0 ? 'bg-yellow-400' : 'bg-zinc-500'}`}
+                  className={`h-full rounded-full ${i === 0 ? 'bg-orange-500 dark:bg-yellow-400' : 'bg-zinc-500'}`}
                   style={{ width: maxRef > 0 ? `${(item[valueKey] / maxRef) * 100}%` : '0%' }}
                 />
               </div>
-              <span className="font-mono text-[10px] tabular-nums text-gray-400 dark:text-zinc-600 shrink-0">
+              <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-600 shrink-0">
                 {fmtBRL(item.valor)}
               </span>
             </div>
@@ -330,7 +330,7 @@ export default function RelatoriosVendas() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-6">
+    <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-6 min-h-full bg-zinc-50 dark:bg-[#050505]">
 
       {/* FILTROS — período + vendedor */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -346,9 +346,9 @@ export default function RelatoriosVendas() {
       {/* Loading */}
       {loading && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="bg-gray-100 dark:bg-[#0a0a0a] p-5 flex flex-col gap-2.5">
+              <div key={i} className="bg-white dark:bg-[#0a0a0a] p-5 flex flex-col gap-2.5">
                 <div className="sk h-2.5 w-20 rounded-sm" style={{ animationDelay: `${i * 80}ms` }} />
                 <div className="sk h-8 w-14 rounded-sm" style={{ animationDelay: `${i * 80 + 40}ms` }} />
                 <div className="sk h-2 w-28 rounded-sm" style={{ animationDelay: `${i * 80 + 80}ms` }} />
@@ -366,8 +366,8 @@ export default function RelatoriosVendas() {
       {/* Sem dados */}
       {semDados && (
         <div className="flex flex-col items-center py-24 gap-3">
-          <iconify-icon icon="solar:chart-2-linear" width="36" className="text-gray-300 dark:text-zinc-800"></iconify-icon>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">
+          <iconify-icon icon="solar:chart-2-linear" width="36" className="text-zinc-300 dark:text-zinc-800"></iconify-icon>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">
             Nenhum pedido fechado no período
           </p>
         </div>
@@ -379,7 +379,7 @@ export default function RelatoriosVendas() {
           {/* ── SEÇÃO SUPERIOR — Métricas e rankings ── */}
 
           {/* Linha 1: 4 cards de métricas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800">
             <MetricCard
               icon="solar:ruler-angular-linear"
               label="m² vendidos"
@@ -428,8 +428,8 @@ export default function RelatoriosVendas() {
 
           {/* Evolução mensal (só quando Todos os períodos + >1 mês) */}
           {showTimeSeries && timeSeriesData.length > 1 && (
-            <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-4">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 mb-4">
+            <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm shadow-zinc-100/60 dark:shadow-none rounded-[2rem] dark:rounded-none p-4">
+              <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-4">
                 m² por material ao longo do tempo
               </p>
               <ResponsiveContainer width="100%" height={220}>
@@ -447,11 +447,11 @@ export default function RelatoriosVendas() {
           )}
 
           {/* ── SEÇÃO INFERIOR — Pesquisa detalhada ── */}
-          <div className="border-t border-gray-300 dark:border-zinc-800 pt-5 mt-2">
+          <div className="border-t border-zinc-200/80 dark:border-zinc-800 pt-5 mt-2">
 
             {/* Cabeçalho da seção inferior */}
             <div className="flex items-center justify-between mb-4">
-              <div className="font-mono text-[10px] text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 px-2 py-1">
+              <div className="font-mono text-[10px] text-zinc-900 dark:text-white uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 px-2 py-1">
                 Pesquisa detalhada
               </div>
               <input
@@ -466,74 +466,74 @@ export default function RelatoriosVendas() {
             <div className="space-y-4">
 
               {/* Tabela — Todos os Materiais */}
-              <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
-                <div className="grid grid-cols-[1fr_80px_100px_44px] px-4 py-3 border-b border-gray-300 dark:border-zinc-800">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Material</span>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 text-right">m²</span>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 text-right">Valor</span>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 text-right">%</span>
+              <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm shadow-zinc-100/60 dark:shadow-none rounded-[2rem] dark:rounded-none overflow-hidden">
+                <div className="grid grid-cols-[1fr_80px_100px_44px] px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Material</span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 text-right">m²</span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 text-right">Valor</span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 text-right">%</span>
                 </div>
                 {materiaisAgg.length === 0 ? (
                   <div className="px-4 py-8 text-center">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum material encontrado</p>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum material encontrado</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-zinc-900 overflow-y-auto max-h-[400px]">
+                  <div className="divide-y divide-zinc-200/80 dark:divide-zinc-900 overflow-y-auto max-h-[400px]">
                     {materiaisAgg.map((m, i) => (
                       <div key={m.nome + i} className="grid grid-cols-[1fr_80px_100px_44px] items-center px-4 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.01]">
-                        <span className="text-xs text-gray-700 dark:text-zinc-300 truncate">{m.nome}</span>
-                        <span className="font-mono text-[10px] tabular-nums text-gray-700 dark:text-zinc-300 text-right">{fmtM2(m.area)}</span>
-                        <span className="font-mono text-[10px] tabular-nums text-gray-500 dark:text-zinc-500 text-right">{fmtBRL(m.valor)}</span>
-                        <span className="font-mono text-[9px] tabular-nums text-gray-400 dark:text-zinc-600 text-right">
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300 truncate">{m.nome}</span>
+                        <span className="font-mono text-[10px] tabular-nums text-zinc-700 dark:text-zinc-300 text-right">{fmtM2(m.area)}</span>
+                        <span className="font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-500 text-right">{fmtBRL(m.valor)}</span>
+                        <span className="font-mono text-[9px] tabular-nums text-zinc-400 dark:text-zinc-600 text-right">
                           {totalAreaTab > 0 ? ((m.area / totalAreaTab) * 100).toFixed(1) : '0.0'}%
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="grid grid-cols-[1fr_80px_100px_44px] items-center px-4 py-3 border-t border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#050505]">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+                <div className="grid grid-cols-[1fr_80px_100px_44px] items-center px-4 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#050505]">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
                     {materiaisAgg.length} material{materiaisAgg.length !== 1 ? 'is' : ''}
                   </span>
-                  <span className="font-mono text-[11px] font-bold tabular-nums text-yellow-600 dark:text-yellow-400 text-right">{fmtM2(totalAreaTab)}</span>
-                  <span className="font-mono text-[10px] font-bold tabular-nums text-yellow-600 dark:text-yellow-400 text-right">{fmtBRL(totalValorTab)}</span>
-                  <span className="font-mono text-[9px] font-bold tabular-nums text-yellow-600 dark:text-yellow-400 text-right">100%</span>
+                  <span className="font-mono text-[11px] font-bold tabular-nums text-orange-600 dark:text-yellow-400 text-right">{fmtM2(totalAreaTab)}</span>
+                  <span className="font-mono text-[10px] font-bold tabular-nums text-orange-600 dark:text-yellow-400 text-right">{fmtBRL(totalValorTab)}</span>
+                  <span className="font-mono text-[9px] font-bold tabular-nums text-orange-600 dark:text-yellow-400 text-right">100%</span>
                 </div>
               </div>
 
               {/* Tabela — Todos os Acabamentos */}
-              <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
-                <div className="grid grid-cols-[1fr_80px_100px_44px] px-4 py-3 border-b border-gray-300 dark:border-zinc-800">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Acabamento</span>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 text-right">ml</span>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 text-right">Valor</span>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 text-right">%</span>
+              <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm shadow-zinc-100/60 dark:shadow-none rounded-[2rem] dark:rounded-none overflow-hidden">
+                <div className="grid grid-cols-[1fr_80px_100px_44px] px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Acabamento</span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 text-right">ml</span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 text-right">Valor</span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 text-right">%</span>
                 </div>
                 {acabamentosAgg.length === 0 ? (
                   <div className="px-4 py-8 text-center">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum acabamento encontrado</p>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum acabamento encontrado</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-zinc-900">
+                  <div className="divide-y divide-zinc-200/80 dark:divide-zinc-900">
                     {acabamentosAgg.map((a, i) => (
                       <div key={a.nome + i} className="grid grid-cols-[1fr_80px_100px_44px] items-center px-4 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.01]">
-                        <span className="text-xs text-gray-700 dark:text-zinc-300">{a.nome}</span>
-                        <span className="font-mono text-[10px] tabular-nums text-gray-700 dark:text-zinc-300 text-right">{fmtMl(a.ml)}</span>
-                        <span className="font-mono text-[10px] tabular-nums text-gray-500 dark:text-zinc-500 text-right">{fmtBRL(a.valor)}</span>
-                        <span className="font-mono text-[9px] tabular-nums text-gray-400 dark:text-zinc-600 text-right">
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300">{a.nome}</span>
+                        <span className="font-mono text-[10px] tabular-nums text-zinc-700 dark:text-zinc-300 text-right">{fmtMl(a.ml)}</span>
+                        <span className="font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-500 text-right">{fmtBRL(a.valor)}</span>
+                        <span className="font-mono text-[9px] tabular-nums text-zinc-400 dark:text-zinc-600 text-right">
                           {totalMlTab > 0 ? ((a.ml / totalMlTab) * 100).toFixed(1) : '0.0'}%
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="grid grid-cols-[1fr_80px_100px_44px] items-center px-4 py-3 border-t border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#050505]">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+                <div className="grid grid-cols-[1fr_80px_100px_44px] items-center px-4 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#050505]">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
                     {acabamentosAgg.length} tipo{acabamentosAgg.length !== 1 ? 's' : ''}
                   </span>
-                  <span className="font-mono text-[11px] font-bold tabular-nums text-yellow-600 dark:text-yellow-400 text-right">{fmtMl(totalMlTab)}</span>
-                  <span className="font-mono text-[10px] font-bold tabular-nums text-yellow-600 dark:text-yellow-400 text-right">{fmtBRL(totalValorAcab)}</span>
-                  <span className="font-mono text-[9px] font-bold tabular-nums text-yellow-600 dark:text-yellow-400 text-right">100%</span>
+                  <span className="font-mono text-[11px] font-bold tabular-nums text-orange-600 dark:text-yellow-400 text-right">{fmtMl(totalMlTab)}</span>
+                  <span className="font-mono text-[10px] font-bold tabular-nums text-orange-600 dark:text-yellow-400 text-right">{fmtBRL(totalValorAcab)}</span>
+                  <span className="font-mono text-[9px] font-bold tabular-nums text-orange-600 dark:text-yellow-400 text-right">100%</span>
                 </div>
               </div>
 

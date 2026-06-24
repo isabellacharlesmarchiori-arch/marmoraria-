@@ -24,7 +24,7 @@ export default function ModalConfirmacao({
   const corConfirmar =
     variante === 'destrutiva'
       ? 'text-red-400 hover:text-red-300'
-      : 'text-yellow-400 hover:text-yellow-300';
+      : 'text-orange-600 dark:text-yellow-400 hover:text-orange-600 dark:hover:text-yellow-300';
 
   return (
     <div
@@ -32,14 +32,14 @@ export default function ModalConfirmacao({
       onClick={onCancelar}
     >
       <div
-        className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-6 w-full max-w-md"
+        className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm shadow-zinc-100/60 dark:shadow-none rounded-[2rem] dark:rounded-none p-6 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
-        <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-4">
+        <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-4">
           {titulo}
         </div>
 
-        <p className="text-gray-900 dark:text-white text-sm leading-relaxed mb-6">
+        <p className="text-zinc-900 dark:text-white text-sm leading-relaxed mb-6">
           {mensagem}
         </p>
 
@@ -47,7 +47,7 @@ export default function ModalConfirmacao({
           <button
             type="button"
             onClick={onCancelar}
-            className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
+            className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             {textoCancelar}
           </button>

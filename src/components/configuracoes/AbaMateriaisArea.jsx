@@ -189,18 +189,18 @@ export default function AbaMateriaisArea({
   return (
     <>
       <div className="space-y-6">
-        <div className="flex justify-between items-end border-b border-gray-300 dark:border-zinc-800 pb-4">
+        <div className="flex justify-between items-end border-b border-zinc-200/80 dark:border-zinc-800 pb-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white uppercase flex items-center gap-2">
-              <iconify-icon icon="solar:slider-minimalistic-horizontal-linear" class="text-yellow-400"></iconify-icon> Matéria Prima
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white uppercase flex items-center gap-2">
+              <iconify-icon icon="solar:slider-minimalistic-horizontal-linear" class="text-orange-600 dark:text-yellow-400"></iconify-icon> Matéria Prima
             </h2>
-            <p className="text-[10px] font-mono text-gray-500 dark:text-zinc-600 mt-1 uppercase tracking-widest">
+            <p className="text-[10px] font-mono text-zinc-500 dark:text-zinc-600 mt-1 uppercase tracking-widest">
               Matriz de preços por acabamento e espessura
             </p>
           </div>
           <button
             onClick={() => abrirMatModal()}
-            className="bg-yellow-400 text-black text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2"
+            className="bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black rounded-xl dark:rounded-none text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 hover:shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-shadow flex items-center gap-2"
           >
             <iconify-icon icon="solar:add-square-linear"></iconify-icon> Novo Material
           </button>
@@ -209,19 +209,19 @@ export default function AbaMateriaisArea({
         {/* Busca e Ordenação */}
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[180px]">
-            <iconify-icon icon="solar:magnifer-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-500" width="14"></iconify-icon>
+            <iconify-icon icon="solar:magnifer-linear" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-500" width="14"></iconify-icon>
             <input
               type="text"
               value={matBusca}
               onChange={e => setMatBusca(e.target.value)}
               placeholder="Buscar por nome..."
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white pl-9 pr-4 py-2 text-xs font-mono focus:outline-none focus:border-yellow-400 transition-colors placeholder:text-gray-400 dark:text-zinc-700"
+              className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white pl-9 pr-4 py-2 text-xs font-mono focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none transition-colors placeholder:text-zinc-400 dark:text-zinc-700"
             />
           </div>
           <select
             value={matOrdem}
             onChange={e => setMatOrdem(e.target.value)}
-            className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 px-3 py-2 text-[10px] font-mono uppercase focus:outline-none focus:border-yellow-400 transition-colors"
+            className="bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-2 text-[10px] font-mono uppercase focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none transition-colors"
           >
             <option value="az">A → Z</option>
             <option value="za">Z → A</option>
@@ -238,8 +238,8 @@ export default function AbaMateriaisArea({
             onClick={() => setMatFiltroCategoria('')}
             className={`text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 border transition-colors ${
               matFiltroCategoria === ''
-                ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
-                : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-600 dark:hover:text-zinc-300'
+                ? 'border-orange-500 dark:border-yellow-400 bg-orange-500/10 dark:bg-yellow-400/10 text-orange-600 dark:text-yellow-400'
+                : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-300'
             }`}
           >
             Todas
@@ -250,8 +250,8 @@ export default function AbaMateriaisArea({
               onClick={() => setMatFiltroCategoria(cat === matFiltroCategoria ? '' : cat)}
               className={`text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 border transition-colors ${
                 matFiltroCategoria === cat
-                  ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
-                  : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-600 dark:hover:text-zinc-300'
+                  ? 'border-orange-500 dark:border-yellow-400 bg-orange-500/10 dark:bg-yellow-400/10 text-orange-600 dark:text-yellow-400'
+                  : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-300'
               }`}
             >
               {cat}
@@ -259,8 +259,8 @@ export default function AbaMateriaisArea({
           ))}
         </div>
 
-        <div className="bg-gray-50 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 overflow-x-auto">
-          <div className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 p-4 border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-black text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500 min-w-[640px]">
+        <div className="bg-white/90 dark:bg-[#020202] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none overflow-x-auto">
+          <div className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 p-4 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-black text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500 min-w-[640px]">
             <div>Material</div>
             <div>Categoria</div>
             <div>Variações</div>
@@ -269,44 +269,44 @@ export default function AbaMateriaisArea({
           </div>
 
           {loadingMateriais ? (
-            <div className="p-8 text-center font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700 animate-pulse">Carregando...</div>
+            <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-400 dark:text-zinc-700 animate-pulse">Carregando...</div>
           ) : materiaisAreaFiltrados.length === 0 ? (
-            <div className="p-8 text-center font-mono text-[10px] uppercase text-gray-400 dark:text-zinc-700">
+            <div className="p-8 text-center font-mono text-[10px] uppercase text-zinc-400 dark:text-zinc-700">
               {materiaisArea.length === 0 ? 'Nenhum material cadastrado' : 'Nenhum material encontrado'}
             </div>
           ) : materiaisAreaFiltrados.map(m => {
             const nVar = m.variacoes_precos?.length ?? 0;
             return (
-              <div key={m.id} className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 px-4 py-3 border-b border-gray-200/50 dark:border-gray-300 dark:border-zinc-800/50 items-center hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors min-w-[640px]">
-                <div className="text-gray-900 dark:text-white uppercase font-medium text-sm">{m.nome}</div>
+              <div key={m.id} className="grid grid-cols-[2fr_1.2fr_1fr_1fr_80px] gap-4 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800/50 items-center hover:bg-zinc-200/20 dark:hover:bg-zinc-900/20 transition-colors min-w-[640px]">
+                <div className="text-zinc-900 dark:text-white uppercase font-medium text-sm">{m.nome}</div>
                 <div>
-                  <span className="text-[10px] font-mono border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-black text-gray-500 dark:text-zinc-400 px-2 py-0.5">
+                  <span className="text-[10px] font-mono border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-black text-zinc-500 dark:text-zinc-400 px-2 py-0.5">
                     {m.categoria}
                   </span>
                 </div>
                 <div>
                   {nVar > 0 ? (
-                    <span className="text-[10px] font-mono text-yellow-400">
+                    <span className="text-[10px] font-mono text-orange-600 dark:text-yellow-400">
                       {nVar} {nVar !== 1 ? 'variações' : 'variação'}
                     </span>
                   ) : (
-                    <span className="text-[10px] font-mono text-gray-500 dark:text-zinc-600">Sem preços</span>
+                    <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-600">Sem preços</span>
                   )}
                 </div>
                 <div>
                   <button
                     onClick={() => handleToggle(setMateriaisArea, materiaisArea, m.id)}
-                    className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-600'}`}
+                    className={`flex items-center gap-2 text-[10px] font-mono uppercase ${m.ativo ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-500 dark:text-zinc-600'}`}
                   >
                     <iconify-icon icon={m.ativo ? 'solar:eye-bold' : 'solar:eye-closed-linear'} width="16"></iconify-icon>
                     {m.ativo ? 'Ativo' : 'Oculto'}
                   </button>
                 </div>
                 <div className="flex items-center justify-end gap-2">
-                  <button onClick={() => abrirMatModal(m)} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
+                  <button onClick={() => abrirMatModal(m)} className="text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 px-3 py-1">
                     <iconify-icon icon="solar:pen-linear"></iconify-icon>
                   </button>
-                  <button onClick={e => handleDeleteMaterialArea(e, m.id)} className="text-gray-500 dark:text-zinc-500 hover:text-red-400 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 px-3 py-1">
+                  <button onClick={e => handleDeleteMaterialArea(e, m.id)} className="text-zinc-500 dark:text-zinc-500 hover:text-red-400 bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 px-3 py-1">
                     <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
                   </button>
                 </div>
@@ -322,18 +322,18 @@ export default function AbaMateriaisArea({
       {matModal && (
         <div className="modal-backdrop fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={fecharMatModal}></div>
-          <div className="relative bg-gray-50 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 border-t-2 border-t-yellow-400 w-full max-w-3xl z-10 shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="relative bg-white/95 dark:bg-[#050505] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 rounded-2xl dark:rounded-none shadow-xl shadow-zinc-300/40 dark:shadow-2xl border-t-2 border-t-orange-500 dark:border-t-yellow-400 w-full max-w-3xl z-10 shadow-2xl flex flex-col max-h-[92vh]">
 
-            <div className="flex items-start justify-between px-6 py-4 border-b border-gray-300 dark:border-zinc-800 shrink-0 gap-4">
+            <div className="flex items-start justify-between px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0 gap-4">
               <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-0.5">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-0.5">
                   [ {matItem ? 'EDITAR' : 'NOVO'}_MATERIAL ]
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white uppercase tracking-tight">
                   {matItem ? 'Editar Material' : 'Cadastrar Material'}
                 </h3>
               </div>
-              <button onClick={fecharMatModal} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors p-1 shrink-0 mt-0.5">
+              <button onClick={fecharMatModal} className="text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors p-1 shrink-0 mt-0.5">
                 <iconify-icon icon="solar:close-square-linear" width="22"></iconify-icon>
               </button>
             </div>
@@ -342,32 +342,32 @@ export default function AbaMateriaisArea({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome do Material</label>
+                  <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Nome do Material</label>
                   <input
                     type="text"
                     value={matNome}
                     onChange={e => setMatNome(e.target.value)}
                     placeholder="Ex: Preto Absoluto"
-                    className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors"
+                    className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Categoria</label>
+                  <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Categoria</label>
                   <select
                     value={matCategoria}
                     onChange={e => setMatCategoria(e.target.value)}
-                    className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 transition-colors font-mono"
+                    className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none transition-colors font-mono"
                   >
                     {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-200/50 dark:bg-zinc-900/50 border border-gray-300 dark:border-zinc-800">
-                <iconify-icon icon="solar:info-circle-linear" class="text-gray-500 dark:text-zinc-500" width="13"></iconify-icon>
-                <span className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest">
+              <div className="flex items-center gap-2 px-3 py-2 bg-zinc-200/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800">
+                <iconify-icon icon="solar:info-circle-linear" class="text-zinc-500 dark:text-zinc-500" width="13"></iconify-icon>
+                <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
                   Espessuras disponíveis para {matCategoria}:{' '}
-                  <span className="text-gray-600 dark:text-zinc-300">
+                  <span className="text-zinc-600 dark:text-zinc-300">
                     {espessurasDisponiveis === null
                       ? 'Sem espessura (opção única)'
                       : espessurasDisponiveis === false
@@ -379,22 +379,22 @@ export default function AbaMateriaisArea({
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-400 tracking-widest">
+                  <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-400 tracking-widest">
                     Variações de Acabamento & Preço
                   </label>
                   <button
                     type="button"
                     onClick={addVariacao}
-                    className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-yellow-400 border border-yellow-400/30 bg-yellow-400/5 px-3 py-1.5 hover:bg-yellow-400/10 transition-colors"
+                    className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-orange-600 dark:text-yellow-400 border border-orange-500/30 dark:border-yellow-400/30 bg-orange-500/5 dark:bg-yellow-400/5 px-3 py-1.5 hover:bg-orange-600/10 dark:hover:bg-yellow-400/10 transition-colors"
                   >
                     <iconify-icon icon="solar:add-square-linear" width="13"></iconify-icon>
                     Adicionar Variação
                   </button>
                 </div>
 
-                <div className="border border-gray-300 dark:border-zinc-800">
+                <div className="border border-zinc-200/80 dark:border-zinc-800">
                   <div
-                    className="grid gap-3 bg-black/70 px-4 py-2 text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 border-b border-gray-300 dark:border-zinc-800"
+                    className="grid gap-3 bg-black/70 px-4 py-2 text-[9px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-600 border-b border-zinc-200/80 dark:border-zinc-800"
                     style={{ gridTemplateColumns: espessurasDisponiveis === null ? '2fr 1fr 1fr 1fr 32px' : '2fr 1.2fr 1fr 1fr 1fr 32px' }}
                   >
                     <div>Acabamento</div>
@@ -408,13 +408,13 @@ export default function AbaMateriaisArea({
                   {(matVariacoes ?? []).map((v, idx) => (
                     <div
                       key={v._id}
-                      className="grid gap-3 items-center px-4 py-2.5 bg-gray-50 dark:bg-zinc-950 border-b border-gray-300 dark:border-zinc-800/60 last:border-b-0 hover:bg-gray-200/40 dark:hover:bg-zinc-900/40 transition-colors"
+                      className="grid gap-3 items-center px-4 py-2.5 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/60 last:border-b-0 hover:bg-zinc-200/40 dark:hover:bg-zinc-900/40 transition-colors"
                       style={{ gridTemplateColumns: espessurasDisponiveis === null ? '2fr 1fr 1fr 1fr 32px' : '2fr 1.2fr 1fr 1fr 1fr 32px' }}
                     >
                       <select
                         value={v.acabamento}
                         onChange={e => updateVariacao(idx, 'acabamento', e.target.value)}
-                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
+                        className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono"
                       >
                         {ACABAMENTOS.map(a => <option key={a} value={a}>{a}</option>)}
                       </select>
@@ -426,13 +426,13 @@ export default function AbaMateriaisArea({
                            value={v.espessura}
                            onChange={e => updateVariacao(idx, 'espessura', e.target.value)}
                            placeholder="Ex: 2cm"
-                           className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
+                           className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono"
                          />
                        ) : (
                          <select
                            value={v.espessura}
                            onChange={e => updateVariacao(idx, 'espessura', e.target.value)}
-                           className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono"
+                           className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono"
                          >
                            {espessurasDisponiveis.map(esp => <option key={esp} value={esp}>{esp}</option>)}
                          </select>
@@ -441,26 +441,26 @@ export default function AbaMateriaisArea({
                       <input type="number" step="0.01" min="0" value={v.precoCusto}
                         onChange={e => updateVariacao(idx, 'precoCusto', e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
+                        className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-center"
                       />
 
                       <input type="number" step="0.01" min="0" value={v.frete}
                         onChange={e => updateVariacao(idx, 'frete', e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
+                        className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs px-2 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-center"
                       />
 
                       <input type="number" step="0.01" min="0" value={v.precoVenda}
                         onChange={e => updateVariacao(idx, 'precoVenda', e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-yellow-400 text-xs px-2 py-2 focus:outline-none focus:border-yellow-400 font-mono text-center"
+                        className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-orange-600 dark:text-yellow-400 text-xs px-2 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono text-center"
                       />
 
                       <button
                         type="button"
                         onClick={() => removeVariacao(idx)}
                         disabled={matVariacoes.length === 1}
-                        className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="w-8 h-8 flex items-center justify-center border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                       </button>
@@ -470,11 +470,11 @@ export default function AbaMateriaisArea({
               </div>
             </div>
 
-            <div className="flex items-center gap-4 px-6 py-4 border-t border-gray-300 dark:border-zinc-800 shrink-0">
+            <div className="flex items-center gap-4 px-6 py-4 border-t border-zinc-200/80 dark:border-zinc-800 shrink-0">
               <button
                 type="button"
                 onClick={fecharMatModal}
-                className="flex-1 bg-transparent border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-bold uppercase tracking-widest py-3 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
+                className="flex-1 bg-transparent border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs font-bold uppercase tracking-widest py-3 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
               >
                 Cancelar
               </button>
@@ -482,7 +482,7 @@ export default function AbaMateriaisArea({
                 type="button"
                 onClick={handleSalvarMaterial}
                 disabled={matSalvando}
-                className="flex-1 bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest py-3 hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                className="flex-1 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black rounded-xl dark:rounded-none text-xs font-bold uppercase tracking-widest py-3 hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {matSalvando
                   ? <><iconify-icon icon="solar:spinner-linear" class="animate-spin" width="14"></iconify-icon> Salvando...</>

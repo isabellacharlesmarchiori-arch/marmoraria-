@@ -110,8 +110,8 @@ function TabButton({ active, onClick, children }) {
       onClick={onClick}
       className={`px-4 py-2 font-mono text-[11px] uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
         active
-          ? 'border-yellow-400 text-yellow-600 dark:text-yellow-400'
-          : 'border-transparent text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300'
+          ? 'border-orange-500 dark:border-yellow-400 text-orange-600 dark:text-yellow-400'
+          : 'border-transparent text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
       }`}
     >
       {children}
@@ -131,13 +131,13 @@ function FotoThumb({ url, alt, onExpand }) {
   if (url)
     return (
       <button type="button" onClick={onExpand} title="Ampliar foto"
-        className="shrink-0 rounded overflow-hidden focus:outline-none focus:ring-2 focus:ring-yellow-400">
-        <img src={url} alt={alt} className="w-16 h-16 object-cover border border-gray-200 dark:border-zinc-700 cursor-zoom-in hover:opacity-90 transition-opacity" />
+        className="shrink-0 rounded overflow-hidden focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-yellow-400">
+        <img src={url} alt={alt} className="w-16 h-16 object-cover border border-zinc-200/80 dark:border-zinc-700 cursor-zoom-in hover:opacity-90 transition-opacity" />
       </button>
     );
   return (
-    <div className="w-16 h-16 flex items-center justify-center rounded border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 shrink-0">
-      <iconify-icon icon="solar:gallery-linear" width="22" class="text-gray-400 dark:text-zinc-600" />
+    <div className="w-16 h-16 flex items-center justify-center rounded border border-zinc-200/80 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 shrink-0">
+      <iconify-icon icon="solar:gallery-linear" width="22" class="text-zinc-400 dark:text-zinc-600" />
     </div>
   );
 }
@@ -153,7 +153,7 @@ function Lightbox({ url, alt, onClose }) {
       <div className="relative" onClick={e => e.stopPropagation()}>
         <img src={url} alt={alt ?? ''} className="max-w-[90vw] max-h-[90vh] object-contain rounded shadow-2xl" />
         <button onClick={onClose}
-          className="absolute -top-3 -right-3 w-8 h-8 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-lg text-gray-700 dark:text-zinc-300 hover:text-black dark:hover:text-white transition-colors">
+          className="absolute -top-3 -right-3 w-8 h-8 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-lg text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white transition-colors">
           <iconify-icon icon="solar:close-circle-linear" width="16" />
         </button>
       </div>
@@ -195,11 +195,11 @@ function ModalUsarPeca({ open, onClose, onConfirm, projetos, saving }) {
         <div className="flex gap-2 pt-1">
           <button onClick={() => projetoId && onConfirm(projetoId, obs)}
             disabled={!projetoId || saving}
-            className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">
+            className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
             {saving ? 'Registrando...' : 'Confirmar Uso'}
           </button>
           <button onClick={onClose}
-            className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">
+            className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">
             Cancelar
           </button>
         </div>
@@ -220,7 +220,7 @@ function MiniToggle({ value, onChange, trueColor = 'red' }) {
       className={`px-2 h-7 text-[10px] font-mono font-bold rounded border transition-colors ${
         value
           ? onCls
-          : 'bg-gray-50 border-gray-200 text-gray-400 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-500'
+          : 'bg-white border-zinc-200/80 text-zinc-400 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500'
       }`}
     >
       {value ? 'Sim' : 'Não'}
@@ -231,7 +231,7 @@ function MiniToggle({ value, onChange, trueColor = 'red' }) {
 function PillToggle({ label, value, onChange, simVerde = false }) {
   return (
     <div>
-      <div className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-1">{label}</div>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 mb-1">{label}</div>
       <div className="flex gap-1">
         {[true, false].map(v => (
           <button
@@ -243,7 +243,7 @@ function PillToggle({ label, value, onChange, simVerde = false }) {
                 ? (v === simVerde)
                   ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/30 dark:border-green-700/50 dark:text-green-400'
                   : 'bg-red-100 border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-700/50 dark:text-red-400'
-                : 'bg-gray-50 border-gray-200 text-gray-400 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-500'
+                : 'bg-white border-zinc-200/80 text-zinc-400 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500'
             }`}
           >
             {v ? 'Sim' : 'Não'}
@@ -268,10 +268,10 @@ function Modal({ open, onClose, title, children, size = 'md' }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative z-10 w-full ${widthCls} bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-2xl max-h-[90vh] flex flex-col`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-zinc-800 shrink-0">
-          <span className="font-mono text-[12px] uppercase tracking-widest text-gray-900 dark:text-white font-bold">{title}</span>
-          <button onClick={onClose} className="text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors">
+      <div className={`relative z-10 w-full ${widthCls} bg-white/95 dark:bg-zinc-950 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 rounded-2xl dark:rounded-none shadow-xl shadow-zinc-300/40 dark:shadow-2xl max-h-[90vh] flex flex-col`}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
+          <span className="font-mono text-[12px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">{title}</span>
+          <button onClick={onClose} className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
             <iconify-icon icon="solar:close-circle-linear" width="18" />
           </button>
         </div>
@@ -284,12 +284,12 @@ function Modal({ open, onClose, title, children, size = 'md' }) {
 }
 
 function FieldLabel({ children }) {
-  return <label className="block font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-1">{children}</label>;
+  return <label className="block font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 mb-1">{children}</label>;
 }
 
-const inputCls = 'w-full bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white text-[12px] font-mono px-3 py-2 rounded outline-none focus:border-yellow-400 dark:focus:border-yellow-400 transition-colors';
+const inputCls = 'w-full bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700 text-zinc-900 dark:text-white text-[12px] font-mono px-3 py-2 rounded-md dark:rounded-none outline-none focus:border-orange-500 dark:focus:border-yellow-400 transition-colors';
 const selectCls = inputCls;
-const cellInputCls = 'w-full bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1.5 rounded outline-none focus:border-yellow-400 dark:focus:border-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+const cellInputCls = 'w-full bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700 text-zinc-900 dark:text-white text-[11px] font-mono px-2 py-1.5 rounded-md dark:rounded-none outline-none focus:border-orange-500 dark:focus:border-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 // ── Combobox reutilizável com busca por digitação ─────────────────────────────
 // value: id string | ''
@@ -356,25 +356,25 @@ function Combobox({ value, onChange, options, placeholder, disabled, extraAction
       {!open && value ? (
         <button type="button"
           onMouseDown={e => { e.preventDefault(); onChange(''); }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors">
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
           <iconify-icon icon="solar:close-circle-linear" width="13" />
         </button>
       ) : (
         <iconify-icon icon="solar:alt-arrow-down-linear" width="13"
-          class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-600 pointer-events-none" />
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600 pointer-events-none" />
       )}
       {open && (
-        <div className="absolute z-20 left-0 right-0 mt-0.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded shadow-lg max-h-52 overflow-y-auto">
+        <div className="absolute z-20 left-0 right-0 mt-0.5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700 rounded shadow-lg max-h-52 overflow-y-auto">
           {filtered.length === 0 && !extraAction && (
-            <div className="px-3 py-2 font-mono text-[11px] text-gray-400 dark:text-zinc-600">Nenhum resultado</div>
+            <div className="px-3 py-2 font-mono text-[11px] text-zinc-400 dark:text-zinc-600">Nenhum resultado</div>
           )}
           {filtered.map(o => (
             <button key={o.id} type="button"
               onMouseDown={() => handleSelect(o.id, o.label)}
-              className={`w-full text-left px-3 py-2 font-mono text-[12px] transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 ${
+              className={`w-full text-left px-3 py-2 font-mono text-[12px] transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
                 o.id === value
-                  ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-400/5'
-                  : 'text-gray-900 dark:text-zinc-100'
+                  ? 'text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5'
+                  : 'text-zinc-900 dark:text-zinc-100'
               }`}>
               {o.label}
             </button>
@@ -382,7 +382,7 @@ function Combobox({ value, onChange, options, placeholder, disabled, extraAction
           {extraAction && (
             <button type="button"
               onMouseDown={extraAction.onSelect}
-              className="w-full text-left px-3 py-2 font-mono text-[12px] text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-400/5 border-t border-gray-100 dark:border-zinc-800 transition-colors">
+              className="w-full text-left px-3 py-2 font-mono text-[12px] text-orange-600 dark:text-yellow-400 hover:bg-orange-50 dark:hover:bg-yellow-400/5 border-t border-zinc-200/80 dark:border-zinc-800 transition-colors">
               {extraAction.label}
             </button>
           )}
@@ -420,13 +420,13 @@ function ModalNovoMaterial({ empresaId, categoriaSugerida, onClose, onCreated })
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60">
-      <div className="relative w-full max-w-sm bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-700 rounded-lg shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-zinc-800">
+      <div className="relative w-full max-w-sm bg-white/95 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-700 rounded-2xl dark:rounded-none shadow-xl shadow-zinc-300/40 dark:shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200/80 dark:border-zinc-800">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-yellow-400" />
-            <span className="font-mono text-[11px] uppercase tracking-widest text-gray-900 dark:text-white font-bold">Novo Material</span>
+            <span className="w-1.5 h-1.5 bg-orange-500 dark:bg-yellow-400" />
+            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Novo Material</span>
           </div>
-          <button onClick={onClose} className="text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors">
+          <button onClick={onClose} className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
             <iconify-icon icon="solar:close-circle-linear" width="16" />
           </button>
         </div>
@@ -446,16 +446,16 @@ function ModalNovoMaterial({ empresaId, categoriaSugerida, onClose, onCreated })
           {saving && saving !== 'saving' && (
             <p className="font-mono text-[10px] text-red-500">{saving}</p>
           )}
-          <p className="font-mono text-[9px] text-gray-400 dark:text-zinc-600">
+          <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-600">
             Preços e variações podem ser configurados depois em Configurações → Matéria Prima.
           </p>
         </div>
         <div className="flex gap-2 px-5 pb-4">
           <button onClick={handleSave} disabled={saving === 'saving' || !nome.trim()}
-            className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">
+            className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
             {saving === 'saving' ? 'Salvando...' : 'Criar e usar'}
           </button>
-          <button onClick={onClose} className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">
+          <button onClick={onClose} className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">
             Cancelar
           </button>
         </div>
@@ -710,34 +710,34 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
   return (
     <div>
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50 bg-gray-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">
+        <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">
           {toast}
         </div>
       )}
 
       <div className="mb-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+          <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
             {chapasFiltradas.length} chapa{chapasFiltradas.length !== 1 ? 's' : ''}
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setEtiquetasContext(null); setEtiquetasOpen(true); }}
-              className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-400 dark:hover:text-zinc-200 text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:text-zinc-200 text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors"
             >
               <iconify-icon icon="solar:tag-price-linear" width="14" />
               Etiquetas
             </button>
-            <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors">
+            <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
               <iconify-icon icon="solar:add-square-linear" width="14" />
               Adicionar Chapas
             </button>
           </div>
         </div>
         <div className="relative">
-          <iconify-icon icon="solar:magnifer-linear" width="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-600 pointer-events-none" />
+          <iconify-icon icon="solar:magnifer-linear" width="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600 pointer-events-none" />
           <input
-            className="w-full bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white text-[12px] font-mono pl-9 pr-3 py-2 rounded outline-none focus:border-yellow-400 transition-colors"
+            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700 text-zinc-900 dark:text-white text-[12px] font-mono pl-9 pr-3 py-2 rounded-md dark:rounded-none outline-none focus:border-orange-500 dark:focus:border-yellow-400 transition-colors"
             placeholder="Buscar por material, categoria, observação..."
             value={busca} onChange={e => setBusca(e.target.value)}
           />
@@ -751,8 +751,8 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
             <button key={f.key} onClick={() => setFiltroStatus(f.key)}
               className={`px-3 py-1 rounded-full text-[10px] font-mono uppercase tracking-widest transition-colors ${
                 filtroStatus === f.key
-                  ? 'bg-yellow-400 text-black'
-                  : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-500 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                  ? 'bg-orange-500 text-white dark:bg-yellow-400 dark:text-black'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700'
               }`}>
               {f.label}
             </button>
@@ -761,9 +761,9 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
       ) : Object.keys(porMaterial).length === 0 ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
           {busca || filtroStatus !== 'todas' ? 'Nenhuma chapa encontrada' : 'Nenhuma chapa cadastrada'}
         </div>
       ) : (
@@ -771,9 +771,9 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
           {Object.entries(porMaterial).map(([nome, items]) => (
             <div key={nome}>
               <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-[11px] uppercase tracking-widest text-gray-900 dark:text-zinc-200 font-bold">{nome}</span>
-                <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{items.length} peça{items.length !== 1 ? 's' : ''}</span>
-                <div className="flex-1 border-t border-gray-200 dark:border-zinc-800" />
+                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-900 dark:text-zinc-200 font-bold">{nome}</span>
+                <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">{items.length} peça{items.length !== 1 ? 's' : ''}</span>
+                <div className="flex-1 border-t border-zinc-200/80 dark:border-zinc-800" />
               </div>
               <div className="space-y-2">
                 {items.map(c => (
@@ -828,15 +828,15 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
         <div className="mb-3 overflow-x-auto">
           <table className="w-full min-w-[620px]">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-zinc-800">
+              <tr className="border-b border-zinc-200/80 dark:border-zinc-800">
                 {['Larg. (cm)', 'Alt. (cm)', 'Esp. (cm)', 'Qtd', 'Trinca', 'Mula', 'Observações', 'Foto', ''].map(h => (
-                  <th key={h} className="text-left py-1.5 px-1 font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 font-normal">{h}</th>
+                  <th key={h} className="text-left py-1.5 px-1 font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 font-normal">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {linhas.map((l, i) => (
-                <tr key={i} className="border-b border-gray-100 dark:border-zinc-900">
+                <tr key={i} className="border-b border-zinc-200/80 dark:border-zinc-900">
                   <td className="py-1 px-1">
                     <input type="number" className={cellInputCls} style={{ width: 68 }} value={l.largura_cm} disabled={!!isFixed}
                       onChange={e => updateLinha(i, 'largura_cm', e.target.value)} />
@@ -868,8 +868,8 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
                       title={l.foto ? l.foto.name : 'Adicionar foto'}
                       className={`w-9 h-7 flex items-center justify-center rounded border transition-colors ${
                         l.foto
-                          ? 'border-yellow-400 text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-400/10'
-                          : 'border-gray-200 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-500'
+                          ? 'border-orange-500 dark:border-yellow-400 text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/10'
+                          : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500'
                       }`}>
                       <iconify-icon icon="solar:camera-add-linear" width="13" />
                     </button>
@@ -877,7 +877,7 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
                   <td className="py-1 px-1">
                     {linhas.length > 1 && (
                       <button type="button" onClick={() => removeLinha(i)}
-                        className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                        className="w-7 h-7 flex items-center justify-center text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                         <iconify-icon icon="solar:close-circle-linear" width="14" />
                       </button>
                     )}
@@ -891,17 +891,17 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
         <input ref={lineFileRef} type="file" accept="image/*" className="hidden" onChange={handleLinhaFile} />
 
         <button type="button" onClick={addLinha}
-          className="flex items-center gap-1.5 text-[11px] font-mono text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 transition-colors mb-4">
+          className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors mb-4">
           <iconify-icon icon="solar:add-square-linear" width="13" />
           Adicionar linha
         </button>
 
         <div className="flex gap-2">
           <button onClick={handleSaveNew} disabled={saving}
-            className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">
+            className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
             {saving ? 'Salvando...' : `Cadastrar ${linhas.reduce((s, l) => s + Math.max(1, Number(l.quantidade) || 1), 0)} chapa${linhas.reduce((s, l) => s + Math.max(1, Number(l.quantidade) || 1), 0) !== 1 ? 's' : ''}`}
           </button>
-          <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">
+          <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">
             Cancelar
           </button>
         </div>
@@ -958,17 +958,17 @@ function AbaChapas({ empresaId, todosMateirais, projetos, onMaterialCreated }) {
             <input ref={editFileRef} type="file" accept="image/*" className="hidden"
               onChange={e => setEditForm(f => ({ ...f, foto: e.target.files[0] ?? null }))} />
             <button type="button" onClick={() => editFileRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-zinc-700 text-[11px] font-mono text-gray-600 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 rounded transition-colors">
+              className="flex items-center gap-2 px-3 py-2 border border-zinc-200/80 dark:border-zinc-700 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500 rounded transition-colors">
               <iconify-icon icon="solar:camera-add-linear" width="14" />
               {editForm.foto ? editForm.foto.name : (editItem?.foto_url ? 'Trocar foto' : 'Selecionar foto')}
             </button>
           </div>
           <div className="flex gap-2 pt-2">
             <button onClick={handleSaveEdit} disabled={saving}
-              className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">
+              className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
               {saving ? 'Salvando...' : 'Salvar'}
             </button>
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">
               Cancelar
             </button>
           </div>
@@ -1015,18 +1015,18 @@ function ChapasRow({ item, onEdit, onDelete, onUsar, onLightbox, onPrint }) {
   const reservada = item.status === 'reservada';
   const temDefeito = item.tem_trinca || item.tem_mula;
   return (
-    <div className={`flex items-center gap-3 p-3 border rounded-lg transition-all ${
+    <div className={`flex items-center gap-3 p-3 border rounded-lg dark:rounded-none transition-all ${
       utilizada
-        ? 'bg-gray-100/60 dark:bg-zinc-900/20 border-gray-100 dark:border-zinc-800/50 opacity-60'
-        : 'bg-gray-50 dark:bg-zinc-900/50 border-gray-100 dark:border-zinc-800'
+        ? 'bg-zinc-100/60 dark:bg-zinc-900/20 border-zinc-200/80 dark:border-zinc-800/50 opacity-60'
+        : 'bg-white dark:bg-zinc-900/50 border-zinc-200/80 dark:border-zinc-800'
     }`}>
       <FotoThumb url={url} alt={item.materiais?.nome}
         onExpand={url ? () => onLightbox(url) : undefined} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-[11px] text-gray-900 dark:text-zinc-100 font-medium">{dim(item)}</span>
-          <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">esp. {item.espessura_cm}cm</span>
-          <span className="font-mono text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 rounded text-gray-500 dark:text-zinc-400">{catLabel(item.categoria)}</span>
+          <span className="font-mono text-[11px] text-zinc-900 dark:text-zinc-100 font-medium">{dim(item)}</span>
+          <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">esp. {item.espessura_cm}cm</span>
+          <span className="font-mono text-[10px] px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-zinc-500 dark:text-zinc-400">{catLabel(item.categoria)}</span>
           {item.numero_serie && (
             <span className="font-mono text-[10px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/30 rounded text-blue-600 dark:text-blue-400">
               {item.numero_serie}
@@ -1038,7 +1038,7 @@ function ChapasRow({ item, onEdit, onDelete, onUsar, onLightbox, onPrint }) {
         </div>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {utilizada ? (
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-200 text-gray-600 dark:bg-zinc-700 dark:text-zinc-400">Utilizada</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">Utilizada</span>
           ) : (
             <>
               {item.tem_trinca && <Badge type="trinca" />}
@@ -1052,27 +1052,27 @@ function ChapasRow({ item, onEdit, onDelete, onUsar, onLightbox, onPrint }) {
             </span>
           )}
           {utilizada && item.projetos_uso?.nome && (
-            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">→ {item.projetos_uso.nome}</span>
+            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">→ {item.projetos_uso.nome}</span>
           )}
           {item.observacoes && !utilizada && (
-            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-500 truncate max-w-xs">{item.observacoes}</span>
+            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 truncate max-w-xs">{item.observacoes}</span>
           )}
         </div>
       </div>
       <div className="flex gap-1 shrink-0">
-        <button onClick={() => onPrint(item)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" title="Imprimir etiqueta">
+        <button onClick={() => onPrint(item)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" title="Imprimir etiqueta">
           <iconify-icon icon="solar:printer-linear" width="14" />
         </button>
         {!utilizada && (
           <button onClick={() => onUsar(item)}
-            className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors" title="Registrar uso">
+            className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors" title="Registrar uso">
             <iconify-icon icon="solar:export-linear" width="14" />
           </button>
         )}
-        <button onClick={() => onEdit(item)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors" title="Editar">
+        <button onClick={() => onEdit(item)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors" title="Editar">
           <iconify-icon icon="solar:pen-linear" width="14" />
         </button>
-        <button onClick={() => onDelete(item.id)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Excluir">
+        <button onClick={() => onDelete(item.id)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Excluir">
           <iconify-icon icon="solar:trash-bin-minimalistic-linear" width="14" />
         </button>
       </div>
@@ -1304,31 +1304,31 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
 
   return (
     <div>
-      {toast && <div className="fixed bottom-4 right-4 z-50 bg-gray-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">{toast}</div>}
+      {toast && <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">{toast}</div>}
 
       <div className="mb-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+          <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
             {pedaceirasFiltradas.length} pedaço{pedaceirasFiltradas.length !== 1 ? 's' : ''}
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setEtiquetasContext(null); setEtiquetasOpen(true); }}
-              className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-400 dark:hover:text-zinc-200 text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:text-zinc-200 text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors"
             >
               <iconify-icon icon="solar:tag-price-linear" width="14" />
               Etiquetas
             </button>
-            <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors">
+            <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
               <iconify-icon icon="solar:add-square-linear" width="14" />
               Adicionar Pedaceiras
             </button>
           </div>
         </div>
         <div className="relative">
-          <iconify-icon icon="solar:magnifer-linear" width="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-600 pointer-events-none" />
+          <iconify-icon icon="solar:magnifer-linear" width="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600 pointer-events-none" />
           <input
-            className="w-full bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white text-[12px] font-mono pl-9 pr-3 py-2 rounded outline-none focus:border-yellow-400 transition-colors"
+            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700 text-zinc-900 dark:text-white text-[12px] font-mono pl-9 pr-3 py-2 rounded-md dark:rounded-none outline-none focus:border-orange-500 dark:focus:border-yellow-400 transition-colors"
             placeholder="Buscar por material, categoria, observação..."
             value={busca} onChange={e => setBusca(e.target.value)}
           />
@@ -1342,8 +1342,8 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
             <button key={f.key} onClick={() => setFiltroStatus(f.key)}
               className={`px-3 py-1 rounded-full text-[10px] font-mono uppercase tracking-widest transition-colors ${
                 filtroStatus === f.key
-                  ? 'bg-yellow-400 text-black'
-                  : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-500 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                  ? 'bg-orange-500 text-white dark:bg-yellow-400 dark:text-black'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700'
               }`}>
               {f.label}
             </button>
@@ -1352,9 +1352,9 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
       </div>
 
       {loading ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
       ) : Object.keys(porMaterial).length === 0 ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
           {busca || filtroStatus !== 'todas' ? 'Nenhuma pedaceira encontrada' : 'Nenhuma pedaceira cadastrada'}
         </div>
       ) : (
@@ -1362,27 +1362,27 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
           {Object.entries(porMaterial).map(([nome, items]) => (
             <div key={nome}>
               <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-[11px] uppercase tracking-widest text-gray-900 dark:text-zinc-200 font-bold">{nome}</span>
-                <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{items.length} peça{items.length !== 1 ? 's' : ''}</span>
-                <div className="flex-1 border-t border-gray-200 dark:border-zinc-800" />
+                <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-900 dark:text-zinc-200 font-bold">{nome}</span>
+                <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">{items.length} peça{items.length !== 1 ? 's' : ''}</span>
+                <div className="flex-1 border-t border-zinc-200/80 dark:border-zinc-800" />
               </div>
               <div className="space-y-2">
                 {items.map(p => {
                   const pUrl = fotoUrl(p.foto_url);
                   const utilizada = p.status === 'utilizada';
                   return (
-                    <div key={p.id} className={`flex items-center gap-3 p-3 border rounded-lg transition-all ${
+                    <div key={p.id} className={`flex items-center gap-3 p-3 border rounded-lg dark:rounded-none transition-all ${
                       utilizada
-                        ? 'bg-gray-100/60 dark:bg-zinc-900/20 border-gray-100 dark:border-zinc-800/50 opacity-60'
-                        : 'bg-gray-50 dark:bg-zinc-900/50 border-gray-100 dark:border-zinc-800'
+                        ? 'bg-zinc-100/60 dark:bg-zinc-900/20 border-zinc-200/80 dark:border-zinc-800/50 opacity-60'
+                        : 'bg-white dark:bg-zinc-900/50 border-zinc-200/80 dark:border-zinc-800'
                     }`}>
                       <FotoThumb url={pUrl} alt={p.materiais?.nome}
                         onExpand={pUrl ? () => setLightboxUrl(pUrl) : undefined} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-[11px] text-gray-900 dark:text-zinc-100 font-medium">{dim(p)}</span>
-                          <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">esp. {p.espessura_cm}cm</span>
-                          <span className="font-mono text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 rounded text-gray-500 dark:text-zinc-400">{catLabel(p.categoria)}</span>
+                          <span className="font-mono text-[11px] text-zinc-900 dark:text-zinc-100 font-medium">{dim(p)}</span>
+                          <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">esp. {p.espessura_cm}cm</span>
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-zinc-500 dark:text-zinc-400">{catLabel(p.categoria)}</span>
                           {p.numero_serie && (
                             <span className="font-mono text-[10px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/30 rounded text-blue-600 dark:text-blue-400">
                               {p.numero_serie}
@@ -1394,7 +1394,7 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
                         </div>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                           {utilizada ? (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-200 text-gray-600 dark:bg-zinc-700 dark:text-zinc-400">Utilizada</span>
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">Utilizada</span>
                           ) : (
                             <>
                               {p.tem_trinca && <Badge type="trinca" />}
@@ -1403,31 +1403,31 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
                             </>
                           )}
                           {utilizada && p.projetos_uso?.nome && (
-                            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">→ {p.projetos_uso.nome}</span>
+                            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">→ {p.projetos_uso.nome}</span>
                           )}
                           {p.projetos_origem?.nome && !utilizada && (
-                            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-500">Origem: {p.projetos_origem.nome}</span>
+                            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">Origem: {p.projetos_origem.nome}</span>
                           )}
                           {p.observacoes && !utilizada && (
-                            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-500 truncate max-w-xs">{p.observacoes}</span>
+                            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 truncate max-w-xs">{p.observacoes}</span>
                           )}
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => { setEtiquetasContext(p); setEtiquetasOpen(true); }}
-                          className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" title="Imprimir etiqueta">
+                          className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" title="Imprimir etiqueta">
                           <iconify-icon icon="solar:printer-linear" width="14" />
                         </button>
                         {!utilizada && (
                           <button onClick={() => setUsarItem(p)}
-                            className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors" title="Registrar uso">
+                            className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors" title="Registrar uso">
                             <iconify-icon icon="solar:export-linear" width="14" />
                           </button>
                         )}
-                        <button onClick={() => openEdit(p)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors" title="Editar">
+                        <button onClick={() => openEdit(p)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors" title="Editar">
                           <iconify-icon icon="solar:pen-linear" width="14" />
                         </button>
-                        <button onClick={() => handleDelete(p.id)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Excluir">
+                        <button onClick={() => handleDelete(p.id)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Excluir">
                           <iconify-icon icon="solar:trash-bin-minimalistic-linear" width="14" />
                         </button>
                       </div>
@@ -1475,15 +1475,15 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
         <div className="mb-3 overflow-x-auto">
           <table className="w-full min-w-[620px]">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-zinc-800">
+              <tr className="border-b border-zinc-200/80 dark:border-zinc-800">
                 {['Larg. (cm)', 'Alt. (cm)', 'Esp. (cm)', 'Qtd', 'Trinca', 'Mula', 'Observações', 'Foto', ''].map(h => (
-                  <th key={h} className="text-left py-1.5 px-1 font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 font-normal">{h}</th>
+                  <th key={h} className="text-left py-1.5 px-1 font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 font-normal">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {linhas.map((l, i) => (
-                <tr key={i} className="border-b border-gray-100 dark:border-zinc-900">
+                <tr key={i} className="border-b border-zinc-200/80 dark:border-zinc-900">
                   <td className="py-1 px-1">
                     <input type="number" className={cellInputCls} style={{ width: 68 }} value={l.largura_cm} disabled={!!isFixed}
                       onChange={e => updateLinha(i, 'largura_cm', e.target.value)} />
@@ -1515,8 +1515,8 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
                       title={l.foto ? l.foto.name : 'Adicionar foto'}
                       className={`w-9 h-7 flex items-center justify-center rounded border transition-colors ${
                         l.foto
-                          ? 'border-yellow-400 text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-400/10'
-                          : 'border-gray-200 dark:border-zinc-700 text-gray-400 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-500'
+                          ? 'border-orange-500 dark:border-yellow-400 text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/10'
+                          : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500'
                       }`}>
                       <iconify-icon icon="solar:camera-add-linear" width="13" />
                     </button>
@@ -1524,7 +1524,7 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
                   <td className="py-1 px-1">
                     {linhas.length > 1 && (
                       <button type="button" onClick={() => removeLinha(i)}
-                        className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                        className="w-7 h-7 flex items-center justify-center text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                         <iconify-icon icon="solar:close-circle-linear" width="14" />
                       </button>
                     )}
@@ -1538,17 +1538,17 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
         <input ref={lineFileRef} type="file" accept="image/*" className="hidden" onChange={handleLinhaFile} />
 
         <button type="button" onClick={addLinha}
-          className="flex items-center gap-1.5 text-[11px] font-mono text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 transition-colors mb-4">
+          className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors mb-4">
           <iconify-icon icon="solar:add-square-linear" width="13" />
           Adicionar linha
         </button>
 
         <div className="flex gap-2">
           <button onClick={handleSaveNew} disabled={saving}
-            className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">
+            className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
             {saving ? 'Salvando...' : (() => { const n = linhas.reduce((s, l) => s + Math.max(1, Number(l.quantidade) || 1), 0); return `Cadastrar ${n} pedaceira${n !== 1 ? 's' : ''}`; })()}
           </button>
-          <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">
+          <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">
             Cancelar
           </button>
         </div>
@@ -1612,17 +1612,17 @@ function AbaPedaceiras({ empresaId, todosMateirais, projetos, onMaterialCreated 
             <input ref={editFileRef} type="file" accept="image/*" className="hidden"
               onChange={e => setEditForm(f => ({ ...f, foto: e.target.files[0] ?? null }))} />
             <button type="button" onClick={() => editFileRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-zinc-700 text-[11px] font-mono text-gray-600 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 rounded transition-colors">
+              className="flex items-center gap-2 px-3 py-2 border border-zinc-200/80 dark:border-zinc-700 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500 rounded transition-colors">
               <iconify-icon icon="solar:camera-add-linear" width="14" />
               {editForm.foto ? editForm.foto.name : (editItem?.foto_url ? 'Trocar foto' : 'Selecionar foto')}
             </button>
           </div>
           <div className="flex gap-2 pt-2">
             <button onClick={handleSaveEdit} disabled={saving}
-              className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">
+              className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
               {saving ? 'Salvando...' : 'Salvar'}
             </button>
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">
               Cancelar
             </button>
           </div>
@@ -1727,41 +1727,41 @@ function AbaProdutosAvulsos({ empresaId }) {
 
   return (
     <div>
-      {toast && <div className="fixed bottom-4 right-4 z-50 bg-gray-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">{toast}</div>}
+      {toast && <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">{toast}</div>}
       <div className="flex items-center justify-between mb-4">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">{items.length} produto{items.length !== 1 ? 's' : ''}</span>
-        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors">
+        <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">{items.length} produto{items.length !== 1 ? 's' : ''}</span>
+        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
           <iconify-icon icon="solar:add-square-linear" width="14" />
           Adicionar Produto
         </button>
       </div>
       {loading ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
       ) : items.length === 0 ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">Nenhum produto cadastrado</div>
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Nenhum produto cadastrado</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-zinc-800">
+              <tr className="border-b border-zinc-200/80 dark:border-zinc-800">
                 {['Foto', 'Nome', 'Categoria', 'Qtd', 'Unidade', 'Observações', ''].map(h => (
-                  <th key={h} className="text-left py-2 px-3 font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 font-normal">{h}</th>
+                  <th key={h} className="text-left py-2 px-3 font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 font-normal">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {items.map(item => (
-                <tr key={item.id} className="border-b border-gray-100 dark:border-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-900/40 transition-colors">
+                <tr key={item.id} className="border-b border-zinc-200/80 dark:border-zinc-900 hover:bg-white dark:hover:bg-zinc-900/40 transition-colors">
                   <td className="py-2 px-3"><FotoThumb url={fotoUrl(item.foto_url)} alt={item.nome} /></td>
-                  <td className="py-2 px-3 font-medium text-gray-900 dark:text-zinc-100">{item.nome}</td>
-                  <td className="py-2 px-3 text-gray-500 dark:text-zinc-500">{item.categoria ?? '—'}</td>
-                  <td className="py-2 px-3 font-mono text-gray-900 dark:text-zinc-100">{item.quantidade}</td>
-                  <td className="py-2 px-3 text-gray-500 dark:text-zinc-500">{item.unidade ?? '—'}</td>
-                  <td className="py-2 px-3 text-gray-400 dark:text-zinc-600 max-w-xs truncate">{item.observacoes ?? '—'}</td>
+                  <td className="py-2 px-3 font-medium text-zinc-900 dark:text-zinc-100">{item.nome}</td>
+                  <td className="py-2 px-3 text-zinc-500 dark:text-zinc-500">{item.categoria ?? '—'}</td>
+                  <td className="py-2 px-3 font-mono text-zinc-900 dark:text-zinc-100">{item.quantidade}</td>
+                  <td className="py-2 px-3 text-zinc-500 dark:text-zinc-500">{item.unidade ?? '—'}</td>
+                  <td className="py-2 px-3 text-zinc-400 dark:text-zinc-600 max-w-xs truncate">{item.observacoes ?? '—'}</td>
                   <td className="py-2 px-3">
                     <div className="flex gap-1">
-                      <button onClick={() => openEdit(item)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"><iconify-icon icon="solar:pen-linear" width="14" /></button>
-                      <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-minimalistic-linear" width="14" /></button>
+                      <button onClick={() => openEdit(item)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"><iconify-icon icon="solar:pen-linear" width="14" /></button>
+                      <button onClick={() => handleDelete(item.id)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-minimalistic-linear" width="14" /></button>
                     </div>
                   </td>
                 </tr>
@@ -1788,14 +1788,14 @@ function AbaProdutosAvulsos({ empresaId }) {
           <div>
             <FieldLabel>Foto</FieldLabel>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => setForm(f => ({ ...f, foto: e.target.files[0] ?? null }))} />
-            <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-zinc-700 text-[11px] font-mono text-gray-600 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 rounded transition-colors">
+            <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-2 px-3 py-2 border border-zinc-200/80 dark:border-zinc-700 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500 rounded transition-colors">
               <iconify-icon icon="solar:camera-add-linear" width="14" />
               {form.foto ? form.foto.name : (editItem?.foto_url ? 'Trocar foto' : 'Selecionar foto')}
             </button>
           </div>
           <div className="flex gap-2 pt-2">
-            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">{saving ? 'Salvando...' : editItem ? 'Salvar' : 'Cadastrar'}</button>
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">Cancelar</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">{saving ? 'Salvando...' : editItem ? 'Salvar' : 'Cadastrar'}</button>
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">Cancelar</button>
           </div>
         </div>
       </Modal>
@@ -1864,40 +1864,40 @@ function AbaInsumos({ empresaId }) {
 
   return (
     <div>
-      {toast && <div className="fixed bottom-4 right-4 z-50 bg-gray-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">{toast}</div>}
+      {toast && <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 dark:bg-zinc-800 text-white text-[11px] font-mono px-4 py-2 rounded shadow-lg">{toast}</div>}
       <div className="flex items-center justify-between mb-4">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">{items.length} insumo{items.length !== 1 ? 's' : ''}</span>
-        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded transition-colors">
+        <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">{items.length} insumo{items.length !== 1 ? 's' : ''}</span>
+        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black text-[11px] font-mono uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">
           <iconify-icon icon="solar:add-square-linear" width="14" />
           Adicionar Insumo
         </button>
       </div>
       {loading ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Carregando...</div>
       ) : items.length === 0 ? (
-        <div className="text-center py-12 font-mono text-[11px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">Nenhum insumo cadastrado</div>
+        <div className="text-center py-12 font-mono text-[11px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">Nenhum insumo cadastrado</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-zinc-800">
+              <tr className="border-b border-zinc-200/80 dark:border-zinc-800">
                 {['Nome', 'Categoria', 'Quantidade', 'Unidade', 'Observações', ''].map(h => (
-                  <th key={h} className="text-left py-2 px-3 font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600 font-normal">{h}</th>
+                  <th key={h} className="text-left py-2 px-3 font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 font-normal">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {items.map(item => (
-                <tr key={item.id} className="border-b border-gray-100 dark:border-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-900/40 transition-colors">
-                  <td className="py-2 px-3 font-medium text-gray-900 dark:text-zinc-100">{item.nome}</td>
-                  <td className="py-2 px-3 text-gray-500 dark:text-zinc-500">{item.categoria ?? '—'}</td>
-                  <td className="py-2 px-3 font-mono text-gray-900 dark:text-zinc-100">{item.quantidade}</td>
-                  <td className="py-2 px-3 text-gray-500 dark:text-zinc-500">{item.unidade ?? '—'}</td>
-                  <td className="py-2 px-3 text-gray-400 dark:text-zinc-600 max-w-xs truncate">{item.observacoes ?? '—'}</td>
+                <tr key={item.id} className="border-b border-zinc-200/80 dark:border-zinc-900 hover:bg-white dark:hover:bg-zinc-900/40 transition-colors">
+                  <td className="py-2 px-3 font-medium text-zinc-900 dark:text-zinc-100">{item.nome}</td>
+                  <td className="py-2 px-3 text-zinc-500 dark:text-zinc-500">{item.categoria ?? '—'}</td>
+                  <td className="py-2 px-3 font-mono text-zinc-900 dark:text-zinc-100">{item.quantidade}</td>
+                  <td className="py-2 px-3 text-zinc-500 dark:text-zinc-500">{item.unidade ?? '—'}</td>
+                  <td className="py-2 px-3 text-zinc-400 dark:text-zinc-600 max-w-xs truncate">{item.observacoes ?? '—'}</td>
                   <td className="py-2 px-3">
                     <div className="flex gap-1">
-                      <button onClick={() => openEdit(item)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"><iconify-icon icon="solar:pen-linear" width="14" /></button>
-                      <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-minimalistic-linear" width="14" /></button>
+                      <button onClick={() => openEdit(item)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"><iconify-icon icon="solar:pen-linear" width="14" /></button>
+                      <button onClick={() => handleDelete(item.id)} className="p-1.5 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-minimalistic-linear" width="14" /></button>
                     </div>
                   </td>
                 </tr>
@@ -1922,8 +1922,8 @@ function AbaInsumos({ empresaId }) {
           <div><FieldLabel>Quantidade</FieldLabel><input type="number" min="0" step="0.001" className={inputCls} value={form.quantidade} onChange={e => setForm(f => ({ ...f, quantidade: e.target.value }))} /></div>
           <div><FieldLabel>Observações</FieldLabel><textarea rows={2} className={inputCls + ' resize-none'} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
           <div className="flex gap-2 pt-2">
-            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded transition-colors">{saving ? 'Salvando...' : editItem ? 'Salvar' : 'Cadastrar'}</button>
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-gray-200 dark:border-zinc-700 font-mono text-[11px] text-gray-500 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 rounded transition-colors">Cancelar</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-40 text-white dark:text-black font-mono text-[11px] uppercase tracking-widest font-bold rounded-xl dark:rounded-none transition-colors">{saving ? 'Salvando...' : editItem ? 'Salvar' : 'Cadastrar'}</button>
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-zinc-200/80 dark:border-zinc-700 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 rounded transition-colors">Cancelar</button>
           </div>
         </div>
       </Modal>
@@ -1976,19 +1976,19 @@ export default function Estoque() {
   if (profileLoading || !profile) return null;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#050505] text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <iconify-icon icon="solar:box-linear" width="20" class="text-yellow-500" />
-            <h1 className="font-mono text-[14px] uppercase tracking-widest font-bold text-gray-900 dark:text-white">Estoque</h1>
+            <iconify-icon icon="solar:box-linear" width="20" class="text-orange-500 dark:text-yellow-400" />
+            <h1 className="font-mono text-[14px] uppercase tracking-widest font-bold text-zinc-900 dark:text-white">Estoque</h1>
           </div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
             Chapas · Pedaceiras · Produtos · Insumos
           </p>
         </div>
 
-        <div className="border-b border-gray-200 dark:border-zinc-800 mb-6 flex gap-1 overflow-x-auto">
+        <div className="border-b border-zinc-200/80 dark:border-zinc-800 mb-6 flex gap-1 overflow-x-auto">
           {TABS.map(t => (
             <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
               {t.label}

@@ -77,13 +77,17 @@ const ESTADOS_BR = [
   'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
 ];
 
+// ── Classes reutilizáveis (light mode) ────────────────────────────────────────
+const PANEL_CLS = 'bg-white/90 dark:bg-[#020202] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none';
+const PRIMARY_BTN_CLS = 'bg-orange-500 text-white dark:bg-yellow-400 dark:text-black rounded-xl dark:rounded-none shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] dark:shadow-none hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] dark:hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] hover:-translate-y-0.5 dark:hover:bg-yellow-300 transition-all';
+
 // ── Componentes de campo para TabArquitetos (uncontrolled) ────────────────────
-const FIELD_CLS = 'w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-4 py-3 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 font-mono resize-none';
+const FIELD_CLS = 'w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm px-4 py-3 outline-none focus:border-orange-500 dark:focus:border-yellow-400 font-mono resize-none rounded-md dark:rounded-none';
 
 function Field({ label, name, type = 'text', defaultValue = '', required = false, span2 = false, textarea = false }) {
   return (
     <div className={span2 ? 'col-span-2' : ''}>
-      <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">{label}{required && <span className="text-yellow-600 dark:text-yellow-400 ml-0.5">*</span>}</label>
+      <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">{label}{required && <span className="text-orange-600 dark:text-yellow-400 ml-0.5">*</span>}</label>
       {textarea
         ? <textarea name={name} rows="2" defaultValue={defaultValue} className={FIELD_CLS} />
         : <input name={name} type={type} defaultValue={defaultValue} required={required} className={FIELD_CLS} />}
@@ -95,7 +99,7 @@ function MaskedField({ label, name, maskFn, defaultValue = '', required = false,
   const [val, setVal] = useState(() => maskFn(defaultValue ?? ''));
   return (
     <div className={span2 ? 'col-span-2' : ''}>
-      <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">{label}{required && <span className="text-yellow-600 dark:text-yellow-400 ml-0.5">*</span>}</label>
+      <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">{label}{required && <span className="text-orange-600 dark:text-yellow-400 ml-0.5">*</span>}</label>
       <input name={name} value={val} onChange={e => setVal(maskFn(e.target.value))} required={required} className={FIELD_CLS} />
     </div>
   );
@@ -103,8 +107,8 @@ function MaskedField({ label, name, maskFn, defaultValue = '', required = false,
 
 // ── STATUS ────────────────────────────────────────────────────────────────────
 const statusColors = {
-  orcado:     'bg-[#FEF9C3] dark:bg-zinc-800 text-[#854D0E] dark:text-zinc-300 border-[#DEB87A] dark:border-zinc-700',
-  aprovado:   'bg-green-50 dark:bg-[#020202] text-green-700 dark:text-white border-green-300 dark:border-white',
+  orcado:     'bg-orange-50 dark:bg-zinc-800 text-orange-700 dark:text-zinc-300 border-orange-200 dark:border-zinc-700',
+  aprovado:   'bg-emerald-50 dark:bg-[#020202] text-emerald-700 dark:text-white border-emerald-300 dark:border-white',
   produzindo: 'bg-violet-50 dark:bg-zinc-900 text-violet-700 dark:text-yellow-400 border-violet-300 dark:border-yellow-400',
   entregue:   'bg-blue-50 dark:bg-[#050505] text-blue-700 dark:text-zinc-400 border-blue-300 dark:border-zinc-600',
   perdido:    'bg-red-50 dark:bg-zinc-950 text-red-700 dark:text-zinc-500 border-red-200 dark:border-zinc-800 line-through',
@@ -113,21 +117,21 @@ const statusLabels = { orcado: 'Orçado', aprovado: 'Aprovado', produzindo: 'Pro
 
 const statusPedidoColors = {
   FECHADO:   'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700/60',
-  ORCAMENTO: 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 border-gray-300 dark:border-zinc-700',
+  ORCAMENTO: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700',
 };
 
 // ── MODAL DE CONFIRMAÇÃO DE EXCLUSÃO ─────────────────────────────────────────
 function ConfirmDeleteModal({ title, message, onConfirm, onCancel }) {
   return (
     <div className="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="modal-content bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 w-full max-w-sm p-6 shadow-2xl">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-tight flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-red-500"></span>{title}
+      <div className="modal-content bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 w-full max-w-sm p-6 shadow-2xl rounded-2xl dark:rounded-none">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4 uppercase tracking-tight flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-red-500 rounded-full dark:rounded-none"></span>{title}
         </h2>
-        <p className="text-gray-600 dark:text-zinc-400 text-sm mb-6">{message}</p>
+        <p className="text-zinc-600 dark:text-zinc-400 text-sm mb-6">{message}</p>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 font-mono text-[10px] uppercase border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 py-3 hover:text-gray-900 dark:hover:text-white transition-colors">Cancelar</button>
-          <button onClick={onConfirm} className="flex-1 bg-red-500/10 text-red-600 dark:text-red-500 font-mono font-bold text-[10px] uppercase py-3 border border-red-500/30 hover:bg-red-500 hover:text-white transition-all">Excluir</button>
+          <button onClick={onCancel} className="flex-1 font-mono text-[10px] uppercase border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 py-3 rounded-xl dark:rounded-none hover:text-zinc-900 dark:hover:text-white transition-colors">Cancelar</button>
+          <button onClick={onConfirm} className="flex-1 bg-red-500/10 text-red-600 dark:text-red-500 font-mono font-bold text-[10px] uppercase py-3 border border-red-500/30 rounded-xl dark:rounded-none hover:bg-red-500 hover:text-white transition-all">Excluir</button>
         </div>
       </div>
     </div>
@@ -347,55 +351,55 @@ function TabClientes({ empresaId, session, isAdmin }) {
   const rgOk  = !!(form.rg?.trim() && validarRG(form.rg));
 
   const fc = (field, isValid) => {
-    const base = 'w-full bg-gray-50 dark:bg-black text-gray-900 dark:text-white text-sm px-4 py-3 outline-none font-mono border transition-colors ';
+    const base = 'w-full bg-white dark:bg-black text-zinc-900 dark:text-white text-sm px-4 py-3 outline-none font-mono border transition-colors rounded-md dark:rounded-none ';
     if (formErrors[field]) return base + 'border-red-500 dark:border-red-500';
     if (isValid)           return base + 'border-green-500 dark:border-green-500';
-    return base + 'border-gray-300 dark:border-zinc-800 focus:border-yellow-500 dark:focus:border-yellow-400';
+    return base + 'border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400';
   };
 
   // ── render ──
   return (
     <div className="lg:flex lg:gap-8 h-full">
       {/* Lista */}
-      <div className={`flex-1 flex flex-col h-full bg-gray-100 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 ${selected ? 'hidden lg:flex' : 'flex'}`}>
-        <div className="p-6 border-b border-gray-300 dark:border-zinc-800">
+      <div className={`flex-1 flex flex-col h-full ${PANEL_CLS} overflow-hidden ${selected ? 'hidden lg:flex' : 'flex'}`}>
+        <div className="p-6 border-b border-zinc-200/80 dark:border-zinc-800">
           <div className="flex justify-between items-center mb-4">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
               {filtered.length} cliente{filtered.length !== 1 ? 's' : ''}
             </span>
-            <button onClick={() => openModal()} className="bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-5 py-2.5 hover:shadow-[0_0_20px_rgba(250,204,21,0.3)] transition-all flex items-center gap-2">
+            <button onClick={() => openModal()} className={`${PRIMARY_BTN_CLS} text-xs font-bold uppercase tracking-widest px-5 py-2.5 flex items-center gap-2`}>
               <iconify-icon icon="solar:user-plus-linear" width="14"></iconify-icon> Novo Cliente
             </button>
           </div>
           <div className="relative">
-            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-600"></iconify-icon>
+            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600"></iconify-icon>
             <input type="text" placeholder="Pesquisar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-100 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-10 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400" />
+              className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm px-10 py-2.5 outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
           {loading ? (
-            <div className="h-full flex items-center justify-center text-gray-300 dark:text-zinc-700 animate-pulse font-mono text-[10px] uppercase">Carregando...</div>
+            <div className="h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700 animate-pulse font-mono text-[10px] uppercase">Carregando...</div>
           ) : filtered.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-300 dark:text-zinc-700 font-mono text-[10px] uppercase">Nenhum cliente encontrado</div>
+            <div className="h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700 font-mono text-[10px] uppercase">Nenhum cliente encontrado</div>
           ) : filteredPage.map(cli => (
             <div key={cli.id} onClick={() => setSelected(cli)}
-              className={`sys-reveal p-4 border transition-all cursor-pointer group ${selected?.id === cli.id ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-50 dark:bg-zinc-900/40' : 'border-gray-300 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-600'}`}>
+              className={`sys-reveal p-4 border transition-all cursor-pointer group rounded-xl dark:rounded-none ${selected?.id === cli.id ? 'border-orange-500 dark:border-yellow-400 bg-orange-50 dark:bg-zinc-900/40' : 'border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600'}`}>
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className={`font-medium ${selected?.id === cli.id ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-900 dark:text-white'}`}>{cli.nome}</h3>
-                  <div className="text-[10px] font-mono text-gray-400 dark:text-zinc-600 uppercase mt-1 flex items-center gap-3">
+                  <h3 className={`font-medium ${selected?.id === cli.id ? 'text-orange-700 dark:text-yellow-400' : 'text-zinc-900 dark:text-white'}`}>{cli.nome}</h3>
+                  <div className="text-[10px] font-mono text-zinc-400 dark:text-zinc-600 uppercase mt-1 flex items-center gap-3">
                     <span>{cli.projetos?.length ?? 0} Projetos</span>
                     <span>•</span>
                     <span>{cli.telefone || 'Sem fone'}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={e => { e.stopPropagation(); openModal(cli); }} className="p-2 border border-gray-300 dark:border-zinc-800 text-gray-400 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-400 hover:text-gray-700 dark:hover:text-white transition-colors">
+                  <button onClick={e => { e.stopPropagation(); openModal(cli); }} className="p-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-zinc-400 dark:hover:border-zinc-400 hover:text-zinc-700 dark:hover:text-white transition-colors">
                     <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                   </button>
                   {isAdmin && (
-                    <button onClick={e => { e.stopPropagation(); setDeleteId(cli.id); }} className="p-2 border border-gray-300 dark:border-zinc-800 text-gray-400 dark:text-zinc-500 hover:border-red-400/50 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                    <button onClick={e => { e.stopPropagation(); setDeleteId(cli.id); }} className="p-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-red-400/50 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                       <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                     </button>
                   )}
@@ -405,17 +409,17 @@ function TabClientes({ empresaId, session, isAdmin }) {
           ))}
         </div>
         {filtered.length > PAGE_SIZE && (
-          <div className="border-t border-gray-300 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
-            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">
+          <div className="border-t border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
+            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
               Página {currentPage + 1} de {totalPages}
             </span>
             <div className="flex items-center gap-2">
               <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                 <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon> Anterior
               </button>
               <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                 Próxima <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
               </button>
             </div>
@@ -425,16 +429,16 @@ function TabClientes({ empresaId, session, isAdmin }) {
 
       {/* Ficha */}
       {selected ? (
-        <div className="flex-[1.4] bg-gray-100 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 flex flex-col h-full overflow-hidden sys-reveal relative">
-          <button onClick={() => setSelected(null)} className="lg:hidden absolute top-4 left-4 z-20 text-gray-500 dark:text-zinc-500 flex items-center gap-2 font-mono text-[10px] uppercase">
+        <div className={`flex-[1.4] ${PANEL_CLS} flex flex-col h-full overflow-hidden sys-reveal relative`}>
+          <button onClick={() => setSelected(null)} className="lg:hidden absolute top-4 left-4 z-20 text-zinc-500 dark:text-zinc-500 flex items-center gap-2 font-mono text-[10px] uppercase">
             <iconify-icon icon="solar:arrow-left-linear"></iconify-icon> Voltar
           </button>
-          <div className="p-6 border-b border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/40">
+          <div className="p-6 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-black/40">
             <div className="flex justify-between items-start mb-4">
-              <div className="text-[10px] font-mono text-gray-400 dark:text-zinc-600 border border-gray-300 dark:border-zinc-800 px-2 py-1">ID_{selected.id.slice(0, 8)}</div>
-              <button onClick={() => openModal(selected)} className="text-[10px] font-mono uppercase bg-gray-100 dark:bg-zinc-900 text-gray-700 dark:text-zinc-400 px-4 py-2 hover:text-gray-900 dark:hover:text-white transition-colors">Editar</button>
+              <div className="text-[10px] font-mono text-zinc-400 dark:text-zinc-600 border border-zinc-200/80 dark:border-zinc-800 px-2 py-1 rounded-md dark:rounded-none">ID_{selected.id.slice(0, 8)}</div>
+              <button onClick={() => openModal(selected)} className="text-[10px] font-mono uppercase bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-400 px-4 py-2 rounded-md dark:rounded-none hover:text-zinc-900 dark:hover:text-white transition-colors">Editar</button>
             </div>
-            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tighter uppercase mb-5">{selected.nome}</h2>
+            <h2 className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tighter uppercase mb-5">{selected.nome}</h2>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Telefone',   value: selected.telefone },
@@ -445,49 +449,49 @@ function TabClientes({ empresaId, session, isAdmin }) {
                 ] : []),
                 { label: 'Nascimento', value: selected.data_nascimento },
               ].map(({ label, value }) => (
-                <div key={label} className="p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
-                  <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">{label}</div>
-                  <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs">{value || '—'}</div>
+                <div key={label} className="p-3 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-black/20 rounded-lg dark:rounded-none">
+                  <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-600 uppercase mb-1">{label}</div>
+                  <div className="text-zinc-700 dark:text-zinc-300 font-mono text-xs">{value || '—'}</div>
                 </div>
               ))}
-              <div className="col-span-2 p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
-                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">Endereço</div>
-                <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs whitespace-pre-line">
+              <div className="col-span-2 p-3 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-black/20 rounded-lg dark:rounded-none">
+                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-600 uppercase mb-1">Endereço</div>
+                <div className="text-zinc-700 dark:text-zinc-300 font-mono text-xs whitespace-pre-line">
                   {formatAddressDisplay(selected.endereco) || '—'}
                 </div>
               </div>
             </div>
           </div>
           <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
-            <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-widest mb-4 border-l-2 border-yellow-500 dark:border-yellow-400 pl-3">Projetos</h3>
+            <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-4 border-l-2 border-orange-500 dark:border-yellow-400 pl-3">Projetos</h3>
             {(selected.projetos?.length ?? 0) === 0 ? (
-              <div className="py-16 text-center border border-dashed border-gray-300 dark:border-zinc-800 text-gray-300 dark:text-zinc-700 font-mono text-[10px] uppercase">Nenhum projeto</div>
+              <div className="py-16 text-center border border-dashed border-zinc-200/80 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700 font-mono text-[10px] uppercase rounded-lg dark:rounded-none">Nenhum projeto</div>
             ) : selected.projetos.map(proj => (
-              <div key={proj.id} className={`p-4 border bg-gray-50/50 dark:bg-zinc-950/20 hover:border-gray-300 dark:hover:border-zinc-700 transition-colors flex items-center justify-between group/proj mb-2 ${proj.status_pedido === 'FECHADO' ? 'border-blue-200 dark:border-blue-900/60' : 'border-gray-100 dark:border-zinc-900'}`}>
+              <div key={proj.id} className={`p-4 border bg-zinc-50 dark:bg-zinc-950/20 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex items-center justify-between group/proj mb-2 rounded-lg dark:rounded-none ${proj.status_pedido === 'FECHADO' ? 'border-blue-200 dark:border-blue-900/60' : 'border-zinc-200/80 dark:border-zinc-900'}`}>
                 <div>
-                  <span className="text-gray-800 dark:text-zinc-200 font-medium uppercase text-sm">{proj.nome}</span>
-                  <span className="text-[10px] font-mono text-gray-400 dark:text-zinc-600 uppercase ml-3">Criado {proj.data}</span>
+                  <span className="text-zinc-800 dark:text-zinc-200 font-medium uppercase text-sm">{proj.nome}</span>
+                  <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-600 uppercase ml-3">Criado {proj.data}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {proj.status === 'perdido' && (
-                    <button onClick={e => handleReativarProjeto(e, proj)} className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-mono uppercase border border-green-500/40 text-green-600 dark:text-green-400 hover:bg-green-400/10 transition-colors">
+                    <button onClick={e => handleReativarProjeto(e, proj)} className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-mono uppercase border border-green-500/40 text-green-600 dark:text-green-400 rounded-md dark:rounded-none hover:bg-green-400/10 transition-colors">
                       <iconify-icon icon="solar:restart-linear" width="12"></iconify-icon> Reativar
                     </button>
                   )}
                   {proj.status_pedido === 'FECHADO' && (
                     <>
-                      <div className={`px-2 py-1 text-[9px] font-mono uppercase border flex items-center gap-1 ${statusPedidoColors.FECHADO}`}>
+                      <div className={`px-2 py-1 text-[9px] font-mono uppercase border flex items-center gap-1 rounded-md dark:rounded-none ${statusPedidoColors.FECHADO}`}>
                         <iconify-icon icon="solar:lock-keyhole-minimalistic-bold" width="10"></iconify-icon> Fechado
                       </div>
                       {isAdmin && (
                         <button onClick={e => handleVoltarParaOrcamento(e, proj)}
-                          className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-mono uppercase border border-red-700/40 text-red-500 dark:text-red-400 hover:bg-red-400/10 hover:border-red-500/60 transition-colors">
+                          className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-mono uppercase border border-red-700/40 text-red-500 dark:text-red-400 rounded-md dark:rounded-none hover:bg-red-400/10 hover:border-red-500/60 transition-colors">
                           <iconify-icon icon="solar:refresh-linear" width="11"></iconify-icon> Voltar para Orçamento
                         </button>
                       )}
                     </>
                   )}
-                  <div className={`px-2 py-1 text-[9px] font-mono uppercase border ${statusColors[proj.status] || statusColors.orcado}`}>
+                  <div className={`px-2 py-1 text-[9px] font-mono uppercase border rounded-md dark:rounded-none ${statusColors[proj.status] || statusColors.orcado}`}>
                     {statusLabels[proj.status] || 'Orçado'}
                   </div>
                 </div>
@@ -496,10 +500,10 @@ function TabClientes({ empresaId, session, isAdmin }) {
           </div>
         </div>
       ) : (
-        <div className="hidden lg:flex flex-[1.4] bg-gray-100 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 items-center justify-center">
+        <div className={`hidden lg:flex flex-[1.4] ${PANEL_CLS} items-center justify-center`}>
           <div className="text-center">
-            <iconify-icon icon="solar:users-group-two-rounded-linear" width="48" className="text-gray-200 dark:text-zinc-800 mb-4 mx-auto block"></iconify-icon>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Selecione um cliente</p>
+            <iconify-icon icon="solar:users-group-two-rounded-linear" width="48" className="text-zinc-200 dark:text-zinc-800 mb-4 mx-auto block"></iconify-icon>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Selecione um cliente</p>
           </div>
         </div>
       )}
@@ -507,33 +511,33 @@ function TabClientes({ empresaId, session, isAdmin }) {
       {/* Modal Criar/Editar Cliente */}
       {isModalOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="bg-gray-100 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase mb-6 flex items-center gap-3">
-              <span className="w-1.5 h-1.5 bg-yellow-500 dark:bg-yellow-400"></span>
+          <div className="bg-white dark:bg-[#050505] border border-zinc-200/80 dark:border-zinc-800 w-full max-w-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto rounded-2xl dark:rounded-none">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white uppercase mb-6 flex items-center gap-3">
+              <span className="w-1.5 h-1.5 bg-orange-500 dark:bg-yellow-400 rounded-full dark:rounded-none"></span>
               {editing ? 'Editar Cliente' : 'Novo Cliente'}
             </h3>
             <form onSubmit={handleSave} noValidate className="flex flex-col gap-6">
 
               {/* Dados Pessoais */}
               <div>
-                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-gray-200 dark:border-zinc-800">Dados Pessoais</div>
+                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-zinc-200/80 dark:border-zinc-800">Dados Pessoais</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Nome Completo <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Nome Completo <span className="text-orange-600 dark:text-yellow-400">*</span></label>
                     <input value={form.nome ?? ''} onChange={e => setF('nome', e.target.value)} className={fc('nome')} />
                     {formErrors.nome && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.nome}</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Telefone <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Telefone <span className="text-orange-600 dark:text-yellow-400">*</span></label>
                     <input value={form.telefone ?? ''} onChange={e => setF('telefone', maskPhone(e.target.value))} className={fc('telefone')} placeholder="(00) 00000-0000" />
                     {formErrors.telefone && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.telefone}</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Email</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Email</label>
                     <input type="email" value={form.email ?? ''} onChange={e => setF('email', e.target.value)} className={fc('email')} />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Data de Nascimento</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Data de Nascimento</label>
                     <input type="date" value={form.data_nascimento ?? ''} onChange={e => setF('data_nascimento', e.target.value)} className={fc('data_nascimento')} />
                   </div>
                 </div>
@@ -541,16 +545,16 @@ function TabClientes({ empresaId, session, isAdmin }) {
 
               {/* Documentos */}
               <div>
-                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-gray-200 dark:border-zinc-800">Documentos</div>
+                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-zinc-200/80 dark:border-zinc-800">Documentos</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">CPF</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">CPF</label>
                     <input value={form.cpf ?? ''} onChange={e => setF('cpf', maskCPF(e.target.value))} className={fc('cpf', cpfOk)} placeholder="000.000.000-00" />
                     {formErrors.cpf  && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cpf}</p>}
                     {cpfOk && !formErrors.cpf && <p className="text-[9px] font-mono text-green-500 mt-1">CPF válido</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">RG</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">RG</label>
                     <input value={form.rg ?? ''} onChange={e => setF('rg', e.target.value)} className={fc('rg', rgOk)} placeholder="Apenas números" />
                     {formErrors.rg  && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.rg}</p>}
                     {rgOk && !formErrors.rg && <p className="text-[9px] font-mono text-green-500 mt-1">RG válido</p>}
@@ -560,12 +564,12 @@ function TabClientes({ empresaId, session, isAdmin }) {
 
               {/* Endereço */}
               <div>
-                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-gray-200 dark:border-zinc-800">Endereço</div>
+                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-zinc-200/80 dark:border-zinc-800">Endereço</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
-                      CEP <span className="text-yellow-600 dark:text-yellow-400">*</span>
-                      {loadingCep && <span className="text-[8px] text-yellow-500 animate-pulse normal-case tracking-normal">buscando...</span>}
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
+                      CEP <span className="text-orange-600 dark:text-yellow-400">*</span>
+                      {loadingCep && <span className="text-[8px] text-orange-500 dark:text-yellow-400 animate-pulse normal-case tracking-normal">buscando...</span>}
                     </label>
                     <input
                       value={form.cep ?? ''}
@@ -576,31 +580,31 @@ function TabClientes({ empresaId, session, isAdmin }) {
                     {formErrors.cep && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cep}</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Número <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Número <span className="text-orange-600 dark:text-yellow-400">*</span></label>
                     <input value={form.numero ?? ''} onChange={e => setF('numero', e.target.value)} className={fc('numero')} placeholder="123" />
                     {formErrors.numero && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.numero}</p>}
                   </div>
                   <div className="col-span-2">
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Rua / Logradouro <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Rua / Logradouro <span className="text-orange-600 dark:text-yellow-400">*</span></label>
                     <input value={form.rua ?? ''} onChange={e => setF('rua', e.target.value)} className={fc('rua')} />
                     {formErrors.rua && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.rua}</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Complemento</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Complemento</label>
                     <input value={form.complemento ?? ''} onChange={e => setF('complemento', e.target.value)} className={fc('complemento')} placeholder="Apto, Bloco..." />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Bairro <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Bairro <span className="text-orange-600 dark:text-yellow-400">*</span></label>
                     <input value={form.bairro ?? ''} onChange={e => setF('bairro', e.target.value)} className={fc('bairro')} />
                     {formErrors.bairro && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.bairro}</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Cidade <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Cidade <span className="text-orange-600 dark:text-yellow-400">*</span></label>
                     <input value={form.cidade ?? ''} onChange={e => setF('cidade', e.target.value)} className={fc('cidade')} />
                     {formErrors.cidade && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cidade}</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Estado <span className="text-yellow-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Estado <span className="text-orange-600 dark:text-yellow-400">*</span></label>
                     <select value={form.estado ?? ''} onChange={e => setF('estado', e.target.value)} className={fc('estado') + ' appearance-none cursor-pointer'}>
                       <option value="">UF</option>
                       {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
@@ -611,8 +615,8 @@ function TabClientes({ empresaId, session, isAdmin }) {
               </div>
 
               <div className="flex gap-4 pt-2">
-                <button type="button" onClick={closeModal} className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase py-3 hover:text-gray-900 dark:hover:text-white transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-mono font-bold text-[10px] uppercase py-3 hover:opacity-90 transition-all">Salvar</button>
+                <button type="button" onClick={closeModal} className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-mono text-[10px] uppercase py-3 rounded-xl dark:rounded-none hover:text-zinc-900 dark:hover:text-white transition-colors">Cancelar</button>
+                <button type="submit" className={`flex-1 ${PRIMARY_BTN_CLS} font-mono font-bold text-[10px] uppercase py-3`}>Salvar</button>
               </div>
             </form>
           </div>
@@ -740,44 +744,44 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
   return (
     <div className="lg:flex lg:gap-8 h-full">
       {/* Lista */}
-      <div className={`flex-1 flex flex-col h-full bg-gray-100 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 ${selected ? 'hidden lg:flex' : 'flex'}`}>
-        <div className="p-6 border-b border-gray-300 dark:border-zinc-800">
+      <div className={`flex-1 flex flex-col h-full ${PANEL_CLS} overflow-hidden ${selected ? 'hidden lg:flex' : 'flex'}`}>
+        <div className="p-6 border-b border-zinc-200/80 dark:border-zinc-800">
           <div className="flex justify-between items-center mb-4">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
               {filtered.length} arquiteto{filtered.length !== 1 ? 's' : ''}
             </span>
-            <button onClick={() => openModal()} className="bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-5 py-2.5 hover:shadow-[0_0_20px_rgba(250,204,21,0.3)] transition-all flex items-center gap-2">
+            <button onClick={() => openModal()} className={`${PRIMARY_BTN_CLS} text-xs font-bold uppercase tracking-widest px-5 py-2.5 flex items-center gap-2`}>
               <iconify-icon icon="solar:user-plus-linear" width="14"></iconify-icon> Novo Arquiteto
             </button>
           </div>
           <div className="relative">
-            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-600"></iconify-icon>
+            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600"></iconify-icon>
             <input type="text" placeholder="Pesquisar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-100 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-10 py-2.5 outline-none focus:border-yellow-500 dark:focus:border-yellow-400" />
+              className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm px-10 py-2.5 outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
           {loading ? (
-            <div className="h-full flex items-center justify-center text-gray-300 dark:text-zinc-700 animate-pulse font-mono text-[10px] uppercase">Carregando...</div>
+            <div className="h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700 animate-pulse font-mono text-[10px] uppercase">Carregando...</div>
           ) : filtered.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-300 dark:text-zinc-700 font-mono text-[10px] uppercase">Nenhum arquiteto cadastrado</div>
+            <div className="h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700 font-mono text-[10px] uppercase">Nenhum arquiteto cadastrado</div>
           ) : filteredPage.map(arq => (
             <div key={arq.id} onClick={() => setSelected(arq)}
-              className={`sys-reveal p-4 border transition-all cursor-pointer group ${selected?.id === arq.id ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-50 dark:bg-zinc-900/40' : 'border-gray-300 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-600'}`}>
+              className={`sys-reveal p-4 border transition-all cursor-pointer group rounded-xl dark:rounded-none ${selected?.id === arq.id ? 'border-orange-500 dark:border-yellow-400 bg-orange-50 dark:bg-zinc-900/40' : 'border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600'}`}>
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className={`font-medium ${selected?.id === arq.id ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-900 dark:text-white'}`}>{arq.nome}</h3>
-                  <div className="text-[10px] font-mono text-gray-400 dark:text-zinc-600 uppercase mt-1 flex items-center gap-3">
+                  <h3 className={`font-medium ${selected?.id === arq.id ? 'text-orange-700 dark:text-yellow-400' : 'text-zinc-900 dark:text-white'}`}>{arq.nome}</h3>
+                  <div className="text-[10px] font-mono text-zinc-400 dark:text-zinc-600 uppercase mt-1 flex items-center gap-3">
                     <span>{arq.telefone || 'Sem fone'}</span>
                     {arq.dados_pagamento_pix && <><span>•</span><span className="text-green-600">PIX cadastrado</span></>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={e => { e.stopPropagation(); openModal(arq); }} className="p-2 border border-gray-300 dark:border-zinc-800 text-gray-400 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-400 hover:text-gray-700 dark:hover:text-white transition-colors">
+                  <button onClick={e => { e.stopPropagation(); openModal(arq); }} className="p-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-zinc-400 dark:hover:border-zinc-400 hover:text-zinc-700 dark:hover:text-white transition-colors">
                     <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                   </button>
                   {isAdmin && (
-                    <button onClick={e => { e.stopPropagation(); setDeleteId(arq.id); }} className="p-2 border border-gray-300 dark:border-zinc-800 text-gray-400 dark:text-zinc-500 hover:border-red-400/50 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                    <button onClick={e => { e.stopPropagation(); setDeleteId(arq.id); }} className="p-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-red-400/50 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                       <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                     </button>
                   )}
@@ -787,17 +791,17 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
           ))}
         </div>
         {filtered.length > PAGE_SIZE && (
-          <div className="border-t border-gray-300 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
-            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600 uppercase tracking-widest">
+          <div className="border-t border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
+            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
               Página {currentPage + 1} de {totalPages}
             </span>
             <div className="flex items-center gap-2">
               <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                 <iconify-icon icon="solar:arrow-left-linear" width="11"></iconify-icon> Anterior
               </button>
               <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}
-                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex items-center gap-1.5 font-mono text-[9px] uppercase px-3 py-2 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 rounded-md dark:rounded-none hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                 Próxima <iconify-icon icon="solar:arrow-right-linear" width="11"></iconify-icon>
               </button>
             </div>
@@ -807,16 +811,16 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
 
       {/* Ficha */}
       {selected ? (
-        <div className="flex-[1.4] bg-gray-100 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 flex flex-col h-full overflow-hidden sys-reveal relative">
-          <button onClick={() => setSelected(null)} className="lg:hidden absolute top-4 left-4 z-20 text-gray-500 dark:text-zinc-500 flex items-center gap-2 font-mono text-[10px] uppercase">
+        <div className={`flex-[1.4] ${PANEL_CLS} flex flex-col h-full overflow-hidden sys-reveal relative`}>
+          <button onClick={() => setSelected(null)} className="lg:hidden absolute top-4 left-4 z-20 text-zinc-500 dark:text-zinc-500 flex items-center gap-2 font-mono text-[10px] uppercase">
             <iconify-icon icon="solar:arrow-left-linear"></iconify-icon> Voltar
           </button>
-          <div className="p-6 border-b border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/40">
+          <div className="p-6 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-black/40">
             <div className="flex justify-between items-start mb-4">
-              <div className="text-[10px] font-mono text-gray-400 dark:text-zinc-600 border border-gray-300 dark:border-zinc-800 px-2 py-1">ID_{selected.id.slice(0, 8)}</div>
-              <button onClick={() => openModal(selected)} className="text-[10px] font-mono uppercase bg-gray-100 dark:bg-zinc-900 text-gray-700 dark:text-zinc-400 px-4 py-2 hover:text-gray-900 dark:hover:text-white transition-colors">Editar</button>
+              <div className="text-[10px] font-mono text-zinc-400 dark:text-zinc-600 border border-zinc-200/80 dark:border-zinc-800 px-2 py-1 rounded-md dark:rounded-none">ID_{selected.id.slice(0, 8)}</div>
+              <button onClick={() => openModal(selected)} className="text-[10px] font-mono uppercase bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-400 px-4 py-2 rounded-md dark:rounded-none hover:text-zinc-900 dark:hover:text-white transition-colors">Editar</button>
             </div>
-            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tighter uppercase mb-5">{selected.nome}</h2>
+            <h2 className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tighter uppercase mb-5">{selected.nome}</h2>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Telefone',   value: selected.telefone },
@@ -827,17 +831,17 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
                 ] : []),
                 { label: 'Nascimento', value: selected.data_nascimento },
               ].map(({ label, value }) => (
-                <div key={label} className="p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
-                  <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">{label}</div>
-                  <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs">{value || '—'}</div>
+                <div key={label} className="p-3 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-black/20 rounded-lg dark:rounded-none">
+                  <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-600 uppercase mb-1">{label}</div>
+                  <div className="text-zinc-700 dark:text-zinc-300 font-mono text-xs">{value || '—'}</div>
                 </div>
               ))}
-              <div className="col-span-2 p-3 border border-gray-300 dark:border-zinc-800 bg-gray-50/50 dark:bg-black/20">
-                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-600 uppercase mb-1">Endereço</div>
-                <div className="text-gray-700 dark:text-zinc-300 font-mono text-xs">{formatAddressDisplay(selected.endereco) || '—'}</div>
+              <div className="col-span-2 p-3 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-black/20 rounded-lg dark:rounded-none">
+                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-600 uppercase mb-1">Endereço</div>
+                <div className="text-zinc-700 dark:text-zinc-300 font-mono text-xs">{formatAddressDisplay(selected.endereco) || '—'}</div>
               </div>
               {isAdmin && selected.dados_pagamento_pix && (
-                <div className="col-span-2 p-3 border border-green-300/40 dark:border-green-900/40 bg-green-50/50 dark:bg-green-400/5">
+                <div className="col-span-2 p-3 border border-green-300/40 dark:border-green-900/40 bg-green-50/50 dark:bg-green-400/5 rounded-lg dark:rounded-none">
                   <div className="text-[9px] font-mono text-green-700 dark:text-green-600 uppercase mb-1">PIX / Dados Bancários</div>
                   <div className="text-green-800 dark:text-green-300 font-mono text-xs">{selected.dados_pagamento_pix}</div>
                 </div>
@@ -846,16 +850,16 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
           </div>
           <div className="p-6 flex-1 flex items-center justify-center">
             <div className="text-center">
-              <iconify-icon icon="solar:buildings-2-linear" width="36" className="text-gray-200 dark:text-zinc-800 mb-3 mx-auto block"></iconify-icon>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-gray-300 dark:text-zinc-700">Projetos vinculados visíveis na aba Projetos</p>
+              <iconify-icon icon="solar:buildings-2-linear" width="36" className="text-zinc-200 dark:text-zinc-800 mb-3 mx-auto block"></iconify-icon>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-300 dark:text-zinc-700">Projetos vinculados visíveis na aba Projetos</p>
             </div>
           </div>
         </div>
       ) : (
-        <div className="hidden lg:flex flex-[1.4] bg-gray-100 dark:bg-[#020202] border border-gray-300 dark:border-zinc-800 items-center justify-center">
+        <div className={`hidden lg:flex flex-[1.4] ${PANEL_CLS} items-center justify-center`}>
           <div className="text-center">
-            <iconify-icon icon="solar:buildings-2-linear" width="48" className="text-gray-200 dark:text-zinc-800 mb-4 mx-auto block"></iconify-icon>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Selecione um arquiteto</p>
+            <iconify-icon icon="solar:buildings-2-linear" width="48" className="text-zinc-200 dark:text-zinc-800 mb-4 mx-auto block"></iconify-icon>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Selecione um arquiteto</p>
           </div>
         </div>
       )}
@@ -863,9 +867,9 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
       {/* Modal Criar/Editar Arquiteto */}
       {isModalOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="bg-gray-100 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 w-full max-w-lg p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase mb-6 flex items-center gap-3">
-              <span className="w-1.5 h-1.5 bg-yellow-500 dark:bg-yellow-400"></span>
+          <div className="bg-white dark:bg-[#050505] border border-zinc-200/80 dark:border-zinc-800 w-full max-w-lg p-8 shadow-2xl max-h-[90vh] overflow-y-auto rounded-2xl dark:rounded-none">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white uppercase mb-6 flex items-center gap-3">
+              <span className="w-1.5 h-1.5 bg-orange-500 dark:bg-yellow-400 rounded-full dark:rounded-none"></span>
               {editing ? 'Editar Arquiteto' : 'Novo Arquiteto'}
             </h3>
             <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
@@ -877,36 +881,36 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
               <Field label="Data de Nascimento" name="data_nascimento" type="date" defaultValue={editing?.data_nascimento} />
               {/* Endereço com busca por CEP */}
               <div className="col-span-2">
-                <div className="text-[9px] font-mono text-gray-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-3 border-b border-gray-200 dark:border-zinc-800">Endereço</div>
+                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-3 border-b border-zinc-200/80 dark:border-zinc-800">Endereço</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
-                      CEP {loadingCepArq && <span className="text-[8px] text-yellow-500 animate-pulse normal-case tracking-normal">buscando...</span>}
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
+                      CEP {loadingCepArq && <span className="text-[8px] text-orange-500 dark:text-yellow-400 animate-pulse normal-case tracking-normal">buscando...</span>}
                     </label>
                     <input value={arqEnd.cep} onChange={e => { const v = maskCEP(e.target.value); setArqEnd(p => ({ ...p, cep: v })); buscarCepArq(v); }} placeholder="00000-000" className={FIELD_CLS} />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Número</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Número</label>
                     <input value={arqEnd.numero} onChange={e => setArqEnd(p => ({ ...p, numero: e.target.value }))} placeholder="123" className={FIELD_CLS} />
                   </div>
                   <div className="col-span-2">
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Rua / Logradouro</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Rua / Logradouro</label>
                     <input value={arqEnd.rua} onChange={e => setArqEnd(p => ({ ...p, rua: e.target.value }))} className={FIELD_CLS} />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Complemento</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Complemento</label>
                     <input value={arqEnd.complemento} onChange={e => setArqEnd(p => ({ ...p, complemento: e.target.value }))} placeholder="Apto, Bloco..." className={FIELD_CLS} />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Bairro</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Bairro</label>
                     <input value={arqEnd.bairro} onChange={e => setArqEnd(p => ({ ...p, bairro: e.target.value }))} className={FIELD_CLS} />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Cidade</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Cidade</label>
                     <input value={arqEnd.cidade} onChange={e => setArqEnd(p => ({ ...p, cidade: e.target.value }))} className={FIELD_CLS} />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">Estado</label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Estado</label>
                     <select value={arqEnd.estado} onChange={e => setArqEnd(p => ({ ...p, estado: e.target.value }))} className={FIELD_CLS + ' cursor-pointer'}>
                       <option value="">—</option>
                       {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
@@ -915,14 +919,14 @@ function TabArquitetos({ empresaId, session, isAdmin }) {
                 </div>
               </div>
               <div className="col-span-2">
-                <label className="text-[9px] uppercase font-mono text-gray-500 dark:text-zinc-600 mb-2 block">PIX / Dados Bancários</label>
+                <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">PIX / Dados Bancários</label>
                 <input name="dados_pagamento_pix" defaultValue={editing?.dados_pagamento_pix || ''}
                   placeholder="Chave PIX, agência, conta..."
-                  className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-sm px-4 py-3 outline-none focus:border-green-500 font-mono placeholder:text-gray-400 dark:placeholder:text-zinc-700" />
+                  className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm px-4 py-3 outline-none focus:border-green-500 font-mono rounded-md dark:rounded-none placeholder:text-zinc-400 dark:placeholder:text-zinc-700" />
               </div>
               <div className="col-span-2 flex gap-4 pt-2">
-                <button type="button" onClick={closeModal} className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase py-3 hover:text-gray-900 dark:hover:text-white transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-mono font-bold text-[10px] uppercase py-3 hover:opacity-90 transition-all">Salvar</button>
+                <button type="button" onClick={closeModal} className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-mono text-[10px] uppercase py-3 rounded-xl dark:rounded-none hover:text-zinc-900 dark:hover:text-white transition-colors">Cancelar</button>
+                <button type="submit" className={`flex-1 ${PRIMARY_BTN_CLS} font-mono font-bold text-[10px] uppercase py-3`}>Salvar</button>
               </div>
             </form>
           </div>
@@ -950,10 +954,10 @@ export default function ClientesPage() {
   const [subTab, setSubTab] = useState('clientes');
 
   return (
-    <div className="page-enter min-h-screen bg-gray-100 dark:bg-[#050505] text-gray-600 dark:text-zinc-400 font-sans selection:bg-gray-900 selection:text-white dark:selection:bg-gray-50 dark:selection:text-black flex flex-col">
+    <div className="page-enter min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-600 dark:text-zinc-400 font-sans selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-50 dark:selection:text-black flex flex-col">
       {/* Header */}
-      <div className="px-6 pt-6 pb-0 border-b border-gray-300 dark:border-zinc-800">
-        <div className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-3">06 // Clientes &amp; Arquitetos</div>
+      <div className="px-6 pt-6 pb-0 border-b border-zinc-200/80 dark:border-zinc-800">
+        <div className="text-[10px] font-mono text-zinc-500 dark:text-white uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 bg-white/50 dark:bg-transparent backdrop-blur-md w-max px-2 py-1 mb-3 rounded-md dark:rounded-none shadow-sm dark:shadow-none">06 // Clientes &amp; Arquitetos</div>
         <div className="flex items-end gap-0">
           {[
             { id: 'clientes',   label: 'Clientes',   icon: 'solar:users-group-two-rounded-linear' },
@@ -964,8 +968,8 @@ export default function ClientesPage() {
               onClick={() => setSubTab(tab.id)}
               className={`flex items-center gap-2 px-5 py-3 font-mono text-[11px] uppercase tracking-widest border-b-2 transition-colors ${
                 subTab === tab.id
-                  ? 'border-yellow-500 dark:border-yellow-400 text-yellow-700 dark:text-yellow-400'
-                  : 'border-transparent text-gray-500 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300'
+                  ? 'border-orange-500 dark:border-yellow-400 text-orange-700 dark:text-yellow-400'
+                  : 'border-transparent text-zinc-500 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300'
               }`}
             >
               <iconify-icon icon={tab.icon} width="14"></iconify-icon>
@@ -990,7 +994,8 @@ export default function ClientesPage() {
         .sys-active { opacity: 1; transform: translateY(0); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d8; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; }
       `}} />
     </div>
   );

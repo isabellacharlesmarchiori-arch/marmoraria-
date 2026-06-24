@@ -24,7 +24,7 @@ export function parseSvgUrl(raw) {
 // ─── Status configs ──────────────────────────────────────────────────────────
 
 export const STATUS_CONFIG = {
-    orcado:     { label: 'Orçado',     color: 'text-[#854D0E] dark:text-zinc-400',   border: 'border-[#DEB87A] dark:border-zinc-700',        bg: 'bg-[#FEF9C3] dark:bg-zinc-900',      dot: 'bg-[#B45309] dark:bg-zinc-500'   },
+    orcado:     { label: 'Orçado',     color: 'text-orange-700 dark:text-zinc-400',  border: 'border-orange-200 dark:border-zinc-700',       bg: 'bg-orange-50 dark:bg-zinc-900',      dot: 'bg-orange-500 dark:bg-zinc-500'  },
     aprovado:   { label: 'Aprovado',   color: 'text-green-700 dark:text-green-400',  border: 'border-green-300 dark:border-green-500/30',    bg: 'bg-green-50 dark:bg-green-400/5',    dot: 'bg-green-500 dark:bg-green-400'  },
     produzindo: { label: 'Produzindo', color: 'text-violet-700 dark:text-violet-400', border: 'border-violet-300 dark:border-violet-500/30', bg: 'bg-violet-50 dark:bg-violet-400/5', dot: 'bg-violet-500 dark:bg-violet-400' },
     entregue:   { label: 'Entregue',   color: 'text-blue-700 dark:text-blue-400',    border: 'border-blue-300 dark:border-blue-500/30',      bg: 'bg-blue-50 dark:bg-blue-400/5',      dot: 'bg-blue-500 dark:bg-blue-400'   },

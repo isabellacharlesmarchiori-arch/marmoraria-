@@ -141,6 +141,7 @@ export default function DashboardAdmin() {
     const [loading,   setLoading]   = useState(true);
     const [projetos,  setProjetos]  = useState([]);
     const [orcamentos, setOrcamentos] = useState([]);
+    const [fechamentos, setFechamentos] = useState([]);
     const [vendedores, setVendedores] = useState([]);
 
     useEffect(() => {
@@ -158,7 +159,7 @@ export default function DashboardAdmin() {
         async function fetchData() {
             setLoading(true);
             try {
-                const [resP, resO, resV] = await Promise.all([
+                const [resP, resO, resF, resV] = await Promise.all([
                     supabase
                         .from('projetos')
                         .select('id, nome, status, created_at, vendedor_id, clientes(nome)')
@@ -170,6 +171,11 @@ export default function DashboardAdmin() {
                         .eq('empresa_id', empresaId)
                         .order('created_at', { ascending: false }),
                     supabase
+                        .from('fechamentos')
+                        .select('valor_fechado, data_fechamento, vendedor_id, projeto_id')
+                        .eq('empresa_id', empresaId)
+                        .order('data_fechamento', { ascending: false }),
+                    supabase
                         .from('usuarios')
                         .select('id, nome')
                         .eq('empresa_id', empresaId)
@@ -178,6 +184,7 @@ export default function DashboardAdmin() {
                 if (!mounted) return;
                 if (resP.data) setProjetos(resP.data);
                 if (resO.data) setOrcamentos(resO.data);
+                if (resF.data) setFechamentos(resF.data);
                 if (resV.data) setVendedores(resV.data);
             } catch (err) {
                 console.error('[Admin] Erro ao carregar dados:', err);
@@ -195,19 +202,27 @@ export default function DashboardAdmin() {
         const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
         const fimMes    = new Date(agora.getFullYear(), agora.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
+        // data_fechamento é `date` ('YYYY-MM-DD') — comparar por string de data, não ISO timestamp
+        const pad = n => String(n).padStart(2, '0');
+        const iniMesStr = `${agora.getFullYear()}-${pad(agora.getMonth() + 1)}-01`;
+        const fimMesStr = `${agora.getFullYear()}-${pad(agora.getMonth() + 1)}-${pad(new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate())}`;
+
+        // Faturamento = só pedidos fechados no mês (tabela fechamentos), não orçamentos emitidos
+        const fechMes        = fechamentos.filter(f => f.data_fechamento >= iniMesStr && f.data_fechamento <= fimMesStr);
+        const faturamentoMes = fechMes.reduce((s, f) => s + (Number(f.valor_fechado) || 0), 0);
+
         const orcMes = orcamentos.filter(o => o.created_at >= inicioMes && o.created_at <= fimMes);
-        const faturamentoMes = orcMes.reduce((s, o) => s + (o.valor_total ?? 0), 0);
         const emProducao = projetos.filter(p => p.status === 'produzindo').length;
         const fechados   = projetos.filter(p => ['aprovado', 'produzindo', 'entregue'].includes(p.status)).length;
         const taxa       = projetos.length > 0 ? ((fechados / projetos.length) * 100).toFixed(1) : '0,0';
 
         return [
-            { label: 'Faturamento do mês',     valor: fmtBRL(faturamentoMes), detalhe: `${orcMes.length} orçamento(s) emitido(s)`,            icon: 'solar:wallet-money-linear',  destaque: faturamentoMes > 0 },
+            { label: 'Faturamento do mês',     valor: fmtBRL(faturamentoMes), detalhe: `${fechMes.length} pedido(s) fechado(s)`,             icon: 'solar:wallet-money-linear',  destaque: faturamentoMes > 0 },
             { label: 'Orçamentos gerados',      valor: String(orcMes.length),  detalhe: `${orcamentos.length} no total`,                       icon: 'solar:document-text-linear', destaque: false },
             { label: 'Taxa de fechamento',      valor: taxa, unidade: '%',     detalhe: `${fechados} projeto(s) fechado(s) / aprovado(s)`,      icon: 'solar:chart-linear',         destaque: parseFloat(taxa.replace(',', '.')) > 0 },
             { label: 'Projetos em produção',    valor: String(emProducao),     detalhe: `${projetos.length} projeto(s) total`,                  icon: 'solar:layers-linear',        destaque: false },
         ];
-    }, [projetos, orcamentos]);
+    }, [projetos, orcamentos, fechamentos]);
 
     // ── Ranking de vendedores ──────────────────────────────────────────────────
     const ranking = useMemo(() => {
@@ -238,20 +253,22 @@ export default function DashboardAdmin() {
     // ── Gráfico: últimos 6 meses ───────────────────────────────────────────────
     const { chartMeses, chartValores } = useMemo(() => {
         const agora = new Date();
+        const pad = n => String(n).padStart(2, '0');
         const meses = [];
         const valores = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
-            const inicioM = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
-            const fimM    = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString();
-            const soma = orcamentos
-                .filter(o => o.created_at >= inicioM && o.created_at <= fimM)
-                .reduce((s, o) => s + (o.valor_total ?? 0), 0);
+            // data_fechamento é `date` ('YYYY-MM-DD') — comparar por string de data
+            const inicioM = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+            const fimM    = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())}`;
+            const soma = fechamentos
+                .filter(f => f.data_fechamento >= inicioM && f.data_fechamento <= fimM)
+                .reduce((s, f) => s + (Number(f.valor_fechado) || 0), 0);
             meses.push(mesAno(d));
             valores.push(soma);
         }
         return { chartMeses: meses, chartValores: valores };
-    }, [orcamentos]);
+    }, [fechamentos]);
 
     const totalPeriodo = chartValores.reduce((s, v) => s + v, 0);
     const melhorMesIdx = chartValores.indexOf(Math.max(...chartValores));

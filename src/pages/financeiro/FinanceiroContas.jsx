@@ -49,7 +49,7 @@ export default function FinanceiroContas() {
   if (profile?.perfil !== 'admin') {
     return (
       <div className="p-6">
-        <p className="text-gray-500 dark:text-zinc-500 font-mono text-sm">
+        <p className="text-zinc-500 dark:text-zinc-500 font-mono text-sm">
           Apenas administradores podem gerenciar contas bancárias.
         </p>
       </div>
@@ -117,13 +117,13 @@ export default function FinanceiroContas() {
   return (
     <div className="p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1">
           Contas bancárias e caixas
         </span>
         <button
           type="button"
           onClick={() => setModalForm({ aberto: true, conta: null })}
-          className="font-mono text-[9px] uppercase tracking-widest text-yellow-400 hover:text-yellow-300 transition-colors border border-gray-300 dark:border-zinc-800 px-3 py-1.5"
+          className="font-mono text-[9px] uppercase tracking-widest text-orange-600 dark:text-yellow-400 hover:text-orange-600 dark:hover:text-yellow-300 transition-colors border border-zinc-200/80 dark:border-zinc-800 px-3 py-1.5"
         >
           + Nova conta
         </button>
@@ -134,32 +134,32 @@ export default function FinanceiroContas() {
           type="checkbox"
           checked={mostrarInativas}
           onChange={e => setMostrarInativas(e.target.checked)}
-          className="w-4 h-4 accent-yellow-400"
+          className="w-4 h-4 accent-orange-500 dark:accent-yellow-400"
         />
-        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
           Mostrar inativas
         </span>
       </label>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-gray-50 dark:bg-[#0a0a0a] p-5 flex flex-col gap-3">
-              <div className="h-3 w-20 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
-              <div className="h-5 w-40 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
-              <div className="h-9 w-36 bg-gray-200 dark:bg-zinc-800 animate-pulse rounded" />
+            <div key={i} className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm shadow-zinc-100/60 dark:shadow-none rounded-[2rem] dark:rounded-none p-5 flex flex-col gap-3">
+              <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded" />
+              <div className="h-5 w-40 bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded" />
+              <div className="h-9 w-36 bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded" />
             </div>
           ))}
         </div>
       ) : contasVisiveis.length === 0 ? (
-        <div className="border border-gray-300 dark:border-zinc-800 p-10 flex flex-col items-center gap-3">
-          <iconify-icon icon="lucide:landmark" width="28" className="text-gray-400 dark:text-zinc-700" />
-          <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
+        <div className="border border-zinc-200/80 dark:border-zinc-800 p-10 flex flex-col items-center gap-3">
+          <iconify-icon icon="lucide:landmark" width="28" className="text-zinc-400 dark:text-zinc-700" />
+          <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">
             {mostrarInativas ? 'Nenhuma conta cadastrada' : 'Nenhuma conta ativa'}
           </p>
         </div>
       ) : (
-        <div className={`grid gap-px bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-800 ${
+        <div className={`grid gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 ${
           contasVisiveis.length === 1 ? 'grid-cols-1' :
           contasVisiveis.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
           'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'

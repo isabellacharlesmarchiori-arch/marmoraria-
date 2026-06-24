@@ -93,7 +93,7 @@ export default function AbaCarrinho({
 
             {/* Cabeçalho da aba */}
             <div className="flex items-center justify-between mb-5">
-                <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+                <div className="text-[9px] font-mono font-medium text-zinc-500 dark:text-zinc-500 uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1">
                     02 // Orçamentos
                 </div>
                 <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function AbaCarrinho({
                     {orcamentosCarrinho.length >= 2 && !modoAtivo && (
                         <button
                             onClick={() => setModoMesclar(true)}
-                            className="flex items-center gap-1.5 border border-orange-500 dark:border-orange-500/40 text-orange-700 dark:text-orange-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-orange-600 dark:hover:border-orange-400 hover:bg-orange-100 dark:hover:bg-orange-400/10 transition-colors"
+                            className="flex items-center gap-1.5 rounded-full px-4 py-2 border border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-yellow-400/30 dark:text-yellow-400 dark:hover:bg-yellow-400/10 font-medium text-xs transition-all duration-200"
                         >
                             <iconify-icon icon="solar:merge-linear" width="13"></iconify-icon>
                             Mesclar Cenários
@@ -115,14 +115,14 @@ export default function AbaCarrinho({
                                 <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse inline-block"></span>
                                 {mesclarIds.length} selecionado{mesclarIds.length !== 1 ? 's' : ''}
                             </span>
-                            <button onClick={cancelarMesclar} className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors">
+                            <button onClick={cancelarMesclar} className="flex items-center gap-1.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors">
                                 <iconify-icon icon="solar:close-linear" width="12"></iconify-icon>
                                 Cancelar
                             </button>
                             <button
                                 onClick={() => setModalMesclar({ nome: 'Cenário Mesclado' })}
                                 disabled={mesclarIds.length < 2}
-                                className="flex items-center gap-1.5 bg-orange-500 text-gray-900 dark:text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 hover:bg-orange-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1.5 bg-orange-500 text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 hover:bg-orange-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 <iconify-icon icon="solar:merge-linear" width="12"></iconify-icon>
                                 Mesclar ({mesclarIds.length})
@@ -134,7 +134,7 @@ export default function AbaCarrinho({
                     {orcamentosCarrinho.length >= 1 && !modoAtivo && (
                         <button
                             onClick={() => setModoFecharPedido(true)}
-                            className="flex items-center gap-1.5 bg-blue-600 text-gray-900 dark:text-white text-[11px] font-bold font-mono uppercase tracking-widest px-3 py-1 hover:bg-blue-500 transition-colors"
+                            className="flex items-center gap-1.5 rounded-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs shadow-sm hover:-translate-y-0.5 transition-all duration-200"
                         >
                             <iconify-icon icon="solar:lock-keyhole-minimalistic-linear" width="13"></iconify-icon>
                             Fechar Pedido
@@ -147,14 +147,14 @@ export default function AbaCarrinho({
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block"></span>
                                 {fecharIds.length} selecionado{fecharIds.length !== 1 ? 's' : ''}
                             </span>
-                            <button onClick={cancelarFecharPedido} className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors">
+                            <button onClick={cancelarFecharPedido} className="flex items-center gap-1.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors">
                                 <iconify-icon icon="solar:close-linear" width="12"></iconify-icon>
                                 Cancelar
                             </button>
                             <button
                                 onClick={() => setModalFechar({ forma_pagamento: 'a_vista', parcelamento_tipo: 'a_vista', parcelas_lista: [], parcelas: 2, prazo_entrega: '' })}
                                 disabled={fecharIds.length < 1}
-                                className="flex items-center gap-1.5 bg-green-600 text-gray-900 dark:text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 hover:bg-green-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1.5 bg-green-600 text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 hover:bg-green-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 <iconify-icon icon="solar:arrow-right-linear" width="12"></iconify-icon>
                                 Avançar ({fecharIds.length})
@@ -174,7 +174,7 @@ export default function AbaCarrinho({
                                 const msg = encodeURIComponent(`Olá! Segue resumo dos orçamentos:\n\n${linhas.join('\n')}${total}`);
                                 window.open(`https://wa.me/${telefone.replace(/\D/g,'')}?text=${msg}`, '_blank');
                             }}
-                            className="flex items-center gap-1.5 border border-green-500 dark:border-green-500/30 text-green-700 dark:text-green-400 text-sm font-mono uppercase tracking-widest px-3 py-1 hover:bg-green-100 dark:hover:bg-green-400/10 transition-colors"
+                            className="flex items-center gap-1.5 rounded-full px-4 py-2 border border-green-500 text-green-700 hover:bg-green-50 dark:border-green-500/30 dark:text-green-400 dark:hover:bg-green-400/10 font-medium text-xs transition-all duration-200"
                         >
                             <iconify-icon icon="solar:chat-round-linear" width="13"></iconify-icon>
                             Enviar todos
@@ -184,14 +184,14 @@ export default function AbaCarrinho({
                         <>
                             <button
                                 onClick={() => setModalPdf(true)}
-                                className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-600 text-gray-600 dark:text-zinc-300 text-sm font-mono uppercase tracking-widest px-3 py-1 hover:border-gray-700 dark:hover:border-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                className="flex items-center gap-1.5 rounded-full px-4 py-2 border border-zinc-200 text-zinc-600 hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 font-medium text-xs transition-all duration-200"
                             >
                                 <iconify-icon icon="solar:file-text-linear" width="13"></iconify-icon>
                                 Orçamento por PDF
                             </button>
                             <button
                                 onClick={() => navigate(`/projetos/${id}/orcamento/novo?modo=manual`)}
-                                className="flex items-center gap-1.5 bg-yellow-400 text-black text-sm font-bold uppercase tracking-widest px-3 py-1 hover:shadow-[0_0_10px_rgba(250,204,21,0.25)] transition-all"
+                                className="flex items-center gap-1.5 rounded-full px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-medium shadow-[0_4px_14px_rgba(249,115,22,0.4)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.5)] hover:-translate-y-0.5 transition-all duration-200 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
                             >
                                 <iconify-icon icon="solar:add-linear" width="13"></iconify-icon>
                                 Criar orçamento
@@ -203,9 +203,9 @@ export default function AbaCarrinho({
 
             {/* Lista de orçamentos */}
             {orcamentosCarrinho.length === 0 ? (
-                <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-6 py-16 text-center">
-                    <iconify-icon icon="solar:cart-large-minimalistic-linear" width="36" className="text-gray-300 dark:text-zinc-800 mb-4 block mx-auto"></iconify-icon>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Nenhum orçamento salvo ainda</p>
+                <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none px-6 py-16 text-center">
+                    <iconify-icon icon="solar:cart-large-minimalistic-linear" width="36" className="text-zinc-300 dark:text-zinc-800 mb-4 block mx-auto"></iconify-icon>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Nenhum orçamento salvo ainda</p>
                 </div>
             ) : (
                 <div className="flex flex-col gap-3">
@@ -227,10 +227,10 @@ export default function AbaCarrinho({
                         return (
                             <div
                                 key={orc.id}
-                                className={`bg-gray-100 dark:bg-[#0a0a0a] border transition-colors
+                                className={`bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none transition-colors
                                     ${modoMesclar && isMesclarChecked ? 'border-orange-500 dark:border-orange-500/60 bg-orange-100 dark:bg-orange-400/5' : ''}
                                     ${modoFecharPedido && isFecharChecked ? 'border-green-500 dark:border-green-500/60 bg-green-100 dark:bg-green-400/5' : ''}
-                                    ${!modoMesclar && !modoFecharPedido ? 'border-gray-300 dark:border-zinc-800' : ''}
+                                    ${!modoMesclar && !modoFecharPedido ? 'border-zinc-200/80 dark:border-zinc-800' : ''}
                                     ${isDescartado ? 'opacity-40' : ''}
                                     ${modoAtivo ? 'cursor-pointer' : ''}
                                 `}
@@ -241,11 +241,11 @@ export default function AbaCarrinho({
                                 }
                             >
                                 {/* ── Header ── */}
-                                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-zinc-900">
+                                <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 dark:border-zinc-900">
                                     {/* Checkbox mesclar (laranja) */}
                                     {modoMesclar && (
                                         <div
-                                            className={`w-4 h-4 flex items-center justify-center shrink-0 border transition-colors ${isMesclarChecked ? 'border-orange-400 bg-orange-400/20' : 'border-gray-300 dark:border-zinc-600 hover:border-orange-400'}`}
+                                            className={`w-4 h-4 flex items-center justify-center shrink-0 border transition-colors ${isMesclarChecked ? 'border-orange-400 bg-orange-400/20' : 'border-zinc-200/80 dark:border-zinc-600 hover:border-orange-400'}`}
                                             onClick={e => { e.stopPropagation(); toggleMesclarId(orc.id); }}
                                         >
                                             {isMesclarChecked && <iconify-icon icon="solar:check-read-linear" width="10" className="text-orange-400"></iconify-icon>}
@@ -254,13 +254,13 @@ export default function AbaCarrinho({
                                     {/* Checkbox fechar pedido (verde) */}
                                     {modoFecharPedido && (
                                         <div
-                                            className={`w-4 h-4 flex items-center justify-center shrink-0 border transition-colors ${isFecharChecked ? 'border-green-400 bg-green-400/20' : 'border-gray-300 dark:border-zinc-600 hover:border-green-400'}`}
+                                            className={`w-4 h-4 flex items-center justify-center shrink-0 border transition-colors ${isFecharChecked ? 'border-green-400 bg-green-400/20' : 'border-zinc-200/80 dark:border-zinc-600 hover:border-green-400'}`}
                                             onClick={e => { e.stopPropagation(); handleToggleFecharId(orc.id); }}
                                         >
                                             {isFecharChecked && <iconify-icon icon="solar:check-read-linear" width="10" className="text-green-400"></iconify-icon>}
                                         </div>
                                     )}
-                                    <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">
+                                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 shrink-0">
                                         #{String(idx + 1).padStart(2, '0')}
                                     </span>
 
@@ -275,11 +275,11 @@ export default function AbaCarrinho({
                                                 if (e.key === 'Enter') actions.salvarNomeOrcamentoCarrinho(orc.id, carrinhoEditandoNome.nome, () => setCarrinhoEditandoNome(null));
                                                 if (e.key === 'Escape') setCarrinhoEditandoNome(null);
                                             }}
-                                            className="flex-1 bg-gray-100 dark:bg-black border-b border-yellow-400 text-gray-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
+                                            className="flex-1 bg-zinc-100 dark:bg-black border-b border-orange-500 dark:border-yellow-400 text-zinc-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
                                         />
                                     ) : (
                                         <span className="flex-1 flex items-center gap-2 min-w-0">
-                                            <span className={`text-sm font-semibold tracking-tight truncate ${modoMesclar && isMesclarChecked ? 'text-orange-300' : 'text-gray-900 dark:text-white'}`}>
+                                            <span className={`text-sm font-semibold tracking-tight truncate ${modoMesclar && isMesclarChecked ? 'text-orange-300' : 'text-zinc-900 dark:text-white'}`}>
                                                 {nomeAtual}
                                             </span>
                                             {orcsMesclados.has(orc.id) && (
@@ -300,40 +300,40 @@ export default function AbaCarrinho({
                                     </span>
                                     <div className="shrink-0 text-right">
                                         {orc.desconto_total > 0 && (
-                                            <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 line-through">
+                                            <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 line-through">
                                                 {fmtBRL(((orc.valor_total ?? 0) + (orc.desconto_total ?? 0)) * ajustes.fator)}
                                             </div>
                                         )}
                                         {temAjustes && !orc.desconto_total && (
-                                            <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 line-through">
+                                            <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 line-through">
                                                 {fmtBRL(orc.valor_total)}
                                             </div>
                                         )}
-                                        <span className="font-mono text-sm font-bold text-yellow-400">
+                                        <span className="font-mono text-sm font-bold text-orange-600 dark:text-yellow-400">
                                             {fmtBRL(ajustes.totalVenda)}
                                         </span>
                                     </div>
 
                                     {/* Ações do card */}
-                                    <div className="flex items-center gap-0.5 border-l border-gray-300 dark:border-zinc-800 pl-3 shrink-0">
+                                    <div className="flex items-center gap-0.5 border-l border-zinc-200/80 dark:border-zinc-800 pl-3 shrink-0">
                                         <button
                                             onClick={() => setCarrinhoEditandoNome({ id: orc.id, nome: nomeAtual })}
                                             title="Editar nome"
-                                            className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                                            className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors"
                                         >
                                             <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                                         </button>
                                         <button
                                             onClick={() => actions.duplicarOrcamentoCarrinho(orc, orc.ambiente_id)}
                                             title="Duplicar"
-                                            className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                                            className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors"
                                         >
                                             <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                                         </button>
                                         <button
                                             onClick={() => actions.excluirOrcamentoCarrinho(orc.id)}
                                             title="Excluir"
-                                            className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                                            className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                                         >
                                             <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                                         </button>
@@ -343,19 +343,19 @@ export default function AbaCarrinho({
                                 {/* ── Linha única: metadata + TODOS os botões ── */}
                                 <div className="px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
                                     {/* Metadata compacta */}
-                                    <div className="flex items-center gap-3 flex-wrap min-w-0 text-gray-500 dark:text-zinc-500">
+                                    <div className="flex items-center gap-3 flex-wrap min-w-0 text-zinc-500 dark:text-zinc-500">
                                         <div className="flex items-center gap-1 text-[10px]">
-                                            <iconify-icon icon="solar:layers-minimalistic-linear" width="11" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+                                            <iconify-icon icon="solar:layers-minimalistic-linear" width="11" className="text-zinc-400 dark:text-zinc-700"></iconify-icon>
                                             {orc.ambiente_nome ?? 'Ambiente'}
                                         </div>
                                         {nPecas > 0 && (
                                             <div className="flex items-center gap-1 text-[10px]">
-                                                <iconify-icon icon="solar:box-linear" width="11" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
+                                                <iconify-icon icon="solar:box-linear" width="11" className="text-zinc-400 dark:text-zinc-700"></iconify-icon>
                                                 {nPecas}
                                             </div>
                                         )}
                                         {orc.data && (
-                                            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-700">{orc.data}</span>
+                                            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-700">{orc.data}</span>
                                         )}
                                         {arquitetoNomeProjeto && (
                                             <span className="font-mono text-[9px] text-amber-700 dark:text-amber-600/80 border border-amber-400 dark:border-amber-700/30 px-1.5 py-0.5">
@@ -372,7 +372,7 @@ export default function AbaCarrinho({
                                         {/* Ver detalhes */}
                                         <button
                                             onClick={() => toggleCarrinhoDetalhes(orc.id)}
-                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${isExp ? 'border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/5' : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-800 dark:hover:text-zinc-300'}`}
+                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${isExp ? 'border-orange-300 dark:border-yellow-400/40 text-orange-700 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5' : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-300'}`}
                                         >
                                             <iconify-icon icon={isExp ? 'solar:alt-arrow-up-linear' : 'solar:eye-linear'} width="11"></iconify-icon>
                                             {isExp ? 'Fechar' : 'Detalhes'}
@@ -381,7 +381,7 @@ export default function AbaCarrinho({
                                         <button
                                             onClick={() => actions.openPdfModal('orcamento', orc, setPdfModal)}
                                             disabled={!!loadingPdf}
-                                            className="flex items-center gap-1 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-800 dark:hover:text-zinc-300 transition-colors disabled:opacity-40"
+                                            className="flex items-center gap-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors disabled:opacity-40"
                                         >
                                             <iconify-icon icon="solar:file-text-linear" width="11"></iconify-icon>
                                             PDF
@@ -393,14 +393,14 @@ export default function AbaCarrinho({
                                                 const msg = encodeURIComponent(`Olá! Segue o orçamento "${nomeAtual}" — ${orc.ambiente_nome}: ${fmtBRL(ajustes.totalVenda)}`);
                                                 window.open(`https://wa.me/${telefone.replace(/\D/g,'')}?text=${msg}`, '_blank');
                                             }}
-                                            className="flex items-center gap-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-gray-500 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300 transition-colors"
+                                            className="flex items-center gap-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-2 py-1 hover:border-zinc-500 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300 transition-colors"
                                         >
                                             <iconify-icon icon="solar:chat-round-linear" width="11"></iconify-icon>
                                             WA
                                         </button>
 
                                         {/* Separador */}
-                                        <div className="w-px h-4 bg-gray-100 dark:bg-zinc-800 mx-0.5"></div>
+                                        <div className="w-px h-4 bg-zinc-100 dark:bg-zinc-800 mx-0.5"></div>
 
                                         {/* Ajustes (toggle dropdown) */}
                                         <button
@@ -408,7 +408,7 @@ export default function AbaCarrinho({
                                                 prev?.id === orc.id ? null
                                                 : { id: orc.id, majoramento: String(orc.majoramento_percentual ?? 0), rt: String(orc.rt_percentual ?? projeto?.rt_padrao_percentual ?? 0), rtNome: orc.rt_arquiteto_nome || projeto?.arquitetos?.nome || '', frete: String(orc.valor_frete ?? 0) }
                                             )}
-                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${carrinhoEditandoAjustes?.id === orc.id ? 'border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15' : 'border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:border-gray-500 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300'}`}
+                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${carrinhoEditandoAjustes?.id === orc.id ? 'border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15' : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-zinc-500 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
                                         >
                                             <iconify-icon icon="solar:percent-square-linear" width="11"></iconify-icon>
                                             Ajustes
@@ -420,7 +420,7 @@ export default function AbaCarrinho({
                                                 prev?.id === orc.id ? null
                                                 : { id: orc.id, valor: '', tipo: '%' }
                                             )}
-                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${carrinhoEditandoDesconto?.id === orc.id ? 'border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15' : 'border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:border-gray-500 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300'}`}
+                                            className={`flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest px-2 py-1 border transition-colors ${carrinhoEditandoDesconto?.id === orc.id ? 'border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15' : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-zinc-500 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
                                         >
                                             <iconify-icon icon="solar:tag-price-linear" width="11"></iconify-icon>
                                             {orc.desconto_total > 0 ? 'Desc.' : 'Desc.'}
@@ -430,7 +430,7 @@ export default function AbaCarrinho({
 
                                 {/* ── Dropdown: Desconto ── */}
                                 {carrinhoEditandoDesconto?.id === orc.id && (
-                                    <div className="px-5 py-4 border-t border-gray-300/60 dark:border-zinc-800/60 bg-gray-100/60 dark:bg-zinc-950/40">
+                                    <div className="px-5 py-4 border-t border-zinc-200/80 dark:border-zinc-800/60 bg-zinc-100/60 dark:bg-zinc-950/40">
                                         <div className="flex items-end gap-3 flex-wrap">
                                             <div className="flex flex-col gap-1">
                                                 <label className="font-mono text-[9px] uppercase tracking-widest text-purple-400/70">Valor do desconto</label>
@@ -440,12 +440,12 @@ export default function AbaCarrinho({
                                                         value={carrinhoEditandoDesconto.valor}
                                                         onChange={e => setCarrinhoEditandoDesconto(prev => ({ ...prev, valor: e.target.value }))}
                                                         placeholder="0"
-                                                        className="w-28 bg-gray-100 dark:bg-black border border-purple-700/40 text-gray-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-purple-500/60"
+                                                        className="w-28 bg-zinc-100 dark:bg-black border border-purple-700/40 text-zinc-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-purple-500/60"
                                                         autoFocus
                                                     />
                                                     <button
                                                         onClick={() => setCarrinhoEditandoDesconto(prev => ({ ...prev, tipo: prev.tipo === '%' ? 'R$' : '%' }))}
-                                                        className="font-mono text-[10px] border border-gray-300 dark:border-zinc-700 px-2 py-1.5 text-gray-600 dark:text-zinc-400 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
+                                                        className="font-mono text-[10px] border border-zinc-200/80 dark:border-zinc-700 px-2 py-1.5 text-zinc-600 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors"
                                                     >
                                                         {carrinhoEditandoDesconto.tipo}
                                                     </button>
@@ -458,7 +458,7 @@ export default function AbaCarrinho({
                                             )}
                                             <div className="flex gap-2 pb-0.5">
                                                 <button onClick={() => actions.salvarDescontoCarrinho(orc.id, carrinhoEditandoDesconto.valor, carrinhoEditandoDesconto.tipo, () => setCarrinhoEditandoDesconto(null))} className="font-mono text-[10px] bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-500 transition-colors uppercase tracking-widest">Salvar</button>
-                                                <button onClick={() => setCarrinhoEditandoDesconto(null)} className="font-mono text-[10px] border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 px-3 py-1.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors">✕</button>
+                                                <button onClick={() => setCarrinhoEditandoDesconto(null)} className="font-mono text-[10px] border border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 px-3 py-1.5 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors">✕</button>
                                             </div>
                                         </div>
                                     </div>
@@ -466,31 +466,31 @@ export default function AbaCarrinho({
 
                                 {/* ── Dropdown: Ajustes de Venda ── */}
                                 {carrinhoEditandoAjustes?.id === orc.id && (
-                                    <div className="px-5 py-4 border-t border-gray-300/60 dark:border-zinc-800/60 bg-gray-100/60 dark:bg-zinc-950/40">
+                                    <div className="px-5 py-4 border-t border-zinc-200/80 dark:border-zinc-800/60 bg-zinc-100/60 dark:bg-zinc-950/40">
                                         <div className="flex items-end gap-3 flex-wrap">
                                             {/* Majoramento — vermelho */}
                                             <div className="flex flex-col gap-1">
                                                 <label className="font-mono text-[9px] uppercase tracking-widest text-red-400/70">Majoramento %</label>
-                                                <input type="number" min="0" step="0.1" value={carrinhoEditandoAjustes.majoramento} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, majoramento: e.target.value }))} className="w-24 bg-gray-100 dark:bg-black border border-red-700/50 text-gray-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-red-500/70" placeholder="0" autoFocus />
+                                                <input type="number" min="0" step="0.1" value={carrinhoEditandoAjustes.majoramento} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, majoramento: e.target.value }))} className="w-24 bg-zinc-100 dark:bg-black border border-red-700/50 text-zinc-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-red-500/70" placeholder="0" autoFocus />
                                             </div>
                                             {/* RT — laranja */}
                                             <div className="flex flex-col gap-1">
                                                 <label className="font-mono text-[9px] uppercase tracking-widest text-orange-400/70">RT %</label>
-                                                <input type="number" min="0" step="0.1" value={carrinhoEditandoAjustes.rt} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, rt: e.target.value }))} className="w-24 bg-gray-100 dark:bg-black border border-orange-700/50 text-gray-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-orange-500/70" placeholder="0" />
+                                                <input type="number" min="0" step="0.1" value={carrinhoEditandoAjustes.rt} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, rt: e.target.value }))} className="w-24 bg-zinc-100 dark:bg-black border border-orange-700/50 text-zinc-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-orange-500/70" placeholder="0" />
                                             </div>
                                             {/* Frete — verde */}
                                             <div className="flex flex-col gap-1">
                                                 <label className="font-mono text-[9px] uppercase tracking-widest text-green-400/70">Frete R$</label>
-                                                <input type="number" min="0" step="0.01" value={carrinhoEditandoAjustes.frete} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, frete: e.target.value }))} className="w-28 bg-gray-100 dark:bg-black border border-green-700/50 text-gray-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-green-500/70" placeholder="0,00" />
+                                                <input type="number" min="0" step="0.01" value={carrinhoEditandoAjustes.frete} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, frete: e.target.value }))} className="w-28 bg-zinc-100 dark:bg-black border border-green-700/50 text-zinc-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-green-500/70" placeholder="0,00" />
                                             </div>
                                             {/* Arquiteto — laranja (parte do RT) */}
                                             <div className="flex flex-col gap-1 flex-1 min-w-36">
                                                 <label className="font-mono text-[9px] uppercase tracking-widest text-orange-400/70">Arquiteto / RT</label>
-                                                <input type="text" value={carrinhoEditandoAjustes.rtNome} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, rtNome: e.target.value }))} className="bg-gray-100 dark:bg-black border border-orange-700/50 text-gray-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-orange-500/70 w-full" placeholder="Nome do arquiteto" />
+                                                <input type="text" value={carrinhoEditandoAjustes.rtNome} onChange={e => setCarrinhoEditandoAjustes(prev => ({ ...prev, rtNome: e.target.value }))} className="bg-zinc-100 dark:bg-black border border-orange-700/50 text-zinc-900 dark:text-white font-mono text-[11px] px-2 py-1.5 focus:outline-none focus:border-orange-500/70 w-full" placeholder="Nome do arquiteto" />
                                             </div>
                                             <div className="flex gap-2 pb-0.5">
                                                 <button onClick={() => actions.salvarAjustesCarrinho(orc.id, carrinhoEditandoAjustes.majoramento, carrinhoEditandoAjustes.rt, carrinhoEditandoAjustes.rtNome, carrinhoEditandoAjustes.frete, () => setCarrinhoEditandoAjustes(null))} className="font-mono text-[10px] bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-500 transition-colors uppercase tracking-widest">Salvar</button>
-                                                <button onClick={() => setCarrinhoEditandoAjustes(null)} className="font-mono text-[10px] border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 px-3 py-1.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors">✕</button>
+                                                <button onClick={() => setCarrinhoEditandoAjustes(null)} className="font-mono text-[10px] border border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 px-3 py-1.5 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors">✕</button>
                                             </div>
                                         </div>
                                         {(() => {
@@ -502,14 +502,14 @@ export default function AbaCarrinho({
                                             const valorRt  = valorMaj * (rt / 100);
                                             const total    = valorMaj + valorRt + frete;
                                             return (maj > 0 || rt > 0 || frete > 0) && (
-                                                <div className="mt-3 border border-gray-300 dark:border-zinc-800 bg-gray-100/60 dark:bg-black/40 px-4 py-3 grid grid-cols-2 gap-x-6 gap-y-1.5">
-                                                    <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500 uppercase tracking-widest">Custo base</span>
-                                                    <span className="font-mono text-[10px] text-gray-700 dark:text-zinc-300 text-right">{fmtBRL(base)}</span>
-                                                    {maj > 0 && <><span className="font-mono text-[9px] text-red-400/60 uppercase tracking-widest">+ Majoramento ({maj}%)</span><span className="font-mono text-[10px] text-gray-700 dark:text-zinc-300 text-right">+ {fmtBRL(valorMaj - base)}</span></>}
-                                                    {rt > 0 && <><span className="font-mono text-[9px] text-orange-400/60 uppercase tracking-widest">+ RT ({rt}%)</span><span className="font-mono text-[10px] text-gray-700 dark:text-zinc-300 text-right">+ {fmtBRL(valorRt)}</span></>}
-                                                    {frete > 0 && <><span className="font-mono text-[9px] text-green-400/60 uppercase tracking-widest">+ Frete</span><span className="font-mono text-[10px] text-gray-700 dark:text-zinc-300 text-right">+ {fmtBRL(frete)}</span></>}
-                                                    <span className="font-mono text-[9px] text-yellow-400 uppercase tracking-widest border-t border-gray-300 dark:border-zinc-800 pt-1.5">Total de venda</span>
-                                                    <span className="font-mono text-sm font-bold text-yellow-400 text-right border-t border-gray-300 dark:border-zinc-800 pt-1.5">{fmtBRL(total)}</span>
+                                                <div className="mt-3 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-black/40 px-4 py-3 grid grid-cols-2 gap-x-6 gap-y-1.5">
+                                                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">Custo base</span>
+                                                    <span className="font-mono text-[10px] text-zinc-700 dark:text-zinc-300 text-right">{fmtBRL(base)}</span>
+                                                    {maj > 0 && <><span className="font-mono text-[9px] text-red-400/60 uppercase tracking-widest">+ Majoramento ({maj}%)</span><span className="font-mono text-[10px] text-zinc-700 dark:text-zinc-300 text-right">+ {fmtBRL(valorMaj - base)}</span></>}
+                                                    {rt > 0 && <><span className="font-mono text-[9px] text-orange-400/60 uppercase tracking-widest">+ RT ({rt}%)</span><span className="font-mono text-[10px] text-zinc-700 dark:text-zinc-300 text-right">+ {fmtBRL(valorRt)}</span></>}
+                                                    {frete > 0 && <><span className="font-mono text-[9px] text-green-400/60 uppercase tracking-widest">+ Frete</span><span className="font-mono text-[10px] text-zinc-700 dark:text-zinc-300 text-right">+ {fmtBRL(frete)}</span></>}
+                                                    <span className="font-mono text-[9px] text-orange-600 dark:text-yellow-400 uppercase tracking-widest border-t border-zinc-200/80 dark:border-zinc-800 pt-1.5">Total de venda</span>
+                                                    <span className="font-mono text-sm font-bold text-orange-600 dark:text-yellow-400 text-right border-t border-zinc-200/80 dark:border-zinc-800 pt-1.5">{fmtBRL(total)}</span>
                                                 </div>
                                             );
                                         })()}
@@ -518,24 +518,24 @@ export default function AbaCarrinho({
 
                                 {/* ── Resumo de ajustes salvos ── */}
                                 {!carrinhoEditandoAjustes && temAjustes && (
-                                    <div className="px-5 py-3 border-t border-gray-300/60 dark:border-zinc-800/60 bg-gray-100 dark:bg-zinc-950/30">
+                                    <div className="px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800/60 bg-zinc-100 dark:bg-zinc-950/30">
                                         <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">Custo base</span>
-                                            <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-400 text-right">{fmtBRL(ajustes.custoBase)}</span>
+                                            <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 uppercase tracking-widest">Custo base</span>
+                                            <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 text-right">{fmtBRL(ajustes.custoBase)}</span>
                                             {ajustes.maj > 0 && <>
-                                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">+ Majoramento ({ajustes.maj}%)</span>
-                                                <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-400 text-right">+ {fmtBRL(ajustes.valorMajorado - ajustes.custoBase)}</span>
+                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 uppercase tracking-widest">+ Majoramento ({ajustes.maj}%)</span>
+                                                <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 text-right">+ {fmtBRL(ajustes.valorMajorado - ajustes.custoBase)}</span>
                                             </>}
                                             {ajustes.rt > 0 && <>
-                                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">+ RT ({ajustes.rt}%){orc.rt_arquiteto_nome ? ` — ${orc.rt_arquiteto_nome}` : ''}</span>
-                                                <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-400 text-right">+ {fmtBRL(ajustes.valorRt)}</span>
+                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 uppercase tracking-widest">+ RT ({ajustes.rt}%){orc.rt_arquiteto_nome ? ` — ${orc.rt_arquiteto_nome}` : ''}</span>
+                                                <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 text-right">+ {fmtBRL(ajustes.valorRt)}</span>
                                             </>}
                                             {ajustes.frete > 0 && <>
-                                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase tracking-widest">+ Frete</span>
-                                                <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-400 text-right">+ {fmtBRL(ajustes.frete)}</span>
+                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 uppercase tracking-widest">+ Frete</span>
+                                                <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 text-right">+ {fmtBRL(ajustes.frete)}</span>
                                             </>}
-                                            <span className="font-mono text-[9px] text-yellow-400/80 uppercase tracking-widest border-t border-gray-300/60 dark:border-zinc-800/60 pt-1.5 mt-0.5">Total de venda</span>
-                                            <span className="font-mono text-sm font-bold text-yellow-400 text-right border-t border-gray-300/60 dark:border-zinc-800/60 pt-1.5 mt-0.5">{fmtBRL(ajustes.totalVenda)}</span>
+                                            <span className="font-mono text-[9px] text-orange-600/80 dark:text-yellow-400/80 uppercase tracking-widest border-t border-zinc-200/80 dark:border-zinc-800/60 pt-1.5 mt-0.5">Total de venda</span>
+                                            <span className="font-mono text-sm font-bold text-orange-600 dark:text-yellow-400 text-right border-t border-zinc-200/80 dark:border-zinc-800/60 pt-1.5 mt-0.5">{fmtBRL(ajustes.totalVenda)}</span>
                                         </div>
                                     </div>
                                 )}
@@ -547,8 +547,8 @@ export default function AbaCarrinho({
                                     const todasPecas = orc.pecas ?? [];
                                     if (isLoadingP || (todasPecas.length === 0 && (orc.valor_total ?? 0) > 0 && (orc.itens_manuais ?? []).length === 0)) {
                                         return (
-                                            <div className="border-t border-gray-300 dark:border-zinc-800 bg-gray-100/60 dark:bg-black/40 px-5 py-5 flex items-center gap-3 text-gray-500 dark:text-zinc-600">
-                                                <iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin text-yellow-400/50"></iconify-icon>
+                                            <div className="border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-black/40 px-5 py-5 flex items-center gap-3 text-zinc-500 dark:text-zinc-600">
+                                                <iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin text-orange-600/50 dark:text-yellow-400/50"></iconify-icon>
                                                 <span className="font-mono text-[10px] uppercase tracking-widest">Carregando detalhes...</span>
                                             </div>
                                         );
@@ -575,7 +575,7 @@ export default function AbaCarrinho({
                                     };
 
                                     return (
-                                        <div className="border-t border-gray-300 dark:border-zinc-800 bg-gray-100/60 dark:bg-black/40">
+                                        <div className="border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-black/40">
                                             {grupos.map(([ambId, pecasGrupo], gi) => {
                                                 const ambNome = nomeDoAmbiente(ambId);
                                                 const subtotal = pecasGrupo.reduce((s, p) => s + (p.valor ?? 0), 0);
@@ -584,14 +584,14 @@ export default function AbaCarrinho({
                                                 const subtotalComManuais = subtotal + (showManuais ? (orc.itens_manuais ?? []).reduce((s, it) => s + (it.total ?? 0), 0) : 0);
 
                                                 return (
-                                                    <div key={ambId} className={gi > 0 ? 'border-t border-gray-300 dark:border-zinc-800' : ''}>
+                                                    <div key={ambId} className={gi > 0 ? 'border-t border-zinc-200/80 dark:border-zinc-800' : ''}>
                                                         {/* Header do ambiente */}
                                                         {(() => {
                                                             const isRealAmb = ambId && ambId !== '__sem_ambiente__';
                                                             const isEditAmb = isRealAmb && editandoAmbCarrinho?.ambId === ambId;
                                                             return (
-                                                                <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-zinc-950/50 border-b border-gray-100 dark:border-zinc-900 group/amb">
-                                                                    <div className="w-0.5 h-4 bg-yellow-400/50 shrink-0"></div>
+                                                                <div className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 dark:bg-zinc-950/50 border-b border-zinc-100 dark:border-zinc-900 group/amb">
+                                                                    <div className="w-0.5 h-4 bg-orange-500/50 dark:bg-yellow-400/50 shrink-0"></div>
                                                                     {isEditAmb ? (
                                                                         <>
                                                                             <input
@@ -603,25 +603,25 @@ export default function AbaCarrinho({
                                                                                     if (e.key === 'Enter') actions.renomearAmbCarrinho(ambId, editandoAmbCarrinho.novo, () => setEditandoAmbCarrinho(null));
                                                                                     if (e.key === 'Escape') setEditandoAmbCarrinho(null);
                                                                                 }}
-                                                                                className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-[10px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none font-semibold"
+                                                                                className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[10px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none font-semibold"
                                                                             />
-                                                                            <button onClick={() => setEditandoAmbCarrinho(null)} className="font-mono text-[8px] text-gray-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
+                                                                            <button onClick={() => setEditandoAmbCarrinho(null)} className="font-mono text-[8px] text-zinc-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
                                                                         </>
                                                                     ) : (
                                                                         <>
-                                                                            <span className="font-mono text-[10px] uppercase tracking-widest text-gray-700 dark:text-zinc-300 font-semibold flex-1">
+                                                                            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-700 dark:text-zinc-300 font-semibold flex-1">
                                                                                 {ambNome}
                                                                             </span>
                                                                             {isRealAmb && (
                                                                                 <button
                                                                                     onClick={() => setEditandoAmbCarrinho({ ambId, novo: ambNome })}
-                                                                                    className="opacity-0 group-hover/amb:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                                                                                    className="opacity-0 group-hover/amb:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
                                                                                     title="Renomear ambiente"
                                                                                 >
                                                                                     <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
                                                                                 </button>
                                                                             )}
-                                                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 shrink-0">{fmtBRL(subtotalComManuais)}</span>
+                                                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 shrink-0">{fmtBRL(subtotalComManuais)}</span>
                                                                         </>
                                                                     )}
                                                                 </div>
@@ -653,29 +653,29 @@ export default function AbaCarrinho({
                                                                         const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
                                                                         const valorUnit = qtd > 1 ? valorPedra / qtd : null;
                                                                         return (
-                                                                            <div key={p.id ?? pi} className="flex items-center justify-between px-5 py-2 border-b border-gray-100/30 dark:border-zinc-900/30 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors">
+                                                                            <div key={p.id ?? pi} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
                                                                                 <div className="flex items-center gap-3 min-w-0">
-                                                                                    <div className="w-px h-5 bg-gray-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                                    <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
+                                                                                    <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
+                                                                                    <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
                                                                                     {areaTotal != null && (
                                                                                         areaUnit != null ? (
                                                                                             <div className="flex flex-col items-end shrink-0">
-                                                                                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
-                                                                                                <span className="font-mono text-[9px] text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
+                                                                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
+                                                                                                <span className="font-mono text-[9px] text-orange-600/70 dark:text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
                                                                                             </div>
                                                                                         ) : (
-                                                                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
+                                                                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
                                                                                         )
                                                                                     )}
-                                                                                    {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
+                                                                                    {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
                                                                                 </div>
                                                                                 {valorUnit != null ? (
                                                                                     <div className="flex flex-col items-end shrink-0 ml-3">
-                                                                                        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
-                                                                                        <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
+                                                                                        <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
+                                                                                        <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
                                                                                     </div>
                                                                                 ) : (
-                                                                                    <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                                                    <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
                                                                                 )}
                                                                             </div>
                                                                         );
@@ -689,9 +689,9 @@ export default function AbaCarrinho({
                                                                                     <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-600/60 shrink-0 ml-1"></iconify-icon>
                                                                                     <span className="text-[10px] text-amber-700 dark:text-amber-400/80 truncate">{label}</span>
                                                                                     <span className="font-mono text-[9px] text-amber-700/70 shrink-0">{ml.toFixed(2)} ml</span>
-                                                                                    {vlrMl > 0 && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
+                                                                                    {vlrMl > 0 && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
                                                                                 </div>
-                                                                                <span className="font-mono text-[11px] text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
+                                                                                <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
                                                                             </div>
                                                                         );
                                                                     }),
@@ -731,8 +731,8 @@ export default function AbaCarrinho({
                                                                 return [
                                                                     // Header do item
                                                                     ...(nomeItem ? [
-                                                                        <div key={`item-hdr-${itemKey}`} className="flex items-center gap-2 px-5 py-1.5 bg-gray-100/30 dark:bg-zinc-900/30 border-b border-gray-100/40 dark:border-zinc-900/40 group/item">
-                                                                            <iconify-icon icon="solar:folder-linear" width="10" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
+                                                                        <div key={`item-hdr-${itemKey}`} className="flex items-center gap-2 px-5 py-1.5 bg-zinc-100/30 dark:bg-zinc-900/30 border-b border-zinc-100/40 dark:border-zinc-900/40 group/item">
+                                                                            <iconify-icon icon="solar:folder-linear" width="10" className="text-zinc-400 dark:text-zinc-700 shrink-0"></iconify-icon>
                                                                             {isEditItem ? (
                                                                                 <>
                                                                                     <input
@@ -744,24 +744,24 @@ export default function AbaCarrinho({
                                                                                             if (e.key === 'Enter') actions.renomearItemCarrinho(orc.id, nomeItem, editandoItemCarrinho.novo, () => setEditandoItemCarrinho(null));
                                                                                             if (e.key === 'Escape') setEditandoItemCarrinho(null);
                                                                                         }}
-                                                                                        className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none"
+                                                                                        className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none"
                                                                                     />
-                                                                                    <button onClick={() => setEditandoItemCarrinho(null)} className="font-mono text-[8px] text-gray-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
+                                                                                    <button onClick={() => setEditandoItemCarrinho(null)} className="font-mono text-[8px] text-zinc-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
                                                                                 </>
                                                                             ) : (
                                                                                 <>
                                                                                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 truncate">{nomeItem}</span>
+                                                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 truncate">{nomeItem}</span>
                                                                                         {(() => { const qtd = pecasItem[0]?.grupo_quantidade ?? 1; return qtd > 1 ? <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtd}</span> : null; })()}
                                                                                     </div>
                                                                                     <button
                                                                                         onClick={() => setEditandoItemCarrinho({ orcId: orc.id, itemNome: nomeItem, novo: nomeItem })}
-                                                                                        className="opacity-0 group-hover/item:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                                                                                        className="opacity-0 group-hover/item:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
                                                                                         title="Renomear item"
                                                                                     >
                                                                                         <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
                                                                                     </button>
-                                                                                    <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{fmtBRL(subtotalItem)}</span>
+                                                                                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 shrink-0">{fmtBRL(subtotalItem)}</span>
                                                                                 </>
                                                                             )}
                                                                         </div>
@@ -775,9 +775,9 @@ export default function AbaCarrinho({
                                                                         const valorUnit = qtd > 1 ? valorPedra / qtd : null;
                                                                         const isEditPeca = editandoPecaCarrinho?.orcId === orc.id && editandoPecaCarrinho?.pecaId === p.id;
                                                                         return (
-                                                                            <div key={p.id ?? pi} className={`flex items-center justify-between py-2 border-b border-gray-100/30 dark:border-zinc-900/30 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors group/peca ${px}`}>
+                                                                            <div key={p.id ?? pi} className={`flex items-center justify-between py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors group/peca ${px}`}>
                                                                                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                                                    <div className="w-px h-5 bg-gray-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
+                                                                                    <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
                                                                                     {isEditPeca ? (
                                                                                         <input
                                                                                             autoFocus
@@ -788,14 +788,14 @@ export default function AbaCarrinho({
                                                                                                 if (e.key === 'Enter') actions.renomearPecaCarrinho(orc.id, p.id, p.pecaDbId, editandoPecaCarrinho.nome, () => setEditandoPecaCarrinho(null));
                                                                                                 if (e.key === 'Escape') setEditandoPecaCarrinho(null);
                                                                                             }}
-                                                                                            className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-[11px] px-1.5 py-0.5 outline-none"
+                                                                                            className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[11px] px-1.5 py-0.5 outline-none"
                                                                                         />
                                                                                     ) : (
                                                                                         <>
-                                                                                            <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
+                                                                                            <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
                                                                                             <button
                                                                                                 onClick={() => setEditandoPecaCarrinho({ orcId: orc.id, pecaId: p.id, pecaDbId: p.peca_id ?? null, nome: p.nome ?? '' })}
-                                                                                                className="opacity-0 group-hover/peca:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                                                                                                className="opacity-0 group-hover/peca:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
                                                                                                 title="Renomear peça"
                                                                                             >
                                                                                                 <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
@@ -805,22 +805,22 @@ export default function AbaCarrinho({
                                                                                     {areaTotal != null && (
                                                                                         areaUnit != null ? (
                                                                                             <div className="flex flex-col items-end shrink-0">
-                                                                                                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
-                                                                                                <span className="font-mono text-[9px] text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
+                                                                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
+                                                                                                <span className="font-mono text-[9px] text-orange-600/70 dark:text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
                                                                                             </div>
                                                                                         ) : (
-                                                                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
+                                                                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
                                                                                         )
                                                                                     )}
-                                                                                    {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
+                                                                                    {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
                                                                                 </div>
                                                                                 {valorUnit != null ? (
                                                                                     <div className="flex flex-col items-end shrink-0 ml-3">
-                                                                                        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
-                                                                                        <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
+                                                                                        <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
+                                                                                        <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
                                                                                     </div>
                                                                                 ) : (
-                                                                                    <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                                                    <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
                                                                                 )}
                                                                             </div>
                                                                         );
@@ -835,9 +835,9 @@ export default function AbaCarrinho({
                                                                                     <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-600/60 shrink-0 ml-1"></iconify-icon>
                                                                                     <span className="text-[10px] text-amber-700 dark:text-amber-400/80 truncate">{label}</span>
                                                                                     <span className="font-mono text-[9px] text-amber-700/70 shrink-0">{ml.toFixed(2)} ml</span>
-                                                                                    {vlrMl > 0 && <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
+                                                                                    {vlrMl > 0 && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
                                                                                 </div>
-                                                                                <span className="font-mono text-[11px] text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
+                                                                                <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
                                                                             </div>
                                                                         );
                                                                     }),
@@ -847,15 +847,15 @@ export default function AbaCarrinho({
 
                                                         {/* Itens manuais (último grupo) */}
                                                         {showManuais && (orc.itens_manuais ?? []).map((item, ii) => (
-                                                            <div key={`manual-${ii}`} className="flex items-center justify-between px-5 py-2 border-b border-gray-100/30 dark:border-zinc-900/30 last:border-b-0 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors">
+                                                            <div key={`manual-${ii}`} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 last:border-b-0 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
                                                                 <div className="flex items-center gap-3 min-w-0">
-                                                                    <div className="w-px h-5 bg-gray-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                    <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{item.nome_peca || 'Item'}</span>
-                                                                    <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">
+                                                                    <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
+                                                                    <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{item.nome_peca || 'Item'}</span>
+                                                                    <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">
                                                                         {Number(item.quantidade ?? 0).toFixed(2)} {item.tipo === 'area' ? 'm²' : 'ML'}
                                                                     </span>
                                                                 </div>
-                                                                <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(item.total ?? 0)}</span>
+                                                                <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(item.total ?? 0)}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -864,21 +864,21 @@ export default function AbaCarrinho({
 
                                             {/* Produtos avulsos */}
                                             {(orc.avulsos ?? []).length > 0 && (
-                                                <div className="border-t border-gray-300/50 dark:border-zinc-800/50">
-                                                    <div className="flex items-center justify-between px-5 py-2 bg-gray-100/60 dark:bg-zinc-950/40">
-                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Produtos avulsos</span>
+                                                <div className="border-t border-zinc-200/80 dark:border-zinc-800/50">
+                                                    <div className="flex items-center justify-between px-5 py-2 bg-zinc-100/60 dark:bg-zinc-950/40">
+                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Produtos avulsos</span>
                                                     </div>
                                                     {orc.avulsos.map(av => (
-                                                        <div key={av.id} className="flex items-center justify-between px-5 py-2 border-b border-gray-100/30 dark:border-zinc-900/30 last:border-b-0 hover:bg-gray-100/50 dark:hover:bg-zinc-900/15 transition-colors">
+                                                        <div key={av.id} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 last:border-b-0 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
                                                             <div className="flex items-center gap-3 min-w-0">
-                                                                <div className="w-px h-5 bg-gray-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                <span className="text-[11px] text-gray-700 dark:text-zinc-300 truncate">{av.nome}</span>
+                                                                <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
+                                                                <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{av.nome}</span>
                                                                 {av.produto_id == null && (
                                                                     <span className="font-mono text-[8px] uppercase tracking-widest text-amber-600 dark:text-amber-500 border border-amber-600/30 dark:border-amber-500/30 px-1 py-0.5 shrink-0">Serviço Extra</span>
                                                                 )}
-                                                                <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 shrink-0">{av.quantidade}x {fmtBRL(av.valor_unitario)}</span>
+                                                                <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">{av.quantidade}x {fmtBRL(av.valor_unitario)}</span>
                                                             </div>
-                                                            <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(av.valor_total)}</span>
+                                                            <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(av.valor_total)}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -887,14 +887,14 @@ export default function AbaCarrinho({
                                             {/* Vazio */}
                                             {todasPecas.length === 0 && (orc.itens_manuais ?? []).length === 0 && (orc.avulsos ?? []).length === 0 && (
                                                 <div className="px-5 py-6 text-center">
-                                                    <span className="font-mono text-[9px] text-gray-400 dark:text-zinc-700 uppercase tracking-widest">Sem detalhes disponíveis</span>
+                                                    <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 uppercase tracking-widest">Sem detalhes disponíveis</span>
                                                 </div>
                                             )}
 
                                             {/* Total */}
-                                            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-300 dark:border-zinc-800 bg-gray-200 dark:bg-zinc-950/80">
-                                                <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Total</span>
-                                                <span className="font-mono text-sm font-bold text-yellow-400">{fmtBRL(orc.valor_total)}</span>
+                                            <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-200 dark:bg-zinc-950/80">
+                                                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Total</span>
+                                                <span className="font-mono text-sm font-bold text-orange-600 dark:text-yellow-400">{fmtBRL(orc.valor_total)}</span>
                                             </div>
                                         </div>
                                     );
@@ -914,59 +914,59 @@ export default function AbaCarrinho({
                 const totalMesclar = orcsSel.reduce((s, o) => s + (o.valor_total ?? 0), 0);
                 return (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <div className="bg-gray-100 dark:bg-[#0d0d0d] border border-gray-300 dark:border-zinc-700 w-full max-w-lg shadow-2xl">
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-300 dark:border-zinc-800">
+                        <div className="bg-white/90 dark:bg-[#0d0d0d] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-700 w-full max-w-lg shadow-2xl rounded-2xl dark:rounded-none">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200/80 dark:border-zinc-800">
                                 <div className="flex items-center gap-3">
                                     <iconify-icon icon="solar:merge-linear" width="14" className="text-orange-400"></iconify-icon>
-                                    <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white font-bold">Mesclar Cenários</span>
+                                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Mesclar Cenários</span>
                                 </div>
-                                <button onClick={cancelarMesclar} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                <button onClick={cancelarMesclar} className="text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                                     <iconify-icon icon="solar:close-linear" width="16"></iconify-icon>
                                 </button>
                             </div>
                             <div className="p-5 space-y-4">
                                 <div>
-                                    <label className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 block mb-2">Nome do Novo Cenário</label>
+                                    <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 block mb-2">Nome do Novo Cenário</label>
                                     <input
                                         autoFocus
                                         value={modalMesclar.nome}
                                         onChange={e => setModalMesclar(p => ({ ...p, nome: e.target.value }))}
                                         onKeyDown={e => { if (e.key === 'Enter' && !loadingMesclar) actions.mesclarCenarios(mesclarIds, modalMesclar, { setLoadingMesclar, setOrcsMesclados, cancelarMesclar, setToastMesclar }); }}
-                                        className="w-full bg-gray-100 dark:bg-black border border-gray-300 dark:border-zinc-800 focus:border-orange-400 outline-none text-gray-900 dark:text-white text-sm font-mono px-3 py-2"
+                                        className="w-full bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 focus:border-orange-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2"
                                         placeholder="Ex: Proposta Final, Mescla Completa..."
                                     />
                                 </div>
-                                <div className="bg-gray-200/50 dark:bg-zinc-900/60 border border-gray-300 dark:border-zinc-800 p-3">
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 mb-2">
+                                <div className="bg-zinc-200/50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 p-3">
+                                    <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 mb-2">
                                         Cenários que serão mesclados ({orcsSel.length}):
                                     </p>
                                     <ul className="space-y-1.5 max-h-44 overflow-y-auto">
                                         {orcsSel.map(o => (
-                                            <li key={o.id} className="flex items-center gap-2 font-mono text-[11px] text-gray-700 dark:text-zinc-300">
+                                            <li key={o.id} className="flex items-center gap-2 font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
                                                 <iconify-icon icon="solar:merge-linear" width="10" className="text-orange-400 shrink-0"></iconify-icon>
-                                                <span className="text-gray-500 dark:text-zinc-500">{o.ambiente_nome}</span>
-                                                <iconify-icon icon="solar:alt-arrow-right-linear" width="9" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
+                                                <span className="text-zinc-500 dark:text-zinc-500">{o.ambiente_nome}</span>
+                                                <iconify-icon icon="solar:alt-arrow-right-linear" width="9" className="text-zinc-400 dark:text-zinc-700 shrink-0"></iconify-icon>
                                                 <span className="truncate">{o.nome ?? o.nome_versao ?? 'Orçamento'}</span>
-                                                <span className="ml-auto text-gray-500 dark:text-zinc-600 shrink-0">{fmtBRL(o.valor_total)}</span>
+                                                <span className="ml-auto text-zinc-500 dark:text-zinc-600 shrink-0">{fmtBRL(o.valor_total)}</span>
                                             </li>
                                         ))}
                                     </ul>
-                                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-300 dark:border-zinc-800">
-                                        <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500 uppercase">Total mesclado</span>
+                                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-200/80 dark:border-zinc-800">
+                                        <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500 uppercase">Total mesclado</span>
                                         <span className="font-mono text-sm font-bold text-orange-400">{fmtBRL(totalMesclar)}</span>
                                     </div>
                                 </div>
-                                <p className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 leading-relaxed">
+                                <p className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 leading-relaxed">
                                     Os cenários originais são mantidos intactos. Um novo orçamento será criado com todas as peças e itens dos cenários selecionados.
                                 </p>
                                 <div className="flex gap-2 pt-1">
-                                    <button onClick={cancelarMesclar} className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">
+                                    <button onClick={cancelarMesclar} className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">
                                         Cancelar
                                     </button>
                                     <button
                                         onClick={() => actions.mesclarCenarios(mesclarIds, modalMesclar, { setLoadingMesclar, setOrcsMesclados, cancelarMesclar, setToastMesclar })}
                                         disabled={loadingMesclar || !modalMesclar.nome?.trim()}
-                                        className="flex-1 bg-orange-500 text-gray-900 dark:text-white font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-orange-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        className="flex-1 bg-orange-500 text-white font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-orange-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         {loadingMesclar
                                             ? <><iconify-icon icon="solar:spinner-linear" width="12" className="animate-spin"></iconify-icon> Mesclando...</>
@@ -997,40 +997,40 @@ export default function AbaCarrinho({
                 const prazoValido = prazoTipo === 'DATA' ? !!modalFechar.prazo_data : (modalFechar.prazo_dias ?? 0) >= 1;
                 return (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <div className="bg-gray-100 dark:bg-[#0d0d0d] border border-gray-300 dark:border-zinc-700 w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col overflow-hidden">
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-300 dark:border-zinc-800 shrink-0">
+                        <div className="bg-white/90 dark:bg-[#0d0d0d] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-700 w-full max-w-lg shadow-2xl rounded-2xl dark:rounded-none max-h-[85vh] flex flex-col overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
                                 <div className="flex items-center gap-3">
                                     <iconify-icon icon="solar:lock-keyhole-minimalistic-linear" width="14" className="text-blue-400"></iconify-icon>
-                                    <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white font-bold">Fechar Pedido</span>
+                                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold">Fechar Pedido</span>
                                 </div>
-                                <button onClick={cancelarFecharPedido} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                <button onClick={cancelarFecharPedido} className="text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                                     <iconify-icon icon="solar:close-linear" width="16"></iconify-icon>
                                 </button>
                             </div>
                             <div className="overflow-y-auto flex-1 min-h-0">
 
                                 {/* ── Accordion: Cenários incluídos ── */}
-                                <div className="border-b border-gray-300 dark:border-zinc-800">
+                                <div className="border-b border-zinc-200/80 dark:border-zinc-800">
                                     <button
                                         onClick={() => setFecharOpen(s => ({ ...s, cenarios: !s.cenarios }))}
-                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-100/60 dark:hover:bg-zinc-900/40 transition-colors text-left"
+                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-100/60 dark:hover:bg-zinc-900/40 transition-colors text-left"
                                     >
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-600 dark:text-zinc-400">Cenários incluídos</span>
+                                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Cenários incluídos</span>
                                             <span className="font-mono text-[9px] text-blue-400 shrink-0">({orcsSel.length}) · {fmtBRL(totalSel)}</span>
                                         </div>
-                                        <iconify-icon icon={fecharOpen.cenarios ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-gray-500 dark:text-zinc-600 shrink-0 ml-2"></iconify-icon>
+                                        <iconify-icon icon={fecharOpen.cenarios ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-zinc-500 dark:text-zinc-600 shrink-0 ml-2"></iconify-icon>
                                     </button>
                                     {fecharOpen.cenarios && (
-                                        <div className="px-5 pb-3 border-t border-gray-300/50 dark:border-zinc-800/50">
+                                        <div className="px-5 pb-3 border-t border-zinc-200/80 dark:border-zinc-800/50">
                                             <ul className="space-y-1 max-h-28 overflow-y-auto mt-2">
                                                 {orcsSel.map(o => (
-                                                    <li key={o.id} className="flex items-center gap-2 font-mono text-[10px] text-gray-700 dark:text-zinc-300">
+                                                    <li key={o.id} className="flex items-center gap-2 font-mono text-[10px] text-zinc-700 dark:text-zinc-300">
                                                         <iconify-icon icon="solar:check-circle-linear" width="10" className="text-blue-400 shrink-0"></iconify-icon>
-                                                        <span className="text-gray-500 dark:text-zinc-500 shrink-0">{o.ambiente_nome}</span>
-                                                        <iconify-icon icon="solar:alt-arrow-right-linear" width="9" className="text-gray-400 dark:text-zinc-700 shrink-0"></iconify-icon>
+                                                        <span className="text-zinc-500 dark:text-zinc-500 shrink-0">{o.ambiente_nome}</span>
+                                                        <iconify-icon icon="solar:alt-arrow-right-linear" width="9" className="text-zinc-400 dark:text-zinc-700 shrink-0"></iconify-icon>
                                                         <span className="truncate">{o.nome ?? o.nome_versao ?? 'Orçamento'}</span>
-                                                        <span className="ml-auto text-gray-500 dark:text-zinc-500 shrink-0">{fmtBRL(o.valor_total)}</span>
+                                                        <span className="ml-auto text-zinc-500 dark:text-zinc-500 shrink-0">{fmtBRL(o.valor_total)}</span>
                                                     </li>
                                                 ))}
                                             </ul>
@@ -1039,20 +1039,20 @@ export default function AbaCarrinho({
                                 </div>
 
                                 {/* ── Accordion: Forma de Pagamento ── */}
-                                <div className="border-b border-gray-300 dark:border-zinc-800">
+                                <div className="border-b border-zinc-200/80 dark:border-zinc-800">
                                     <button
                                         onClick={() => setFecharOpen(s => ({ ...s, pagamento: !s.pagamento }))}
-                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-100/60 dark:hover:bg-zinc-900/40 transition-colors text-left"
+                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-100/60 dark:hover:bg-zinc-900/40 transition-colors text-left"
                                     >
-                                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-600 dark:text-zinc-400">Forma de Pagamento</span>
-                                        <iconify-icon icon={fecharOpen.pagamento ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-gray-500 dark:text-zinc-600 shrink-0"></iconify-icon>
+                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Forma de Pagamento</span>
+                                        <iconify-icon icon={fecharOpen.pagamento ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-zinc-500 dark:text-zinc-600 shrink-0"></iconify-icon>
                                     </button>
                                     {fecharOpen.pagamento && (
-                                        <div className="px-5 pb-4 border-t border-gray-300/50 dark:border-zinc-800/50 pt-3 space-y-3">
+                                        <div className="px-5 pb-4 border-t border-zinc-200/80 dark:border-zinc-800/50 pt-3 space-y-3">
                                             <select
                                                 value={modalFechar.forma_pagamento}
                                                 onChange={e => setModalFechar(p => ({ ...p, forma_pagamento: e.target.value }))}
-                                                className="w-full bg-gray-100 dark:bg-black border border-gray-300 dark:border-zinc-800 focus:border-blue-400 outline-none text-gray-900 dark:text-white text-sm font-mono px-3 py-2"
+                                                className="w-full bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 focus:border-blue-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2"
                                             >
                                                 <option value="pix">PIX</option>
                                                 <option value="transferencia">Transferência Bancária</option>
@@ -1066,8 +1066,8 @@ export default function AbaCarrinho({
                                                         onClick={() => setModalFechar(p => ({ ...p, parcelamento_tipo: tipo, parcelas_lista: [] }))}
                                                         className={`flex-1 py-1.5 font-mono text-[9px] uppercase tracking-widest transition-colors ${
                                                             modalFechar.parcelamento_tipo === tipo
-                                                                ? 'bg-yellow-400 text-black'
-                                                                : 'bg-gray-100 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white'
+                                                                ? 'bg-orange-500 text-white dark:bg-yellow-400 dark:text-black'
+                                                                : 'bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
                                                         }`}>
                                                         {tipo === 'a_vista' ? 'À Vista' : 'Parcelado'}
                                                     </button>
@@ -1086,16 +1086,16 @@ export default function AbaCarrinho({
                                 </div>
 
                                 {/* ── Accordion: Prazo de Entrega ── */}
-                                <div className="border-b border-gray-300 dark:border-zinc-800">
+                                <div className="border-b border-zinc-200/80 dark:border-zinc-800">
                                     <button
                                         onClick={() => setFecharOpen(s => ({ ...s, prazo: !s.prazo }))}
-                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-100/60 dark:hover:bg-zinc-900/40 transition-colors text-left"
+                                        className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-100/60 dark:hover:bg-zinc-900/40 transition-colors text-left"
                                     >
-                                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-600 dark:text-zinc-400">Prazo de Entrega</span>
-                                        <iconify-icon icon={fecharOpen.prazo ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-gray-500 dark:text-zinc-600 shrink-0"></iconify-icon>
+                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Prazo de Entrega</span>
+                                        <iconify-icon icon={fecharOpen.prazo ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="11" className="text-zinc-500 dark:text-zinc-600 shrink-0"></iconify-icon>
                                     </button>
                                     {fecharOpen.prazo && (
-                                        <div className="px-5 pb-4 border-t border-gray-300/50 dark:border-zinc-800/50 pt-3 space-y-2">
+                                        <div className="px-5 pb-4 border-t border-zinc-200/80 dark:border-zinc-800/50 pt-3 space-y-2">
                                             <label className="flex items-center gap-2 cursor-pointer group">
                                                 <input
                                                     type="radio" name="prazo_tipo" value="DATA"
@@ -1103,7 +1103,7 @@ export default function AbaCarrinho({
                                                     onChange={() => setModalFechar(p => ({ ...p, prazo_tipo: 'DATA' }))}
                                                     className="accent-blue-500"
                                                 />
-                                                <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Selecionar Data</span>
+                                                <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">Selecionar Data</span>
                                             </label>
                                             {prazoTipo === 'DATA' && (
                                                 <div className="ml-5">
@@ -1111,7 +1111,7 @@ export default function AbaCarrinho({
                                                         type="date"
                                                         value={modalFechar.prazo_data ?? ''}
                                                         onChange={e => setModalFechar(p => ({ ...p, prazo_data: e.target.value }))}
-                                                        className="w-full bg-gray-100 dark:bg-black border border-gray-300 dark:border-zinc-800 focus:border-blue-400 outline-none text-gray-900 dark:text-white text-sm font-mono px-3 py-1.5"
+                                                        className="w-full bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 focus:border-blue-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-1.5"
                                                         style={{ colorScheme: 'dark' }}
                                                     />
                                                 </div>
@@ -1123,7 +1123,7 @@ export default function AbaCarrinho({
                                                     onChange={() => setModalFechar(p => ({ ...p, prazo_tipo: 'DIAS_UTEIS', prazo_dias: p.prazo_dias ?? 15 }))}
                                                     className="accent-blue-500"
                                                 />
-                                                <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Dias Úteis</span>
+                                                <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">Dias Úteis</span>
                                             </label>
                                             {prazoTipo === 'DIAS_UTEIS' && (
                                                 <div className="ml-5 space-y-1.5">
@@ -1132,9 +1132,9 @@ export default function AbaCarrinho({
                                                             type="number" min="1" max="365"
                                                             value={modalFechar.prazo_dias ?? 15}
                                                             onChange={e => setModalFechar(p => ({ ...p, prazo_dias: Math.max(1, parseInt(e.target.value) || 1) }))}
-                                                            className="w-24 bg-gray-100 dark:bg-black border border-gray-300 dark:border-zinc-800 focus:border-blue-400 outline-none text-gray-900 dark:text-white text-sm font-mono px-3 py-1.5"
+                                                            className="w-24 bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 focus:border-blue-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-1.5"
                                                         />
-                                                        <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">dias úteis</span>
+                                                        <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500">dias úteis</span>
                                                     </div>
                                                     {dataFinalCalc && (
                                                         <p className="font-mono text-[10px] text-blue-400">
@@ -1147,20 +1147,20 @@ export default function AbaCarrinho({
                                     )}
                                 </div>
 
-                                <p className="px-5 py-3 font-mono text-[9px] text-gray-500 dark:text-zinc-600 leading-relaxed">
+                                <p className="px-5 py-3 font-mono text-[9px] text-zinc-500 dark:text-zinc-600 leading-relaxed">
                                     Os cenários não selecionados serão descartados (mantidos por 7 dias). O projeto será marcado como FECHADO.
                                 </p>
                             </div>
 
                             {/* ── Footer fixo com botões ── */}
-                            <div className="flex gap-2 px-5 py-4 border-t border-gray-300 dark:border-zinc-800 shrink-0">
-                                    <button onClick={cancelarFecharPedido} className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">
+                            <div className="flex gap-2 px-5 py-4 border-t border-zinc-200/80 dark:border-zinc-800 shrink-0">
+                                    <button onClick={cancelarFecharPedido} className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase py-2.5 transition-colors">
                                         Cancelar
                                     </button>
                                     <button
                                         onClick={() => actions.confirmarFechamento(fecharIds, modalFechar, { setLoadingFechar, cancelarFecharPedido, setToastFechar })}
                                         disabled={loadingFechar || !prazoValido || !modalFechar.forma_pagamento}
-                                        className="flex-1 bg-blue-600 text-gray-900 dark:text-white font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        className="flex-1 bg-blue-600 text-white font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         {loadingFechar
                                             ? <><iconify-icon icon="solar:spinner-linear" width="12" className="animate-spin"></iconify-icon> Fechando...</>
@@ -1180,23 +1180,23 @@ export default function AbaCarrinho({
         {/* Aviso: cenário já incluído em pedido */}
         {avisoIncluido && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div className="bg-gray-100 dark:bg-[#0d0d0d] border border-gray-300 dark:border-zinc-700 w-full max-w-sm shadow-2xl p-5 space-y-4">
+                <div className="bg-white/90 dark:bg-[#0d0d0d] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-700 w-full max-w-sm shadow-2xl rounded-2xl dark:rounded-none p-5 space-y-4">
                     <div className="flex items-start gap-3">
-                        <iconify-icon icon="solar:info-circle-linear" width="16" className="text-yellow-400 shrink-0 mt-0.5"></iconify-icon>
-                        <p className="font-mono text-[11px] text-gray-700 dark:text-zinc-300 leading-relaxed">
-                            Este cenário já foi incluído no <span className="font-bold text-gray-900 dark:text-white">Pedido {avisoIncluido.pedidoNumero}</span>. Deseja incluir mesmo assim?
+                        <iconify-icon icon="solar:info-circle-linear" width="16" className="text-orange-600 dark:text-yellow-400 shrink-0 mt-0.5"></iconify-icon>
+                        <p className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                            Este cenário já foi incluído no <span className="font-bold text-zinc-900 dark:text-white">Pedido {avisoIncluido.pedidoNumero}</span>. Deseja incluir mesmo assim?
                         </p>
                     </div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => { toggleFecharId(avisoIncluido.orcId); setAvisoIncluido(null); }}
-                            className="flex-1 bg-yellow-400 text-black font-bold font-mono text-[10px] uppercase tracking-widest py-2 hover:bg-yellow-300 transition-colors"
+                            className="flex-1 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-bold font-mono text-[10px] uppercase tracking-widest py-2 hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors rounded-md dark:rounded-none"
                         >
                             Incluir mesmo assim
                         </button>
                         <button
                             onClick={() => setAvisoIncluido(null)}
-                            className="flex-1 border border-gray-300 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2 transition-colors"
+                            className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2 transition-colors"
                         >
                             Cancelar
                         </button>

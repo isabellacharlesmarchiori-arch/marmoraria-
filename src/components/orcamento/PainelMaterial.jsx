@@ -87,27 +87,27 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
       <div className="flex-1 bg-black/60" onClick={onFechar}></div>
 
       {/* Painel lateral direito */}
-      <div className="w-full max-w-sm bg-gray-50 dark:bg-[#0a0a0a] border-l border-gray-300 dark:border-zinc-800 flex flex-col h-full">
+      <div className="w-full max-w-sm bg-white/95 dark:bg-[#0a0a0a] backdrop-blur-xl border-l border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none flex flex-col h-full">
         {/* Header */}
-        <div className="px-5 pt-5 pb-4 border-b border-gray-300 dark:border-zinc-800 flex items-start justify-between gap-3">
+        <div className="px-5 pt-5 pb-4 border-b border-zinc-200/80 dark:border-zinc-800 flex items-start justify-between gap-3">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-1">[ SELECIONAR_MATERIAL ]</div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white leading-tight">{pecaNome}</h3>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-1">[ SELECIONAR_MATERIAL ]</div>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-white leading-tight">{pecaNome}</h3>
           </div>
-          <button onClick={onFechar} className="text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors mt-0.5 shrink-0">
+          <button onClick={onFechar} className="text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors mt-0.5 shrink-0">
             <iconify-icon icon="solar:close-circle-linear" width="18"></iconify-icon>
           </button>
         </div>
 
         {/* Busca */}
-        <div className="px-5 pt-4 pb-3 border-b border-gray-200 dark:border-zinc-900">
+        <div className="px-5 pt-4 pb-3 border-b border-zinc-200/80 dark:border-zinc-900">
           <div className="relative flex items-center mb-3">
-            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-gray-500 dark:text-zinc-600 text-xs pointer-events-none"></iconify-icon>
+            <iconify-icon icon="solar:magnifer-linear" className="absolute left-3 text-zinc-500 dark:text-zinc-600 text-xs pointer-events-none"></iconify-icon>
             <input
               value={busca}
               onChange={e => setBusca(e.target.value)}
               placeholder="Buscar material..."
-              className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-none outline-none focus:border-yellow-400 placeholder:text-gray-400 dark:text-zinc-700 transition-colors"
+              className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-[12px] font-mono pl-8 pr-3 py-2 rounded-md dark:rounded-none outline-none focus:border-orange-500 dark:focus:border-yellow-400 placeholder:text-zinc-400 dark:text-zinc-700 transition-colors"
             />
           </div>
           {/* Categorias + Limpar */}
@@ -118,8 +118,8 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
                 onClick={() => setCategoria(cat)}
                 className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border transition-colors ${
                   categoria === cat
-                    ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5'
-                    : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-500 dark:hover:text-zinc-400'
+                    ? 'border-orange-300 dark:border-yellow-400/40 text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5'
+                    : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400'
                 }`}
               >
                 {cat === 'todos' ? 'Todos' : cat}
@@ -142,7 +142,7 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
         <div className="flex-1 overflow-y-auto">
           {filtrados.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum material</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum material</p>
             </div>
           ) : (
             filtrados.map(m => {
@@ -151,22 +151,22 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
                 <div
                   key={m.id}
                   onClick={() => toggle(m.id)}
-                  className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-gray-200 dark:border-zinc-900 transition-colors hover:bg-white/[0.02] ${ativo ? 'bg-yellow-400/[0.03]' : ''}`}
+                  className={`flex items-center gap-1.5 px-5 py-3 cursor-pointer border-b border-zinc-200/80 dark:border-zinc-900 transition-colors hover:bg-white/[0.02] ${ativo ? 'bg-orange-50 dark:bg-yellow-400/[0.03]' : ''}`}
                 >
                   {/* Checkbox / Radio */}
                   {single ? (
-                    <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400' : 'border-gray-300 dark:border-zinc-700'}`}>
-                      {ativo && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>}
+                    <div className={`w-4 h-4 rounded-full border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-orange-500 dark:border-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700'}`}>
+                      {ativo && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 dark:bg-yellow-400"></div>}
                     </div>
                   ) : (
-                    <div className={`w-4 h-4 border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-yellow-400 bg-yellow-400' : 'border-gray-300 dark:border-zinc-700'}`}>
-                      {ativo && <iconify-icon icon="solar:check-read-linear" width="8" className="text-black"></iconify-icon>}
+                    <div className={`w-4 h-4 border shrink-0 flex items-center justify-center transition-colors ${ativo ? 'border-orange-500 bg-orange-500 dark:border-yellow-400 dark:bg-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700'}`}>
+                      {ativo && <iconify-icon icon="solar:check-read-linear" width="8" className="text-white dark:text-black"></iconify-icon>}
                     </div>
                   )}
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-gray-900 dark:text-white font-medium truncate">{m.nome}</div>
-                    <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{m.cor} · {m.categoria}</div>
+                    <div className="text-xs text-zinc-900 dark:text-white font-medium truncate">{m.nome}</div>
+                    <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{m.cor} · {m.categoria}</div>
                   </div>
                   {/* Preço */}
                   <div className="text-right shrink-0">
@@ -175,9 +175,9 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
                       const v2 = m.variacoes_precos?.find(v => parseEsp(v.espessura) === 2);
                       const v3 = m.variacoes_precos?.find(v => parseEsp(v.espessura) === 3);
                       return <>
-                        {v2 && <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(v2.preco_venda)}<span className="text-gray-500 dark:text-zinc-600">/m²·2cm</span></div>}
-                        {v3 && <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{fmt(v3.preco_venda)}<span className="text-gray-400 dark:text-zinc-700">/3cm</span></div>}
-                        {!v2 && !v3 && m.variacoes_precos?.[0] && <div className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(m.variacoes_precos[0].preco_venda)}<span className="text-gray-500 dark:text-zinc-600">/m²</span></div>}
+                        {v2 && <div className="font-mono text-[10px] text-zinc-600 dark:text-zinc-300">{fmt(v2.preco_venda)}<span className="text-zinc-500 dark:text-zinc-600">/m²·2cm</span></div>}
+                        {v3 && <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{fmt(v3.preco_venda)}<span className="text-zinc-400 dark:text-zinc-700">/3cm</span></div>}
+                        {!v2 && !v3 && m.variacoes_precos?.[0] && <div className="font-mono text-[10px] text-zinc-600 dark:text-zinc-300">{fmt(m.variacoes_precos[0].preco_venda)}<span className="text-zinc-500 dark:text-zinc-600">/m²</span></div>}
                       </>;
                     })()}
                   </div>
@@ -189,8 +189,8 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
 
         {/* Painel de acabamento — abre ao clicar num material com variantes, fecha ao escolher */}
         {painelAberto && variantesAbertas.length > 0 && (
-          <div className="px-5 py-3 border-t border-gray-300 dark:border-zinc-800">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2">Acabamento</div>
+          <div className="px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-2">Acabamento</div>
             <div className="flex flex-col gap-1">
               {variantesAbertas.map(v => (
                 <button
@@ -201,8 +201,8 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
                   }}
                   className={`flex items-center justify-between font-mono text-[10px] px-3 py-1.5 border transition-colors text-left ${
                     varianteSel?.label === v.label
-                      ? 'border-yellow-400/40 text-yellow-400 bg-yellow-400/5'
-                      : 'border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-zinc-400'
+                      ? 'border-orange-300 dark:border-yellow-400/40 text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5'
+                      : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400'
                   }`}
                 >
                   <span>{v.label}</span>
@@ -214,8 +214,8 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
         )}
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-300 dark:border-zinc-800 flex items-center gap-3">
-          <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 flex-1">
+        <div className="px-5 py-4 border-t border-zinc-200/80 dark:border-zinc-800 flex items-center gap-3">
+          <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 flex-1">
             {sel.length === 0
               ? 'Nenhum selecionado'
               : varianteSel
@@ -224,13 +224,13 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
           </span>
           <button
             onClick={onFechar}
-            className="border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:border-gray-400 dark:hover:border-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors"
+            className="border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={() => onConfirmar(pecaId, sel, varianteSel?.acabamento ?? null)}
-            className="bg-yellow-400 text-black font-mono text-[10px] uppercase tracking-widest px-4 py-2 hover:bg-yellow-300 transition-colors font-bold"
+            className="bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded-md dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors font-bold"
           >
             Confirmar
           </button>

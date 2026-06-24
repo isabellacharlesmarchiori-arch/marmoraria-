@@ -39,7 +39,7 @@ export default function FabNovoFinanceiro() {
             <button
               key={op.label}
               onClick={() => { toast.info('Em breve'); setAberto(false); }}
-              className="flex items-center gap-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-zinc-300 font-mono text-[11px] uppercase tracking-widest px-4 py-2 hover:bg-gray-200 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-mono text-[11px] uppercase tracking-widest px-4 py-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-900 dark:hover:text-white transition-colors"
               style={{ animation: `fadeUp 0.12s ease ${i * 40}ms both` }}
             >
               <iconify-icon icon={op.icon} width="13"></iconify-icon>
@@ -53,7 +53,7 @@ export default function FabNovoFinanceiro() {
       <button
         onClick={() => setAberto(v => !v)}
         aria-label={aberto ? 'Fechar menu' : 'Novo'}
-        className="w-14 h-14 bg-yellow-400 border border-yellow-400 flex items-center justify-center text-zinc-950 hover:bg-yellow-300 transition-colors"
+        className="w-14 h-14 rounded-full bg-orange-500 dark:bg-yellow-400 border border-orange-500 dark:border-yellow-400 flex items-center justify-center text-zinc-950 hover:bg-orange-600 dark:hover:bg-yellow-300 shadow-[0_4px_14px_rgba(249,115,22,0.4)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.5)] hover:-translate-y-1 transition-all duration-200"
       >
         <iconify-icon icon={aberto ? 'lucide:x' : 'lucide:plus'} width="22"></iconify-icon>
       </button>

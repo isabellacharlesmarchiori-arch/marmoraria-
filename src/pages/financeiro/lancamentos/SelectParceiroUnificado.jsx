@@ -5,8 +5,8 @@ const TIPO_LABEL = {
 };
 
 const SELECT_BASE =
-  'bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none ' +
-  'focus:border-yellow-400 transition-colors w-full cursor-pointer';
+  'bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-white outline-none ' +
+  'focus:border-orange-500 dark:focus:border-yellow-400 transition-colors w-full cursor-pointer';
 
 export default function SelectParceiroUnificado({
   valor,

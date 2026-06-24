@@ -357,7 +357,7 @@ export default function FinanceiroLancamentos() {
   if (profile?.perfil !== 'admin') {
     return (
       <div className="p-6">
-        <p className="text-gray-500 dark:text-zinc-500 font-mono text-sm">Acesso restrito.</p>
+        <p className="text-zinc-500 dark:text-zinc-500 font-mono text-sm">Acesso restrito.</p>
       </div>
     );
   }
@@ -367,13 +367,13 @@ export default function FinanceiroLancamentos() {
     <div className="p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-gray-900 dark:text-white border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1">
           Lançamentos
         </span>
         <button
           type="button"
           onClick={() => setModalLanc({ aberto: true, lancamento: null })}
-          className="bg-yellow-400 text-black px-4 py-2 font-mono text-[10px] uppercase tracking-widest hover:bg-yellow-300 transition-colors"
+          className="bg-orange-500 dark:bg-yellow-400 text-white dark:text-black rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-widest hover:bg-orange-600 dark:hover:bg-yellow-300 shadow-[0_4px_14px_rgba(249,115,22,0.4)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.5)] hover:-translate-y-1 transition-all duration-200"
         >
           + Novo lançamento
         </button>
@@ -397,7 +397,7 @@ export default function FinanceiroLancamentos() {
           onClick={() => setMostrarBaixa(v => !v)}
           className="flex items-center gap-2 w-full text-left mb-2"
         >
-          <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 px-2 py-1 flex items-center gap-2 hover:border-gray-400 dark:hover:border-zinc-600 transition-colors">
+          <div className="text-[10px] font-mono text-zinc-900 dark:text-white uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 px-2 py-1 flex items-center gap-2 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
             <iconify-icon icon="solar:arrow-down-linear" width="11" className={mostrarBaixa ? 'rotate-180 transition-transform' : 'transition-transform'}></iconify-icon>
             Recebimentos a confirmar
           </div>
@@ -409,21 +409,21 @@ export default function FinanceiroLancamentos() {
 
       {/* Contador */}
       {!loading && totalCount !== null && (
-        <p className="font-mono text-xs text-gray-500 dark:text-zinc-500">
+        <p className="font-mono text-xs text-zinc-500 dark:text-zinc-500">
           {totalCount} {totalCount === 1 ? 'lançamento' : 'lançamentos'} no período
         </p>
       )}
 
       {/* Barra de baixa em lote */}
       {selecionados.size > 0 && (
-        <div className="border border-yellow-400/30 bg-yellow-400/5 px-4 py-2.5 flex items-center gap-4 flex-wrap">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-yellow-400">
+        <div className="border border-orange-500/30 dark:border-yellow-400/30 bg-orange-500/5 dark:bg-yellow-400/5 px-4 py-2.5 flex items-center gap-4 flex-wrap">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-orange-600 dark:text-yellow-400">
             {selecionados.size} selecionado{selecionados.size !== 1 ? 's' : ''}
           </span>
           <button
             type="button"
             onClick={() => setModalBaixaLote(true)}
-            className="font-mono text-[9px] uppercase tracking-widest text-black bg-yellow-400 hover:bg-yellow-300 px-3 py-1 transition-colors"
+            className="font-mono text-[9px] uppercase tracking-widest text-black bg-orange-500 dark:bg-yellow-400 hover:bg-orange-600 dark:hover:bg-yellow-300 px-3 py-1 transition-colors"
           >
             <iconify-icon icon="lucide:check-circle" width="11" className="mr-1"></iconify-icon>
             Baixar selecionados
@@ -431,7 +431,7 @@ export default function FinanceiroLancamentos() {
           <button
             type="button"
             onClick={() => setSelecionados(new Set())}
-            className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white transition-colors ml-auto"
+            className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-900 dark:hover:text-white transition-colors ml-auto"
           >
             Limpar seleção
           </button>
@@ -521,11 +521,11 @@ export default function FinanceiroLancamentos() {
           <button
             type="button"
             onClick={() => setLimit(l => l + 50)}
-            className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 hover:text-yellow-400 transition-colors border border-gray-300 dark:border-zinc-800 px-4 py-2"
+            className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors border border-zinc-200/80 dark:border-zinc-800 px-4 py-2"
           >
             Carregar mais 50
             {totalCount !== null && (
-              <span className="ml-2 text-gray-500 dark:text-zinc-600">
+              <span className="ml-2 text-zinc-500 dark:text-zinc-600">
                 (total: {lancamentos.length} de {totalCount})
               </span>
             )}

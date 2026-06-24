@@ -297,9 +297,9 @@ export default function TelaProjetoVendedor() {
     // Loading: aguarda auth + perfil + busca do projeto
     if (authLoading || profileLoading || loadingProjeto) {
         return (
-            <div className="min-h-screen bg-gray-100 dark:bg-[#050505] text-gray-900 dark:text-white flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4 text-gray-500 dark:text-zinc-500">
-                    <iconify-icon icon="solar:spinner-linear" width="40" className="animate-spin text-yellow-400"></iconify-icon>
+            <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-white flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 text-zinc-500 dark:text-zinc-500">
+                    <iconify-icon icon="solar:spinner-linear" width="40" className="animate-spin text-orange-500 dark:text-yellow-400"></iconify-icon>
                     <p className="font-mono text-[10px] uppercase tracking-widest">Carregando dados do projeto...</p>
                 </div>
             </div>
@@ -309,53 +309,56 @@ export default function TelaProjetoVendedor() {
     // Loading terminou mas projeto não foi encontrado (ID inválido, acesso negado, etc.)
     if (!projeto) {
         return (
-            <div className="min-h-screen bg-gray-100 dark:bg-[#050505] text-gray-900 dark:text-white flex items-center justify-center">
+            <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-white flex items-center justify-center">
                 <div className="text-center gap-4 flex flex-col">
-                    <p className="font-mono text-xs text-gray-500 dark:text-zinc-500">Projeto não encontrado ou acesso negado.</p>
-                    <button onClick={() => navigate('/projetos')} className="text-[10px] uppercase font-mono text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-400/20 px-4 py-2 hover:bg-yellow-100 dark:hover:bg-yellow-400/10 transition-colors">Voltar para Projetos</button>
+                    <p className="font-mono text-xs text-zinc-500 dark:text-zinc-500">Projeto não encontrado ou acesso negado.</p>
+                    <button onClick={() => navigate('/projetos')} className="text-[10px] uppercase font-mono text-orange-700 dark:text-yellow-400 border border-orange-300 dark:border-yellow-400/20 rounded-md dark:rounded-none px-4 py-2 hover:bg-orange-50 dark:hover:bg-yellow-400/10 transition-colors">Voltar para Projetos</button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-[#050505] text-gray-900 dark:text-white flex flex-col font-sans selection:bg-yellow-400/30">
+        <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-white flex flex-col font-sans selection:bg-orange-500 selection:text-white dark:selection:bg-gray-50 dark:selection:text-black">
 
 
-            {/* Backgrounds */}
-            <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
-            <div className="fixed inset-0 pointer-events-none z-0 scanline mix-blend-overlay"></div>
-            <div className="fixed inset-0 pointer-events-none z-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
+            {/* Backgrounds — light */}
+            <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:hidden"></div>
+            <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.15] bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.1),transparent_70%)] dark:hidden"></div>
+            {/* Backgrounds — dark */}
+            <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block opacity-100 bg-grid"></div>
+            <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block scanline mix-blend-overlay"></div>
+            <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)]"></div>
 
             <main className="relative z-10 max-w-[1200px] mx-auto p-4 md:p-8 pt-12 pb-64">
                 {/* ── Breadcrumb ─────────────────────────────────────────── */}
-                <div className="sys-reveal flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-6">
-                    <span onClick={() => navigate('/projetos')} className="hover:text-yellow-400 transition-colors cursor-pointer">Projetos</span>
-                    <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
-                    <span className="text-gray-600 dark:text-zinc-400">{projeto?.nome ?? '—'}</span>
+                <div className="sys-reveal flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-6">
+                    <span onClick={() => navigate('/projetos')} className="hover:text-orange-600 dark:hover:text-yellow-400 transition-colors cursor-pointer">Projetos</span>
+                    <iconify-icon icon="solar:alt-arrow-right-linear" width="10" className="text-zinc-400 dark:text-zinc-700"></iconify-icon>
+                    <span className="text-zinc-700 dark:text-zinc-400">{projeto?.nome ?? '—'}</span>
                 </div>
 
                 {/* ── Header do Projeto ──────────────────────────────────── */}
                 <section className="sys-reveal mb-8">
-                    <div className="bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-6">
+                    <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none p-6">
                         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
 
                             {/* Info */}
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center gap-3 flex-wrap">
-                                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tighter">{projeto?.nome ?? '—'}</h1>
+                                    <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tighter">{projeto?.nome ?? '—'}</h1>
                                     <StatusPill status={projeto?.status ?? 'aprovado'} />
                                 </div>
-                                <div className="flex items-center gap-2 font-mono text-[11px] text-gray-500 dark:text-zinc-500">
-                                    <iconify-icon icon="solar:user-linear" width="13" className="text-gray-500 dark:text-zinc-600"></iconify-icon>
-                                    <a href={`/clientes/${projeto?.cliente?.id}`} className="hover:text-yellow-400 transition-colors">
+                                <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-500">
+                                    <iconify-icon icon="solar:user-linear" width="13" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
+                                    <a href={`/clientes/${projeto?.cliente?.id}`} className="hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
                                         {projeto?.cliente?.nome ?? '—'}
                                     </a>
-                                    <span className="text-gray-400 dark:text-zinc-700">·</span>
-                                    <iconify-icon icon="solar:calendar-linear" width="13" className="text-gray-500 dark:text-zinc-600"></iconify-icon>
+                                    <span className="text-zinc-400 dark:text-zinc-700">·</span>
+                                    <iconify-icon icon="solar:calendar-linear" width="13" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
                                     <span>{projeto?.criado_em ?? '—'}</span>
-                                    <span className="text-gray-400 dark:text-zinc-700">·</span>
-                                    <iconify-icon icon="solar:user-id-linear" width="13" className="text-gray-500 dark:text-zinc-600"></iconify-icon>
+                                    <span className="text-zinc-400 dark:text-zinc-700">·</span>
+                                    <iconify-icon icon="solar:user-id-linear" width="13" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
                                     <span>{projeto?.vendedor ?? '—'}</span>
                                 </div>
                             </div>
@@ -364,7 +367,7 @@ export default function TelaProjetoVendedor() {
                             <div className="flex items-center gap-2 flex-wrap">
                                 <button
                                     onClick={() => { setNovoStatus(projeto?.status ?? 'orcado'); setModalStatus(true); }}
-                                    className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors"
+                                    className="flex items-center gap-2 border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 rounded-md dark:rounded-none hover:border-orange-500 hover:text-orange-600 dark:hover:border-white dark:hover:text-white transition-colors"
                                 >
                                     <iconify-icon icon="solar:refresh-linear" width="13"></iconify-icon>
                                     Atualizar status
@@ -372,7 +375,7 @@ export default function TelaProjetoVendedor() {
                                 {pedidosFechados.length === 0 && (
                                 <button
                                     onClick={() => setModalPerda(true)}
-                                    className="flex items-center gap-2 border bg-red-600 border-red-600 text-white dark:border-red-500/30 dark:bg-red-400/5 dark:text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:bg-red-700 dark:hover:bg-transparent dark:hover:border-red-400 transition-colors"
+                                    className="flex items-center gap-2 border bg-red-600 border-red-600 text-white dark:border-red-500/30 dark:bg-red-400/5 dark:text-red-400 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 rounded-md dark:rounded-none hover:bg-red-700 dark:hover:bg-transparent dark:hover:border-red-400 transition-colors"
                                 >
                                     <iconify-icon icon="solar:close-circle-linear" width="13"></iconify-icon>
                                     Marcar como perdido
@@ -384,7 +387,7 @@ export default function TelaProjetoVendedor() {
                 </section>
 
                 {/* ── Tabs ──────────────────────────────────────────────── */}
-                <div className="sys-reveal sys-delay-100 flex border-b border-gray-300 dark:border-zinc-800 mb-6">
+                <div className="sys-reveal sys-delay-100 flex border-b border-zinc-200/80 dark:border-zinc-800 mb-6">
                     {[
                         { id: 'medicoes',   label: 'Medições',   icon: 'solar:ruler-pen-linear'              },
                         { id: 'orcamentos', label: 'Orçamentos', icon: 'solar:cart-large-minimalistic-linear' },
@@ -395,8 +398,8 @@ export default function TelaProjetoVendedor() {
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-5 py-3 text-[11px] font-mono uppercase tracking-widest border-b-2 transition-colors ${
                                 activeTab === tab.id
-                                    ? 'border-yellow-400 text-gray-900 dark:text-white'
-                                    : 'border-transparent text-gray-500 dark:text-zinc-600 hover:text-gray-600 dark:hover:text-zinc-400'
+                                    ? 'border-orange-500 dark:border-yellow-400 text-zinc-900 dark:text-white'
+                                    : 'border-transparent text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-400'
                             }`}
                         >
                             <iconify-icon icon={tab.icon} width="13"></iconify-icon>
@@ -500,7 +503,7 @@ export default function TelaProjetoVendedor() {
                                     setPainelMedicao(null);
                                     navigate(`/projetos/${id}/orcamento/novo?${params}`);
                                 }}
-                                className="w-full flex items-center justify-center gap-2 bg-yellow-400 text-black text-[11px] font-bold uppercase tracking-widest py-3 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
+                                className="w-full flex items-center justify-center gap-2 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black text-[11px] font-bold uppercase tracking-widest py-3 rounded-md dark:rounded-none hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
                             >
                                 <iconify-icon icon="solar:add-circle-linear" width="14"></iconify-icon>
                                 Criar orçamento com estes dados

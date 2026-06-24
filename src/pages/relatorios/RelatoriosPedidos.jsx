@@ -23,7 +23,7 @@ const FORMAS = {
 
 const STATUS_CFG = {
   FECHADO:   { label: 'Fechado',   cls: 'border-green-300 dark:border-green-700/40 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20' },
-  REVERTIDO: { label: 'Revertido', cls: 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 bg-gray-50 dark:bg-zinc-900/40' },
+  REVERTIDO: { label: 'Revertido', cls: 'border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 bg-white dark:bg-zinc-900/40' },
 };
 
 const GRID = 'grid grid-cols-[40px_1fr_1fr_1fr_100px_130px_120px_90px]';
@@ -198,16 +198,16 @@ export default function RelatoriosPedidos() {
   };
 
   const SortIcon = ({ col }) => sort.col === col
-    ? <iconify-icon icon={sort.dir === 'asc' ? 'solar:sort-from-bottom-to-top-linear' : 'solar:sort-from-top-to-bottom-linear'} width="10" className="text-yellow-500 dark:text-yellow-400 shrink-0"></iconify-icon>
-    : <iconify-icon icon="solar:sort-linear" width="10" className="text-gray-300 dark:text-zinc-700 shrink-0"></iconify-icon>;
+    ? <iconify-icon icon={sort.dir === 'asc' ? 'solar:sort-from-bottom-to-top-linear' : 'solar:sort-from-top-to-bottom-linear'} width="10" className="text-orange-600 dark:text-yellow-400 shrink-0"></iconify-icon>
+    : <iconify-icon icon="solar:sort-linear" width="10" className="text-zinc-300 dark:text-zinc-700 shrink-0"></iconify-icon>;
 
-  const selectCls = 'bg-gray-100 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 font-mono text-[10px] uppercase tracking-wide px-3 py-2 focus:outline-none focus:border-yellow-400 dark:focus:border-yellow-400';
+  const selectCls = 'bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] uppercase tracking-wide px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none';
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 min-h-full bg-zinc-50 dark:bg-[#050505]">
 
       {/* Título */}
-      <div className="font-mono text-[10px] text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+      <div className="font-mono text-[10px] text-zinc-900 dark:text-white uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1">
         Pedidos Fechados
       </div>
 
@@ -228,15 +228,15 @@ export default function RelatoriosPedidos() {
       </div>
 
       {/* Tabela */}
-      <div className="border border-gray-300 dark:border-zinc-800 overflow-x-auto">
+      <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm shadow-zinc-100/60 dark:shadow-none rounded-[2rem] dark:rounded-none overflow-x-auto">
 
         {/* Cabeçalho */}
-        <div className={`${GRID} min-w-[820px] border-b border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a]`}>
+        <div className={`${GRID} min-w-[820px] border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-[#0a0a0a]`}>
           {COLS.map(col => (
             <div
               key={col.key}
               onClick={col.sort ? () => toggleSort(col.key) : undefined}
-              className={`px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 flex items-center gap-1 ${col.sort ? 'cursor-pointer hover:text-gray-900 dark:hover:text-white select-none' : ''}`}
+              className={`px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 flex items-center gap-1 ${col.sort ? 'cursor-pointer hover:text-zinc-900 dark:hover:text-white select-none' : ''}`}
             >
               {col.label}
               {col.sort && <SortIcon col={col.key} />}
@@ -248,7 +248,7 @@ export default function RelatoriosPedidos() {
         {loading && (
           <div className="min-w-[820px]">
             {[0,1,2,3,4].map(i => (
-              <div key={i} className={`${GRID} border-b border-gray-100 dark:border-zinc-900 px-4 py-3 items-center`}>
+              <div key={i} className={`${GRID} border-b border-zinc-200/80 dark:border-zinc-900 px-4 py-3 items-center`}>
                 {[24,120,100,80,70,80,70,60].map((w, j) => (
                   <div key={j} className="sk h-3 rounded-sm" style={{ width: w, animationDelay: `${j*40}ms` }}></div>
                 ))}
@@ -260,8 +260,8 @@ export default function RelatoriosPedidos() {
         {/* Corpo — vazio */}
         {!loading && filtered.length === 0 && (
           <div className="py-16 text-center min-w-[820px]">
-            <iconify-icon icon="solar:document-text-linear" width="32" className="text-gray-300 dark:text-zinc-800 block mx-auto mb-3"></iconify-icon>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-zinc-700">Nenhum pedido encontrado</p>
+            <iconify-icon icon="solar:document-text-linear" width="32" className="text-zinc-300 dark:text-zinc-800 block mx-auto mb-3"></iconify-icon>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum pedido encontrado</p>
           </div>
         )}
 
@@ -273,27 +273,27 @@ export default function RelatoriosPedidos() {
               return (
                 <div
                   key={p.id}
-                  className={`${GRID} items-center hover:bg-black/[0.02] dark:hover:bg-white/[0.015] transition-colors ${idx < filtered.length - 1 ? 'border-b border-gray-100 dark:border-zinc-900' : ''}`}
+                  className={`${GRID} items-center hover:bg-black/[0.02] dark:hover:bg-white/[0.015] transition-colors ${idx < filtered.length - 1 ? 'border-b border-zinc-200/80 dark:border-zinc-900' : ''}`}
                 >
-                  <div className="px-4 py-3 font-mono text-[10px] text-gray-400 dark:text-zinc-600">{seqMap[p.id]}</div>
+                  <div className="px-4 py-3 font-mono text-[10px] text-zinc-400 dark:text-zinc-600">{seqMap[p.id]}</div>
                   <div className="px-4 py-3 truncate pr-2" title={p._projeto_nome ?? 'Projeto removido'}>
                     {p._projeto_nome
-                      ? <span className="text-sm font-medium text-gray-900 dark:text-white">{p._projeto_nome}</span>
-                      : <span className="font-mono text-[10px] italic text-gray-400 dark:text-zinc-600">Projeto removido</span>}
+                      ? <span className="text-sm font-medium text-zinc-900 dark:text-white">{p._projeto_nome}</span>
+                      : <span className="font-mono text-[10px] italic text-zinc-400 dark:text-zinc-600">Projeto removido</span>}
                   </div>
                   <div className="px-4 py-3 font-mono text-[10px] truncate pr-2">
                     {p._cliente_nome
-                      ? <span className="text-gray-500 dark:text-zinc-400">{p._cliente_nome}</span>
-                      : <span className="italic text-gray-400 dark:text-zinc-600">—</span>}
+                      ? <span className="text-zinc-500 dark:text-zinc-400">{p._cliente_nome}</span>
+                      : <span className="italic text-zinc-400 dark:text-zinc-600">—</span>}
                   </div>
                   <div className="px-4 py-3 font-mono text-[10px] truncate pr-2">
                     {p._vendedor_nome
-                      ? <span className="text-gray-500 dark:text-zinc-400">{p._vendedor_nome.split(' ')[0]}</span>
-                      : <span className="italic text-gray-400 dark:text-zinc-600">—</span>}
+                      ? <span className="text-zinc-500 dark:text-zinc-400">{p._vendedor_nome.split(' ')[0]}</span>
+                      : <span className="italic text-zinc-400 dark:text-zinc-600">—</span>}
                   </div>
-                  <div className="px-4 py-3 font-mono text-[10px] text-gray-500 dark:text-zinc-500 tabular-nums">{fmtData(p.created_at)}</div>
-                  <div className="px-4 py-3 font-mono text-[11px] font-semibold text-gray-900 dark:text-white tabular-nums">{p._valor > 0 ? fmtBRL(p._valor) : '—'}</div>
-                  <div className="px-4 py-3 font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmtPagto(p.forma_pagamento, p.parcelas)}</div>
+                  <div className="px-4 py-3 font-mono text-[10px] text-zinc-500 dark:text-zinc-500 tabular-nums">{fmtData(p.created_at)}</div>
+                  <div className="px-4 py-3 font-mono text-[11px] font-semibold text-zinc-900 dark:text-white tabular-nums">{p._valor > 0 ? fmtBRL(p._valor) : '—'}</div>
+                  <div className="px-4 py-3 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{fmtPagto(p.forma_pagamento, p.parcelas)}</div>
                   <div className="px-4 py-3">
                     <span className={`inline-block border font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5 ${st.cls}`}>
                       {st.label}
@@ -307,11 +307,11 @@ export default function RelatoriosPedidos() {
 
         {/* Rodapé — totais */}
         {!loading && filtered.length > 0 && (
-          <div className={`${GRID} min-w-[820px] border-t border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a]`}>
-            <div className="col-span-5 px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+          <div className={`${GRID} min-w-[820px] border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0a0a0a]`}>
+            <div className="col-span-5 px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
               {filtered.length} pedido{filtered.length !== 1 ? 's' : ''}
             </div>
-            <div className="px-4 py-3 font-mono text-[11px] font-bold text-yellow-600 dark:text-yellow-400 tabular-nums">
+            <div className="px-4 py-3 font-mono text-[11px] font-bold text-orange-600 dark:text-yellow-400 tabular-nums">
               {fmtBRL(totalValor)}
             </div>
             <div className="col-span-2" />

@@ -1109,13 +1109,13 @@ function formatRelDate(iso) {
 
 function ConversationSidebar({ conversations, currentId, onSelect, onNew, onDelete }) {
   return (
-    <div className="flex flex-col w-52 shrink-0 border-r border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-3 border-b border-gray-200 dark:border-zinc-800 shrink-0">
+    <div className="flex flex-col w-52 shrink-0 border-r border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0a0a0a] overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-3 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
         <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Conversas</span>
         <button
           onClick={onNew}
           title="Nova conversa"
-          className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-yellow-400 transition-colors"
+          className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
         >
           <iconify-icon icon="solar:add-square-linear" width="14" />
         </button>
@@ -1133,13 +1133,13 @@ function ConversationSidebar({ conversations, currentId, onSelect, onNew, onDele
             onClick={() => onSelect(conv)}
             className={`group flex items-start gap-1.5 px-3 py-2.5 cursor-pointer transition-colors border-l-2 ${
               conv.id === currentId
-                ? 'bg-gray-200 dark:bg-zinc-900 border-yellow-400'
-                : 'border-transparent hover:bg-gray-200/70 dark:hover:bg-zinc-900/50 hover:border-gray-400 dark:hover:border-zinc-700'
+                ? 'bg-zinc-200 dark:bg-zinc-900 border-orange-500 dark:border-yellow-400'
+                : 'border-transparent hover:bg-zinc-200/70 dark:hover:bg-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-700'
             }`}
           >
             <div className="flex-1 min-w-0 pt-px">
               <p className={`font-mono text-[11px] leading-snug truncate ${
-                conv.id === currentId ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-700 dark:text-zinc-300'
+                conv.id === currentId ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-700 dark:text-zinc-300'
               }`}>
                 {conv.title}
               </p>
@@ -1171,7 +1171,7 @@ function MessageBubble({ msg, onDelete, onEdit, onRetry, disabled }) {
         <button
           onClick={() => onEdit?.(msg.id, msg.text ?? '')}
           title="Editar e reenviar"
-          className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors"
+          className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-orange-600 dark:hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors"
         >
           <iconify-icon icon="solar:pen-linear" width="11" />
         </button>
@@ -1201,22 +1201,22 @@ function MessageBubble({ msg, onDelete, onEdit, onRetry, disabled }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}>
       {!isUser && (
         <div className={`w-6 h-6 border flex items-center justify-center shrink-0 mr-2 mt-0.5 ${
-          isError ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700/40' : 'bg-yellow-100 dark:bg-yellow-400/10 border-yellow-300 dark:border-yellow-400/20'
+          isError ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700/40' : 'bg-orange-100 dark:bg-yellow-400/10 border-orange-300 dark:border-yellow-400/20'
         }`}>
           <iconify-icon
             icon={isError ? 'solar:danger-triangle-linear' : 'solar:stars-linear'}
             width="12"
-            class={isError ? 'text-red-400' : 'text-yellow-400'}
+            class={isError ? 'text-red-400' : 'text-orange-600 dark:text-yellow-400'}
           />
         </div>
       )}
       <div className="flex flex-col max-w-[75%]">
         <div className={`font-mono text-[12px] leading-relaxed overflow-hidden ${
           isUser
-            ? 'bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/20 text-yellow-900 dark:text-yellow-100'
+            ? 'bg-orange-100 dark:bg-yellow-400/10 border border-orange-300 dark:border-yellow-400/20 text-orange-900 dark:text-yellow-100'
             : isError
             ? 'bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700/40 text-red-700 dark:text-red-300'
-            : 'bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300'
+            : 'bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300'
         }`}>
           {msg.imagePreview && (
             <img
@@ -1232,7 +1232,7 @@ function MessageBubble({ msg, onDelete, onEdit, onRetry, disabled }) {
         {actions}
       </div>
       {isUser && (
-        <div className="w-6 h-6 bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 flex items-center justify-center shrink-0 ml-2 mt-0.5 font-mono text-[8px] text-yellow-600 dark:text-yellow-400 font-bold">
+        <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-center shrink-0 ml-2 mt-0.5 font-mono text-[8px] text-orange-600 dark:text-yellow-400 font-bold">
           EU
         </div>
       )}
@@ -1299,13 +1299,13 @@ function ConfirmBubble({ msg, onConfirm, onCancel, isActive }) {
 function LoadingBubble() {
   return (
     <div className="flex justify-start">
-      <div className="w-6 h-6 bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-        <iconify-icon icon="solar:stars-linear" width="12" class="text-yellow-400" />
+      <div className="w-6 h-6 bg-orange-100 dark:bg-yellow-400/10 border border-orange-300 dark:border-yellow-400/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+        <iconify-icon icon="solar:stars-linear" width="12" class="text-orange-600 dark:text-yellow-400" />
       </div>
-      <div className="px-4 py-3 bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center gap-2">
-        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:0ms]" />
-        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:150ms]" />
-        <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:300ms]" />
+      <div className="px-4 py-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 flex items-center gap-2">
+        <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:0ms]" />
+        <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:150ms]" />
+        <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:300ms]" />
       </div>
     </div>
   );
@@ -1605,7 +1605,11 @@ export default function AdminIA() {
   const inputDisabled = loading || hasPendingConfirm || apiKeyMissing;
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden bg-zinc-50 dark:bg-[#050505]">
+      <h1 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight uppercase mb-6 px-6 pt-6">
+        IA — Assistente
+      </h1>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
 
       {/* Sidebar */}
       {sidebarOpen && (
@@ -1626,26 +1630,26 @@ export default function AdminIA() {
             <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-amber-700 dark:text-amber-400 mt-0.5 shrink-0" />
             <p className="font-mono text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
               <span className="font-bold uppercase tracking-widest">Chave não configurada. </span>
-              Adicione <code className="bg-gray-200 dark:bg-zinc-800 px-1">VITE_GEMINI_API_KEY</code> ao <code className="bg-gray-200 dark:bg-zinc-800 px-1">.env.local</code> e reinicie.
+              Adicione <code className="bg-zinc-200 dark:bg-zinc-800 px-1">VITE_GEMINI_API_KEY</code> ao <code className="bg-zinc-200 dark:bg-zinc-800 px-1">.env.local</code> e reinicie.
             </p>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between pt-4 pb-3 shrink-0 border-b border-gray-200 dark:border-zinc-800/60 mb-4">
+        <div className="flex items-center justify-between pt-4 pb-3 shrink-0 border-b border-zinc-200/80 dark:border-zinc-800/60 mb-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(p => !p)}
               title={sidebarOpen ? 'Fechar painel' : 'Ver conversas'}
-              className="w-7 h-7 flex items-center justify-center text-gray-500 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-zinc-300 border border-gray-300 dark:border-zinc-800 hover:border-gray-500 dark:hover:border-zinc-600 transition-colors mr-1"
+              className="w-7 h-7 flex items-center justify-center text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300 border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors mr-1"
             >
               <iconify-icon icon="solar:sidebar-minimalistic-linear" width="14" />
             </button>
-            <div className="w-7 h-7 bg-yellow-100 dark:bg-yellow-400/10 border border-yellow-300 dark:border-yellow-400/30 flex items-center justify-center">
-              <iconify-icon icon="solar:stars-linear" width="14" class="text-yellow-400" />
+            <div className="w-7 h-7 bg-white/50 dark:bg-transparent backdrop-blur-md rounded-md dark:rounded-none shadow-sm dark:shadow-none border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-center">
+              <iconify-icon icon="solar:stars-linear" width="14" class="text-orange-600 dark:text-yellow-400" />
             </div>
             <div>
-              <div className="font-mono text-[11px] uppercase tracking-widest text-gray-900 dark:text-white font-bold leading-tight">
+              <div className="font-mono text-[11px] uppercase tracking-widest text-zinc-900 dark:text-white font-bold leading-tight">
                 Gi
               </div>
               <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{MODEL}</div>
@@ -1653,7 +1657,7 @@ export default function AdminIA() {
           </div>
           <button
             onClick={startNewConversation}
-            className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 hover:text-gray-800 dark:hover:text-zinc-400 px-2 py-1 border border-gray-300 dark:border-zinc-800 hover:border-gray-500 dark:hover:border-zinc-600 transition-colors flex items-center gap-1.5"
+            className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-400 px-2 py-1 border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors flex items-center gap-1.5"
           >
             <iconify-icon icon="solar:add-square-linear" width="11" />
             Nova
@@ -1685,7 +1689,7 @@ export default function AdminIA() {
         </div>
 
         {/* Input area */}
-        <div className="shrink-0 border-t border-gray-200 dark:border-zinc-800 pt-4 pb-4">
+        <div className="shrink-0 border-t border-zinc-200/80 dark:border-zinc-800 pt-4 pb-4">
           {hasPendingConfirm && (
             <div className="mb-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/30 font-mono text-[10px] text-amber-700 dark:text-amber-400 uppercase tracking-widest">
               Confirme ou cancele a operação acima para continuar
@@ -1693,7 +1697,7 @@ export default function AdminIA() {
           )}
 
           {imageBase64 && (
-            <div className="mb-2 flex items-center gap-3 px-3 py-2 bg-gray-100 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700">
+            <div className="mb-2 flex items-center gap-3 px-3 py-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700">
               <img src={imageBase64} alt="preview" className="w-10 h-10 object-cover shrink-0" />
               <span className="font-mono text-[10px] text-zinc-400 truncate flex-1">{imageName}</span>
               <button
@@ -1712,7 +1716,7 @@ export default function AdminIA() {
               onClick={() => fileInputRef.current?.click()}
               disabled={inputDisabled || !!imageBase64}
               title="Enviar imagem"
-              className="px-3 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-600 hover:text-gray-800 dark:hover:text-zinc-300 hover:border-gray-500 dark:hover:border-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center"
+              className="px-3 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center"
             >
               <iconify-icon icon="solar:camera-add-linear" width="16" />
             </button>
@@ -1729,13 +1733,13 @@ export default function AdminIA() {
                 : 'Digite sua mensagem... (Enter para enviar)'
               }
               rows={3}
-              className="flex-1 bg-gray-50 dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[12px] font-mono px-3 py-2 outline-none focus:border-yellow-500 dark:focus:border-yellow-400 focus:shadow-[0_0_8px_rgba(250,204,21,0.10)] placeholder:text-gray-400 dark:placeholder:text-zinc-700 resize-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-[12px] font-mono px-3 py-2 rounded-md dark:rounded-none outline-none focus:border-orange-500 dark:focus:border-yellow-400 focus:shadow-[0_0_8px_rgba(249,115,22,0.12)] dark:focus:shadow-[0_0_8px_rgba(250,204,21,0.10)] placeholder:text-zinc-400 dark:placeholder:text-zinc-700 resize-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             />
 
             <button
               onClick={handleSend}
               disabled={(!input.trim() && !imageBase64) || inputDisabled}
-              className="px-4 bg-yellow-400 text-black font-mono text-[11px] uppercase tracking-widest font-bold hover:bg-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center gap-2"
+              className="px-4 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black rounded-xl dark:rounded-none font-mono text-[11px] uppercase tracking-widest font-bold hover:bg-orange-600 dark:hover:bg-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center gap-2"
             >
               {loading
                 ? <iconify-icon icon="solar:refresh-linear" width="14" class="animate-spin" />
@@ -1749,6 +1753,7 @@ export default function AdminIA() {
             Shift+Enter para nova linha · Imagens suportadas
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

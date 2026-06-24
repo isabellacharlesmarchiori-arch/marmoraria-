@@ -879,7 +879,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   );
 
   return (
-    <div className="flex flex-col bg-gray-100 dark:bg-[#050505] text-[#a1a1aa] selection:bg-gray-200 dark:selection:bg-white selection:text-black antialiased relative font-sans">
+    <div className="flex flex-col bg-zinc-50 dark:bg-[#050505] text-zinc-600 dark:text-[#a1a1aa] selection:bg-zinc-200 dark:selection:bg-white selection:text-black antialiased relative font-sans">
 
       {/* Backgrounds */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-100 bg-grid"></div>
@@ -890,23 +890,23 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <section className="sys-reveal mb-8">
-          <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800 p-6">
+          <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none p-6">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div>
-                <div className="text-[10px] font-mono text-gray-900 dark:text-white uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-3">
+                <div className="text-[10px] font-mono text-zinc-900 dark:text-white uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1 mb-3">
                   10 // Versões do Orçamento
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tighter">
+                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tighter">
                   Versões por ambiente
                 </h1>
-                <p className="font-mono text-[10px] text-gray-500 dark:text-zinc-600 mt-1">
+                <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 mt-1">
                   Selecione uma versão por ambiente e adicione cenários combinados
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={onVoltar}
-                  className="flex items-center gap-2 border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors w-max"
+                  className="flex items-center gap-2 border border-zinc-200/80 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors w-max"
                 >
                   <iconify-icon icon="solar:arrow-left-linear" width="13"></iconify-icon>
                   Voltar
@@ -929,13 +929,13 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                 {/* Cabeçalho do ambiente */}
                 <div className="flex items-center gap-1.5 mb-3">
                   {/* Barra colorida */}
-                  <div className={`w-1 h-6 shrink-0 transition-colors ${isAtivo ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-zinc-700'}`}></div>
+                  <div className={`w-1 h-6 shrink-0 transition-colors ${isAtivo ? 'bg-orange-500 dark:bg-yellow-400' : 'bg-zinc-300 dark:bg-zinc-700'}`}></div>
 
                   {/* Checkbox incluir no cenário */}
                   <button
                     onClick={() => toggleAmbienteAtivo(amb)}
                     title={isAtivo ? 'Excluir do cenário' : 'Incluir no cenário'}
-                    className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${isAtivo ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
+                    className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${isAtivo ? 'border-orange-500 dark:border-yellow-400 bg-orange-50 dark:bg-yellow-400/10 text-orange-600 dark:text-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-700 hover:border-zinc-500'}`}
                   >
                     {isAtivo && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
                   </button>
@@ -948,14 +948,14 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                         value={editandoNomeAmb.novo}
                         onChange={e => setEditandoNomeAmb(prev => ({ ...prev, novo: e.target.value }))}
                         onKeyDown={e => { if (e.key === 'Enter') confirmarRenomearAmb(); if (e.key === 'Escape') setEditandoNomeAmb(null); }}
-                        className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400 text-gray-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
+                        className="flex-1 bg-zinc-50 dark:bg-black border-b border-orange-500 dark:border-yellow-400 text-zinc-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
                       />
-                      <button onClick={confirmarRenomearAmb} className="text-yellow-400 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-yellow-400/40 hover:bg-yellow-400/10 transition-colors shrink-0">OK</button>
-                      <button onClick={() => setEditandoNomeAmb(null)} className="text-gray-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
+                      <button onClick={confirmarRenomearAmb} className="text-orange-600 dark:text-yellow-400 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-orange-200 dark:border-yellow-400/40 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors shrink-0">OK</button>
+                      <button onClick={() => setEditandoNomeAmb(null)} className="text-zinc-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-500 transition-colors shrink-0">✕</button>
                     </div>
                   ) : (
                     <h2
-                      className="text-sm font-bold text-gray-900 dark:text-white tracking-tight uppercase cursor-pointer hover:text-yellow-400/80 transition-colors"
+                      className="text-sm font-bold text-zinc-900 dark:text-white tracking-tight uppercase cursor-pointer hover:text-orange-600/80 dark:hover:text-yellow-400/80 transition-colors"
                       onClick={() => setEditandoNomeAmb({ amb, novo: amb })}
                       title="Renomear ambiente"
                     >
@@ -963,7 +963,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                     </h2>
                   )}
 
-                  <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
+                  <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800"></div>
 
                   {/* Botões de ação do ambiente */}
                   {!isEditandoAmb && (
@@ -972,7 +972,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                       <button
                         onClick={() => setEditandoNomeAmb({ amb, novo: amb })}
                         title="Renomear ambiente"
-                        className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                        className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors"
                       >
                         <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                       </button>
@@ -980,7 +980,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                       <button
                         onClick={() => duplicarAmbiente(amb)}
                         title="Duplicar ambiente (com todas as versões)"
-                        className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                        className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors"
                       >
                         <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                       </button>
@@ -989,18 +989,18 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                         <button
                           onClick={() => excluirAmbiente(amb)}
                           title="Excluir ambiente"
-                          className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                          className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                         >
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                         </button>
                       )}
                       {/* Separador */}
-                      <div className="w-px h-4 bg-gray-200 dark:bg-zinc-800 mx-0.5"></div>
+                      <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5"></div>
                       {/* Nova versão */}
                       <button
                         onClick={() => adicionarVersao(amb)}
                         title="Adicionar nova versão para este ambiente"
-                        className="flex items-center gap-1.5 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors"
+                        className="flex items-center gap-1.5 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 text-[9px] font-mono uppercase tracking-widest px-2.5 py-1.5 hover:border-orange-300 dark:hover:border-yellow-400/40 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
                       >
                         <iconify-icon icon="solar:add-circle-linear" width="11"></iconify-icon>
                         Versão
@@ -1022,7 +1022,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                     return (
                       <div
                         key={v.id}
-                        className={`bg-gray-50 dark:bg-[#0a0a0a] border transition-colors ${isSelected ? 'border-yellow-400/40' : 'border-gray-300 dark:border-zinc-800'}`}
+                        className={`bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none overflow-hidden border transition-colors ${isSelected ? 'border-orange-200 dark:border-yellow-400/40' : 'border-zinc-200/80 dark:border-zinc-800'}`}
                       >
                         {/* Cabeçalho do card */}
                         <div className="flex items-center gap-1.5 px-4 py-3">
@@ -1031,13 +1031,13 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                           <button
                             onClick={() => setSelecoes(prev => ({ ...prev, [amb]: v.id }))}
                             title="Selecionar esta versão"
-                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-yellow-400' : 'border-gray-300 dark:border-zinc-700 hover:border-zinc-500'}`}
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-orange-500 dark:border-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-500'}`}
                           >
-                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>}
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 dark:bg-yellow-400"></div>}
                           </button>
 
                           {/* Badge V */}
-                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 bg-gray-100 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 px-2 py-0.5 shrink-0">V{vIdx + 1}</span>
+                          <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 px-2 py-0.5 shrink-0">V{vIdx + 1}</span>
 
                           {/* Nome (clica para editar) */}
                           {isNomeEdit ? (
@@ -1047,15 +1047,15 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                               onChange={e => renomearVersao(amb, v.id, e.target.value)}
                               onBlur={() => setEditandoNomeVersao(null)}
                               onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditandoNomeVersao(null); }}
-                              className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400 text-gray-900 dark:text-white text-sm outline-none px-1 min-w-0"
+                              className="flex-1 bg-zinc-50 dark:bg-black border-b border-orange-500 dark:border-yellow-400 text-zinc-900 dark:text-white text-sm outline-none px-1 min-w-0"
                             />
                           ) : (
                             <button
                               onClick={() => setEditandoNomeVersao({ amb, vId: v.id })}
                               title="Renomear versão"
-                              className={`flex-1 text-left text-sm font-medium transition-colors truncate min-w-0 ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white'}`}
+                              className={`flex-1 text-left text-sm font-medium transition-colors truncate min-w-0 ${isSelected ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white'}`}
                             >
-                              {v.nome}<span className="text-gray-400 dark:text-zinc-500 font-normal">{sufixoExcluidos({ [amb]: v.id }, excluidos)}</span>
+                              {v.nome}<span className="text-zinc-400 dark:text-zinc-500 font-normal">{sufixoExcluidos({ [amb]: v.id }, excluidos)}</span>
                             </button>
                           )}
 
@@ -1063,35 +1063,35 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                           {nomesMats.length > 0 && (
                             <div className="hidden sm:flex items-center gap-1 shrink-0 max-w-[180px] overflow-hidden">
                               {nomesMats.slice(0, 2).map(n => (
-                                <span key={n} className="font-mono text-[9px] text-gray-500 dark:text-zinc-400 border border-gray-300 dark:border-zinc-700 px-1.5 py-0.5 truncate max-w-[85px]">{n}</span>
+                                <span key={n} className="font-mono text-[9px] text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700 px-1.5 py-0.5 truncate max-w-[85px]">{n}</span>
                               ))}
-                              {nomesMats.length > 2 && <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">+{nomesMats.length - 2}</span>}
+                              {nomesMats.length > 2 && <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">+{nomesMats.length - 2}</span>}
                             </div>
                           )}
 
                           {/* Badge avulsos */}
                           {qtdAvulsos > 0 && (
-                            <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-500 border border-gray-300 dark:border-zinc-800 px-1.5 py-0.5 shrink-0">
+                            <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500 border border-zinc-200/80 dark:border-zinc-800 px-1.5 py-0.5 shrink-0">
                               +{qtdAvulsos} produto{qtdAvulsos !== 1 ? 's' : ''}
                             </span>
                           )}
 
                           {/* Subtotal */}
-                          <span className={`font-mono text-sm shrink-0 ${isSelected ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>{fmt(subtotal)}</span>
+                          <span className={`font-mono text-sm shrink-0 ${isSelected ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-500 dark:text-zinc-400'}`}>{fmt(subtotal)}</span>
 
                           {/* Ações */}
-                          <div className="flex items-center gap-0.5 border-l border-gray-300 dark:border-zinc-800 pl-3 shrink-0">
+                          <div className="flex items-center gap-0.5 border-l border-zinc-200/80 dark:border-zinc-800 pl-3 shrink-0">
                             <button
                               onClick={() => setExpandido(isExp ? null : { amb, vId: v.id })}
                               title={isExp ? 'Fechar' : 'Editar peças e produtos'}
-                              className={`p-1.5 rounded transition-colors ${isExp ? 'text-yellow-400 bg-yellow-400/10' : 'text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10'}`}
+                              className={`p-1.5 rounded transition-colors ${isExp ? 'text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/10' : 'text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10'}`}
                             >
                               <iconify-icon icon={isExp ? 'solar:close-circle-linear' : 'solar:pen-linear'} width="13"></iconify-icon>
                             </button>
                             <button
                               onClick={() => duplicarVersao(amb, v.id)}
                               title="Duplicar versão"
-                              className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+                              className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors"
                             >
                               <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                             </button>
@@ -1099,7 +1099,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                               <button
                                 onClick={() => removerVersao(amb, v.id)}
                                 title="Remover versão"
-                                className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                                className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                               >
                                 <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                               </button>
@@ -1109,7 +1109,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
 
                         {/* Área expandida: peças agrupadas por item + avulsos */}
                         {isExp && (
-                          <div className="border-t border-gray-300 dark:border-zinc-800">
+                          <div className="border-t border-zinc-200/80 dark:border-zinc-800">
                             {/* Peças — agrupadas por item_nome quando existir */}
                             {(() => {
                               // Helper: renderiza uma linha de acabamento linear
@@ -1124,14 +1124,14 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                     <button
                                       onClick={() => togglePecaAtiva(amb, v.id, pw.uid)}
                                       title={excluida ? 'Incluir no orçamento' : 'Excluir do orçamento'}
-                                      className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${!excluida ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
+                                      className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${!excluida ? 'border-orange-500 dark:border-yellow-400 bg-orange-50 dark:bg-yellow-400/10 text-orange-600 dark:text-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-700 hover:border-zinc-500'}`}
                                     >
                                       {!excluida && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
                                     </button>
                                     {/* Conector visual "filho da peça acima" */}
                                     <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
-                                      <div className="w-px h-2 bg-amber-600/30"></div>
-                                      <div className="w-1.5 h-1.5 rounded-full bg-amber-600/50"></div>
+                                      <div className="w-px h-2 bg-amber-500/40 dark:bg-amber-600/30"></div>
+                                      <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 dark:bg-amber-600/50"></div>
                                     </div>
                                     <iconify-icon icon="solar:ruler-angular-linear" width="12" className="text-amber-600 dark:text-amber-500/70 shrink-0"></iconify-icon>
                                     <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
@@ -1140,12 +1140,12 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         type="number" min="0" step="0.01"
                                         value={pw.ml}
                                         onChange={e => editarAcabamentoMl(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
-                                        className="w-14 bg-gray-50 dark:bg-black border border-amber-400 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
+                                        className="w-14 bg-white dark:bg-black rounded-md dark:rounded-none border border-amber-400 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
                                       />
                                       {gQtd > 1 ? (
                                         <div className="flex flex-col items-start shrink-0">
                                           <span className="font-mono text-[8px] text-amber-700/60">ml/un.</span>
-                                          <span className="font-mono text-[8px] text-yellow-400/70">{(pw.ml * gQtd).toFixed(2)} ml ({gQtd}×)</span>
+                                          <span className="font-mono text-[8px] text-orange-600/70 dark:text-yellow-400/70">{(pw.ml * gQtd).toFixed(2)} ml ({gQtd}×)</span>
                                         </div>
                                       ) : (
                                         <span className="font-mono text-[10px] text-amber-700">ml</span>
@@ -1173,7 +1173,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           }}
                                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); } }}
                                           placeholder="R$/ml"
-                                          className="w-14 bg-gray-50 dark:bg-black border border-amber-500/60 text-amber-200 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                          className="w-14 bg-white dark:bg-black rounded-md dark:rounded-none border border-amber-500/60 text-amber-700 dark:text-amber-200 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
                                         />
                                         <span className="font-mono text-[8px] text-amber-800">/ml</span>
                                         <input
@@ -1185,11 +1185,11 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           }}
                                           onBlur={() => { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); }}
                                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, v.id, pw.uid, parseFloat(editandoPrecoManual.total) || 0); setEditandoPrecoManual(null); } }}
-                                          className="w-16 bg-gray-50 dark:bg-black border border-amber-500 dark:border-amber-500/60 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                          className="w-16 bg-white dark:bg-black rounded-md dark:rounded-none border border-amber-500 dark:border-amber-500/60 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
                                         />
                                       </div>
                                     ) : (
-                                      <span className={`font-mono text-[11px] shrink-0 w-20 text-right font-semibold ${pw.precoManual != null ? 'text-yellow-400' : 'text-amber-400'}`}>
+                                      <span className={`font-mono text-[11px] shrink-0 w-20 text-right font-semibold ${pw.precoManual != null ? 'text-orange-600 dark:text-yellow-400' : 'text-amber-600 dark:text-amber-400'}`}>
                                         {subAc > 0 ? fmt(subAc) : '—'}{pw.precoManual != null ? ' *' : ''}
                                       </span>
                                     )}
@@ -1199,11 +1199,11 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           const currentTotal = pw.precoManual ?? subAcComputed;
                                           const currentMl = pw.ml > 0 ? currentTotal / pw.ml : 0;
                                           setEditandoPrecoManual({ uid: pw.uid, precoMl: currentMl.toFixed(2), total: currentTotal.toFixed(2) });
-                                        }} title="Alterar preço" className="p-2 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-colors">
+                                        }} title="Alterar preço" className="p-2 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
                                           <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
                                         </button>
                                       )}
-                                      <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover acabamento" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
+                                      <button onClick={() => excluirPecaDaVersao(amb, v.id, pw.uid)} title="Remover acabamento" className="p-1 text-zinc-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
                                         <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                       </button>
                                     </div>
@@ -1226,10 +1226,10 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                   return (
                                     <div key={`rc-g-${nome}`} className={`flex items-center gap-2 py-2 border-b border-teal-200 dark:border-teal-900/20 last:border-b-0 bg-teal-50 dark:bg-teal-950/10 group ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
                                       <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
-                                        <div className="w-px h-2 bg-teal-600/30"></div>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-teal-600/50"></div>
+                                        <div className="w-px h-2 bg-teal-500/40 dark:bg-teal-600/30"></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500/50 dark:bg-teal-600/50"></div>
                                       </div>
-                                      <iconify-icon icon="solar:scissors-linear" width="12" className="text-teal-500/70 shrink-0"></iconify-icon>
+                                      <iconify-icon icon="solar:scissors-linear" width="12" className="text-teal-700/80 dark:text-teal-500/70 shrink-0"></iconify-icon>
                                       <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{nome}</span>
                                       {firstPw?.formato && <span className="font-mono text-[9px] text-teal-700 shrink-0">{firstPw.formato}</span>}
                                       <span className="font-mono text-[10px] text-teal-600 shrink-0">×{count}</span>
@@ -1240,12 +1240,12 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           type="number" min="0" step="0.01"
                                           value={precoUnit}
                                           onChange={e => editarRecorteTipoPreco(amb, v.id, nome, parseFloat(e.target.value) || 0)}
-                                          className="w-16 bg-gray-50 dark:bg-black border border-teal-400 dark:border-teal-900/40 text-teal-800 dark:text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
+                                          className="w-16 bg-white dark:bg-black rounded-md dark:rounded-none border border-teal-400 dark:border-teal-900/40 text-teal-800 dark:text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
                                         />
                                       </div>
-                                      <span className="font-mono text-[11px] text-teal-400 shrink-0 w-20 text-right font-semibold">{total > 0 ? fmt(total) : '—'}</span>
+                                      <span className="font-mono text-[11px] text-teal-600 dark:text-teal-400 shrink-0 w-20 text-right font-semibold">{total > 0 ? fmt(total) : '—'}</span>
                                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                        <button onClick={() => excluirRecorteTipo(amb, v.id, nome)} title="Remover furo" className="p-1 text-gray-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
+                                        <button onClick={() => excluirRecorteTipo(amb, v.id, nome)} title="Remover furo" className="p-1 text-zinc-400 dark:text-zinc-700 hover:text-red-400 transition-colors">
                                           <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                         </button>
                                       </div>
@@ -1265,15 +1265,15 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 const isEditingPM = editandoPrecoManual?.uid === pw.uid;
                                 const excluida = (excluidos[amb] ?? []).includes(pw.uid);
                                 return (
-                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 hover:bg-gray-200/20 dark:hover:bg-zinc-900/20 transition-colors group ${excluida ? 'opacity-40' : ''} ${indent ? 'px-7' : 'px-4'}`}>
+                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-zinc-200/80 dark:border-zinc-900 last:border-b-0 hover:bg-zinc-200/20 dark:hover:bg-zinc-900/20 transition-colors group ${excluida ? 'opacity-40' : ''} ${indent ? 'px-7' : 'px-4'}`}>
                                     <button
                                       onClick={() => togglePecaAtiva(amb, vId, pw.uid)}
                                       title={excluida ? 'Incluir no orçamento' : 'Excluir do orçamento'}
-                                      className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${!excluida ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
+                                      className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${!excluida ? 'border-orange-500 dark:border-yellow-400 bg-orange-50 dark:bg-yellow-400/10 text-orange-600 dark:text-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-700 hover:border-zinc-500'}`}
                                     >
                                       {!excluida && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
                                     </button>
-                                    <div className="w-1 h-4 bg-gray-300 dark:bg-zinc-700 shrink-0"></div>
+                                    <div className="w-1 h-4 bg-zinc-300 dark:bg-zinc-700 shrink-0"></div>
                                     {isNomePecaEdit ? (
                                       <input
                                         autoFocus
@@ -1284,10 +1284,10 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           if (e.key === 'Enter') { editarNomePeca(amb, vId, pw.uid, editandoNomePeca.novo); setEditandoNomePeca(null); }
                                           if (e.key === 'Escape') setEditandoNomePeca(null);
                                         }}
-                                        className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
+                                        className="flex-1 bg-zinc-50 dark:bg-black border-b border-orange-200 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
                                       />
                                     ) : (
-                                      <span className="text-xs text-gray-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
+                                      <span className="text-xs text-zinc-600 dark:text-zinc-300 flex-1 min-w-0 truncate">{pw.nome}</span>
                                     )}
                                     {(() => {
                                       const qtdI = pw.grupo_quantidade ?? 1;
@@ -1296,19 +1296,19 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         const areaU = Math.round(areaT / qtdI * 10000) / 10000;
                                         return (
                                           <div className="flex flex-col items-end shrink-0">
-                                            <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-600">{areaU.toFixed(2)} m²/un.</span>
-                                            <span className="font-mono text-[9px] text-yellow-400/70">{areaT.toFixed(2)} m² ({qtdI}×)</span>
+                                            <span className="font-mono text-[8px] text-zinc-500 dark:text-zinc-600">{areaU.toFixed(2)} m²/un.</span>
+                                            <span className="font-mono text-[9px] text-orange-600/70 dark:text-yellow-400/70">{areaT.toFixed(2)} m² ({qtdI}×)</span>
                                           </div>
                                         );
                                       }
-                                      return <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 shrink-0">{areaT.toFixed(2)} m²</span>;
+                                      return <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 shrink-0">{areaT.toFixed(2)} m²</span>;
                                     })()}
                                     <button
                                       onClick={() => setPainelMatVersao({ amb, vId, uid: pw.uid, itemKey: null, atual: pw.matId ?? null, label: pw.nome })}
                                       className={`font-mono text-[8px] uppercase tracking-widest px-2 py-1 border transition-colors flex items-center gap-1 shrink-0 ${
                                         pw.matId
-                                          ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                                          : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                                          ? 'border-orange-200 dark:border-yellow-400/30 text-orange-600 dark:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/5'
+                                          : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:border-orange-300 dark:hover:border-yellow-400/30 hover:text-orange-600 dark:hover:text-yellow-400'
                                       }`}
                                     >
                                       <iconify-icon icon="solar:layers-linear" width="10"></iconify-icon>
@@ -1320,35 +1320,35 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         defaultValue={pw.precoManual ?? subComputed}
                                         onBlur={e => { editarPrecoManual(amb, vId, pw.uid, e.target.value); setEditandoPrecoManual(null); }}
                                         onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { editarPrecoManual(amb, vId, pw.uid, e.target.value); setEditandoPrecoManual(null); } }}
-                                        className="w-16 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
+                                        className="w-16 bg-white dark:bg-black rounded-md dark:rounded-none border border-orange-200 dark:border-yellow-400/40 text-zinc-900 dark:text-white font-mono text-[10px] px-1.5 py-0.5 outline-none text-right shrink-0"
                                       />
                                     ) : (() => {
                                       const qtdI = pw.grupo_quantidade ?? 1;
                                       if (qtdI > 1 && sub > 0 && pw.precoManual == null) {
                                         return (
                                           <div className="flex flex-col items-end shrink-0">
-                                            <span className="font-mono text-[8px] text-gray-500 dark:text-zinc-500">{fmt(sub / qtdI)}/un.</span>
-                                            <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400">{fmt(sub)}</span>
+                                            <span className="font-mono text-[8px] text-zinc-500 dark:text-zinc-500">{fmt(sub / qtdI)}/un.</span>
+                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{fmt(sub)}</span>
                                           </div>
                                         );
                                       }
                                       return (
-                                        <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-yellow-400' : 'text-gray-500 dark:text-zinc-400'}`}>
+                                        <span className={`font-mono text-[10px] shrink-0 w-16 text-right ${pw.precoManual != null ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
                                           {sub > 0 ? fmt(sub) : '—'}{pw.precoManual != null ? ' *' : ''}
                                         </span>
                                       );
                                     })()}
                                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                      <button onClick={() => setEditandoNomePeca({ amb, vId, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                      <button onClick={() => setEditandoNomePeca({ amb, vId, uid: pw.uid, novo: pw.nome })} title="Renomear peça" className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
                                         <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                       </button>
-                                      <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                      <button onClick={() => setEditandoPrecoManual({ uid: pw.uid })} title="Alterar preço" className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
                                         <iconify-icon icon="solar:dollar-minimalistic-linear" width="11"></iconify-icon>
                                       </button>
-                                      <button onClick={() => duplicarPecaDaVersao(amb, vId, pw.uid)} title="Duplicar peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                      <button onClick={() => duplicarPecaDaVersao(amb, vId, pw.uid)} title="Duplicar peça" className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
                                         <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
                                       </button>
-                                      <button onClick={() => excluirPecaDaVersao(amb, vId, pw.uid)} title="Excluir peça" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
+                                      <button onClick={() => excluirPecaDaVersao(amb, vId, pw.uid)} title="Excluir peça" className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
                                         <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                       </button>
                                     </div>
@@ -1396,8 +1396,8 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                   <div key={itemKey}>
                                     {/* Cabeçalho do item */}
                                     {nomeItem !== null && (
-                                      <div className="flex items-center gap-2 px-4 py-2 bg-gray-200/30 dark:bg-zinc-900/30 border-b border-gray-300 dark:border-zinc-800/50 group">
-                                        <div className="w-0.5 h-4 bg-yellow-400/30 shrink-0"></div>
+                                      <div className="flex items-center gap-2 px-4 py-2 bg-zinc-200/30 dark:bg-zinc-900/30 border-b border-zinc-200/80 dark:border-zinc-800/50 group">
+                                        <div className="w-0.5 h-4 bg-orange-50 dark:bg-yellow-400/30 shrink-0"></div>
                                         {isNomeItemEdit ? (
                                           <input
                                             autoFocus
@@ -1408,11 +1408,11 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                               if (e.key === 'Enter') { editarNomeItem(amb, v.id, itemKey, editandoNomeItem.novo); setEditandoNomeItem(null); }
                                               if (e.key === 'Escape') setEditandoNomeItem(null);
                                             }}
-                                            className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
+                                            className="flex-1 bg-zinc-50 dark:bg-black border-b border-orange-200 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-xs font-mono px-1 outline-none min-w-0"
                                           />
                                         ) : (
                                           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                            <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-400 truncate">{nomeItem}</span>
+                                            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">{nomeItem}</span>
                                             {(() => { const qtd = pwsItem.find(pw => pw.tipo === 'pedra')?.grupo_quantidade ?? 1; return qtd > 1 ? <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtd}</span> : null; })()}
                                           </div>
                                         )}
@@ -1421,23 +1421,23 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                           onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: null, itemKey, atual: matIdItem || null, label: nomeItem })}
                                           className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 border transition-colors flex items-center gap-1.5 shrink-0 ${
                                             matIdItem
-                                              ? 'border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/5'
-                                              : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/30 hover:text-yellow-400'
+                                              ? 'border-orange-200 dark:border-yellow-400/30 text-orange-600 dark:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/5'
+                                              : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:border-orange-300 dark:hover:border-yellow-400/30 hover:text-orange-600 dark:hover:text-yellow-400'
                                           }`}
                                         >
                                           <iconify-icon icon="solar:layers-linear" width="11"></iconify-icon>
                                           {matIdItem ? (todosM.find(m => m.id === matIdItem)?.nome?.split(' ').slice(0, 2).join(' ') ?? '1 mat.') : 'Material'}
                                         </button>
-                                        <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-400 shrink-0 w-20 text-right">{subtotalItem > 0 ? fmt(subtotalItem) : '—'}</span>
+                                        <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 shrink-0 w-20 text-right">{subtotalItem > 0 ? fmt(subtotalItem) : '—'}</span>
                                         {/* Ações do item */}
                                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                          <button onClick={() => setEditandoNomeItem({ amb, vId: v.id, itemKey, novo: nomeItem })} title="Renomear item" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                          <button onClick={() => setEditandoNomeItem({ amb, vId: v.id, itemKey, novo: nomeItem })} title="Renomear item" className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
                                             <iconify-icon icon="solar:pen-linear" width="11"></iconify-icon>
                                           </button>
-                                          <button onClick={() => duplicarItem(amb, v.id, itemKey)} title="Duplicar item" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors">
+                                          <button onClick={() => duplicarItem(amb, v.id, itemKey)} title="Duplicar item" className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
                                             <iconify-icon icon="solar:copy-linear" width="11"></iconify-icon>
                                           </button>
-                                          <button onClick={() => excluirItem(amb, v.id, itemKey)} title="Excluir item" className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
+                                          <button onClick={() => excluirItem(amb, v.id, itemKey)} title="Excluir item" className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-red-400 transition-colors">
                                             <iconify-icon icon="solar:trash-bin-trash-linear" width="11"></iconify-icon>
                                           </button>
                                         </div>
@@ -1455,20 +1455,20 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                             })()}
 
                             {/* Avulsos desta versão */}
-                            <div className="border-t border-gray-300 dark:border-zinc-800/50">
-                              <div className="flex items-center justify-between px-4 py-2 bg-gray-200/40 dark:bg-zinc-950/40">
-                                <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">Produtos avulsos</span>
+                            <div className="border-t border-zinc-200/80 dark:border-zinc-800/50">
+                              <div className="flex items-center justify-between px-4 py-2 bg-zinc-200/40 dark:bg-zinc-950/40">
+                                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Produtos avulsos</span>
                                 <div className="flex items-center gap-3">
                                   <button
                                     onClick={() => setModalAvulsoKey({ amb, vId: v.id })}
-                                    className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-yellow-400 transition-colors"
+                                    className="flex items-center gap-1 text-zinc-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
                                   >
                                     <iconify-icon icon="solar:add-circle-linear" width="10"></iconify-icon>
                                     Adicionar
                                   </button>
                                   <button
                                     onClick={() => setModalServicoKey({ amb, vId: v.id })}
-                                    className="flex items-center gap-1 text-gray-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-yellow-400 transition-colors"
+                                    className="flex items-center gap-1 text-zinc-500 dark:text-zinc-600 text-[9px] font-mono uppercase tracking-widest hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
                                   >
                                     <iconify-icon icon="solar:wrench-linear" width="10"></iconify-icon>
                                     Serviço Extra
@@ -1481,27 +1481,27 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 </div>
                               ) : (
                                 (v.avulsos ?? []).map(a => (
-                                  <div key={a.uid} className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200 dark:border-zinc-900/60 last:border-b-0 group bg-gray-200/20 dark:bg-zinc-950/20">
-                                    <div className="w-1 h-3 bg-gray-200 dark:bg-zinc-800 shrink-0"></div>
+                                  <div key={a.uid} className="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-200/80 dark:border-zinc-900/60 last:border-b-0 group bg-zinc-200/20 dark:bg-zinc-950/20">
+                                    <div className="w-1 h-3 bg-zinc-200 dark:bg-zinc-800 shrink-0"></div>
                                     <div className="flex-1 min-w-0">
-                                      <div className="text-xs text-gray-500 dark:text-zinc-400 truncate">{a.nome}</div>
-                                      <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{a.subcategoria}</div>
+                                      <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{a.nome}</div>
+                                      <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{a.subcategoria}</div>
                                     </div>
                                     {editandoAvulso?.amb === amb && editandoAvulso?.vId === v.id && editandoAvulso?.uid === a.uid ? (
                                       <div className="flex items-center gap-1.5">
-                                        <input type="number" min="1" value={a.qty} onChange={e => editarAvulsoQty(amb, v.id, a.uid, e.target.value)} className="w-12 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-yellow-400 text-center" />
-                                        <input value={String(a.valorUnit).replace('.', ',')} onChange={e => editarAvulsoValor(amb, v.id, a.uid, e.target.value)} className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-yellow-400" />
-                                        <button onClick={() => setEditandoAvulso(null)} className="text-yellow-400 p-1 hover:bg-yellow-400/10 transition-colors">
+                                        <input type="number" min="1" value={a.qty} onChange={e => editarAvulsoQty(amb, v.id, a.uid, e.target.value)} className="w-12 bg-white dark:bg-black rounded-md dark:rounded-none border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-orange-500 dark:focus:border-yellow-400 text-center" />
+                                        <input value={String(a.valorUnit).replace('.', ',')} onChange={e => editarAvulsoValor(amb, v.id, a.uid, e.target.value)} className="w-20 bg-white dark:bg-black rounded-md dark:rounded-none border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-orange-500 dark:focus:border-yellow-400" />
+                                        <button onClick={() => setEditandoAvulso(null)} className="text-orange-600 dark:text-yellow-400 p-1 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors">
                                           <iconify-icon icon="solar:check-circle-linear" width="13"></iconify-icon>
                                         </button>
                                       </div>
                                     ) : (
                                       <div className="flex items-center gap-2">
-                                        <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500">{a.qty}x {fmt(a.valorUnit)}</span>
-                                        <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(a.qty * a.valorUnit)}</span>
+                                        <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500">{a.qty}x {fmt(a.valorUnit)}</span>
+                                        <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-300">{fmt(a.qty * a.valorUnit)}</span>
                                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <button onClick={() => setEditandoAvulso({ amb, vId: v.id, uid: a.uid })} className="p-1 text-gray-500 dark:text-zinc-600 hover:text-yellow-400 transition-colors"><iconify-icon icon="solar:pen-linear" width="12"></iconify-icon></button>
-                                          <button onClick={() => removerAvulso(amb, v.id, a.uid)} className="p-1 text-gray-500 dark:text-zinc-600 hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon></button>
+                                          <button onClick={() => setEditandoAvulso({ amb, vId: v.id, uid: a.uid })} className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"><iconify-icon icon="solar:pen-linear" width="12"></iconify-icon></button>
+                                          <button onClick={() => removerAvulso(amb, v.id, a.uid)} className="p-1 text-zinc-500 dark:text-zinc-600 hover:text-red-400 transition-colors"><iconify-icon icon="solar:trash-bin-trash-linear" width="12"></iconify-icon></button>
                                         </div>
                                       </div>
                                     )}
@@ -1522,7 +1522,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
           {/* ── Botão: Adicionar Cenário ──────────────────────────── */}
           <button
             onClick={criarCenario}
-            className="w-full border border-dashed border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-4 hover:border-yellow-400/40 hover:text-yellow-400 transition-colors flex items-center justify-center gap-2"
+            className="w-full border border-dashed border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono text-[10px] uppercase tracking-widest py-4 hover:border-orange-300 dark:hover:border-yellow-400/40 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors flex items-center justify-center gap-2"
           >
             <iconify-icon icon="solar:add-circle-linear" width="13"></iconify-icon>
             + Adicionar Cenário
@@ -1532,11 +1532,11 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
           {cenarios.length > 0 && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <div className="text-[9px] font-mono font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1">
+                <div className="text-[9px] font-mono font-medium text-zinc-500 dark:text-zinc-500 uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1">
                   Cenários criados
                 </div>
-                <div className="flex-1 h-px bg-gray-100 dark:bg-zinc-900"></div>
-                <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">
+                <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-900"></div>
+                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">
                   {cenarios.length} cenário{cenarios.length !== 1 ? 's' : ''} — cada um vira um orçamento separado
                 </span>
               </div>
@@ -1555,10 +1555,10 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                   .join(' + ');
 
                 return (
-                  <div key={cen.id} className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-800">
+                  <div key={cen.id} className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none overflow-hidden border border-zinc-200/80 dark:border-zinc-800">
                     {/* Cabeçalho */}
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200 dark:border-zinc-900">
-                      <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 bg-gray-100 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 px-2 py-0.5 shrink-0">
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-200/80 dark:border-zinc-900">
+                      <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 px-2 py-0.5 shrink-0">
                         C{cIdx + 1}
                       </span>
 
@@ -1569,28 +1569,28 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                           onChange={e => renomearCenario(cen.id, e.target.value)}
                           onBlur={() => setEditandoNomeCenario(null)}
                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditandoNomeCenario(null); }}
-                          className="flex-1 bg-gray-50 dark:bg-black border-b border-yellow-400 text-gray-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
+                          className="flex-1 bg-zinc-50 dark:bg-black border-b border-orange-500 dark:border-yellow-400 text-zinc-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
                         />
                       ) : (
                         <button
                           onClick={() => setEditandoNomeCenario(cen.id)}
                           title="Renomear cenário"
-                          className="flex-1 text-left text-sm font-bold text-gray-900 dark:text-white hover:text-yellow-400/80 transition-colors truncate min-w-0"
+                          className="flex-1 text-left text-sm font-bold text-zinc-900 dark:text-white hover:text-orange-600/80 dark:hover:text-yellow-400/80 transition-colors truncate min-w-0"
                         >
-                          {cen.nome}<span className="text-gray-400 dark:text-zinc-500 font-normal">{sufixoExcluidos(cen.selecoes, cen.excluidos ?? {})}</span>
+                          {cen.nome}<span className="text-zinc-400 dark:text-zinc-500 font-normal">{sufixoExcluidos(cen.selecoes, cen.excluidos ?? {})}</span>
                         </button>
                       )}
 
-                      <span className="font-mono text-sm text-yellow-400 font-bold shrink-0">{fmt(totalCen)}</span>
+                      <span className="font-mono text-sm text-orange-600 dark:text-yellow-400 font-bold shrink-0">{fmt(totalCen)}</span>
 
-                      <div className="flex items-center gap-1 border-l border-gray-300 dark:border-zinc-800 pl-3 shrink-0">
-                        <button onClick={() => setEditandoNomeCenario(cen.id)} title="Editar nome" className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
+                      <div className="flex items-center gap-1 border-l border-zinc-200/80 dark:border-zinc-800 pl-3 shrink-0">
+                        <button onClick={() => setEditandoNomeCenario(cen.id)} title="Editar nome" className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors">
                           <iconify-icon icon="solar:pen-linear" width="13"></iconify-icon>
                         </button>
-                        <button onClick={() => duplicarCenario(cen.id)} title="Duplicar cenário" className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
+                        <button onClick={() => duplicarCenario(cen.id)} title="Duplicar cenário" className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-orange-600 dark:hover:text-yellow-400 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors">
                           <iconify-icon icon="solar:copy-linear" width="13"></iconify-icon>
                         </button>
-                        <button onClick={() => removerCenario(cen.id)} title="Excluir cenário" className="p-1.5 rounded text-gray-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                        <button onClick={() => removerCenario(cen.id)} title="Excluir cenário" className="p-1.5 rounded text-zinc-500 dark:text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
                           <iconify-icon icon="solar:trash-bin-trash-linear" width="13"></iconify-icon>
                         </button>
                       </div>
@@ -1598,16 +1598,16 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
 
                     {/* Resumo de ambientes */}
                     <div className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-                      <span className="font-mono text-[10px] text-gray-500 dark:text-zinc-500 truncate">{resumo || '—'}</span>
-                      <div className="divide-x divide-gray-200 dark:divide-zinc-900 flex shrink-0 flex-wrap">
+                      <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 truncate">{resumo || '—'}</span>
+                      <div className="divide-x divide-zinc-200 dark:divide-zinc-900 flex shrink-0 flex-wrap">
                         {Object.entries(cen.selecoes).map(([amb, vId]) => {
                           const sub = vId ? totalAmbiVersao(amb, vId, cen.excluidos?.[amb] ?? []) : 0;
                           const v   = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
                           return (
                             <div key={amb} className="flex items-center gap-2 px-3 first:pl-0">
-                              <span className="text-[10px] text-gray-500 dark:text-zinc-600 uppercase tracking-wide">{amb || 'Amb'}</span>
-                              <span className="text-[10px] text-gray-500 dark:text-zinc-400">{v?.nome ?? '—'}</span>
-                              <span className="font-mono text-[10px] text-gray-600 dark:text-zinc-300">{fmt(sub)}</span>
+                              <span className="text-[10px] text-zinc-500 dark:text-zinc-600 uppercase tracking-wide">{amb || 'Amb'}</span>
+                              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{v?.nome ?? '—'}</span>
+                              <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-300">{fmt(sub)}</span>
                             </div>
                           );
                         })}
@@ -1615,28 +1615,28 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                     </div>
 
                     {/* Desconto */}
-                    <div className="px-5 py-3 border-t border-gray-200 dark:border-zinc-900/60 flex items-center gap-3 flex-wrap">
-                      <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 shrink-0">Desconto</span>
+                    <div className="px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-900/60 flex items-center gap-3 flex-wrap">
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 shrink-0">Desconto</span>
                       <div className="flex items-center gap-1.5">
                         <input
                           type="number" min="0" step="0.01"
                           value={cen.descontoValor ?? ''}
                           onChange={e => atualizarDescontoCenario(cen.id, 'descontoValor', e.target.value)}
                           placeholder="0"
-                          className="w-20 bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-yellow-400/50 text-right"
+                          className="w-20 bg-white dark:bg-black rounded-md dark:rounded-none border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-[11px] font-mono px-2 py-1 outline-none focus:border-orange-500 dark:focus:border-yellow-400/50 text-right"
                         />
                         <button
                           onClick={() => atualizarDescontoCenario(cen.id, 'descontoTipo', (cen.descontoTipo ?? '%') === '%' ? 'R$' : '%')}
-                          className="font-mono text-[10px] border border-gray-300 dark:border-zinc-700 px-2 py-1 hover:border-yellow-400 hover:text-yellow-400 text-gray-500 dark:text-zinc-400 transition-colors shrink-0 w-8 text-center"
+                          className="font-mono text-[10px] border border-zinc-200/80 dark:border-zinc-700 px-2 py-1 hover:border-orange-500 dark:hover:border-yellow-400 hover:text-orange-600 dark:hover:text-yellow-400 text-zinc-500 dark:text-zinc-400 transition-colors shrink-0 w-8 text-center"
                         >
                           {cen.descontoTipo ?? '%'}
                         </button>
                       </div>
                       {descontoCenario(cen) > 0 && (
                         <div className="flex items-center gap-2 ml-auto">
-                          <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">Subtotal: {fmt(subtotalCenario(cen))}</span>
+                          <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">Subtotal: {fmt(subtotalCenario(cen))}</span>
                           <span className="font-mono text-[9px] text-red-400/70">− {fmt(descontoCenario(cen))}</span>
-                          <span className="font-mono text-[10px] font-bold text-yellow-400">{fmt(totalCenario(cen))}</span>
+                          <span className="font-mono text-[10px] font-bold text-orange-600 dark:text-yellow-400">{fmt(totalCenario(cen))}</span>
                         </div>
                       )}
                     </div>
@@ -1650,22 +1650,22 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
       </main>
 
       {/* Footer fixo */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-[#0a0a0a] border-t border-gray-300 dark:border-zinc-800 px-6 py-4 flex items-center justify-between z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border-t border-zinc-200/80 dark:border-zinc-800 px-6 py-4 flex items-center justify-between z-20">
         <div>
-          <div className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
+          <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">
             {cenarios.length > 0
               ? `${cenarios.length} cenário${cenarios.length !== 1 ? 's' : ''} — ${fmt(cenarios.reduce((s, c) => s + totalCenario(c), 0))}`
               : `${totalVersoes} versão${totalVersoes !== 1 ? 'ões' : ''} — ${fmt(totalSelecaoAtual)}`
             }
           </div>
-          <div className="text-xs text-gray-500 dark:text-zinc-400">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
             {cenarios.length > 0 ? 'Cada cenário vira um orçamento separado' : 'Adicione cenários ou salve a seleção atual'}
           </div>
         </div>
         <button
           onClick={handleSalvar}
           disabled={salvando}
-          className="bg-yellow-400 text-black font-mono text-[11px] uppercase tracking-widest px-6 py-3 hover:bg-yellow-300 hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="bg-orange-500 text-white dark:bg-yellow-400 dark:text-black rounded-xl dark:rounded-none font-mono text-[11px] uppercase tracking-widest px-6 py-3 hover:bg-orange-600 dark:hover:bg-yellow-300 hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] dark:hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {salvando ? (
             <>

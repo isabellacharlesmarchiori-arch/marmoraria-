@@ -95,27 +95,27 @@ function DesenhoAmbiente({ svgUrl, medicao, ambNome, onZoom }) {
     const [error,   setError]   = useState(false);
 
     if (!svgUrl) return (
-        <div className="flex flex-col items-center justify-center py-6 gap-2 border border-zinc-900 bg-black">
-            <iconify-icon icon="solar:ruler-pen-linear" width="20" className="text-zinc-700"></iconify-icon>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Desenho não disponível</span>
+        <div className="flex flex-col items-center justify-center py-6 gap-2 border border-zinc-100 dark:border-zinc-900 bg-white dark:bg-black">
+            <iconify-icon icon="solar:ruler-pen-linear" width="20" className="text-zinc-400 dark:text-zinc-700"></iconify-icon>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Desenho não disponível</span>
         </div>
     );
 
     return (
         <div className="flex flex-col gap-2">
             <div
-                className="relative border border-zinc-800 bg-black overflow-hidden cursor-zoom-in group"
+                className="relative border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-black overflow-hidden cursor-zoom-in group"
                 onClick={() => !error && onZoom(svgUrl)}
             >
                 {loading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black z-10 min-h-[160px]">
-                        <div className="w-5 h-5 border-2 border-zinc-700 border-t-yellow-400 rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-black z-10 min-h-[160px]">
+                        <div className="w-5 h-5 border-2 border-zinc-200 dark:border-zinc-700 border-t-orange-500 dark:border-t-yellow-400 rounded-full animate-spin"></div>
                     </div>
                 )}
                 {error ? (
                     <div className="flex flex-col items-center justify-center py-8 gap-2 min-h-[100px]">
-                        <iconify-icon icon="solar:image-broken-linear" width="24" className="text-zinc-700"></iconify-icon>
-                        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Imagem indisponível</span>
+                        <iconify-icon icon="solar:image-broken-linear" width="24" className="text-zinc-400 dark:text-zinc-700"></iconify-icon>
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Imagem indisponível</span>
                     </div>
                 ) : (
                     <>
@@ -140,7 +140,7 @@ function DesenhoAmbiente({ svgUrl, medicao, ambNome, onZoom }) {
             {!error && !loading && (
                 <button
                     onClick={() => downloadDesenho(svgUrl, medicao, ambNome)}
-                    className="flex items-center justify-center gap-2 w-full border border-zinc-700 text-zinc-400 hover:border-white hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
+                    className="flex items-center justify-center gap-2 w-full border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest py-2.5"
                 >
                     <iconify-icon icon="solar:download-linear" width="13"></iconify-icon>
                     Baixar Desenho
@@ -174,7 +174,7 @@ function PecasAmbiente({ pecas }) {
     });
 
     return (
-        <div className="bg-black border border-zinc-900 px-4 py-3">
+        <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
             <SecaoLabel icon="solar:ruler-pen-linear" label={`Peças (${pecas.reduce((s, p) => s + (p.grupo_quantidade ?? 1), 0)})`} />
             <div className="flex flex-col gap-2">
                 {itensOrdem.map(itemKey => {
@@ -183,11 +183,11 @@ function PecasAmbiente({ pecas }) {
                     return (
                         <div key={itemKey}>
                             {nomeItem && (
-                                <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 mb-1.5 ml-1 flex items-center gap-1.5">
-                                    <iconify-icon icon="solar:folder-linear" width="10" className="text-zinc-700 shrink-0"></iconify-icon>
+                                <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-1.5 ml-1 flex items-center gap-1.5">
+                                    <iconify-icon icon="solar:folder-linear" width="10" className="text-zinc-400 dark:text-zinc-700 shrink-0"></iconify-icon>
                                     {nomeItem}
                                     {qtdGrupo > 1 && (
-                                        <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60">x{qtdGrupo}</span>
+                                        <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-300 dark:border-zinc-600/50 text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/60">x{qtdGrupo}</span>
                                     )}
                                 </div>
                             )}
@@ -197,16 +197,16 @@ function PecasAmbiente({ pecas }) {
                                     const areaTotal = r.area_liquida_m2 ?? 0;
                                     const areaUnit  = qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
                                     return (
-                                    <div key={i} className="border border-zinc-900 px-3 py-2.5 bg-zinc-950">
+                                    <div key={i} className="border border-zinc-100 dark:border-zinc-900 px-3 py-2.5 bg-white dark:bg-zinc-950">
                                         <div className="flex items-center justify-between gap-2">
-                                            <span className="text-white font-semibold text-sm truncate">{r.nome ?? 'Peça'}</span>
+                                            <span className="text-zinc-900 dark:text-white font-semibold text-sm truncate">{r.nome ?? 'Peça'}</span>
                                             {areaUnit !== null ? (
                                                 <div className="flex flex-col items-end shrink-0">
                                                     <span className="font-mono text-[9px] text-zinc-500">{areaUnit} m²/un.</span>
-                                                    <span className="font-mono text-sm text-yellow-400 font-bold">{areaTotal} m² ({qtd}×)</span>
+                                                    <span className="font-mono text-sm text-orange-600 dark:text-yellow-400 font-bold">{areaTotal} m² ({qtd}×)</span>
                                                 </div>
                                             ) : (
-                                                <span className="font-mono text-sm text-yellow-400 font-bold shrink-0">{areaTotal} m²</span>
+                                                <span className="font-mono text-sm text-orange-600 dark:text-yellow-400 font-bold shrink-0">{areaTotal} m²</span>
                                             )}
                                         </div>
                                         {/* Dimensões do retângulo */}
@@ -233,14 +233,14 @@ function PecasAmbiente({ pecas }) {
                                                 .map(([k, label]) => ({ label, ml: r.acabamentos[k] }));
                                             if (linhas.length === 0) return null;
                                             return (
-                                                <div className="mt-2 flex flex-col gap-1 pl-2 border-l border-amber-900/40">
+                                                <div className="mt-2 flex flex-col gap-1 pl-2 border-l border-amber-200 dark:border-amber-900/40">
                                                     {linhas.map(({ label, ml }) => (
                                                         <div key={label} className="flex items-center justify-between">
                                                             <div className="flex items-center gap-1.5">
-                                                                <iconify-icon icon="solar:ruler-angular-linear" width="10" className="text-amber-600/70"></iconify-icon>
-                                                                <span className="font-mono text-[10px] text-amber-500/80">{label}</span>
+                                                                <iconify-icon icon="solar:ruler-angular-linear" width="10" className="text-amber-700/70 dark:text-amber-600/70"></iconify-icon>
+                                                                <span className="font-mono text-[10px] text-amber-700 dark:text-amber-500/80">{label}</span>
                                                             </div>
-                                                            <span className="font-mono text-[9px] text-amber-600">{ml} ml</span>
+                                                            <span className="font-mono text-[9px] text-amber-700 dark:text-amber-600">{ml} ml</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -248,7 +248,7 @@ function PecasAmbiente({ pecas }) {
                                         })()}
                                         {/* Recortes inline */}
                                         {Array.isArray(r.recortes) && r.recortes.length > 0 && (
-                                            <div className="mt-2 flex flex-col gap-1 pl-2 border-l border-zinc-800">
+                                            <div className="mt-2 flex flex-col gap-1 pl-2 border-l border-zinc-200/80 dark:border-zinc-800">
                                                 {r.recortes.map((rc, j) => {
                                                     const label = rc.funcao_label ?? rc.description ?? rc.funcao
                                                         ?? (rc.formato === 'circular' || rc.type === 'circular' ? 'Furo circular' : 'Recorte retangular');
@@ -264,10 +264,10 @@ function PecasAmbiente({ pecas }) {
                                                     return (
                                                         <div key={j} className="flex items-center justify-between">
                                                             <div className="flex items-center gap-1.5">
-                                                                <iconify-icon icon="solar:scissors-linear" width="10" className="text-zinc-600"></iconify-icon>
-                                                                <span className="font-mono text-[10px] text-zinc-400">{label}</span>
+                                                                <iconify-icon icon="solar:scissors-linear" width="10" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
+                                                                <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400">{label}</span>
                                                             </div>
-                                                            {dim && <span className="font-mono text-[9px] text-zinc-600">{dim}</span>}
+                                                            {dim && <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{dim}</span>}
                                                         </div>
                                                     );
                                                 })}
@@ -297,7 +297,7 @@ export function InfoMedicao({ ambientes }) {
     if (!temInfo) return null;
     return (
         <div>
-            <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-3">
+            <div className="text-[10px] font-mono text-zinc-900 dark:text-white uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1 mb-3">
                 Informações da Medição
             </div>
             <div className="flex flex-col gap-4">
@@ -312,46 +312,46 @@ export function InfoMedicao({ ambientes }) {
                         <div key={i} className="flex flex-col gap-2.5">
                             {ambientes.length > 1 && (
                                 <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                                    <div className="w-0.5 h-3 bg-yellow-400/50 shrink-0"></div>
+                                    <div className="w-0.5 h-3 bg-orange-400 dark:bg-yellow-400/50 shrink-0"></div>
                                     {nomeAmb}
                                 </div>
                             )}
                             {infoAmb !== '' && (
-                                <div className="bg-black border border-zinc-900 px-4 py-3">
+                                <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <iconify-icon icon="solar:document-text-linear" width="11" className="text-zinc-500 shrink-0"></iconify-icon>
                                         <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Observações do Ambiente</span>
                                     </div>
-                                    <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{infoAmb}</p>
+                                    <p className="text-zinc-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{infoAmb}</p>
                                 </div>
                             )}
                             {itensComInfo.length > 0 && (
-                                <div className="bg-black border border-zinc-900 px-4 py-3">
+                                <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                     <div className="flex items-center gap-1.5 mb-3">
                                         <iconify-icon icon="solar:list-linear" width="11" className="text-zinc-500 shrink-0"></iconify-icon>
                                         <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Observações por Item</span>
                                     </div>
                                     <div className="flex flex-col gap-2.5">
                                         {itensComInfo.map((item, j) => (
-                                            <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-0.5">
-                                                <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{item.nome}</span>
-                                                <span className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{item.info_adicional.trim()}</span>
+                                            <div key={j} className="border-l-2 border-orange-400 dark:border-yellow-400/40 pl-3 flex flex-col gap-0.5">
+                                                <span className="font-mono text-[10px] uppercase tracking-widest text-orange-600 dark:text-yellow-400/80">{item.nome}</span>
+                                                <span className="text-zinc-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{item.info_adicional.trim()}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
                             {gruposComInfo.length > 0 && (
-                                <div className="bg-black border border-zinc-900 px-4 py-3">
+                                <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                     <div className="flex items-center gap-1.5 mb-3">
                                         <iconify-icon icon="solar:list-linear" width="11" className="text-zinc-500 shrink-0"></iconify-icon>
                                         <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">Observações de Campo</span>
                                     </div>
                                     <div className="flex flex-col gap-2.5">
                                         {gruposComInfo.map((g, j) => (
-                                            <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-0.5">
-                                                <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{g.nome}</span>
-                                                <span className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</span>
+                                            <div key={j} className="border-l-2 border-orange-400 dark:border-yellow-400/40 pl-3 flex flex-col gap-0.5">
+                                                <span className="font-mono text-[10px] uppercase tracking-widest text-orange-600 dark:text-yellow-400/80">{g.nome}</span>
+                                                <span className="text-zinc-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -407,10 +407,10 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
             <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={handleClose} />
 
             {/* Painel lateral */}
-            <div className="fixed right-0 top-0 h-full w-full max-w-[480px] bg-[#0a0a0a] border-l border-zinc-800 z-50 flex flex-col overflow-hidden">
+            <div className="fixed right-0 top-0 h-full w-full max-w-[480px] bg-white/95 dark:bg-[#0a0a0a] backdrop-blur-xl border-l border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none z-50 flex flex-col overflow-hidden">
 
                 {/* Cabeçalho */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
                     <div className="flex flex-col gap-1.5">
                         {/* Badge tipo global */}
                         {tipoGlobal === 'orcamento' ? (
@@ -424,9 +424,9 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                 <span className="font-mono text-[9px] uppercase tracking-widest text-green-400 font-semibold">Produção</span>
                             </div>
                         )}
-                        <div className="text-white font-semibold text-sm">{dataLabel}</div>
+                        <div className="text-zinc-900 dark:text-white font-semibold text-sm">{dataLabel}</div>
                     </div>
-                    <button onClick={handleClose} className="text-zinc-600 hover:text-white transition-colors p-1">
+                    <button onClick={handleClose} className="text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors p-1">
                         <iconify-icon icon="solar:close-linear" width="18"></iconify-icon>
                     </button>
                 </div>
@@ -435,15 +435,15 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
 
                     {isFlutter && (
-                        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-yellow-400/5 border border-yellow-400/20">
-                            <iconify-icon icon="solar:smartphone-linear" width="11" className="text-yellow-400 shrink-0"></iconify-icon>
-                            <span className="font-mono text-[9px] uppercase tracking-widest text-yellow-400">Enviado pelo app SmartStone</span>
+                        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-orange-50 dark:bg-yellow-400/5 border border-orange-200 dark:border-yellow-400/20">
+                            <iconify-icon icon="solar:smartphone-linear" width="11" className="text-orange-600 dark:text-yellow-400 shrink-0"></iconify-icon>
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-orange-600 dark:text-yellow-400">Enviado pelo app SmartStone</span>
                         </div>
                     )}
 
                     {rawAmbientes.length === 0 && (
-                        <div className="text-center py-10 px-4 border border-zinc-900 bg-black">
-                            <iconify-icon icon="solar:document-text-linear" width="24" className="text-zinc-700 mb-2"></iconify-icon>
+                        <div className="text-center py-10 px-4 border border-zinc-100 dark:border-zinc-900 bg-white dark:bg-black">
+                            <iconify-icon icon="solar:document-text-linear" width="24" className="text-zinc-400 dark:text-zinc-700 mb-2"></iconify-icon>
                             <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Nenhum dado processado ainda</div>
                         </div>
                     )}
@@ -488,7 +488,7 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                 {/* Título do ambiente */}
                                 <div className="flex items-center gap-2">
                                     <div className="w-0.5 h-4 bg-[#1D9E75] shrink-0"></div>
-                                    <span className="font-mono text-[10px] uppercase tracking-widest text-white font-semibold">{ambNome}</span>
+                                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-900 dark:text-white font-semibold">{ambNome}</span>
                                 </div>
 
                                 {/* Desenho Técnico */}
@@ -504,10 +504,10 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
 
                                 {/* Foto da Obra */}
                                 {fotoUrl && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                         <SecaoLabel icon="solar:camera-linear" label="Foto da Obra" />
                                         <a href={fotoUrl} target="_blank" rel="noopener noreferrer"
-                                            className="block border border-zinc-800 overflow-hidden hover:border-yellow-400/50 transition-colors">
+                                            className="block border border-zinc-200/80 dark:border-zinc-800 overflow-hidden hover:border-orange-400 dark:hover:border-yellow-400/50 transition-colors">
                                             <img src={fotoUrl} alt={`Foto — ${ambNome}`} className="w-full h-40 object-cover" />
                                         </a>
                                     </div>
@@ -515,23 +515,23 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
 
                                 {/* Observações de Acesso */}
                                 {obsAcesso && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                         <SecaoLabel icon="solar:map-point-linear" label="Observações de Acesso" />
-                                        <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{obsAcesso}</p>
+                                        <p className="text-zinc-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{obsAcesso}</p>
                                     </div>
                                 )}
 
                                 {/* Grupos / Observações de campo */}
                                 {gruposDoAmb.length > 0 && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                         <SecaoLabel icon="solar:chat-round-dots-linear" label="Grupos / Observações" />
                                         <div className="flex flex-col gap-2">
                                             {gruposDoAmb.map((g, j) => (
-                                                <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-1">
+                                                <div key={j} className="border-l-2 border-orange-400 dark:border-yellow-400/40 pl-3 flex flex-col gap-1">
                                                     <div className="flex items-center flex-wrap gap-1.5">
-                                                        <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{g.nome}</span>
+                                                        <span className="font-mono text-[10px] uppercase tracking-widest text-orange-600 dark:text-yellow-400/80">{g.nome}</span>
                                                         {(g.quantidade ?? 1) > 1 && (
-                                                            <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60">
+                                                            <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-300 dark:border-zinc-600/50 text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/60">
                                                                 x{g.quantidade}
                                                             </span>
                                                         )}
@@ -547,7 +547,7 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                                         )}
                                                     </div>
                                                     {(g.info ?? '').trim() !== '' && (
-                                                        <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</p>
+                                                        <p className="text-zinc-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{g.info.trim()}</p>
                                                     )}
                                                 </div>
                                             ))}
@@ -560,7 +560,7 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
 
                                 {/* Faixas */}
                                 {faixasDoAmb.length > 0 && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                         <SecaoLabel icon="solar:ruler-linear" label={`Faixas (${faixasDoAmb.length})`} />
                                         <div className="flex flex-col gap-1.5">
                                             {(() => {
@@ -579,10 +579,10 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                                     return [
                                                         ...(grupoLabel ? [
                                                             <div key={`fg-${gKey}`} className="flex items-center gap-1.5 mt-1 mb-0.5">
-                                                                <iconify-icon icon="solar:folder-linear" width="9" className="text-zinc-700 shrink-0"></iconify-icon>
-                                                                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{grupoLabel}</span>
+                                                                <iconify-icon icon="solar:folder-linear" width="9" className="text-zinc-400 dark:text-zinc-700 shrink-0"></iconify-icon>
+                                                                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">{grupoLabel}</span>
                                                                 {qtdGrupoFaixa > 1 && (
-                                                                    <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60">
+                                                                    <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-300 dark:border-zinc-600/50 text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/60">
                                                                         x{qtdGrupoFaixa}
                                                                     </span>
                                                                 )}
@@ -595,10 +595,10 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                                             const dim = [f.largura_cm, f.comprimento_cm, f.espessura_cm]
                                                                 .filter(v => v != null).join('×');
                                                             return (
-                                                                <div key={f.id ?? j} className="font-mono text-[11px] text-zinc-300 flex items-center justify-between gap-2">
+                                                                <div key={f.id ?? j} className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300 flex items-center justify-between gap-2">
                                                                     <span>{dim ? `${dim} cm` : (f.nome ?? `Faixa ${j + 1}`)}</span>
                                                                     {area != null && (
-                                                                        <span className="text-yellow-400 font-bold shrink-0">{area} m²</span>
+                                                                        <span className="text-orange-600 dark:text-yellow-400 font-bold shrink-0">{area} m²</span>
                                                                     )}
                                                                 </div>
                                                             );
@@ -612,21 +612,21 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
 
                                 {/* Observações do ambiente (campo extras.info_adicional) */}
                                 {infoAmb && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                         <SecaoLabel icon="solar:document-text-linear" label="Observações do Ambiente" />
-                                        <p className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{infoAmb}</p>
+                                        <p className="text-zinc-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{infoAmb}</p>
                                     </div>
                                 )}
 
                                 {/* Observações por item */}
                                 {itensComInfo.length > 0 && (
-                                    <div className="bg-black border border-zinc-900 px-4 py-3">
+                                    <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3">
                                         <SecaoLabel icon="solar:list-linear" label="Observações por Item" />
                                         <div className="flex flex-col gap-2.5">
                                             {itensComInfo.map((item, j) => (
-                                                <div key={j} className="border-l-2 border-yellow-400/40 pl-3 flex flex-col gap-0.5">
-                                                    <span className="font-mono text-[10px] uppercase tracking-widest text-yellow-400/80">{item.nome}</span>
-                                                    <span className="text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{item.info_adicional.trim()}</span>
+                                                <div key={j} className="border-l-2 border-orange-400 dark:border-yellow-400/40 pl-3 flex flex-col gap-0.5">
+                                                    <span className="font-mono text-[10px] uppercase tracking-widest text-orange-600 dark:text-yellow-400/80">{item.nome}</span>
+                                                    <span className="text-zinc-700 dark:text-zinc-300 text-[12px] leading-relaxed whitespace-pre-line">{item.info_adicional.trim()}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -638,18 +638,18 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
 
                     {/* ── Resumo Total ── */}
                     {pecas.length > 0 && (
-                        <div className="border-t border-zinc-800 pt-4">
-                            <div className="text-[10px] font-mono text-white uppercase tracking-widest border border-zinc-800 w-max px-2 py-1 mb-3">
+                        <div className="border-t border-zinc-200/80 dark:border-zinc-800 pt-4">
+                            <div className="text-[10px] font-mono text-zinc-900 dark:text-white uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 w-max px-2 py-1 mb-3">
                                 Resumo Total
                             </div>
-                            <div className="bg-black border border-zinc-900 px-4 py-3 flex flex-col gap-2">
+                            <div className="bg-white/90 dark:bg-black backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-900 shadow-sm dark:shadow-none rounded-2xl dark:rounded-none px-4 py-3 flex flex-col gap-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="font-mono text-[11px] text-zinc-300">Peças</span>
-                                    <span className="font-mono text-[11px] text-white font-bold">{pecas.reduce((s, p) => s + (p.grupo_quantidade ?? 1), 0)}</span>
+                                    <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">Peças</span>
+                                    <span className="font-mono text-[11px] text-zinc-900 dark:text-white font-bold">{pecas.reduce((s, p) => s + (p.grupo_quantidade ?? 1), 0)}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="font-mono text-[11px] text-zinc-300">Área total</span>
-                                    <span className="font-mono text-[11px] text-yellow-400 font-bold">{totalArea} m²</span>
+                                    <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">Área total</span>
+                                    <span className="font-mono text-[11px] text-orange-600 dark:text-yellow-400 font-bold">{totalArea} m²</span>
                                 </div>
                                 {[
                                     { label: 'Meia-Esquadria', val: totalME },
@@ -660,8 +660,8 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
                                     { label: 'Chanfrado',      val: totalCF },
                                 ].filter(({ val }) => val > 0).map(({ label, val }) => (
                                     <div key={label} className="flex items-center justify-between">
-                                        <span className="font-mono text-[11px] text-zinc-300">{label}</span>
-                                        <span className="font-mono text-[11px] text-yellow-400 font-bold">{val} ml</span>
+                                        <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">{label}</span>
+                                        <span className="font-mono text-[11px] text-orange-600 dark:text-yellow-400 font-bold">{val} ml</span>
                                     </div>
                                 ))}
                             </div>
@@ -671,7 +671,7 @@ export function PainelDetalhesMedicao({ medicao, onClose, footer }) {
 
                 {/* Footer opcional (ex: botão "Criar orçamento") */}
                 {footer && (
-                    <div className="px-6 py-4 border-t border-zinc-800 shrink-0">
+                    <div className="px-6 py-4 border-t border-zinc-200/80 dark:border-zinc-800 shrink-0">
                         {footer}
                     </div>
                 )}

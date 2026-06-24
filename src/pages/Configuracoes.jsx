@@ -210,24 +210,24 @@ export default function ConfiguracoesPage() {
   ];
 
   return (
-    <div className="flex-1 min-h-0 bg-gray-100 dark:bg-[#050505] text-gray-600 dark:text-zinc-400 font-sans selection:bg-gray-200 dark:selection:bg-white selection:text-black flex">
+    <div className="flex-1 min-h-0 bg-zinc-50 dark:bg-[#050505] text-zinc-600 dark:text-zinc-400 font-sans selection:bg-zinc-200 dark:selection:bg-white selection:text-black flex">
       <div className="fixed inset-0 pointer-events-none z-0 bg-grid"></div>
 
       {/* Sidebar Nav */}
-      <div className="w-64 bg-gray-50 dark:bg-[#020202] border-r border-gray-300 dark:border-zinc-800 p-6 flex flex-col relative z-10 h-screen sticky top-0 shrink-0">
-        <div className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest border border-gray-300 dark:border-zinc-800 w-max px-2 py-1 mb-6">
+      <div className="w-64 bg-white/90 dark:bg-[#020202] backdrop-blur-xl border-r border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none p-6 flex flex-col relative z-10 h-screen sticky top-0 shrink-0">
+        <div className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 uppercase tracking-widest border border-zinc-200/80 dark:border-zinc-800 bg-white/50 dark:bg-transparent backdrop-blur-md w-max px-2 py-1 mb-6 rounded-md dark:rounded-none shadow-sm dark:shadow-none">
           09 // System
         </div>
-        <h1 className="text-2xl font-medium text-gray-900 dark:text-white tracking-tighter uppercase mb-8">Configurações</h1>
+        <h1 className="text-2xl font-medium text-zinc-900 dark:text-white tracking-tighter uppercase mb-8">Configurações</h1>
         <nav className="flex flex-col gap-2 flex-1">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 px-4 py-3 text-sm font-mono uppercase tracking-widest transition-all text-left ${
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-mono uppercase tracking-widest transition-all text-left rounded-xl dark:rounded-none ${
                 activeTab === tab.id
-                  ? 'bg-yellow-400 text-black shadow-[0_0_15px_rgba(250,204,21,0.2)] font-bold'
-                  : 'text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900 border border-transparent hover:border-gray-300 dark:hover:border-zinc-800'
+                  ? 'bg-orange-500 text-white dark:bg-yellow-400 dark:text-black shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] dark:shadow-[0_0_15px_rgba(250,204,21,0.2)] font-bold rounded-xl dark:rounded-none'
+                  : 'text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200/80 dark:hover:border-zinc-800'
               }`}
             >
               <iconify-icon icon={tab.icon}></iconify-icon>
@@ -292,9 +292,11 @@ export default function ConfiguracoesPage() {
 
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #020202; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d8; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
         @media (prefers-reduced-motion: no-preference) {
           .sys-reveal { opacity: 0; transition: opacity 0.5s ease; }
           .sys-active.sys-reveal { opacity: 1; }
@@ -307,9 +309,9 @@ export default function ConfiguracoesPage() {
       {modalState.isOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal}></div>
-          <div className="bg-gray-50 dark:bg-[#050505] border border-gray-300 dark:border-zinc-800 border-t-yellow-400 border-t-2 w-full max-w-lg relative z-10 shadow-2xl sys-reveal sys-active flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-gray-300 dark:border-zinc-800">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tighter">
+          <div className="bg-white/95 dark:bg-[#050505] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 border-t-orange-500 dark:border-t-yellow-400 border-t-2 w-full max-w-lg relative z-10 rounded-2xl dark:rounded-none shadow-xl shadow-zinc-300/40 dark:shadow-2xl sys-reveal sys-active flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-zinc-200/80 dark:border-zinc-800">
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white uppercase tracking-tighter">
                 {modalState.item ? 'Editar ' : 'Novo '}
                 {modalState.type === 'usuario'             && 'Usuário'}
                 {modalState.type === 'material_linear'     && 'Material/Acabamento Linear'}
@@ -317,7 +319,7 @@ export default function ConfiguracoesPage() {
                 {modalState.type === 'pagamento'           && 'Método de Pagamento'}
                 {modalState.type === 'acabamento_unitario' && 'Acabamento Unitário'}
               </h3>
-              <button onClick={closeModal} className="text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+              <button onClick={closeModal} className="text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                 <iconify-icon icon="solar:close-square-linear" width="24"></iconify-icon>
               </button>
             </div>
@@ -327,17 +329,17 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'usuario' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Nome</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
                   </div>
                   {!modalState.item && (
                     <>
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail (Login)</label>
-                        <input type="email" name="email" required className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                        <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">E-mail (Login)</label>
+                        <input type="email" name="email" required className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Senha Inicial</label>
+                        <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Senha Inicial</label>
                         <div className="relative">
                           <input
                             type={mostrarSenha ? 'text' : 'password'}
@@ -346,29 +348,29 @@ export default function ConfiguracoesPage() {
                             placeholder="Mínimo 8 caracteres"
                             minLength={8}
                             required
-                            className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 pr-12 text-sm focus:outline-none focus:border-yellow-400 font-mono"
+                            className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 pr-12 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono"
                           />
                           <button
                             type="button"
                             onClick={() => setMostrarSenha(!mostrarSenha)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-white transition-colors"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-white transition-colors"
                           >
                             <iconify-icon icon={mostrarSenha ? 'solar:eye-closed-linear' : 'solar:eye-linear'} className="text-lg"></iconify-icon>
                           </button>
                         </div>
-                        <p className="text-[10px] font-mono text-gray-400 dark:text-zinc-600">O usuário poderá alterar depois no primeiro acesso.</p>
+                        <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-600">O usuário poderá alterar depois no primeiro acesso.</p>
                       </div>
                     </>
                   )}
                   {modalState.item && (
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">E-mail</label>
-                      <div className="w-full bg-gray-50 dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 text-gray-500 dark:text-zinc-500 px-4 py-3 text-sm font-mono">{modalState.item.email}</div>
+                      <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">E-mail</label>
+                      <div className="w-full bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 px-4 py-3 text-sm font-mono">{modalState.item.email}</div>
                     </div>
                   )}
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Perfil de Acesso</label>
-                    <select name="perfil" defaultValue={modalState.item?.perfil || 'vendedor'} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono uppercase">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Perfil de Acesso</label>
+                    <select name="perfil" defaultValue={modalState.item?.perfil || 'vendedor'} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono uppercase">
                       <option value="vendedor">Vendedor(a)</option>
                       <option value="medidor">Medidor(a)</option>
                       <option value="admin">Administrador</option>
@@ -382,20 +384,20 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'material_linear' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Descrição</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Descrição</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Tipo da Cobrança</label>
-                      <select name="tipo" defaultValue={modalState.item?.tipo || 'acabamento_aresta'} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                      <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Tipo da Cobrança</label>
+                      <select name="tipo" defaultValue={modalState.item?.tipo || 'acabamento_aresta'} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono">
                         <option value="acabamento_aresta">Acabamento de Aresta</option>
                         <option value="material_linear">Material Linear Físico</option>
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço / metro linear</label>
-                      <input type="number" step="0.01" name="preco_ml" required defaultValue={modalState.item?.preco_ml || ''} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                      <label className="text-[10px] uppercase font-mono text-orange-600 dark:text-yellow-400">Preço / metro linear</label>
+                      <input type="number" step="0.01" name="preco_ml" required defaultValue={modalState.item?.preco_ml || ''} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono" />
                     </div>
                   </div>
                 </>
@@ -404,17 +406,17 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'produto' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome do Produto</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Nome do Produto</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Subcategoria</label>
-                      <input type="text" name="subcategoria" required defaultValue={modalState.item?.subcategoria} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                      <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Subcategoria</label>
+                      <input type="text" name="subcategoria" required defaultValue={modalState.item?.subcategoria} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço Unitário (UN)</label>
-                      <input type="number" step="0.01" name="precoUnitario" required defaultValue={modalState.item?.precoUnitario || ''} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                      <label className="text-[10px] uppercase font-mono text-orange-600 dark:text-yellow-400">Preço Unitário (UN)</label>
+                      <input type="number" step="0.01" name="precoUnitario" required defaultValue={modalState.item?.precoUnitario || ''} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono" />
                     </div>
                   </div>
                 </>
@@ -423,22 +425,22 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'acabamento_unitario' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Nome do Acabamento</label>
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Nome do Acabamento</label>
                     <input type="text" name="nome" required defaultValue={modalState.item?.nome}
                       placeholder="Ex: Rodameio, Soleira, Cuba"
-                      className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                      className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Subcategoria</label>
+                      <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Subcategoria</label>
                       <input type="text" name="subcategoria" defaultValue={modalState.item?.subcategoria || ''}
                         placeholder="Ex: Cuba, Soleira, Rodameio"
-                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                        className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-mono text-yellow-400">Preço</label>
+                      <label className="text-[10px] uppercase font-mono text-orange-600 dark:text-yellow-400">Preço</label>
                       <input type="number" step="0.01" name="preco_unitario" required defaultValue={modalState.item?.preco_unitario || ''}
-                        className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
+                        className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono" />
                     </div>
                   </div>
                 </>
@@ -447,12 +449,12 @@ export default function ConfiguracoesPage() {
               {modalState.type === 'pagamento' && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Identificação Comercial</label>
-                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} placeholder="Ex: Cartão de Crédito - Stone" className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400" />
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Identificação Comercial</label>
+                    <input type="text" name="nome" required defaultValue={modalState.item?.nome} placeholder="Ex: Cartão de Crédito - Stone" className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Tipo Base</label>
-                    <select name="tipo" defaultValue={modalState.item?.tipo || 'Pix'} className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono">
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Tipo Base</label>
+                    <select name="tipo" defaultValue={modalState.item?.tipo || 'Pix'} className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono">
                       <option value="Pix">Pix / Transferência</option>
                       <option value="Crédito">Cartão de Crédito</option>
                       <option value="Débito">Cartão de Débito</option>
@@ -461,18 +463,18 @@ export default function ConfiguracoesPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-mono text-gray-500 dark:text-zinc-500">Campos Dinâmicos (Separar por vírgula)</label>
-                    <input type="text" name="campos" required defaultValue={modalState.item?.campos?.join(', ')} placeholder="bandeira, maquininha, n_parcelas" className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 font-mono" />
-                    <div className="text-[10px] text-gray-500 dark:text-zinc-600 font-mono">Campos que o vendedor precisa preencher no fechamento.</div>
+                    <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500">Campos Dinâmicos (Separar por vírgula)</label>
+                    <input type="text" name="campos" required defaultValue={modalState.item?.campos?.join(', ')} placeholder="bandeira, maquininha, n_parcelas" className="w-full bg-white dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none font-mono" />
+                    <div className="text-[10px] text-zinc-500 dark:text-zinc-600 font-mono">Campos que o vendedor precisa preencher no fechamento.</div>
                   </div>
                 </>
               )}
 
-              <div className="flex items-center gap-4 pt-4 border-t border-gray-300 dark:border-zinc-800 mt-auto">
-                <button type="button" onClick={closeModal} className="flex-1 bg-transparent border border-gray-300 dark:border-zinc-800 text-gray-900 dark:text-white text-xs font-bold uppercase tracking-widest py-4 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors">
+              <div className="flex items-center gap-4 pt-4 border-t border-zinc-200/80 dark:border-zinc-800 mt-auto">
+                <button type="button" onClick={closeModal} className="flex-1 bg-transparent border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs font-bold uppercase tracking-widest py-4 rounded-xl dark:rounded-none hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" className="flex-1 bg-white text-black text-xs font-bold uppercase tracking-widest py-4 border border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all flex items-center justify-center gap-2">
+                <button type="submit" className="flex-1 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black text-xs font-bold uppercase tracking-widest py-4 rounded-xl dark:rounded-none shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] dark:shadow-none hover:bg-orange-600 dark:hover:bg-yellow-300 hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] dark:hover:shadow-[0_0_20px_rgba(250,204,21,0.3)] transition-all flex items-center justify-center gap-2">
                   <iconify-icon icon="solar:diskette-linear"></iconify-icon> Salvar
                 </button>
               </div>

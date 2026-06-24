@@ -306,8 +306,8 @@ export default function FinanceiroCheques() {
   if (!isAdmin) {
     return (
       <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
-        <iconify-icon icon="lucide:lock" width="28" className="text-gray-400 dark:text-zinc-700"></iconify-icon>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
+        <iconify-icon icon="lucide:lock" width="28" className="text-zinc-400 dark:text-zinc-700"></iconify-icon>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">
           Acesso restrito a administradores.
         </p>
       </div>
@@ -319,13 +319,13 @@ export default function FinanceiroCheques() {
 
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600 border border-gray-300 dark:border-zinc-800 px-2 py-0.5">
+        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 border border-zinc-200/80 dark:border-zinc-800 px-2 py-0.5">
           Cheques
         </span>
         <button
           type="button"
           onClick={() => setModalCadastrar(true)}
-          className="flex items-center gap-2 bg-yellow-400 text-black font-mono text-[9px] uppercase tracking-widest px-3 py-2 hover:bg-yellow-300 transition-colors"
+          className="flex items-center gap-2 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black rounded-xl dark:rounded-none font-mono text-[9px] uppercase tracking-widest px-3 py-2 hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors"
         >
           <iconify-icon icon="lucide:plus" width="12"></iconify-icon>
           Novo cheque
@@ -337,7 +337,7 @@ export default function FinanceiroCheques() {
 
       {/* Contagem */}
       {!loading && !erro && (
-        <p className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-600">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">
           {cheques.length === 0
             ? 'Nenhum cheque no período'
             : `${cheques.length} cheque${cheques.length > 1 ? 's' : ''} no período`}

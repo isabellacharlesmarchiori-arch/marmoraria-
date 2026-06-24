@@ -304,19 +304,19 @@ export default function PainelDiferencaMedicao({
     return (
         <>
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} />
-            <div className="fixed right-0 top-0 h-full w-full max-w-[920px] bg-white dark:bg-[#0a0a0a] border-l border-gray-200 dark:border-zinc-800 z-50 flex flex-col overflow-hidden">
+            <div className="fixed right-0 top-0 h-full w-full max-w-[920px] bg-white/95 dark:bg-[#0a0a0a] backdrop-blur-xl border-l border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none z-50 flex flex-col overflow-hidden">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-zinc-800 shrink-0">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
                     <div className="flex flex-col gap-0.5">
-                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400 dark:text-zinc-600">Diferença de Medição</span>
-                        <span className="font-mono text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Pedido {pedidoNumero}</span>
+                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Diferença de Medição</span>
+                        <span className="font-mono text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-widest">Pedido {pedidoNumero}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleGerarPdf}
                             disabled={gerandoPdf || loading || !temDados}
-                            className="flex items-center gap-2 border border-yellow-300 dark:border-yellow-400/40 text-yellow-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 hover:bg-yellow-100 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 border border-orange-300 dark:border-yellow-400/40 text-orange-700 dark:text-yellow-400 font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-md dark:rounded-none hover:bg-orange-50 dark:hover:bg-yellow-400/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {gerandoPdf
                                 ? <><iconify-icon icon="solar:spinner-linear" width="13" className="animate-spin"></iconify-icon> Gerando...</>
@@ -324,7 +324,7 @@ export default function PainelDiferencaMedicao({
                         </button>
                         <button
                             onClick={onClose}
-                            className="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-zinc-800 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-zinc-600 transition-colors"
+                            className="w-8 h-8 flex items-center justify-center border border-zinc-200/80 dark:border-zinc-800 text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-400 dark:hover:border-zinc-600 rounded-md dark:rounded-none transition-colors"
                         >
                             <iconify-icon icon="solar:close-linear" width="14"></iconify-icon>
                         </button>
@@ -335,13 +335,13 @@ export default function PainelDiferencaMedicao({
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
                         <div className="flex items-center justify-center py-24">
-                            <div className="w-6 h-6 border-2 border-gray-200 dark:border-zinc-700 border-t-yellow-400 rounded-full animate-spin"></div>
+                            <div className="w-6 h-6 border-2 border-zinc-200 dark:border-zinc-700 border-t-orange-500 dark:border-t-yellow-400 rounded-full animate-spin"></div>
                         </div>
                     ) : !temDados ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-3">
                             <iconify-icon icon="solar:check-circle-linear" width="36" className="text-green-400 dark:text-green-500"></iconify-icon>
-                            <p className="font-mono text-[11px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">Sem diferenças</p>
-                            <p className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">Peças, acabamentos e recortes dentro da tolerância</p>
+                            <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">Sem diferenças</p>
+                            <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">Peças, acabamentos e recortes dentro da tolerância</p>
                         </div>
                     ) : (
                         <>
@@ -367,12 +367,12 @@ export default function PainelDiferencaMedicao({
                                                     ? (row.diferenca >= 0 ? '+' : '') + fmtNum(row.diferenca, 4)
                                                     : '—';
                                                 return (
-                                                    <tr key={i} className={`border-b border-gray-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-gray-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
-                                                        <td className="px-3 py-2.5 text-gray-600 dark:text-zinc-400">{row.ambienteNome}</td>
-                                                        <td className="px-3 py-2.5 text-gray-900 dark:text-white font-medium">{row.pecaNome}</td>
-                                                        <td className="px-3 py-2.5 text-gray-600 dark:text-zinc-400">{row.materialNome}</td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">{fmtNum(row.areaPedido, 4)}</td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                                                    <tr key={i} className={`border-b border-zinc-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-zinc-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
+                                                        <td className="px-3 py-2.5 text-zinc-600 dark:text-zinc-400">{row.ambienteNome}</td>
+                                                        <td className="px-3 py-2.5 text-zinc-900 dark:text-white font-medium">{row.pecaNome}</td>
+                                                        <td className="px-3 py-2.5 text-zinc-600 dark:text-zinc-400">{row.materialNome}</td>
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">{fmtNum(row.areaPedido, 4)}</td>
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
                                                             {row.areaReal !== null
                                                                 ? fmtNum(row.areaReal, 4)
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
@@ -380,12 +380,12 @@ export default function PainelDiferencaMedicao({
                                                         <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-amber-500 dark:text-amber-400'}`}>
                                                             {diffStr}
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
                                                             {row.precoM2 !== null
                                                                 ? fmtBRL(row.precoM2)
-                                                                : <span className="text-gray-300 dark:text-zinc-700">—</span>}
+                                                                : <span className="text-zinc-300 dark:text-zinc-700">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
                                                             {row.impacto !== null ? fmtBRL(row.impacto) : '—'}
                                                         </td>
                                                     </tr>
@@ -418,29 +418,29 @@ export default function PainelDiferencaMedicao({
                                                     ? (row.diferenca >= 0 ? '+' : '') + fmtNum(row.diferenca, 2)
                                                     : '—';
                                                 return (
-                                                    <tr key={i} className={`border-b border-gray-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-gray-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
-                                                        <td className="px-3 py-2.5 text-gray-900 dark:text-white font-medium">
+                                                    <tr key={i} className={`border-b border-zinc-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-zinc-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
+                                                        <td className="px-3 py-2.5 text-zinc-900 dark:text-white font-medium">
                                                             {ACABAMENTO_LABELS[row.tipo] ?? row.tipo}
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
                                                             {row.mlPedido !== null
                                                                 ? fmtNum(row.mlPedido, 2)
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
                                                             {row.mlReal !== null
                                                                 ? fmtNum(row.mlReal, 2)
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
                                                             {diffStr}
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
                                                             {row.precoMl !== null
                                                                 ? fmtBRL(row.precoMl)
-                                                                : <span className="text-gray-300 dark:text-zinc-700">—</span>}
+                                                                : <span className="text-zinc-300 dark:text-zinc-700">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
                                                             {row.impacto !== null ? fmtBRL(row.impacto) : '—'}
                                                         </td>
                                                     </tr>
@@ -473,19 +473,19 @@ export default function PainelDiferencaMedicao({
                                                     .replace(/_/g, ' ')
                                                     .replace(/\b\w/g, c => c.toUpperCase());
                                                 return (
-                                                    <tr key={i} className={`border-b border-gray-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-gray-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
-                                                        <td className="px-3 py-2.5 text-gray-900 dark:text-white font-medium">{label}</td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                                                    <tr key={i} className={`border-b border-zinc-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-zinc-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
+                                                        <td className="px-3 py-2.5 text-zinc-900 dark:text-white font-medium">{label}</td>
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
                                                             {row.qtdPedido !== null
                                                                 ? row.qtdPedido
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
                                                             {row.qtdReal !== null
                                                                 ? row.qtdReal
                                                                 : <span className="text-amber-500 dark:text-amber-400">—</span>}
                                                         </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-gray-300 dark:text-zinc-700'}`}>
+                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
                                                             {row.diferenca !== null
                                                                 ? (row.diferenca >= 0 ? '+' : '') + row.diferenca
                                                                 : '—'}
@@ -499,14 +499,14 @@ export default function PainelDiferencaMedicao({
                             )}
 
                             {/* Footer */}
-                            <div className="px-6 py-5 border-t border-gray-200 dark:border-zinc-800">
+                            <div className="px-6 py-5 border-t border-zinc-200/80 dark:border-zinc-800">
                                 <div className="flex flex-col gap-1.5">
                                     {/* Subtotal das diferenças (antes dos multiplicadores) */}
                                     <div className="flex items-center justify-between">
-                                        <span className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+                                        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
                                             Subtotal das diferenças
                                         </span>
-                                        <span className={`font-mono text-sm font-semibold ${isAcrescimo ? 'text-red-600 dark:text-red-400' : isDesconto ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-zinc-500'}`}>
+                                        <span className={`font-mono text-sm font-semibold ${isAcrescimo ? 'text-red-600 dark:text-red-400' : isDesconto ? 'text-green-700 dark:text-green-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
                                             {isAcrescimo ? '+' : isDesconto ? '−' : ''}{fmtBRL(Math.abs(totalImpacto))}
                                         </span>
                                     </div>
@@ -527,11 +527,11 @@ export default function PainelDiferencaMedicao({
 
                                     {/* Total final com multiplicadores */}
                                     {ajuste && (
-                                        <div className="border-t border-gray-200 dark:border-zinc-800 mt-1 pt-3 flex items-center justify-between">
-                                            <span className="font-mono text-[10px] uppercase tracking-widest font-bold text-gray-700 dark:text-zinc-300">
+                                        <div className="border-t border-zinc-200/80 dark:border-zinc-800 mt-1 pt-3 flex items-center justify-between">
+                                            <span className="font-mono text-[10px] uppercase tracking-widest font-bold text-zinc-700 dark:text-zinc-300">
                                                 Total do Ajuste
                                             </span>
-                                            <span className={`font-mono text-2xl font-bold ${ajuste.totalFinal > 0 ? 'text-red-600 dark:text-red-400' : ajuste.totalFinal < 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-zinc-500'}`}>
+                                            <span className={`font-mono text-2xl font-bold ${ajuste.totalFinal > 0 ? 'text-red-600 dark:text-red-400' : ajuste.totalFinal < 0 ? 'text-green-700 dark:text-green-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
                                                 {ajuste.totalFinal > 0 ? '+' : ajuste.totalFinal < 0 ? '−' : ''}{fmtBRL(Math.abs(ajuste.totalFinal))}
                                             </span>
                                         </div>
@@ -554,16 +554,16 @@ export default function PainelDiferencaMedicao({
 
 function SectionHeader({ label }) {
     return (
-        <div className="px-6 py-2.5 bg-gray-100 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500 font-semibold">{label}</span>
+        <div className="px-6 py-2.5 bg-zinc-100 dark:bg-zinc-900/60 border-b border-zinc-200/80 dark:border-zinc-800">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-semibold">{label}</span>
         </div>
     );
 }
 
 function EmptySection({ label }) {
     return (
-        <div className="px-6 py-3 border-b border-gray-100 dark:border-zinc-900">
-            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{label}</span>
+        <div className="px-6 py-3 border-b border-zinc-100 dark:border-zinc-900">
+            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">{label}</span>
         </div>
     );
 }
@@ -571,8 +571,8 @@ function EmptySection({ label }) {
 function InfoRow({ label, value, valueClass = '' }) {
     return (
         <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-600">{label}</span>
-            <span className={`font-mono text-[10px] text-gray-400 dark:text-zinc-600 ${valueClass}`}>{value}</span>
+            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">{label}</span>
+            <span className={`font-mono text-[10px] text-zinc-400 dark:text-zinc-600 ${valueClass}`}>{value}</span>
         </div>
     );
 }

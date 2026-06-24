@@ -16,12 +16,12 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
   }
 
   return (
-    <div className={`grid grid-cols-12 items-center px-4 py-3.5 border-b border-gray-200 dark:border-zinc-900 last:border-b-0 group transition-colors ${peca.incluida ? '' : 'opacity-40'}`}>
+    <div className={`grid grid-cols-12 items-center px-4 py-3.5 border-b border-zinc-200/80 dark:border-zinc-900 last:border-b-0 group transition-colors ${peca.incluida ? '' : 'opacity-40'}`}>
       {/* Toggle */}
       <div className="col-span-1 flex items-center">
         <button
           onClick={() => onToggle(peca.id)}
-          className={`w-4 h-4 border flex items-center justify-center transition-colors ${peca.incluida ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-300 dark:border-zinc-700 text-gray-400 dark:text-zinc-700 hover:border-zinc-500'}`}
+          className={`w-4 h-4 border flex items-center justify-center transition-colors ${peca.incluida ? 'border-orange-500 bg-orange-50 text-orange-600 dark:border-yellow-400 dark:bg-yellow-400/10 dark:text-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-700 hover:border-zinc-500'}`}
           title={peca.incluida ? 'Excluir peça' : 'Incluir peça'}
         >
           {peca.incluida && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
@@ -38,16 +38,16 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
               onChange={e => setNomeEdit(e.target.value)}
               onBlur={confirmar}
               onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setEditando(false); }}
-              className="flex-1 min-w-0 bg-gray-50 dark:bg-black border border-yellow-400/40 text-gray-900 dark:text-white text-xs font-mono px-1.5 py-0.5 outline-none"
+              className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-300 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-xs font-mono px-1.5 py-0.5 outline-none"
             />
           </div>
         ) : (
           <div className="flex items-center gap-1 group/nome">
-            <span className="text-sm text-gray-900 dark:text-white font-medium truncate">{peca.nome}</span>
+            <span className="text-sm text-zinc-900 dark:text-white font-medium truncate">{peca.nome}</span>
             {onRenomear && (
               <button
                 onClick={iniciarEdicao}
-                className="opacity-0 group-hover/nome:opacity-100 p-0.5 text-gray-400 dark:text-zinc-700 hover:text-yellow-400 transition-all shrink-0"
+                className="opacity-0 group-hover/nome:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
                 title="Renomear peça"
               >
                 <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
@@ -62,15 +62,15 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
           const qtd = peca.grupo_quantidade ?? 1;
           const mlUnit = peca.meia_esquadria_ml;
           return qtd > 1
-            ? <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Meia-Esquadria · {mlUnit.toFixed(2)}ml/un. · {(mlUnit * qtd).toFixed(2)}ml ({qtd}×)</span>
-            : <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Meia-Esquadria · {mlUnit.toFixed(2)}ml</span>;
+            ? <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 block">Meia-Esquadria · {mlUnit.toFixed(2)}ml/un. · {(mlUnit * qtd).toFixed(2)}ml ({qtd}×)</span>
+            : <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 block">Meia-Esquadria · {mlUnit.toFixed(2)}ml</span>;
         })()}
         {peca.reto_simples_ml > 0 && (() => {
           const qtd = peca.grupo_quantidade ?? 1;
           const mlUnit = peca.reto_simples_ml;
           return qtd > 1
-            ? <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Reto Simples · {mlUnit.toFixed(2)}ml/un. · {(mlUnit * qtd).toFixed(2)}ml ({qtd}×)</span>
-            : <span className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 block">Reto Simples · {mlUnit.toFixed(2)}ml</span>;
+            ? <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 block">Reto Simples · {mlUnit.toFixed(2)}ml/un. · {(mlUnit * qtd).toFixed(2)}ml ({qtd}×)</span>
+            : <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 block">Reto Simples · {mlUnit.toFixed(2)}ml</span>;
         })()}
       </div>
 
@@ -83,26 +83,26 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
             const areaUnit = Math.round(areaTotal / qtd * 10000) / 10000;
             return (
               <>
-                <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{areaUnit.toFixed(2)} m²/un.</span>
-                <div className="font-mono text-[9px] text-yellow-500 dark:text-yellow-400/80">{areaTotal.toFixed(2)} m² ({qtd}×)</div>
+                <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300">{areaUnit.toFixed(2)} m²/un.</span>
+                <div className="font-mono text-[9px] text-orange-600 dark:text-yellow-400/80">{areaTotal.toFixed(2)} m² ({qtd}×)</div>
               </>
             );
           }
-          return <span className="font-mono text-[11px] text-gray-600 dark:text-zinc-300">{areaTotal.toFixed(2)} m²</span>;
+          return <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300">{areaTotal.toFixed(2)} m²</span>;
         })()}
-        <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600">{peca.espessura}cm · {peca.cortes} corte{peca.cortes !== 1 ? 's' : ''}</div>
+        <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{peca.espessura}cm · {peca.cortes} corte{peca.cortes !== 1 ? 's' : ''}</div>
       </div>
 
       {/* Material(is) selecionado(s) */}
       <div className="col-span-4 pr-2">
         {peca.materiais.length === 0 ? (
-          <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-700 italic">Nenhum material</span>
+          <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-700 italic">Nenhum material</span>
         ) : (
           <div className="flex flex-col gap-0.5">
             {peca.materiais.map(mid => {
               const m = todosM.find(x => x.id === mid);
               return m ? (
-                <span key={mid} className="font-mono text-[10px] text-gray-600 dark:text-zinc-300 truncate">{m.nome}</span>
+                <span key={mid} className="font-mono text-[10px] text-zinc-600 dark:text-zinc-300 truncate">{m.nome}</span>
               ) : null;
             })}
           </div>
@@ -115,7 +115,7 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
           <button
             onClick={() => onDuplicar(peca.id)}
             title="Duplicar peça na medição"
-            className="font-mono text-[9px] uppercase tracking-widest px-2 py-1.5 border border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400 hover:text-yellow-400 transition-colors flex items-center justify-center shrink-0"
+            className="font-mono text-[9px] uppercase tracking-widest px-2 py-1.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:border-orange-500 hover:text-orange-600 dark:hover:border-yellow-400 dark:hover:text-yellow-400 transition-colors flex items-center justify-center shrink-0"
           >
             <iconify-icon icon="solar:copy-linear" width="12"></iconify-icon>
           </button>
@@ -125,8 +125,8 @@ export default function PecaRow({ peca, onToggle, onAbrirMaterial, onDuplicar, o
             onClick={() => onAbrirMaterial(peca.id)}
             className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1.5 border transition-colors flex items-center gap-1.5 ${
               temMaterial
-                ? 'border-yellow-400/60 text-yellow-400 bg-yellow-400/5'
-                : 'border-gray-300 dark:border-zinc-700 text-gray-500 dark:text-zinc-500 hover:border-yellow-400/40 hover:text-yellow-400'
+                ? 'border-orange-300 text-orange-600 bg-orange-50 dark:border-yellow-400/60 dark:text-yellow-400 dark:bg-yellow-400/5'
+                : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:border-orange-500 hover:text-orange-600 dark:hover:border-yellow-400/40 dark:hover:text-yellow-400'
             }`}
           >
             <iconify-icon icon="solar:layers-linear" width="11"></iconify-icon>
