@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartstone-20260623b';
+const CACHE_NAME = 'smartstone-20260624';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -32,11 +32,9 @@ self.addEventListener('fetch', event => {
   // Cache API only supports GET — skip everything else (HEAD, POST, PATCH, DELETE…)
   if (event.request.method !== 'GET') return;
 
-  // Navigation requests (HTML pages): network first, fallback to cached index.html
+  // Navigation requests (HTML pages): always go to the network, never the cache
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
-    );
+    event.respondWith(fetch(event.request));
     return;
   }
 

@@ -1,20 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-
-const ROLE_HOME = {
-  vendedor:          '/dashboard',
-  admin:             '/admin',
-  medidor:           '/agenda',
-  superadmin:        '/superadmin',
-  admin_medidor:     '/admin',
-  vendedor_medidor:  '/dashboard',
-};
+import { homeFor } from '../lib/roleHome';
 
 export default function Login() {
     const navigate = useNavigate();
-    const { session, profile } = useAuth();
+    const { session, profile, profileLoading } = useAuth();
+    // Marca que o fetch do profile já começou — evita a corrida do 1º tick
+    // (onde profileLoading ainda é false porque o efeito do AuthContext, que é
+    // pai, roda DEPOIS do efeito deste componente filho).
+    const loadStartedRef = useRef(false);
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,15 +19,24 @@ export default function Login() {
     const [passwordError, setPasswordError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Redireciona após login bem-sucedido.
-    // Aguarda session E profile (ou session + sem perfil definido vai para /dashboard como fallback)
+    // Redireciona após login bem-sucedido — só DEPOIS que o profile resolveu,
+    // para que cada perfil vá ao seu destino (admin → /admin, vendedor → /dashboard).
     useEffect(() => {
+        if (profileLoading) loadStartedRef.current = true;
         if (!session) return;
-        // Se profile ainda não chegou (null mas session existe), aguarda mais um ciclo
-        // O segundo disparo ocorre quando profile é setado pelo AuthContext
-        const destino = profile?.perfil ? (ROLE_HOME[profile.perfil] ?? '/dashboard') : '/dashboard';
-        navigate(destino, { replace: true });
-    }, [session, profile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+        // Profile resolvido → destino por perfil.
+        if (profile?.perfil) {
+            navigate(homeFor(profile.perfil), { replace: true });
+            return;
+        }
+
+        // Sem perfil: só cai no fallback DEPOIS que o fetch realmente rodou e
+        // terminou — nunca no tick inicial em que profile ainda nem foi buscado.
+        if (loadStartedRef.current && !profileLoading) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [session, profile, profileLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         const observerOptions = {

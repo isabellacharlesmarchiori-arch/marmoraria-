@@ -9,7 +9,7 @@ function ImpersonationBanner() {
   const navigate = useNavigate();
   if (!isSuperAdmin || !impersonation) return null;
   return (
-    <div className="flex items-center justify-between px-6 py-1.5 bg-yellow-400 text-black shrink-0 z-30">
+    <div className="flex items-center justify-between px-6 py-1.5 bg-orange-400 dark:bg-yellow-400 text-black shrink-0 z-30">
       <span className="font-mono text-[9px] uppercase tracking-widest font-bold">
         MODO TESTE — Perfil: {impersonation.perfil}
         {impersonation.empresaId ? ' · Empresa impersonada' : ''}

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './lib/AuthContext'
+import { homeFor } from './lib/roleHome'
 
 // Layout
 import AppShell from './components/AppShell'
@@ -96,29 +97,29 @@ function RequireAuth() {
   return <Outlet />
 }
 
-// Só admin passa — qualquer outro perfil volta para /dashboard
+// Só admin passa — qualquer outro perfil volta para o home do próprio perfil
 function RequireAdmin() {
   const { profile, profileLoading } = useAuth()
-  if (profileLoading) return null
-  if (profile?.perfil !== 'admin') return <Navigate to="/dashboard" replace />
+  if (profileLoading || !profile) return null
+  if (profile.perfil !== 'admin') return <Navigate to={homeFor(profile.perfil)} replace />
   return <Outlet />
 }
 
-// Só superadmin passa — qualquer outro perfil volta para /dashboard
+// Só superadmin passa — qualquer outro perfil volta para o home do próprio perfil
 function RequireSuperAdmin() {
   const { actualProfile, profileLoading } = useAuth()
-  if (profileLoading) return null
-  if (actualProfile?.perfil !== 'superadmin') return <Navigate to="/dashboard" replace />
+  if (profileLoading || !actualProfile) return null
+  if (actualProfile.perfil !== 'superadmin') return <Navigate to={homeFor(actualProfile.perfil)} replace />
   return <Outlet />
 }
 
-// Só perfis com acesso de medidor passam — vendedor puro volta para /dashboard
+// Só perfis com acesso de medidor passam — os demais voltam para o home do próprio perfil
 function RequireMedidor() {
   const { profile, profileLoading } = useAuth()
-  if (profileLoading) return null
-  const perfil = profile?.perfil ?? ''
+  if (profileLoading || !profile) return null
+  const perfil = profile.perfil ?? ''
   const temAcesso = ['medidor', 'admin_medidor', 'vendedor_medidor', 'admin'].includes(perfil)
-  if (!temAcesso) return <Navigate to="/dashboard" replace />
+  if (!temAcesso) return <Navigate to={homeFor(perfil)} replace />
   return <Outlet />
 }
 
