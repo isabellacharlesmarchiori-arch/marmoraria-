@@ -5,7 +5,7 @@ export const TEMPLATE_DEFAULTS = {
     tipo: 'orcamento', cor_primaria: '#1D9E75', nivel_detalhe: 'tudo',
     mostrar_materiais: true, mostrar_medidas: true, mostrar_acabamentos: true,
     mostrar_vendedor: true, mostrar_validade: true, mostrar_prazo_entrega: true,
-    mostrar_valores_pecas: true, observacoes: '',
+    mostrar_valores_pecas: true, agrupar_pecas_mesmo_nome: false, observacoes: '',
     termos: 'Orçamento válido por 7 dias. Valores sujeitos a alteração após o prazo de validade. Este documento não possui valor fiscal.',
   },
   pedido: {
@@ -13,7 +13,7 @@ export const TEMPLATE_DEFAULTS = {
     mostrar_materiais: true, mostrar_medidas: true, mostrar_acabamentos: true,
     mostrar_vendedor: true, mostrar_validade: false, mostrar_prazo_entrega: true,
     mostrar_cronograma: true, mostrar_dados_bancarios: true, mostrar_assinaturas: true,
-    mostrar_valores_pecas: true, observacoes: '',
+    mostrar_valores_pecas: true, agrupar_pecas_mesmo_nome: false, observacoes: '',
     termos: 'Pedido confirmado mediante assinatura e pagamento do sinal acordado.',
   },
   contrato: {

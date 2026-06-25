@@ -218,9 +218,10 @@ async function buildOrcamentoPdf(
   const termos          = template?.termos       ?? null;
   const observacoes     = template?.observacoes  ?? null;
   const mostrarCronograma  = isPedido && (template?.mostrar_cronograma  ?? true);
-  const mostrarDadosBanc   = isPedido && (template?.mostrar_dados_banc  ?? true);
+  const mostrarDadosBanc   = isPedido && (template?.mostrar_dados_bancarios ?? true);
   const mostrarAssinaturas = isPedido && (template?.mostrar_assinaturas ?? true);
   const mostrarValPecas    = template?.mostrar_valores_pecas ?? true;
+  const agruparPecas       = template?.agrupar_pecas_mesmo_nome ?? false;
 
   const COR_PRIM_RGB = corPrimaria
     ? [parseInt(corPrimaria.slice(1,3),16), parseInt(corPrimaria.slice(3,5),16), parseInt(corPrimaria.slice(5,7),16)]
@@ -387,6 +388,9 @@ async function buildOrcamentoPdf(
 
   let totalGeral = 0;
 
+  // Quantos ambientes têm peças — usado p/ suprimir subtotais redundantes
+  const nAmbientesComPecas = grupos.filter(([, ps]) => ps.length > 0).length;
+
   for (const [ambId, pecasAmb] of grupos) {
     if (pecasAmb.length === 0) continue;
 
@@ -400,7 +404,9 @@ async function buildOrcamentoPdf(
     hLine(doc, y, ML, RIGHT, C.ink, 0.4);
     y += 1;
     txt(doc, ambNome.toUpperCase(), ML, y + 7, 13, C.ink, 'bold');
-    txt(doc, fmtBRL(ambTotal), RIGHT, y + 7, 13, isColor ? COR_PRIM_RGB : C.ink, 'bold', { align: 'right' });
+    // Valor do ambiente só com 2+ ambientes (com 1, redundante com o TOTAL final)
+    if (nAmbientesComPecas > 1)
+      txt(doc, fmtBRL(ambTotal), RIGHT, y + 7, 13, isColor ? COR_PRIM_RGB : C.ink, 'bold', { align: 'right' });
     y += 10;
     hLine(doc, y, ML, RIGHT, C.ink, 0.4);
     y += 5;
@@ -414,6 +420,7 @@ async function buildOrcamentoPdf(
       if (!itemMap.has(k)) { itemMap.set(k, []); itemOrdem.push(k); }
       itemMap.get(k).push(p);
     });
+    const nItensNoAmbiente = itemMap.size;
 
     for (const itemKey of itemOrdem) {
       const nomeItem  = itemKey === '__sem_item__' ? null : itemKey;
@@ -427,14 +434,39 @@ async function buildOrcamentoPdf(
         const IT_H = 9;
         fillRect(doc, ML, y + 1, 1.2, 7, isColor ? COR_PRIM_RGB : C.muted);
         txt(doc, nomeItem, ML + 5, y + 6.5, 10, C.ink, 'bold');
-        txt(doc, fmtBRL(itemTotal), RIGHT, y + 6.5, 10, C.muted, 'bold', { align: 'right' });
+        // Valor do item só com 2+ itens no ambiente (com 1, redundante com o total acima)
+        if (nItensNoAmbiente > 1)
+          txt(doc, fmtBRL(itemTotal), RIGHT, y + 6.5, 10, C.muted, 'bold', { align: 'right' });
         y += IT_H + 3;
       }
 
       // ── NÍVEL 3: Peças e acabamentos (só se 'tudo') ───────────────────
       if (nivelDetalhe === 'tudo') {
         drawColHdr();
-        for (const p of pecasItem) {
+
+        // Agrupa peças de mesmo nome no item (flag agrupar_pecas_mesmo_nome).
+        // Soma qtd/valores/área; se TODAS as peças do grupo têm dim linear,
+        // calcula comprimento somado × maior largura (senão o render cai p/ m²).
+        let linhasPeca = pecasItem;
+        if (agruparPecas) {
+          const m = new Map();
+          for (const p of pecasItem) {
+            const k = (p.nome ?? 'Peça').trim().toLowerCase();
+            const q = p.grupo_quantidade ?? 1;
+            const temDim = p.comprimento_cm != null && p.largura_cm != null;
+            if (!m.has(k)) m.set(k, { ...p, grupo_quantidade: 0, valor: 0, valor_acabamentos: 0, area: 0, _comprTotal: 0, _largMax: 0, _temDim: true });
+            const g = m.get(k);
+            g.grupo_quantidade  += q;
+            g.valor             += p.valor ?? 0;
+            g.valor_acabamentos += p.valor_acabamentos ?? 0;
+            g.area              += Number(p.area ?? 0);
+            if (temDim) { g._comprTotal += Number(p.comprimento_cm) * q; g._largMax = Math.max(g._largMax, Number(p.largura_cm)); }
+            else        { g._temDim = false; }
+          }
+          linhasPeca = [...m.values()];
+        }
+
+        for (const p of linhasPeca) {
           const matNome    = resolverMaterial(p.material, p.material_id, catMateriais);
           const valorAcab  = Number(p.valor_acabamentos ?? 0);
           const valorPedra = esc((p.valor ?? 0) - valorAcab);
@@ -452,12 +484,17 @@ async function buildOrcamentoPdf(
 
           const indent = nomeItem ? ML + 6 : ML;
 
-          const pNome = pQtd > 1 ? `${p.nome ?? 'Peça'}  ×${pQtd}` : (p.nome ?? 'Peça');
+          const pNome = pQtd > 1
+            ? `${p.nome ?? 'Peça'}${agruparPecas ? `  (${pQtd} un.)` : `  ×${pQtd}`}`
+            : (p.nome ?? 'Peça');
           txt(doc, pNome, indent, y + 5, 10, C.ink, 'normal',
               { maxWidth: C_DIM - indent - 4 });
 
           let dimStr = '';
-          if (mostrarMed && p.area != null) {
+          if (mostrarMed && agruparPecas && p._temDim && p._comprTotal > 0) {
+            // Agrupado com dimensões lineares: comprimento somado × maior largura
+            dimStr = `${p._comprTotal.toFixed(0)} × ${p._largMax.toFixed(0)} cm`;
+          } else if (mostrarMed && p.area != null) {
             const areaTotal = Number(p.area);
             if (pQtd > 1) {
               const areaUnit = Math.round(areaTotal / pQtd * 1000) / 1000;
@@ -514,16 +551,20 @@ async function buildOrcamentoPdf(
       }
     }
 
-    // Total do ambiente
-    needPage(16);
-    y += 2;
-    hLine(doc, y, ML, RIGHT, C.muted, 0.3);
-    y += 4;
-    txt(doc, `TOTAL — ${ambNome}`, ML + 4, y + 5, 9.5, C.muted, 'bold');
-    txt(doc, fmtBRL(ambTotal), RIGHT, y + 5, 9.5, C.body, 'bold', { align: 'right' });
-    y += 12;
-    hLine(doc, y, ML, RIGHT, C.rule, 0.35);
-    y += 8;
+    // Total do ambiente — só faz sentido com 2+ ambientes (com 1, é redundante com o TOTAL final)
+    if (nAmbientesComPecas > 1) {
+      needPage(16);
+      y += 2;
+      hLine(doc, y, ML, RIGHT, C.muted, 0.3);
+      y += 4;
+      txt(doc, `TOTAL — ${ambNome}`, ML + 4, y + 5, 9.5, C.muted, 'bold');
+      txt(doc, fmtBRL(ambTotal), RIGHT, y + 5, 9.5, C.body, 'bold', { align: 'right' });
+      y += 12;
+      hLine(doc, y, ML, RIGHT, C.rule, 0.35);
+      y += 8;
+    } else {
+      y += 4;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -582,17 +623,17 @@ async function buildOrcamentoPdf(
   // ═══════════════════════════════════════════════════════════════════════════
   const desconto   = Number(orc.desconto_total ?? 0);
   const valorFinal = totalGeral - desconto + _frete;
+  // Detalhar Subtotal/Desconto/Frete só quando há ajustes; sem eles subtotal == total (redundante)
+  const temAjustes = desconto > 0 || _frete > 0;
 
-  let nLinhas = 1;
+  let nLinhas = temAjustes ? 1 : 0;
   if (desconto > 0) nLinhas++;
   if (_frete   > 0) nLinhas++;
-  needPage(nLinhas * 7 + 8 + 36);
+  needPage(nLinhas * 7 + 36);
 
   y += 4;
   hLine(doc, y, ML, RIGHT, C.rule, 0.4);
   y += 7;
-  txt(doc, 'RESUMO DO INVESTIMENTO', ML, y, 7, C.faint, 'bold');
-  y += 9;
 
   const linha = (label, valor, cor = C.body, negrito = false) => {
     txt(doc, label, ML + 4, y, 9, C.muted);
@@ -600,10 +641,12 @@ async function buildOrcamentoPdf(
     y += 7;
   };
 
-  linha('Subtotal', fmtBRL(totalGeral));
-  if (desconto > 0) linha('Desconto', `− ${fmtBRL(desconto)}`, C.red,   true);
-  if (_frete   > 0) linha('Frete',    `+ ${fmtBRL(_frete)}`,   C.green, true);
-  y += 4;
+  if (temAjustes) {
+    linha('Subtotal', fmtBRL(totalGeral));
+    if (desconto > 0) linha('Desconto', `− ${fmtBRL(desconto)}`, C.red,   true);
+    if (_frete   > 0) linha('Frete',    `+ ${fmtBRL(_frete)}`,   C.green, true);
+    y += 4;
+  }
 
   // ── TOTAL GERAL — minimalista: 2 linhas finas ─────────────────────────────
   hLine(doc, y, ML, RIGHT, C.ink, 0.6);

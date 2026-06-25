@@ -450,6 +450,10 @@ export function normalizarAmbiente(amb) {
             : '',
         itens_manuais: orc.itens_manuais ?? [],
         pecas: (orc.orcamento_pecas ?? []).map((op, idx) => {
+            // Dimensões lineares só existem quando o medidor as gravou em pecas.dimensoes
+            // (fluxo padrão de orçamento grava só item_nome → ficam null e o PDF usa m²)
+            const _da = Number(op.pecas?.dimensoes?.altura  ?? 0);
+            const _dl = Number(op.pecas?.dimensoes?.largura ?? 0);
             return {
                 id:               op.id,
                 peca_id:          op.peca_id ?? null,
@@ -458,6 +462,8 @@ export function normalizarAmbiente(amb) {
                 material_id:      op.material_id ?? '',
                 espessura:        op.pecas?.espessura_cm != null ? `${op.pecas.espessura_cm}` : '—',
                 area:             op.pecas?.area_liquida_m2 != null ? op.pecas.area_liquida_m2 : null,
+                comprimento_cm:   (_da || _dl) ? Math.max(_da, _dl) : null,
+                largura_cm:       (_da && _dl) ? Math.min(_da, _dl) : null,
                 acabamento:       '—',
                 valor:            op.valor_total ?? 0,
                 valor_acabamentos: op.valor_acabamentos ?? 0,

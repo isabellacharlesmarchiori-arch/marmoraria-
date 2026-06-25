@@ -119,6 +119,7 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
                     { field: 'mostrar_validade',      label: 'Validade'        },
                     { field: 'mostrar_prazo_entrega', label: 'Prazo entrega'   },
                     { field: 'mostrar_valores_pecas', label: 'Valores por peça' },
+                    { field: 'agrupar_pecas_mesmo_nome', label: 'Agrupar peças iguais' },
                   ].map(({ field, label }) => {
                     const on = opts[field] ?? true;
                     return (
