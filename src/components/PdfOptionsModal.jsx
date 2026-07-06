@@ -13,18 +13,18 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#050505] border border-zinc-800 border-t-2 border-t-yellow-400
-                      w-full sm:max-w-lg z-10 shadow-2xl flex flex-col max-h-[92vh]">
+      <div className="relative bg-white dark:bg-[#050505] border border-zinc-200/80 dark:border-zinc-800 border-t-2 border-t-orange-500 dark:border-t-yellow-400
+                      w-full sm:max-w-lg z-10 shadow-2xl shadow-zinc-300/40 dark:shadow-none rounded-2xl dark:rounded-none flex flex-col max-h-[92vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200/80 dark:border-zinc-800 shrink-0">
           <div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-0.5">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-0.5">
               Opções do documento
             </div>
-            <h3 className="text-sm font-bold text-white uppercase tracking-tight">{labelTipo}</h3>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{labelTipo}</h3>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors p-1">
+          <button onClick={onClose} className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors p-1">
             <iconify-icon icon="solar:close-square-linear" width="20" />
           </button>
         </div>
@@ -33,29 +33,29 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-1" style={{ scrollbarWidth: 'thin' }}>
 
           {/* 01 // Identidade visual */}
-          <div className="border border-zinc-800">
+          <div className="border border-zinc-200/80 dark:border-zinc-800">
             <button onClick={() => tog('01')}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#020202] hover:bg-zinc-900/60 transition-colors text-left">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">01 // Identidade visual</span>
-              <iconify-icon icon={open['01'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-600 shrink-0" />
+              className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-[#020202] hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-colors text-left">
+              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">01 // Identidade visual</span>
+              <iconify-icon icon={open['01'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-400 dark:text-zinc-600 shrink-0" />
             </button>
             {open['01'] && (
-              <div className="px-4 py-4 bg-[#020202] border-t border-zinc-800">
+              <div className="px-4 py-4 bg-white dark:bg-[#020202] border-t border-zinc-200/80 dark:border-zinc-800">
                 <div className="flex items-center gap-4">
                   <div>
                     <label className="text-[10px] uppercase font-mono text-zinc-500 block mb-2">Cor primária</label>
                     <div className="flex items-center gap-3">
                       <input type="color" value={opts.cor_primaria}
                         onChange={e => set('cor_primaria', e.target.value)}
-                        className="w-10 h-10 border border-zinc-700 bg-black cursor-pointer rounded-none" />
+                        className="w-10 h-10 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-black cursor-pointer rounded-none" />
                       <input type="text" value={opts.cor_primaria}
                         onChange={e => set('cor_primaria', e.target.value)}
-                        className="bg-black border border-zinc-800 text-white px-3 py-2 font-mono text-sm w-32 focus:outline-none focus:border-yellow-400" />
+                        className="bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-3 py-2 font-mono text-sm w-32 focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400" />
                     </div>
                   </div>
                   <div className="flex-1">
                     <label className="text-[10px] uppercase font-mono text-zinc-500 block mb-2">Preview</label>
-                    <div className="h-10 border border-zinc-800 flex items-center px-3 font-mono text-xs font-bold"
+                    <div className="h-10 border border-zinc-200/80 dark:border-zinc-800 flex items-center px-3 font-mono text-xs font-bold"
                       style={{ backgroundColor: opts.cor_primaria, color: '#000' }}>
                       {labelTipo} — SmartStone
                     </div>
@@ -66,15 +66,15 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
           </div>
 
           {/* 02 // Nível de detalhe */}
-          <div className="border border-zinc-800">
+          <div className="border border-zinc-200/80 dark:border-zinc-800">
             <button onClick={() => tog('02')}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#020202] hover:bg-zinc-900/60 transition-colors text-left">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">02 // Nível de detalhe dos itens</span>
-              <iconify-icon icon={open['02'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-600 shrink-0" />
+              className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-[#020202] hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-colors text-left">
+              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">02 // Nível de detalhe dos itens</span>
+              <iconify-icon icon={open['02'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-400 dark:text-zinc-600 shrink-0" />
             </button>
             {open['02'] && (
-              <div className="px-4 py-4 bg-[#020202] border-t border-zinc-800 space-y-3">
-                <p className="text-[10px] font-mono text-zinc-600">Estrutura: Ambiente → Item → Peças. Escolha até onde detalhar.</p>
+              <div className="px-4 py-4 bg-white dark:bg-[#020202] border-t border-zinc-200/80 dark:border-zinc-800 space-y-3">
+                <p className="text-[10px] font-mono text-zinc-500 dark:text-zinc-600">Estrutura: Ambiente → Item → Peças. Escolha até onde detalhar.</p>
                 <div className="flex flex-col gap-1">
                   {[
                     { id: 'so_ambientes',      label: 'Só totais por ambiente',         desc: 'Ex: Cozinha ........... R$ 4.200' },
@@ -83,16 +83,20 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
                   ].map(op => (
                     <button key={op.id} onClick={() => set('nivel_detalhe', op.id)}
                       className={`w-full flex items-start gap-3 px-3 py-2.5 border text-left transition-colors ${
-                        opts.nivel_detalhe === op.id ? 'border-yellow-400 bg-yellow-400/5' : 'border-zinc-800 hover:border-zinc-600'
+                        opts.nivel_detalhe === op.id
+                          ? 'border-orange-500 bg-orange-500/5 dark:border-yellow-400 dark:bg-yellow-400/5'
+                          : 'border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600'
                       }`}>
                       <div className={`w-3.5 h-3.5 rounded-full border-2 mt-0.5 shrink-0 ${
-                        opts.nivel_detalhe === op.id ? 'border-yellow-400 bg-yellow-400' : 'border-zinc-600'
+                        opts.nivel_detalhe === op.id
+                          ? 'border-orange-500 bg-orange-500 dark:border-yellow-400 dark:bg-yellow-400'
+                          : 'border-zinc-300 dark:border-zinc-600'
                       }`} />
                       <div>
                         <div className={`font-mono text-[11px] uppercase tracking-widest ${
-                          opts.nivel_detalhe === op.id ? 'text-yellow-400' : 'text-zinc-300'
+                          opts.nivel_detalhe === op.id ? 'text-orange-600 dark:text-yellow-400' : 'text-zinc-700 dark:text-zinc-300'
                         }`}>{op.label}</div>
-                        <div className="font-mono text-[10px] text-zinc-600 mt-0.5">{op.desc}</div>
+                        <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 mt-0.5">{op.desc}</div>
                       </div>
                     </button>
                   ))}
@@ -102,14 +106,14 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
           </div>
 
           {/* 03 // Informações visíveis */}
-          <div className="border border-zinc-800">
+          <div className="border border-zinc-200/80 dark:border-zinc-800">
             <button onClick={() => tog('03')}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#020202] hover:bg-zinc-900/60 transition-colors text-left">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">03 // Informações visíveis no PDF</span>
-              <iconify-icon icon={open['03'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-600 shrink-0" />
+              className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-[#020202] hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-colors text-left">
+              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">03 // Informações visíveis no PDF</span>
+              <iconify-icon icon={open['03'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-400 dark:text-zinc-600 shrink-0" />
             </button>
             {open['03'] && (
-              <div className="px-4 py-4 bg-[#020202] border-t border-zinc-800">
+              <div className="px-4 py-4 bg-white dark:bg-[#020202] border-t border-zinc-200/80 dark:border-zinc-800">
                 <div className="grid grid-cols-2 gap-1.5">
                   {[
                     { field: 'mostrar_materiais',    label: 'Material'         },
@@ -125,7 +129,9 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
                     return (
                       <button key={field} onClick={() => set(field, !on)}
                         className={`flex items-center gap-2 px-3 py-2 border font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                          on ? 'border-yellow-400/40 bg-yellow-400/5 text-yellow-400' : 'border-zinc-800 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400'
+                          on
+                            ? 'border-orange-500/40 bg-orange-500/5 text-orange-600 dark:border-yellow-400/40 dark:bg-yellow-400/5 dark:text-yellow-400'
+                            : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400'
                         }`}>
                         <iconify-icon icon={on ? 'solar:check-square-bold' : 'solar:square-linear'} width="13" />
                         {label}
@@ -134,7 +140,7 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
                   })}
                 </div>
                 {tipo === 'pedido' && (
-                  <div className="grid grid-cols-2 gap-1.5 mt-3 pt-3 border-t border-zinc-800">
+                  <div className="grid grid-cols-2 gap-1.5 mt-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
                     {[
                       { field: 'mostrar_cronograma',      label: 'Cronograma de parcelas' },
                       { field: 'mostrar_dados_bancarios', label: 'Dados bancários / Pix'  },
@@ -144,7 +150,9 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
                       return (
                         <button key={field} onClick={() => set(field, !on)}
                           className={`flex items-center gap-2 px-3 py-2 border font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                            on ? 'border-yellow-400/40 bg-yellow-400/5 text-yellow-400' : 'border-zinc-800 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400'
+                            on
+                              ? 'border-orange-500/40 bg-orange-500/5 text-orange-600 dark:border-yellow-400/40 dark:bg-yellow-400/5 dark:text-yellow-400'
+                              : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400'
                           }`}>
                           <iconify-icon icon={on ? 'solar:check-square-bold' : 'solar:square-linear'} width="13" />
                           {label}
@@ -158,29 +166,29 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
           </div>
 
           {/* 04 // Textos do documento */}
-          <div className="border border-zinc-800">
+          <div className="border border-zinc-200/80 dark:border-zinc-800">
             <button onClick={() => tog('04')}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#020202] hover:bg-zinc-900/60 transition-colors text-left">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">04 // Textos do documento</span>
-              <iconify-icon icon={open['04'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-600 shrink-0" />
+              className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-[#020202] hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-colors text-left">
+              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">04 // Textos do documento</span>
+              <iconify-icon icon={open['04'] ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="12" class="text-zinc-400 dark:text-zinc-600 shrink-0" />
             </button>
             {open['04'] && (
-              <div className="px-4 py-4 bg-[#020202] border-t border-zinc-800 space-y-4">
+              <div className="px-4 py-4 bg-white dark:bg-[#020202] border-t border-zinc-200/80 dark:border-zinc-800 space-y-4">
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-mono text-zinc-500">Observações (aparece antes do total)</label>
                   <textarea value={opts.observacoes ?? ''}
                     onChange={e => set('observacoes', e.target.value)}
                     rows={3}
                     placeholder="Ex: Medições sujeitas a confirmação em visita técnica."
-                    className="w-full bg-black border border-zinc-800 text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-yellow-400 resize-none placeholder:text-zinc-700" />
+                    className="w-full bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 resize-none placeholder:text-zinc-400 dark:placeholder:text-zinc-700" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-mono text-zinc-500">Termos e condições comerciais</label>
                   <textarea value={opts.termos ?? ''}
                     onChange={e => set('termos', e.target.value)}
                     rows={5}
-                    className="w-full bg-black border border-zinc-800 text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-yellow-400 resize-none" />
-                  <p className="text-[10px] font-mono text-zinc-700">Aparece no rodapé como "Condições Comerciais".</p>
+                    className="w-full bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 font-mono text-xs focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 resize-none" />
+                  <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-700">Aparece no rodapé como "Condições Comerciais".</p>
                 </div>
               </div>
             )}
@@ -189,18 +197,18 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
         </div>
 
         {/* Footer */}
-        <div className="border-t border-zinc-800 px-5 py-4 shrink-0 flex items-center justify-between gap-3">
+        <div className="border-t border-zinc-200/80 dark:border-zinc-800 px-5 py-4 shrink-0 flex items-center justify-between gap-3">
           {tipo === 'pedido' ? (
             <>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input type="checkbox" checked={incluirContrato}
                   onChange={e => setIncluir(e.target.checked)}
-                  className="accent-yellow-400 w-4 h-4" />
-                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">Anexar contrato em PDF separado</span>
+                  className="accent-orange-500 dark:accent-yellow-400 w-4 h-4" />
+                <span className="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">Anexar contrato em PDF separado</span>
               </label>
               <button
                 onClick={() => onConfirm(opts, incluirContrato ? 'pedido_contrato' : 'pedido')}
-                className="bg-yellow-400 text-black text-[10px] font-bold uppercase tracking-widest px-5 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-shadow shrink-0">
+                className="bg-orange-500 text-white dark:bg-yellow-400 dark:text-black text-[10px] font-bold uppercase tracking-widest px-5 py-2.5 hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-shadow shrink-0">
                 Gerar Pedido
               </button>
             </>
@@ -208,12 +216,12 @@ export default function PdfOptionsModal({ tipo, defaults, onConfirm, onClose }) 
             <>
               <button
                 onClick={() => onConfirm(opts, 'bw')}
-                className="border border-zinc-700 text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-zinc-500 hover:text-white transition-colors">
+                className="border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-[10px] font-mono uppercase tracking-widest px-4 py-2.5 hover:border-zinc-400 dark:hover:border-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                 Imprimir (P&B)
               </button>
               <button
                 onClick={() => onConfirm(opts, 'color')}
-                className="bg-yellow-400 text-black text-[10px] font-bold uppercase tracking-widest px-5 py-2.5 hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-shadow">
+                className="bg-orange-500 text-white dark:bg-yellow-400 dark:text-black text-[10px] font-bold uppercase tracking-widest px-5 py-2.5 hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-shadow">
                 Gerar Orçamento
               </button>
             </>

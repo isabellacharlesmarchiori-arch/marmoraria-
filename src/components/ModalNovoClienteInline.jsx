@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { buscarCepPorLogradouro } from '../utils/endereco';
 
 // Máscaras puras — react-input-mask usa ReactDOM.findDOMNode removido no React 19
 function maskPhone(v) {
@@ -92,9 +93,16 @@ export default function ModalNovoClienteInline({ empresaId, onClose, onCreated }
   const [cepErro,     setCepErro]     = useState('');
 
   const cepDebounce = useRef(null);
+  const ruaDebounce = useRef(null);
+  const [buscandoRua, setBuscandoRua] = useState(false);
+  const [ruaSugestoes, setRuaSugestoes] = useState([]);
 
   // ── Validação ─────────────────────────────────────────────────────────────
-  const basicoOk   = nome.trim().length > 0 && cleanMasked(telefone) !== null;
+  // Apenas o nome é obrigatório. Telefone e endereço são opcionais no cadastro
+  // (endereço vira obrigatório apenas no agendamento de medição).
+  const basicoOk   = nome.trim().length > 0;
+  // enderecoOk sinaliza "endereço completo" apenas para o check verde / status —
+  // não bloqueia o submit.
   const enderecoOk =
     cep.replace(/\D/g, '').length === 8 &&
     rua.trim().length > 0 &&
@@ -102,7 +110,7 @@ export default function ModalNovoClienteInline({ empresaId, onClose, onCreated }
     bairro.trim().length > 0 &&
     cidade.trim().length > 0 &&
     estado.trim().length > 0;
-  const podeSubmeter = basicoOk && enderecoOk;
+  const podeSubmeter = basicoOk;
 
   // ── ViaCEP ────────────────────────────────────────────────────────────────
   function handleCepChange(e) {
@@ -133,11 +141,42 @@ export default function ModalNovoClienteInline({ empresaId, onClose, onCreated }
     }, 400);
   }
 
+  // ── Busca por rua via ViaCEP (usa cidade + UF já preenchidos) ──────────────
+  // Só preenche CEP/bairro com retorno real da API. 0 resultados → não mexe.
+  function handleRuaChange(e) {
+    const val = e.target.value;
+    setRua(val);
+    setCepErro('');
+    setRuaSugestoes([]);
+    clearTimeout(ruaDebounce.current);
+    const uf = estado.trim();
+    if (val.trim().length < 3 || uf.length !== 2 || cidade.trim().length < 3) {
+      setBuscandoRua(false);
+      return;
+    }
+    setBuscandoRua(true);
+    ruaDebounce.current = setTimeout(async () => {
+      const results = await buscarCepPorLogradouro(uf, cidade, val);
+      setBuscandoRua(false);
+      if (results.length === 0) return;                 // nada → deixa CEP/bairro como estão
+      if (results.length === 1) { aplicarSugestao(results[0]); return; }
+      setRuaSugestoes(results);                          // vários → dropdown
+    }, 600);
+  }
+
+  function aplicarSugestao(r) {
+    if (r.cep)    setCep(r.cep);
+    if (r.rua)    setRua(r.rua);
+    if (r.bairro) setBairro(r.bairro);
+    if (r.cidade) setCidade(r.cidade);
+    if (r.estado) setEstado(r.estado);
+    setRuaSugestoes([]);
+  }
+
   // ── Submit — apenas monta o objeto e devolve ao pai; quem salva é o pai ──
   function handleSubmit() {
     if (!podeSubmeter) {
-      if (!basicoOk) { setTab('basico'); return; }
-      setTab('endereco');
+      setTab('basico'); // único campo obrigatório (nome) está na aba básica
       return;
     }
 
@@ -224,7 +263,7 @@ export default function ModalNovoClienteInline({ empresaId, onClose, onCreated }
                 />
               </Field>
 
-              <Field label="Telefone" required>
+              <Field label="Telefone (opcional)">
                 <MaskedInput
                   maskFn={maskPhone}
                   value={telefone}
@@ -289,7 +328,120 @@ export default function ModalNovoClienteInline({ empresaId, onClose, onCreated }
           {/* ── ABA 2: Endereço ─────────────────────────── */}
           {tab === 'endereco' && (
             <>
-              <Field label="CEP" required>
+              <p className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 leading-relaxed">
+                Endereço é opcional no cadastro. Preencha Cidade e UF e digite a rua —
+                o CEP é buscado automaticamente pelo ViaCEP.
+              </p>
+
+              <div className="grid grid-cols-[1fr_80px] gap-3">
+                <Field label="Cidade">
+                  <input
+                    type="text"
+                    value={cidade}
+                    onChange={e => setCidade(e.target.value)}
+                    placeholder="São Paulo"
+                    className={INPUT_CLS}
+                  />
+                </Field>
+
+                <Field label="UF">
+                  <input
+                    type="text"
+                    value={estado}
+                    onChange={e => setEstado(e.target.value.toUpperCase())}
+                    placeholder="SP"
+                    maxLength={2}
+                    className={INPUT_CLS}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Rua / Logradouro">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={rua}
+                    onChange={handleRuaChange}
+                    onBlur={() => setTimeout(() => setRuaSugestoes([]), 150)}
+                    onKeyDown={e => { if (e.key === 'Escape') setRuaSugestoes([]); }}
+                    placeholder="Ex: Rua das Flores"
+                    autoComplete="off"
+                    className={INPUT_CLS}
+                  />
+                  {buscandoRua && (
+                    <iconify-icon
+                      icon="solar:spinner-linear"
+                      width="13"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 animate-spin pointer-events-none"
+                    />
+                  )}
+
+                  {/* Dropdown ViaCEP — vários resultados para o mesmo logradouro */}
+                  {ruaSugestoes.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-zinc-700 border-t-0 shadow-2xl max-h-56 overflow-y-auto">
+                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-gray-50 dark:bg-[#0a0a0a]">
+                        <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+                          {ruaSugestoes.length} endereços — escolha um
+                        </span>
+                        <button
+                          type="button"
+                          onMouseDown={e => { e.preventDefault(); setRuaSugestoes([]); }}
+                          className="text-gray-400 dark:text-zinc-600 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        >
+                          <iconify-icon icon="solar:close-linear" width="13" />
+                        </button>
+                      </div>
+                      {ruaSugestoes.map((r, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onMouseDown={e => { e.preventDefault(); aplicarSugestao(r); }}
+                          className="w-full text-left px-3 py-2 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] border-b border-gray-200/60 dark:border-zinc-800/60 last:border-0 transition-colors"
+                        >
+                          <div className="text-xs text-gray-900 dark:text-white truncate">{r.rua || '—'}</div>
+                          <div className="font-mono text-[9px] text-gray-500 dark:text-zinc-600 uppercase mt-0.5 truncate">
+                            {[r.bairro, r.cep].filter(Boolean).join(' • ')}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Número">
+                  <input
+                    type="text"
+                    value={numero}
+                    onChange={e => setNumero(e.target.value)}
+                    placeholder="142"
+                    className={INPUT_CLS}
+                  />
+                </Field>
+
+                <Field label="Complemento">
+                  <input
+                    type="text"
+                    value={complemento}
+                    onChange={e => setComplemento(e.target.value)}
+                    placeholder="Apto 42"
+                    className={INPUT_CLS}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Bairro">
+                <input
+                  type="text"
+                  value={bairro}
+                  onChange={e => setBairro(e.target.value)}
+                  placeholder="Centro"
+                  className={INPUT_CLS}
+                />
+              </Field>
+
+              <Field label="CEP">
                 <div className="relative">
                   <input
                     type="text"
@@ -318,71 +470,6 @@ export default function ModalNovoClienteInline({ empresaId, onClose, onCreated }
                   <p className="mt-1 font-mono text-[9px] text-amber-500">{cepErro}</p>
                 )}
               </Field>
-
-              <Field label="Rua / Logradouro" required>
-                <input
-                  type="text"
-                  value={rua}
-                  onChange={e => setRua(e.target.value)}
-                  placeholder="Ex: Rua das Flores"
-                  className={INPUT_CLS}
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Número" required>
-                  <input
-                    type="text"
-                    value={numero}
-                    onChange={e => setNumero(e.target.value)}
-                    placeholder="142"
-                    className={INPUT_CLS}
-                  />
-                </Field>
-
-                <Field label="Complemento">
-                  <input
-                    type="text"
-                    value={complemento}
-                    onChange={e => setComplemento(e.target.value)}
-                    placeholder="Apto 42"
-                    className={INPUT_CLS}
-                  />
-                </Field>
-              </div>
-
-              <Field label="Bairro" required>
-                <input
-                  type="text"
-                  value={bairro}
-                  onChange={e => setBairro(e.target.value)}
-                  placeholder="Centro"
-                  className={INPUT_CLS}
-                />
-              </Field>
-
-              <div className="grid grid-cols-[1fr_80px] gap-3">
-                <Field label="Cidade" required>
-                  <input
-                    type="text"
-                    value={cidade}
-                    onChange={e => setCidade(e.target.value)}
-                    placeholder="São Paulo"
-                    className={INPUT_CLS}
-                  />
-                </Field>
-
-                <Field label="UF" required>
-                  <input
-                    type="text"
-                    value={estado}
-                    onChange={e => setEstado(e.target.value.toUpperCase())}
-                    placeholder="SP"
-                    maxLength={2}
-                    className={INPUT_CLS}
-                  />
-                </Field>
-              </div>
             </>
           )}
 
@@ -401,7 +488,7 @@ export default function ModalNovoClienteInline({ empresaId, onClose, onCreated }
             type="button"
             onClick={handleSubmit}
             disabled={!podeSubmeter}
-            title={!podeSubmeter ? 'Preencha Nome, Telefone e Endereço completo' : ''}
+            title={!podeSubmeter ? 'Preencha o Nome do cliente' : ''}
             className="flex-1 bg-yellow-400 text-black font-mono font-bold text-[10px] uppercase py-3 flex items-center justify-center gap-2 hover:bg-yellow-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <iconify-icon icon="solar:check-circle-linear" width="13" />

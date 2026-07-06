@@ -107,12 +107,12 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
   if (!medidorId) return null;
 
   return (
-    <div className="border border-zinc-800 bg-[#050505]">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800">
-        <iconify-icon icon="solar:calendar-search-linear" width="13" className="text-zinc-500"></iconify-icon>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Agenda do Medidor</span>
+    <div className="border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#050505] rounded-md dark:rounded-none">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-200/80 dark:border-zinc-800">
+        <iconify-icon icon="solar:calendar-search-linear" width="13" className="text-zinc-500 dark:text-zinc-500"></iconify-icon>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">Agenda do Medidor</span>
         {carregando && (
-          <iconify-icon icon="solar:spinner-linear" width="12" className="text-zinc-600 animate-spin ml-auto"></iconify-icon>
+          <iconify-icon icon="solar:spinner-linear" width="12" className="text-zinc-400 dark:text-zinc-600 animate-spin ml-auto"></iconify-icon>
         )}
       </div>
 
@@ -139,7 +139,7 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
 
         {/* Instrução quando nenhum dia selecionado */}
         {!diaSelecionado && (
-          <div className="font-mono text-[10px] text-zinc-600 flex items-center gap-1.5">
+          <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 flex items-center gap-1.5">
             <iconify-icon icon="solar:calendar-linear" width="11"></iconify-icon>
             {medicoes.length > 0
               ? `${medicoes.length} medição${medicoes.length > 1 ? 'ões' : ''} agendada${medicoes.length > 1 ? 's' : ''} neste mês — clique num dia para ver`
@@ -152,15 +152,15 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
         {diaSelecionado && (
           <>
             {/* Cabeçalho do dia */}
-            <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+            <div className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
               {diaSelecionado.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
             </div>
 
             {/* Medições do dia */}
             {medicoesDoDia.length === 0 ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 border border-zinc-900 bg-black">
+              <div className="flex items-center gap-2 px-3 py-2.5 border border-zinc-200/80 dark:border-zinc-900 bg-zinc-50 dark:bg-black rounded-md dark:rounded-none">
                 <iconify-icon icon="solar:check-circle-linear" width="12" className="text-green-500"></iconify-icon>
-                <span className="font-mono text-[10px] text-green-400/80">Dia livre</span>
+                <span className="font-mono text-[10px] text-green-600 dark:text-green-400/80">Dia livre</span>
               </div>
             ) : (
               <div className="flex flex-col gap-1.5">
@@ -169,14 +169,14 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
                   const cli  = Array.isArray(proj?.clientes) ? proj?.clientes[0] : proj?.clientes;
                   const nome = cli?.nome ?? proj?.nome ?? '—';
                   return (
-                    <div key={m.id} className="flex items-start gap-3 px-3 py-2.5 bg-black border border-zinc-900">
-                      <div className="font-mono text-[11px] text-yellow-400 font-bold shrink-0 w-10">
+                    <div key={m.id} className="flex items-start gap-3 px-3 py-2.5 bg-zinc-50 dark:bg-black border border-zinc-200/80 dark:border-zinc-900 rounded-md dark:rounded-none">
+                      <div className="font-mono text-[11px] text-orange-600 dark:text-yellow-400 font-bold shrink-0 w-10">
                         {formatHora(m.data_medicao)}
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-sm text-white font-medium truncate">{nome}</span>
+                        <span className="text-sm text-zinc-900 dark:text-white font-medium truncate">{nome}</span>
                         {m.endereco && (
-                          <span className="font-mono text-[10px] text-zinc-600 truncate">{formatarEndereco(m.endereco)}</span>
+                          <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 truncate">{formatarEndereco(m.endereco)}</span>
                         )}
                       </div>
                     </div>
@@ -188,14 +188,14 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
             {/* Horário da medição (time input) — atualiza agData no pai via onDataChange */}
             {onDataChange && (
               <div>
-                <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 block mb-1.5">
+                <label className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 block mb-1.5">
                   Horário da medição
                 </label>
                 <input
                   type="time"
                   value={horaAtual}
                   onChange={e => handleHoraChange(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm px-3 py-2.5 rounded-none focus:outline-none focus:border-yellow-400 focus:shadow-[0_0_8px_rgba(250,204,21,0.15)] font-mono transition-colors"
+                  className="w-full bg-zinc-100 dark:bg-black [color-scheme:light] dark:[color-scheme:dark] border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm px-3 py-2.5 rounded-md dark:rounded-none focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 focus:shadow-[0_0_8px_rgba(249,115,22,0.15)] dark:focus:shadow-[0_0_8px_rgba(250,204,21,0.15)] font-mono transition-colors"
                 />
               </div>
             )}
@@ -218,26 +218,28 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
         )}
       </div>
 
-      {/* Estilos do calendário */}
+      {/* Estilos do calendário — light por padrão, overrides no tema escuro (.dark no <html>) */}
       <style>{`
         .agenda-calendario .react-calendar {
           width: 100%;
-          background: #0a0a0a;
-          border: 1px solid #27272a;
-          color: #fff;
+          background: #ffffff;
+          border: 1px solid #e4e4e7;
+          color: #18181b;
           font-family: inherit;
           font-size: 12px;
           line-height: 1.5;
+          border-radius: 6px;
+          overflow: hidden;
         }
         .agenda-calendario .react-calendar__navigation {
           background: transparent;
-          border-bottom: 1px solid #27272a;
+          border-bottom: 1px solid #e4e4e7;
           margin-bottom: 0;
           height: 36px;
         }
         .agenda-calendario .react-calendar__navigation button {
           background: transparent;
-          color: #a1a1aa;
+          color: #71717a;
           font-family: monospace;
           font-size: 10px;
           text-transform: uppercase;
@@ -246,8 +248,8 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
         }
         .agenda-calendario .react-calendar__navigation button:enabled:hover,
         .agenda-calendario .react-calendar__navigation button:enabled:focus {
-          background: #18181b;
-          color: #fff;
+          background: #f4f4f5;
+          color: #18181b;
         }
         .agenda-calendario .react-calendar__navigation__label {
           font-size: 10px;
@@ -255,7 +257,7 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
           letter-spacing: 0.12em;
         }
         .agenda-calendario .react-calendar__month-view__weekdays {
-          border-bottom: 1px solid #18181b;
+          border-bottom: 1px solid #f4f4f5;
         }
         .agenda-calendario .react-calendar__month-view__weekdays__weekday {
           text-align: center;
@@ -266,37 +268,37 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
           font-size: 9px;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          color: #52525b;
+          color: #a1a1aa;
           text-decoration: none;
         }
         .agenda-calendario .react-calendar__tile {
           background: transparent;
-          color: #a1a1aa;
+          color: #52525b;
           padding: 6px 2px;
           font-size: 11px;
           aspect-ratio: unset;
         }
         .agenda-calendario .react-calendar__tile:enabled:hover,
         .agenda-calendario .react-calendar__tile:enabled:focus {
-          background: #18181b;
-          color: #fff;
+          background: #f4f4f5;
+          color: #18181b;
         }
         .agenda-calendario .react-calendar__tile--now {
-          background: #27272a !important;
-          color: #fbbf24 !important;
+          background: #f4f4f5 !important;
+          color: #ea580c !important;
         }
         .agenda-calendario .react-calendar__tile--active,
         .agenda-calendario .react-calendar__tile--active:enabled:hover,
         .agenda-calendario .react-calendar__tile--active:enabled:focus {
-          background: #292524 !important;
-          color: #fbbf24 !important;
-          outline: 1px solid #fbbf24;
+          background: #fff7ed !important;
+          color: #ea580c !important;
+          outline: 1px solid #f97316;
           outline-offset: -1px;
           font-weight: 700;
         }
         .agenda-calendario .dia-ocupado {
           position: relative;
-          color: #ef4444 !important;
+          color: #dc2626 !important;
           font-weight: 600;
         }
         .agenda-calendario .dia-ocupado::after {
@@ -308,14 +310,74 @@ export default function AgendaMedidor({ medidorId, horarioEscolhido, empresaId, 
           width: 4px;
           height: 4px;
           border-radius: 50%;
-          background: #ef4444;
+          background: #dc2626;
         }
         .agenda-calendario .dia-escolhido {
-          background: #fbbf2415 !important;
-          outline: 1px solid #fbbf2440 !important;
-          color: #fbbf24 !important;
+          background: rgba(249,115,22,0.08) !important;
+          outline: 1px solid rgba(249,115,22,0.25) !important;
+          color: #ea580c !important;
         }
         .agenda-calendario .react-calendar__month-view__days__day--neighboringMonth {
+          color: #d4d4d8;
+        }
+
+        /* ── Tema escuro ── */
+        .dark .agenda-calendario .react-calendar {
+          background: #0a0a0a;
+          border-color: #27272a;
+          color: #fff;
+          border-radius: 0;
+        }
+        .dark .agenda-calendario .react-calendar__navigation {
+          border-bottom-color: #27272a;
+        }
+        .dark .agenda-calendario .react-calendar__navigation button {
+          color: #a1a1aa;
+        }
+        .dark .agenda-calendario .react-calendar__navigation button:enabled:hover,
+        .dark .agenda-calendario .react-calendar__navigation button:enabled:focus {
+          background: #18181b;
+          color: #fff;
+        }
+        .dark .agenda-calendario .react-calendar__month-view__weekdays {
+          border-bottom-color: #18181b;
+        }
+        .dark .agenda-calendario .react-calendar__month-view__weekdays__weekday abbr {
+          color: #52525b;
+        }
+        .dark .agenda-calendario .react-calendar__tile {
+          color: #a1a1aa;
+        }
+        .dark .agenda-calendario .react-calendar__tile:enabled:hover,
+        .dark .agenda-calendario .react-calendar__tile:enabled:focus {
+          background: #18181b;
+          color: #fff;
+        }
+        .dark .agenda-calendario .react-calendar__tile--now {
+          background: #27272a !important;
+          color: #fbbf24 !important;
+        }
+        .dark .agenda-calendario .react-calendar__tile--active,
+        .dark .agenda-calendario .react-calendar__tile--active:enabled:hover,
+        .dark .agenda-calendario .react-calendar__tile--active:enabled:focus {
+          background: #292524 !important;
+          color: #fbbf24 !important;
+          outline-color: #fbbf24;
+        }
+        .dark .agenda-calendario .dia-ocupado,
+        .dark .agenda-calendario .dia-ocupado::after {
+          color: #ef4444 !important;
+          background: unset;
+        }
+        .dark .agenda-calendario .dia-ocupado::after {
+          background: #ef4444;
+        }
+        .dark .agenda-calendario .dia-escolhido {
+          background: #fbbf2415 !important;
+          outline-color: #fbbf2440 !important;
+          color: #fbbf24 !important;
+        }
+        .dark .agenda-calendario .react-calendar__month-view__days__day--neighboringMonth {
           color: #3f3f46;
         }
       `}</style>

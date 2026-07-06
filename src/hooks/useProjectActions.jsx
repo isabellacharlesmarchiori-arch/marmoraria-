@@ -103,10 +103,10 @@ export function useProjectActions(projectId, {
         setMedicoes(prev => prev.filter(item => item.id !== m.id));
     }
 
-    // formState: { agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes }
+    // formState: { agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes, salvarNoCliente, enderecoClienteJson }
     // callbacks: { setErroAgendar, setAgendando, closeAll }
     async function handleAgendarMedicao(formState, { setErroAgendar, setAgendando, closeAll }) {
-        const { agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes } = formState;
+        const { agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes, salvarNoCliente, enderecoClienteJson } = formState;
         setErroAgendar('');
         if (!agMedidor) { alert('Erro: Selecione um medidor na lista antes de salvar.'); return; }
         if (!agData)    { setErroAgendar('Selecione a data e hora da medição.'); return; }
@@ -178,6 +178,25 @@ export function useProjectActions(projectId, {
                     .single();
                 if (errMed) { setErroAgendar(`Erro: ${errMed.message}`); return; }
                 setMedicoes(prev => [formatarParaLista(med), ...prev]);
+                // Cliente sem endereço no cadastro: persiste o endereço preenchido
+                // agora também em clientes.endereco (best-effort — não bloqueia a medição).
+                if (salvarNoCliente && enderecoClienteJson) {
+                    const clienteId = projeto?.cliente_id ?? projeto?.clientes?.id;
+                    if (clienteId) {
+                        const { error: errCli } = await supabase
+                            .from('clientes')
+                            .update({ endereco: enderecoClienteJson })
+                            .eq('id', clienteId)
+                            .eq('empresa_id', empresaId);
+                        if (errCli) {
+                            console.error('Erro ao salvar endereço no cadastro do cliente:', errCli.message);
+                        } else {
+                            setProjeto(prev => prev
+                                ? { ...prev, clientes: { ...(prev.clientes ?? {}), endereco: enderecoClienteJson } }
+                                : prev);
+                        }
+                    }
+                }
                 // Notifica o medidor atribuído sobre a nova medição na agenda
                 if (agMedidor && agMedidor !== session?.user?.id) {
                     await supabase.from('notificacoes').insert({

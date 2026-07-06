@@ -227,9 +227,14 @@ export default function TelaProjetoVendedor() {
     const [agBairro,     setAgBairro]     = useState('');
     const [agCidade,     setAgCidade]     = useState('');
     const [agObservacoes, setAgObservacoes] = useState('');
+    const [agCep,        setAgCep]        = useState('');
+    const [agEstado,     setAgEstado]     = useState('');
     const [agendando,    setAgendando]    = useState(false);
     const [erroAgendar,  setErroAgendar]  = useState('');
     const [editingMedicaoId, setEditingMedicaoId] = useState(null);
+    // Cliente sem endereço no cadastro: o endereço preenchido aqui será salvo
+    // também em clientes.endereco ao confirmar o agendamento.
+    const [clienteSemEndereco, setClienteSemEndereco] = useState(false);
 
     // Autocomplete de endereço (Nominatim / OpenStreetMap — gratuito, sem API key)
     const [endSugestoes,  setEndSugestoes]  = useState([]);
@@ -269,6 +274,9 @@ export default function TelaProjetoVendedor() {
         setAgBairro('');
         setAgCidade('');
         setAgObservacoes('');
+        setAgCep('');
+        setAgEstado('');
+        setClienteSemEndereco(false);
         setEndSugestoes([]);
         setEndConfirmado(false);
     };
@@ -279,14 +287,19 @@ export default function TelaProjetoVendedor() {
 
     function handleAbrirNovoAgendamento() {
         const cliente = projeto?.clientes;
-        if (cliente?.endereco) {
-            const { rua, numero, bairro, cidade } = parseEnderecoCliente(cliente.endereco);
-            setAgRua(rua);
-            setAgNumero(numero);
-            setAgBairro(bairro);
-            setAgCidade(cidade);
-            setEndConfirmado(true);
-        }
+        const end = parseEnderecoCliente(cliente?.endereco);
+        // Endereço é opcional no cadastro do cliente. Se não houver, o modal abre
+        // com uma seção para preencher na hora — e o endereço é salvo também no
+        // cadastro do cliente ao confirmar (ver clienteSemEndereco).
+        const temEndereco = !!(end.rua?.trim() || end.numero?.trim() || end.bairro?.trim() || end.cidade?.trim() || end.cep?.trim());
+        setAgRua(end.rua);
+        setAgNumero(end.numero);
+        setAgBairro(end.bairro);
+        setAgCidade(end.cidade);
+        setAgCep(end.cep);
+        setAgEstado(end.estado);
+        setEndConfirmado(temEndereco);
+        setClienteSemEndereco(!temEndereco);
         setModalAgendar(true);
     }
 
@@ -539,8 +552,11 @@ export default function TelaProjetoVendedor() {
                 agNumero={agNumero} setAgNumero={setAgNumero}
                 agBairro={agBairro} setAgBairro={setAgBairro}
                 agCidade={agCidade} setAgCidade={setAgCidade}
+                agCep={agCep} setAgCep={setAgCep}
+                agEstado={agEstado} setAgEstado={setAgEstado}
                 agObservacoes={agObservacoes} setAgObservacoes={setAgObservacoes}
                 agendando={agendando}
+                clienteSemEndereco={clienteSemEndereco}
                 endSugestoes={endSugestoes} setEndSugestoes={setEndSugestoes}
                 endBuscando={endBuscando} setEndBuscando={setEndBuscando}
                 endConfirmado={endConfirmado} setEndConfirmado={setEndConfirmado}
@@ -548,7 +564,14 @@ export default function TelaProjetoVendedor() {
                 enderecoCompleto={enderecoCompleto}
                 medidores={medidores}
                 profile={profile}
-                onConfirmar={() => actions.handleAgendarMedicao({ agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes }, { setErroAgendar, setAgendando, closeAll })}
+                onConfirmar={() => actions.handleAgendarMedicao({
+                    agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes,
+                    // Só salva no cliente se houver endereço de fato preenchido
+                    salvarNoCliente: clienteSemEndereco && !!enderecoCompleto,
+                    enderecoClienteJson: clienteSemEndereco && enderecoCompleto
+                        ? JSON.stringify({ cep: agCep, rua: agRua, numero: agNumero, complemento: '', bairro: agBairro, cidade: agCidade, estado: agEstado })
+                        : null,
+                }, { setErroAgendar, setAgendando, closeAll })}
             />
 
             {/* ══ MODAL — Atualizar Status ═══════════════════════════════ */}

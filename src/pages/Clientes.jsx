@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { buscarCepPorLogradouro } from '../utils/endereco';
 
 // ── Máscaras nativas ──────────────────────────────────────────────────────────
 function maskCPF(v) {
@@ -155,7 +156,10 @@ function TabClientes({ empresaId, session, isAdmin }) {
   // ── controlled form state ──
   const [form, setForm] = useState({});
   const [loadingCep, setLoadingCep] = useState(false);
+  const [buscandoRua, setBuscandoRua] = useState(false);
+  const [ruaSugestoes, setRuaSugestoes] = useState([]);
   const [formErrors, setFormErrors] = useState({});
+  const ruaDebounceRef = useRef(null);
 
   // ── load ──
   useEffect(() => {
@@ -248,17 +252,47 @@ function TabClientes({ empresaId, session, isAdmin }) {
     }
   };
 
+  // ── Busca por rua via ViaCEP (usa cidade + UF já preenchidos) ──
+  // Só preenche CEP/bairro com retorno real da API. 0 resultados → não mexe.
+  const handleRuaChange = (val) => {
+    setF('rua', val);
+    setRuaSugestoes([]);
+    clearTimeout(ruaDebounceRef.current);
+    const uf     = (form.estado || '').trim();
+    const cidade = (form.cidade || '').trim();
+    if (val.trim().length < 3 || uf.length !== 2 || cidade.length < 3) {
+      setBuscandoRua(false);
+      return;
+    }
+    setBuscandoRua(true);
+    ruaDebounceRef.current = setTimeout(async () => {
+      const results = await buscarCepPorLogradouro(uf, cidade, val);
+      setBuscandoRua(false);
+      if (results.length === 0) return;                  // nada → deixa CEP/bairro como estão
+      if (results.length === 1) { aplicarSugestao(results[0]); return; }
+      setRuaSugestoes(results);                           // vários → dropdown
+    }, 600);
+  };
+
+  const aplicarSugestao = (r) => {
+    setForm(prev => ({
+      ...prev,
+      cep:    r.cep    || prev.cep,
+      rua:    r.rua    || prev.rua,
+      bairro: r.bairro || prev.bairro,
+      cidade: r.cidade || prev.cidade,
+      estado: r.estado || prev.estado,
+    }));
+    setRuaSugestoes([]);
+    setFormErrors(prev => ({ ...prev, cep: undefined, bairro: undefined }));
+  };
+
   // ── validation ──
   const validateForm = () => {
     const e = {};
+    // Apenas o nome é obrigatório. Telefone e endereço são opcionais no cadastro
+    // (endereço passa a ser obrigatório só no agendamento de medição).
     if (!form.nome?.trim())    e.nome    = 'Campo obrigatório';
-    if (!form.telefone?.trim()) e.telefone = 'Campo obrigatório';
-    if (!form.cep?.trim())     e.cep     = 'Campo obrigatório';
-    if (!form.rua?.trim())     e.rua     = 'Campo obrigatório';
-    if (!form.numero?.trim())  e.numero  = 'Campo obrigatório';
-    if (!form.bairro?.trim())  e.bairro  = 'Campo obrigatório';
-    if (!form.cidade?.trim())  e.cidade  = 'Campo obrigatório';
-    if (!form.estado?.trim())  e.estado  = 'Campo obrigatório';
     const cpfDigits = (form.cpf || '').replace(/\D/g, '');
     if (cpfDigits.length > 0 && !validarCPF(form.cpf || '')) e.cpf = 'CPF inválido';
     if (form.rg?.trim() && !validarRG(form.rg)) e.rg = 'RG deve ter 7 a 9 dígitos';
@@ -528,7 +562,7 @@ function TabClientes({ empresaId, session, isAdmin }) {
                     {formErrors.nome && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.nome}</p>}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Telefone <span className="text-orange-600 dark:text-yellow-400">*</span></label>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Telefone <span className="text-zinc-400 dark:text-zinc-600 normal-case">(opcional)</span></label>
                     <input value={form.telefone ?? ''} onChange={e => setF('telefone', maskPhone(e.target.value))} className={fc('telefone')} placeholder="(00) 00000-0000" />
                     {formErrors.telefone && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.telefone}</p>}
                   </div>
@@ -564,11 +598,82 @@ function TabClientes({ empresaId, session, isAdmin }) {
 
               {/* Endereço */}
               <div>
-                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-zinc-200/80 dark:border-zinc-800">Endereço</div>
+                <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest pb-2 mb-4 border-b border-zinc-200/80 dark:border-zinc-800">Endereço <span className="text-zinc-400 dark:text-zinc-600 normal-case">(opcional)</span></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Cidade</label>
+                    <input value={form.cidade ?? ''} onChange={e => setF('cidade', e.target.value)} className={fc('cidade')} placeholder="São Paulo" />
+                    {formErrors.cidade && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cidade}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Estado</label>
+                    <select value={form.estado ?? ''} onChange={e => setF('estado', e.target.value)} className={fc('estado') + ' appearance-none cursor-pointer'}>
+                      <option value="">UF</option>
+                      {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                    </select>
+                    {formErrors.estado && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.estado}</p>}
+                  </div>
+                  <div className="col-span-2">
                     <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
-                      CEP <span className="text-orange-600 dark:text-yellow-400">*</span>
+                      Rua / Logradouro
+                      {buscandoRua && <span className="text-[8px] text-orange-500 dark:text-yellow-400 animate-pulse normal-case tracking-normal">buscando CEP...</span>}
+                    </label>
+                    <div className="relative">
+                      <input
+                        value={form.rua ?? ''}
+                        onChange={e => handleRuaChange(e.target.value)}
+                        onBlur={() => setTimeout(() => setRuaSugestoes([]), 150)}
+                        onKeyDown={e => { if (e.key === 'Escape') setRuaSugestoes([]); }}
+                        autoComplete="off"
+                        className={fc('rua')}
+                        placeholder="Preencha Cidade e UF, depois digite a rua"
+                      />
+                      {/* Dropdown ViaCEP — vários resultados para o mesmo logradouro */}
+                      {ruaSugestoes.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-700 border-t-0 shadow-2xl max-h-56 overflow-y-auto rounded-b-md dark:rounded-none">
+                          <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-200/80 dark:border-zinc-800 sticky top-0 bg-zinc-50 dark:bg-[#0a0a0a]">
+                            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
+                              {ruaSugestoes.length} endereços — escolha um
+                            </span>
+                            <button type="button" onMouseDown={e => { e.preventDefault(); setRuaSugestoes([]); }} className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                              <iconify-icon icon="solar:close-linear" width="13"></iconify-icon>
+                            </button>
+                          </div>
+                          {ruaSugestoes.map((r, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onMouseDown={e => { e.preventDefault(); aplicarSugestao(r); }}
+                              className="w-full text-left px-3 py-2 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] border-b border-zinc-200/60 dark:border-zinc-800/60 last:border-0 transition-colors"
+                            >
+                              <div className="text-xs text-zinc-900 dark:text-white truncate">{r.rua || '—'}</div>
+                              <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 uppercase mt-0.5 truncate">
+                                {[r.bairro, r.cep].filter(Boolean).join(' • ')}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {formErrors.rua && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.rua}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Número</label>
+                    <input value={form.numero ?? ''} onChange={e => setF('numero', e.target.value)} className={fc('numero')} placeholder="123" />
+                    {formErrors.numero && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.numero}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Complemento</label>
+                    <input value={form.complemento ?? ''} onChange={e => setF('complemento', e.target.value)} className={fc('complemento')} placeholder="Apto, Bloco..." />
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Bairro</label>
+                    <input value={form.bairro ?? ''} onChange={e => setF('bairro', e.target.value)} className={fc('bairro')} />
+                    {formErrors.bairro && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.bairro}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block flex items-center gap-2">
+                      CEP
                       {loadingCep && <span className="text-[8px] text-orange-500 dark:text-yellow-400 animate-pulse normal-case tracking-normal">buscando...</span>}
                     </label>
                     <input
@@ -578,38 +683,6 @@ function TabClientes({ empresaId, session, isAdmin }) {
                       placeholder="00000-000"
                     />
                     {formErrors.cep && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cep}</p>}
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Número <span className="text-orange-600 dark:text-yellow-400">*</span></label>
-                    <input value={form.numero ?? ''} onChange={e => setF('numero', e.target.value)} className={fc('numero')} placeholder="123" />
-                    {formErrors.numero && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.numero}</p>}
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Rua / Logradouro <span className="text-orange-600 dark:text-yellow-400">*</span></label>
-                    <input value={form.rua ?? ''} onChange={e => setF('rua', e.target.value)} className={fc('rua')} />
-                    {formErrors.rua && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.rua}</p>}
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Complemento</label>
-                    <input value={form.complemento ?? ''} onChange={e => setF('complemento', e.target.value)} className={fc('complemento')} placeholder="Apto, Bloco..." />
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Bairro <span className="text-orange-600 dark:text-yellow-400">*</span></label>
-                    <input value={form.bairro ?? ''} onChange={e => setF('bairro', e.target.value)} className={fc('bairro')} />
-                    {formErrors.bairro && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.bairro}</p>}
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Cidade <span className="text-orange-600 dark:text-yellow-400">*</span></label>
-                    <input value={form.cidade ?? ''} onChange={e => setF('cidade', e.target.value)} className={fc('cidade')} />
-                    {formErrors.cidade && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.cidade}</p>}
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-mono text-zinc-500 dark:text-zinc-600 mb-2 block">Estado <span className="text-orange-600 dark:text-yellow-400">*</span></label>
-                    <select value={form.estado ?? ''} onChange={e => setF('estado', e.target.value)} className={fc('estado') + ' appearance-none cursor-pointer'}>
-                      <option value="">UF</option>
-                      {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-                    </select>
-                    {formErrors.estado && <p className="text-[9px] font-mono text-red-500 mt-1">{formErrors.estado}</p>}
                   </div>
                 </div>
               </div>

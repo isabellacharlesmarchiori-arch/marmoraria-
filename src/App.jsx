@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { useAuth } from './lib/AuthContext'
+import { useTheme } from './contexts/ThemeContext'
 import { homeFor } from './lib/roleHome'
 
 // Layout
@@ -126,8 +128,12 @@ function RequireMedidor() {
 // ── App ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const { theme } = useTheme()
   return (
-    <BrowserRouter>
+    <>
+      {/* Container global de toasts (sonner) — usado pelo módulo financeiro e demais telas */}
+      <Toaster theme={theme} richColors position="top-right" />
+      <BrowserRouter>
       <Routes>
         {/* ── Rotas públicas ── */}
         <Route path="/login"    element={<Login />} />
@@ -206,5 +212,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
+    </>
   )
 }
