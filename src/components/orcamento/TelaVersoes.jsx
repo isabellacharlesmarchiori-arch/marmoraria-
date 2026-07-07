@@ -455,6 +455,27 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     });
   }
 
+  // ── Inclusão/exclusão de item inteiro (checkbox no cabeçalho do item) ─
+  // Mesmo padrão de togglePecaAtiva/toggleAmbienteAtivo, mas em lote: alterna
+  // todas as peças (pedras + acabamentos + recortes) do grupo item_nome de uma vez.
+  // Se houver ao menos uma peça incluída → exclui o item todo; caso contrário → inclui tudo.
+  function toggleItemAtivo(amb, vId, itemKey) {
+    const v = (ambiVersoes[amb] ?? []).find(x => x.id === vId);
+    if (!v) return;
+    // Acabamentos são itens próprios (toggle individual), fora do item de peças
+    const uidsItem = v.pecasList
+      .filter(pw => (pw.item_nome ?? '__sem_item__') === itemKey && pw.tipo !== 'acabamento')
+      .map(pw => pw.uid);
+    if (uidsItem.length === 0) return;
+    setExcluidos(prev => {
+      const set = new Set(prev[amb] ?? []);
+      const algumIncluido = uidsItem.some(u => !set.has(u));
+      if (algumIncluido) uidsItem.forEach(u => set.add(u));     // exclui item todo
+      else               uidsItem.forEach(u => set.delete(u));  // inclui item todo
+      return { ...prev, [amb]: [...set] };
+    });
+  }
+
   // Sufixo visual " (sem nome1, nome2)" com as peças excluídas das versões selecionadas.
   // Só visual no label — não altera cen.nome / v.nome salvos.
   function sufixoExcluidos(selecoesObj, excludeMap = {}) {
@@ -1113,14 +1134,17 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                             {/* Peças — agrupadas por item_nome quando existir */}
                             {(() => {
                               // Helper: renderiza uma linha de acabamento linear
-                              const renderAcabamento = (pw, indent = false) => {
+                              // topLevel: renderiza o acabamento como um item próprio de topo
+                              // (sem o conector visual de "filho da peça acima" e sem recuo).
+                              const renderAcabamento = (pw, indent = false, topLevel = false) => {
                                 const gQtd = v.pecasList.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
                                 const subAcComputed = precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null);
                                 const subAc = (pw.precoManual != null ? pw.precoManual : subAcComputed) * gQtd;
                                 const isEditingPM = editandoPrecoManual?.uid === pw.uid;
                                 const excluida = (excluidos[amb] ?? []).includes(pw.uid);
+                                const padding = topLevel ? 'px-4' : (indent ? 'pl-10 pr-4' : 'pl-6 pr-4');
                                 return (
-                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-200 dark:border-amber-900/20 last:border-b-0 bg-amber-50 dark:bg-amber-950/20 group ${excluida ? 'opacity-40' : ''} ${indent ? 'pl-10 pr-4' : 'pl-6 pr-4'}`}>
+                                  <div key={pw.uid} className={`flex items-center gap-2 py-2 border-b border-amber-200 dark:border-amber-900/20 last:border-b-0 bg-amber-50 dark:bg-amber-950/20 group ${excluida ? 'opacity-40' : ''} ${padding}`}>
                                     <button
                                       onClick={() => togglePecaAtiva(amb, v.id, pw.uid)}
                                       title={excluida ? 'Incluir no orçamento' : 'Excluir do orçamento'}
@@ -1128,11 +1152,16 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                     >
                                       {!excluida && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
                                     </button>
-                                    {/* Conector visual "filho da peça acima" */}
-                                    <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
-                                      <div className="w-px h-2 bg-amber-500/40 dark:bg-amber-600/30"></div>
-                                      <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 dark:bg-amber-600/50"></div>
-                                    </div>
+                                    {topLevel ? (
+                                      /* Barra de acento — marca acabamento como item próprio */
+                                      <div className="w-0.5 h-4 bg-amber-500/50 dark:bg-amber-600/40 shrink-0"></div>
+                                    ) : (
+                                      /* Conector visual "filho da peça acima" */
+                                      <div className="flex flex-col items-center shrink-0 self-stretch justify-center gap-0.5">
+                                        <div className="w-px h-2 bg-amber-500/40 dark:bg-amber-600/30"></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 dark:bg-amber-600/50"></div>
+                                      </div>
+                                    )}
                                     <iconify-icon icon="solar:ruler-angular-linear" width="12" className="text-amber-600 dark:text-amber-500/70 shrink-0"></iconify-icon>
                                     <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400/80 min-w-[100px] shrink-0 uppercase tracking-wide">{pw.nome}</span>
                                     <div className="flex items-center gap-1 shrink-0">
@@ -1356,27 +1385,31 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 );
                               };
 
+                              // Acabamentos são exibidos como itens próprios de topo (um por acabamento),
+                              // nunca como filhos de peça. Renderizados por último, após as peças/itens.
+                              const acabItens = v.pecasList
+                                .filter(pw => pw.tipo === 'acabamento')
+                                .map(pw => renderAcabamento(pw, false, true));
+
                               const temItens = v.pecasList.some(pw => pw.item_nome && pw.tipo !== 'acabamento');
                               if (!temItens) {
-                                // Sem itens: lista plana
+                                // Sem itens: lista plana (peças + recortes) e acabamentos como itens de topo
                                 const recortesFlat = v.pecasList.filter(pw => pw.tipo === 'recorte');
                                 return [
-                                  ...v.pecasList.filter(pw => pw.tipo !== 'recorte').map(pw => {
-                                    if (pw.tipo === 'acabamento') return renderAcabamento(pw, false);
-                                    return renderPeca(pw, false, amb, v.id);
-                                  }),
+                                  ...v.pecasList.filter(pw => pw.tipo === 'pedra').map(pw => renderPeca(pw, false, amb, v.id)),
                                   ...renderRecortesGrupados(recortesFlat, false),
+                                  ...acabItens,
                                 ];
                               }
-                              // Com itens: agrupar por item_nome
+                              // Com itens: agrupa apenas peças/recortes por item_nome (acabamentos ficam de fora)
                               const itMap = new Map();
                               const itOrdem = [];
-                              v.pecasList.forEach(pw => {
+                              v.pecasList.filter(pw => pw.tipo !== 'acabamento').forEach(pw => {
                                 const k = pw.item_nome ?? '__sem_item__';
                                 if (!itMap.has(k)) { itMap.set(k, []); itOrdem.push(k); }
                                 itMap.get(k).push(pw);
                               });
-                              return itOrdem.map(itemKey => {
+                              return [...itOrdem.map(itemKey => {
                                 const nomeItem = itemKey === '__sem_item__' ? null : itemKey;
                                 const pwsItem  = itMap.get(itemKey);
                                 // matId do item: considera apenas pedras
@@ -1392,11 +1425,26 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                   return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
                                 }, 0);
                                 const isNomeItemEdit = editandoNomeItem?.amb === amb && editandoNomeItem?.vId === v.id && editandoNomeItem?.itemKey === itemKey;
+                                // Estado de seleção do item inteiro (mesmo padrão de peça/ambiente)
+                                const excItemSet    = new Set(excluidos[amb] ?? []);
+                                const uidsItem      = pwsItem.map(pw => pw.uid);
+                                const itemIncluido  = uidsItem.every(u => !excItemSet.has(u));
+                                const itemExcluido  = uidsItem.length > 0 && uidsItem.every(u => excItemSet.has(u));
+                                const itemParcial   = !itemIncluido && !itemExcluido;
                                 return (
                                   <div key={itemKey}>
                                     {/* Cabeçalho do item */}
                                     {nomeItem !== null && (
-                                      <div className="flex items-center gap-2 px-4 py-2 bg-zinc-200/30 dark:bg-zinc-900/30 border-b border-zinc-200/80 dark:border-zinc-800/50 group">
+                                      <div className={`flex items-center gap-2 px-4 py-2 bg-zinc-200/30 dark:bg-zinc-900/30 border-b border-zinc-200/80 dark:border-zinc-800/50 group ${itemExcluido ? 'opacity-40' : ''}`}>
+                                        {/* Checkbox incluir/excluir item inteiro */}
+                                        <button
+                                          onClick={() => toggleItemAtivo(amb, v.id, itemKey)}
+                                          title={itemIncluido ? 'Excluir item do orçamento' : 'Incluir item no orçamento'}
+                                          className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${!itemExcluido ? 'border-orange-500 dark:border-yellow-400 bg-orange-50 dark:bg-yellow-400/10 text-orange-600 dark:text-yellow-400' : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-400 dark:text-zinc-700 hover:border-zinc-500'}`}
+                                        >
+                                          {itemIncluido && <iconify-icon icon="solar:check-read-linear" width="8"></iconify-icon>}
+                                          {itemParcial && <iconify-icon icon="solar:minus-square-linear" width="8"></iconify-icon>}
+                                        </button>
                                         <div className="w-0.5 h-4 bg-orange-50 dark:bg-yellow-400/30 shrink-0"></div>
                                         {isNomeItemEdit ? (
                                           <input
@@ -1443,15 +1491,12 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         </div>
                                       </div>
                                     )}
-                                    {/* Peças do item */}
-                                    {pwsItem.filter(pw => pw.tipo !== 'recorte').map(pw => {
-                                      if (pw.tipo === 'acabamento') return renderAcabamento(pw, true);
-                                      return renderPeca(pw, !!nomeItem, amb, v.id);
-                                    })}
+                                    {/* Peças do item (acabamentos saem como itens próprios de topo) */}
+                                    {pwsItem.filter(pw => pw.tipo === 'pedra').map(pw => renderPeca(pw, !!nomeItem, amb, v.id))}
                                     {renderRecortesGrupados(pwsItem.filter(pw => pw.tipo === 'recorte'), true)}
                                   </div>
                                 );
-                              });
+                              }), ...acabItens];
                             })()}
 
                             {/* Avulsos desta versão */}
