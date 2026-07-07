@@ -1385,11 +1385,16 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 );
                               };
 
-                              // Acabamentos são exibidos como itens próprios de topo (um por acabamento),
-                              // nunca como filhos de peça. Renderizados por último, após as peças/itens.
-                              const acabItens = v.pecasList
-                                .filter(pw => pw.tipo === 'acabamento')
-                                .map(pw => renderAcabamento(pw, false, true));
+                              // Acabamentos são exibidos como itens próprios de topo (um por
+                              // acabamento), nunca como filhos de peça. Ficam vinculados ao seu
+                              // grupo via item_nome e são renderizados logo após as peças do grupo.
+                              const acabByItem = new Map();
+                              v.pecasList.filter(pw => pw.tipo === 'acabamento').forEach(pw => {
+                                const k = pw.item_nome ?? '__sem_item__';
+                                if (!acabByItem.has(k)) acabByItem.set(k, []);
+                                acabByItem.get(k).push(pw);
+                              });
+                              const renderAcabItens = k => (acabByItem.get(k) ?? []).map(pw => renderAcabamento(pw, false, true));
 
                               const temItens = v.pecasList.some(pw => pw.item_nome && pw.tipo !== 'acabamento');
                               if (!temItens) {
@@ -1398,7 +1403,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 return [
                                   ...v.pecasList.filter(pw => pw.tipo === 'pedra').map(pw => renderPeca(pw, false, amb, v.id)),
                                   ...renderRecortesGrupados(recortesFlat, false),
-                                  ...acabItens,
+                                  ...renderAcabItens('__sem_item__'),
                                 ];
                               }
                               // Com itens: agrupa apenas peças/recortes por item_nome (acabamentos ficam de fora)
@@ -1491,12 +1496,16 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         </div>
                                       </div>
                                     )}
-                                    {/* Peças do item (acabamentos saem como itens próprios de topo) */}
+                                    {/* Peças do item + acabamentos do grupo (itens próprios de topo) */}
                                     {pwsItem.filter(pw => pw.tipo === 'pedra').map(pw => renderPeca(pw, !!nomeItem, amb, v.id))}
                                     {renderRecortesGrupados(pwsItem.filter(pw => pw.tipo === 'recorte'), true)}
+                                    {renderAcabItens(itemKey)}
                                   </div>
                                 );
-                              }), ...acabItens];
+                              }),
+                              // Acabamentos órfãos: item_nome sem grupo de peças correspondente
+                              ...[...acabByItem.keys()].filter(k => !itMap.has(k)).flatMap(renderAcabItens),
+                              ];
                             })()}
 
                             {/* Avulsos desta versão */}

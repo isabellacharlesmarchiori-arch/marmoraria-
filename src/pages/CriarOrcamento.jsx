@@ -364,32 +364,7 @@ export default function CriarOrcamento() {
           const json = medRow.json_medicao;
           let resumo = [];
 
-          // ══ DEBUG ACABAMENTOS — remover depois ═══════════════════════════════
-          // 1) JSON bruto completo, exatamente como vem do Flutter
-          console.log('[ACAB-DEBUG] RAW json_medicao =\n', JSON.stringify(json, null, 2));
-          // 2) Foco por ambiente: como os acabamentos chegam na origem
-          if (Array.isArray(json?.ambientes)) {
-            json.ambientes.forEach((a, i) => {
-              console.log(`[ACAB-DEBUG] ambiente[${i}] "${a?.nome ?? a?.ambiente ?? '?'}"`, {
-                // Flutter 2: totais somados por ambiente (um valor por tipo)
-                metadados_ambiente: a?.metadados_ambiente ?? null,
-                // Flutter 2: acabamento por aresta de cada peça (rótulos, não ml)
-                segmentos_por_peca: (a?.pecas ?? []).map(p => ({ nome: p?.nome ?? p?.name, segmentos: p?.segmentos })),
-                // Flutter 1/legado: lista de acabamentos por peça
-                acabamentos_por_peca: (a?.pecas ?? []).map(p => ({ nome: p?.nome ?? p?.name, acabamentos: p?.acabamentos })),
-                itens: a?.itens ?? null,
-              });
-            });
-          }
-
           const normalizado = normalizarJsonMedicao(json);
-          // 3) Como ficaram os acabamentos DEPOIS da normalização do dashboard
-          console.log('[ACAB-DEBUG] NORMALIZADO _fonte=', normalizado?._fonte,
-            '\n  totais_acabamentos=', JSON.stringify(normalizado?.totais_acabamentos ?? null),
-            '\n  por_peca=', JSON.stringify((normalizado?.resumo_por_peca ?? []).map(p => ({
-              nome: p.nome, ambiente: p.ambiente_nome, item_nome: p.item_nome, grupo_nome: p.grupo_nome, acabamentos: p.acabamentos,
-            })), null, 2));
-          // ═════════════════════════════════════════════════════════════════════
           resumo = normalizado?.resumo_por_peca ?? [];
 
           setPecas(resumo.map(r => ({

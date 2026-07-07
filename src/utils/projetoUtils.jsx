@@ -73,6 +73,8 @@ const _ACAB_KEYS = {
     'rd':             'reto_duplo_ml',     'reto_duplo':     'reto_duplo_ml',
     'cf':             'chanfrado_ml',      'chanfrado':      'chanfrado_ml',
 };
+// Campos canônicos de acabamento linear, na ordem de exibição
+const _ACAB_FIELDS = ['meia_esquadria_ml', 'reto_simples_ml', 'boleado_ml', 'boleado_duplo_ml', 'reto_duplo_ml', 'chanfrado_ml'];
 
 // Lê guarnicoes de json._canvas — verifica TANTO canvas.guarnicoes (top-level)
 // QUANTO canvas.ambientes[i].guarnicoes (per-ambiente), pois o Flutter pode enviar
@@ -196,12 +198,8 @@ export function normalizarJsonMedicao(json) {
 
         if (isFlutter2) {
             const resumo = [];
-            let ambTotalME = 0;
-            let ambTotalRS = 0;
-            let ambTotalBO = 0;
-            let ambTotalBD = 0;
-            let ambTotalRD = 0;
-            let ambTotalCF = 0;
+            // Totais de acabamento do orçamento inteiro (somados de todos os grupos/ambientes)
+            const ambTotais = { meia_esquadria_ml: 0, reto_simples_ml: 0, boleado_ml: 0, boleado_duplo_ml: 0, reto_duplo_ml: 0, chanfrado_ml: 0 };
             for (let ambIdx = 0; ambIdx < json.ambientes.length; ambIdx++) {
                 const amb = json.ambientes[ambIdx];
                 const nomeAmbiente = amb.nome ?? amb.ambiente ?? `Ambiente ${ambIdx + 1}`;
@@ -260,11 +258,20 @@ export function normalizarJsonMedicao(json) {
                 // Enrich pieces and faixas with grupo_nome/grupo_quantidade.
                 // Prefere canvas.ambientes[i].grupos (contém quantidade) sobre amb.grupos.
                 const grupos = canvas?.ambientes?.[ambIdx]?.groups ?? amb.grupos ?? [];
+                // Os acabamentos por grupo chegam em json.ambientes[i].grupos[].acabamentos
+                // (objeto por tipo: { meia_esquadria_ml, reto_simples_ml, ... }). Quando
+                // iteramos os grupos do _canvas (que não trazem acabamentos), buscamos por nome.
+                const acabByGrupoNome = new Map();
+                (amb.grupos ?? []).forEach((g, i) => {
+                    if (g.acabamentos) acabByGrupoNome.set(g.nome ?? `Grupo ${i + 1}`, g.acabamentos);
+                });
+                let usouGrupoAcab = false;
                 grupos.forEach((grupo, grupoIdx) => {
                     const nome = grupo.nome ?? `Grupo ${grupoIdx + 1}`;
                     const qtd  = grupo.quantidade ?? 1;
                     // Flutter pode enviar snake_case (elemento_ids) ou camelCase (elementIds)
                     const eIds = grupo.elemento_ids ?? grupo.elementIds ?? [];
+                    let rep = null;   // representante do grupo (1ª peça/faixa) — recebe os acabamentos
                     eIds.forEach(eId => {
                         const piece = pecasDoAmb.find(p => p.peca_id === eId);
                         if (piece) {
@@ -273,59 +280,55 @@ export function normalizarJsonMedicao(json) {
                             piece.grupo_quantidade = qtd;
                             // area_liquida_m2 mantido como valor unitário por peça;
                             // a multiplicação por qtd fica a cargo de quem exibe o total.
+                            if (!rep) rep = piece;
                         }
                         const faixa = faixasDoAmb.find(f => f.peca_id === eId);
                         if (faixa) {
                             faixa.grupo_nome       = nome;
                             faixa.grupo_index      = grupoIdx;
                             faixa.grupo_quantidade = qtd;
+                            if (!rep) rep = faixa;
                         }
                     });
+                    // Acabamentos por grupo: atribui o total do grupo ao representante.
+                    // Quem exibe (TelaVersoes) soma os ml por grupo → total do grupo == valor do rep.
+                    const acabGrupo = grupo.acabamentos ?? acabByGrupoNome.get(nome);
+                    if (acabGrupo && rep) {
+                        _ACAB_FIELDS.forEach(field => {
+                            const val = Math.round((parseFloat(acabGrupo[field] ?? 0) || 0) * 100) / 100;
+                            if (val > 0) {
+                                rep.acabamentos[field] = val;
+                                ambTotais[field] += val;
+                                usouGrupoAcab = true;
+                            }
+                        });
+                    }
                 });
-                // Fonte única: metadados_ambiente calculados pelo Flutter.
-                // Distribui pelo representante do grupo que contém o segmento do tipo;
-                // se nenhum tiver, usa a primeira peça do ambiente.
-                const totalME = parseFloat(meta?.meia_esquadria_ml ?? 0) || 0;
-                const totalRS = parseFloat(meta?.reto_simples_ml   ?? 0) || 0;
-                const totalBO = parseFloat(meta?.boleado_ml        ?? 0) || 0;
-                const totalBD = parseFloat(meta?.boleado_duplo_ml  ?? 0) || 0;
-                const totalRD = parseFloat(meta?.reto_duplo_ml     ?? 0) || 0;
-                const totalCF = parseFloat(meta?.chanfrado_ml      ?? 0) || 0;
-                const distrib = [
-                    ['meia_esquadria_ml', totalME],
-                    ['reto_simples_ml',   totalRS],
-                    ['boleado_ml',        totalBO],
-                    ['boleado_duplo_ml',  totalBD],
-                    ['reto_duplo_ml',     totalRD],
-                    ['chanfrado_ml',      totalCF],
-                ];
-                if (pecasDoAmb.length > 0) {
-                    distrib.forEach(([field, total]) => {
+                // Fallback legado: medições sem grupos[].acabamentos usam os totais
+                // de metadados_ambiente distribuídos pelo representante que contém o segmento.
+                if (!usouGrupoAcab && pecasDoAmb.length > 0) {
+                    _ACAB_FIELDS.forEach(field => {
+                        const total = Math.round((parseFloat(meta?.[field] ?? 0) || 0) * 100) / 100;
                         if (total <= 0) return;
                         const rep = pecasDoAmb.find(p =>
                             (p.segmentos ?? []).some(s => _ACAB_KEYS[_normAcab(s.acabamento)] === field)
                         ) ?? pecasDoAmb[0];
-                        rep.acabamentos[field] = Math.round(total * 100) / 100;
+                        rep.acabamentos[field] = total;
+                        ambTotais[field] += total;
                     });
                 }
-                ambTotalME += totalME;
-                ambTotalRS += totalRS;
-                ambTotalBO += totalBO;
-                ambTotalBD += totalBD;
-                ambTotalRD += totalRD;
-                ambTotalCF += totalCF;
             }
             _appendGuarnicoesFromCanvas(json, resumo);
             return {
                 resumo_por_peca: resumo,
                 _fonte: 'flutter2',
                 totais_acabamentos: {
-                    meia_esquadria_ml: Math.round(ambTotalME * 100) / 100,
-                    reto_simples_ml:   Math.round(ambTotalRS * 100) / 100,
-                    boleado_ml:        Math.round(ambTotalBO * 100) / 100,
-                    boleado_duplo_ml:  Math.round(ambTotalBD * 100) / 100,
-                    reto_duplo_ml:     Math.round(ambTotalRD * 100) / 100,
-                    chanfrado_ml:      Math.round(ambTotalCF * 100) / 100,
+                    meia_esquadria_ml: Math.round(ambTotais.meia_esquadria_ml * 100) / 100,
+                    reto_simples_ml:   Math.round(ambTotais.reto_simples_ml   * 100) / 100,
+                    boleado_ml:        Math.round(ambTotais.boleado_ml        * 100) / 100,
+                    boleado_duplo_ml:  Math.round(ambTotais.boleado_duplo_ml  * 100) / 100,
+                    reto_duplo_ml:     Math.round(ambTotais.reto_duplo_ml     * 100) / 100,
+                    chanfrado_ml:      Math.round(ambTotais.chanfrado_ml      * 100) / 100,
                 },
             };
         }
