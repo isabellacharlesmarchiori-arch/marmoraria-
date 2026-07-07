@@ -16,7 +16,6 @@ import ModalEditarVersao from '../components/projeto/ModalEditarVersao';
 import DrawerItemManual from '../components/projeto/DrawerItemManual';
 import DrawerEdicaoPeca from '../components/projeto/DrawerEdicaoPeca';
 import ModalAgendarMedicao from '../components/projeto/ModalAgendarMedicao';
-import ModalAgendarProducao from '../components/projeto/ModalAgendarProducao';
 import AbaMedicoes from '../components/projeto/AbaMedicoes';
 import AbaCarrinho from '../components/projeto/AbaCarrinho';
 import AbaPedidos from '../components/projeto/AbaPedidos';
@@ -71,6 +70,7 @@ export default function TelaProjetoVendedor() {
 
     // Abre modal de edição preenchido com dados existentes
     function handleAbrirEditar(m) {
+        setAgPedidoContext(null);
         setEditingMedicaoId(m.id);
         setAgMedidor(m.medidor_id ?? '');
         // Converte ISO → "YYYY-MM-DDTHH:mm" para o input datetime-local
@@ -161,7 +161,9 @@ export default function TelaProjetoVendedor() {
     const [modalOrcManual,   setModalOrcManual]   = useState(false);
     const [painelMedicao,      setPainelMedicao]      = useState(null);
     const [painelDiferenca,    setPainelDiferenca]    = useState(null); // null | { medicao, pedido, pedidoNumero }
-    const [modalAgendarProd,   setModalAgendarProd]   = useState(null); // null | { pedido, numero }
+    // Fluxo único de agendamento: ModalAgendarMedicao serve preliminar e produção.
+    // null → preliminar; { pedido, numero } → medição de produção vinculada a um pedido.
+    const [agPedidoContext,    setAgPedidoContext]    = useState(null);
 
     // ── Carrinho: expansão, edição de nome, edição de desconto ─────────────────
     const [carrinhoExpandido,       setCarrinhoExpandido]       = useState({});
@@ -279,6 +281,7 @@ export default function TelaProjetoVendedor() {
         setClienteSemEndereco(false);
         setEndSugestoes([]);
         setEndConfirmado(false);
+        setAgPedidoContext(null);
     };
 
     function parseEnderecoCliente(str) {
@@ -298,9 +301,94 @@ export default function TelaProjetoVendedor() {
         setAgCidade(end.cidade);
         setAgCep(end.cep);
         setAgEstado(end.estado);
+        setAgPedidoContext(null);
         setEndConfirmado(temEndereco);
         setClienteSemEndereco(!temEndereco);
         setModalAgendar(true);
+    }
+
+    // Prefill dos campos de endereço a partir do cadastro do cliente (usado nos
+    // agendamentos de produção — o endereço já é o do cliente, mas fica editável + CEP)
+    function prefillEnderecoDoCliente() {
+        const end = parseEnderecoCliente(projeto?.clientes?.endereco);
+        setAgRua(end.rua);
+        setAgNumero(end.numero);
+        setAgBairro(end.bairro);
+        setAgCidade(end.cidade);
+        setAgCep(end.cep);
+        setAgEstado(end.estado);
+        setEndConfirmado(!!(end.rua?.trim() || end.cidade?.trim()));
+        setEndSugestoes([]);
+        setClienteSemEndereco(false);
+    }
+
+    // Agendar medição de PRODUÇÃO (vinculada a um pedido) — mesmo modal do preliminar
+    function handleAgendarProducao(pedido, numero) {
+        setEditingMedicaoId(null);
+        setAgMedidor(medidores.length === 1 ? medidores[0].id : '');
+        setAgData('');
+        setAgObservacoes('');
+        prefillEnderecoDoCliente();
+        setErroAgendar('');
+        setAgPedidoContext({ pedido, numero });
+        setModalAgendar(true);
+    }
+
+    // Editar agendamento de produção existente — mesmo modal
+    function handleEditarProducao(medicao, pedidoNumero) {
+        const pedido = pedidosFechados.find(p => p.id === medicao.pedido_id) ?? {};
+        setEditingMedicaoId(medicao.id);
+        setAgMedidor(medicao.medidor_id ?? '');
+        setAgData(medicao.data_medicao ? medicao.data_medicao.slice(0, 16) : '');
+        setAgObservacoes(medicao.observacoes_acesso ?? '');
+        prefillEnderecoDoCliente();
+        setErroAgendar('');
+        setAgPedidoContext({ pedido, numero: pedidoNumero });
+        setModalAgendar(true);
+    }
+
+    // Confirmação única: roteia para a ação de produção ou preliminar conforme o contexto
+    async function handleConfirmarAgendamento() {
+        if (agPedidoContext) {
+            if (!agMedidor) { setErroAgendar('Selecione um medidor.'); return; }
+            if (!agData)    { setErroAgendar('Selecione a data e hora.'); return; }
+            setErroAgendar('');
+            setAgendando(true);
+            try {
+                if (editingMedicaoId) {
+                    await actions.handleEditarMedicaoProducao({
+                        medicaoId:   editingMedicaoId,
+                        medidorId:   agMedidor,
+                        dataStr:     agData,
+                        observacoes: agObservacoes.trim() || null,
+                        endereco:    enderecoCompleto || null,
+                    });
+                } else {
+                    await actions.handleAgendarMedicaoProducao({
+                        pedidoId:    agPedidoContext.pedido.id,
+                        medidorId:   agMedidor,
+                        dataStr:     agData,
+                        observacoes: agObservacoes.trim() || null,
+                        endereco:    enderecoCompleto || null,
+                    });
+                }
+                closeAll();
+            } catch (e) {
+                setErroAgendar(e.message ?? 'Erro ao salvar. Tente novamente.');
+            } finally {
+                setAgendando(false);
+            }
+            return;
+        }
+        // Medição preliminar
+        actions.handleAgendarMedicao({
+            agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes,
+            // Só salva no cliente se houver endereço de fato preenchido
+            salvarNoCliente: clienteSemEndereco && !!enderecoCompleto,
+            enderecoClienteJson: clienteSemEndereco && enderecoCompleto
+                ? JSON.stringify({ cep: agCep, rua: agRua, numero: agNumero, complemento: '', bairro: agBairro, cidade: agCidade, estado: agEstado })
+                : null,
+        }, { setErroAgendar, setAgendando, closeAll });
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -427,11 +515,8 @@ export default function TelaProjetoVendedor() {
                         medicoes={medicoes}
                         pedidosFechados={pedidosFechados}
                         ambientes={ambientes}
-                        onAgendarProducao={(pedido, numero) => setModalAgendarProd({ pedido, numero, medicao: null })}
-                        onEditarProducao={(medicao, pedidoNumero) => {
-                            const pedido = pedidosFechados.find(p => p.id === medicao.pedido_id);
-                            setModalAgendarProd({ pedido: pedido ?? {}, numero: pedidoNumero, medicao });
-                        }}
+                        onAgendarProducao={handleAgendarProducao}
+                        onEditarProducao={handleEditarProducao}
                         isMedidorCombinado={isMedidorCombinado}
                         vendedorId={projeto?.vendedor_id}
                         sessionUserId={session?.user?.id}
@@ -489,11 +574,8 @@ export default function TelaProjetoVendedor() {
                         pedidosFechados={pedidosFechados}
                         ambientes={ambientes}
                         medicoes={medicoes}
-                        onAgendarProducao={(pedido, numero) => setModalAgendarProd({ pedido, numero, medicao: null })}
-                        onEditarProducao={(medicao, pedidoNumero) => {
-                            const pedido = pedidosFechados.find(p => p.id === medicao.pedido_id);
-                            setModalAgendarProd({ pedido: pedido ?? {}, numero: pedidoNumero, medicao });
-                        }}
+                        onAgendarProducao={handleAgendarProducao}
+                        onEditarProducao={handleEditarProducao}
                         actions={actions}
                         loadingPdf={loadingPdf}
                         setPdfModal={setPdfModal}
@@ -564,14 +646,8 @@ export default function TelaProjetoVendedor() {
                 enderecoCompleto={enderecoCompleto}
                 medidores={medidores}
                 profile={profile}
-                onConfirmar={() => actions.handleAgendarMedicao({
-                    agMedidor, agData, editingMedicaoId, enderecoCompleto, agObservacoes,
-                    // Só salva no cliente se houver endereço de fato preenchido
-                    salvarNoCliente: clienteSemEndereco && !!enderecoCompleto,
-                    enderecoClienteJson: clienteSemEndereco && enderecoCompleto
-                        ? JSON.stringify({ cep: agCep, rua: agRua, numero: agNumero, complemento: '', bairro: agBairro, cidade: agCidade, estado: agEstado })
-                        : null,
-                }, { setErroAgendar, setAgendando, closeAll })}
+                pedidoContext={agPedidoContext}
+                onConfirmar={handleConfirmarAgendamento}
             />
 
             {/* ══ MODAL — Atualizar Status ═══════════════════════════════ */}
@@ -633,35 +709,6 @@ export default function TelaProjetoVendedor() {
             />
         )}
 
-        {/* ══ MODAL — Agendar Medição de Produção ══════════════════════ */}
-        {modalAgendarProd && (() => {
-            const rawEndereco = projeto?.clientes?.endereco ?? '';
-            const { rua, numero, bairro, cidade } = parseEnderecoCliente(rawEndereco);
-            const enderecoCliente = [rua, numero, bairro, cidade].filter(Boolean).join(', ') || null;
-            return (
-                <ModalAgendarProducao
-                    pedido={modalAgendarProd.pedido}
-                    pedidoNumero={modalAgendarProd.numero}
-                    medidores={medidores}
-                    profile={profile}
-                    modo={modalAgendarProd.medicao ? 'editar' : 'agendar'}
-                    medicaoInicial={modalAgendarProd.medicao}
-                    enderecoCliente={enderecoCliente}
-                    onConfirmar={({ medidorId, dataStr, observacoes, endereco }) =>
-                        modalAgendarProd.medicao
-                            ? actions.handleEditarMedicaoProducao({
-                                  medicaoId: modalAgendarProd.medicao.id,
-                                  medidorId, dataStr, observacoes,
-                              }).then(() => setModalAgendarProd(null))
-                            : actions.handleAgendarMedicaoProducao({
-                                  pedidoId: modalAgendarProd.pedido.id,
-                                  medidorId, dataStr, observacoes, endereco,
-                              }).then(() => setModalAgendarProd(null))
-                    }
-                    onClose={() => setModalAgendarProd(null)}
-                />
-            );
-        })()}
 
         {/* ══ MODAL — Orçamento Manual ══════════════════════════════════ */}
         {modalOrcManual && (

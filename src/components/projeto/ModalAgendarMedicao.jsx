@@ -31,9 +31,19 @@ export default function ModalAgendarMedicao({
     medidores,
     profile,
     onConfirmar,
+    pedidoContext = null,   // null → medição preliminar; { pedido, numero } → medição de produção
 }) {
     const [buscandoCep, setBuscandoCep] = React.useState(false);
     const cepDebounceRef = React.useRef(null);
+
+    // Rótulos do header — muda entre medição preliminar e medição de produção
+    const isProducao = !!pedidoContext;
+    const headerTag = isProducao
+        ? (editingMedicaoId ? '[ EDITAR_PRODUÇÃO ]' : '[ AGENDAR_PRODUÇÃO ]')
+        : (editingMedicaoId ? '[ EDITAR_MEDIÇÃO ]'  : '[ AGENDAR_MEDIÇÃO ]');
+    const headerTitulo = isProducao
+        ? `Medição de Produção — Pedido ${pedidoContext.numero}`
+        : (editingMedicaoId ? 'Editar medição' : 'Nova medição');
 
     // CEP → endereço (ViaCEP direto)
     const handleCepChange = (e) => {
@@ -98,10 +108,10 @@ export default function ModalAgendarMedicao({
                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800">
                     <div>
                         <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-600 mb-0.5">
-                            {editingMedicaoId ? '[ EDITAR_MEDIÇÃO ]' : '[ AGENDAR_MEDIÇÃO ]'}
+                            {headerTag}
                         </div>
                         <div className="text-zinc-900 dark:text-white font-semibold">
-                            {editingMedicaoId ? 'Editar medição' : 'Nova medição'}
+                            {headerTitulo}
                         </div>
                     </div>
                     <button onClick={closeAll} className="text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors p-1">

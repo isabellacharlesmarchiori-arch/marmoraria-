@@ -253,7 +253,7 @@ export function useProjectActions(projectId, {
         }, ...prev]);
     }
 
-    async function handleEditarMedicaoProducao({ medicaoId, medidorId, dataStr, observacoes }) {
+    async function handleEditarMedicaoProducao({ medicaoId, medidorId, dataStr, observacoes, endereco }) {
         if (!projectId || !profile?.empresa_id) throw new Error('Sessão inválida. Recarregue a página.');
         const medidorSel      = medidores.find(m => m.id === medidorId);
         const dataAgendadaISO = new Date(dataStr).toISOString();
@@ -264,9 +264,11 @@ export function useProjectActions(projectId, {
                 responsavel:        medidorSel?.nome ?? '',
                 data_medicao:       dataAgendadaISO,
                 observacoes_acesso: observacoes ?? null,
+                // endereco só é sobrescrito quando o modal envia o campo (undefined = não mexe)
+                ...(endereco !== undefined ? { endereco: endereco || null } : {}),
             })
             .eq('id', medicaoId)
-            .select('id, data_medicao, responsavel, medidor_id, status, json_medicao, svg_url, tipo, pedido_id, observacoes_acesso')
+            .select('id, data_medicao, responsavel, medidor_id, endereco, status, json_medicao, svg_url, tipo, pedido_id, observacoes_acesso')
             .single();
         if (error) throw new Error(error.message);
         setMedicoes(prev => prev.map(m => m.id === medicaoId ? {
