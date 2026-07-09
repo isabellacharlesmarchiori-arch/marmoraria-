@@ -14,6 +14,7 @@ import {
   aplicarAutoMatchNaLista,
   fmt,
   precoPeca,
+  isFaixa,
 } from '../utils/orcamentoUtils';
 import PecaRow from '../components/orcamento/PecaRow';
 import PainelMaterial from '../components/orcamento/PainelMaterial';
@@ -41,6 +42,8 @@ export default function CriarOrcamento() {
   const [produtos, setProdutos] = useState([]);     // itens avulsos adicionados pelo usuário no passo 1
   const [produtosCatalogo, setProdutosCatalogo] = useState([]); // catálogo bruto do Supabase
   const [bulkMaterialId, setBulkMaterialId] = useState('');     // bulk action: material único
+  const [faixaMaterialId, setFaixaMaterialId] = useState('');   // material alternativo aplicado a todas as faixas
+  const [painelFaixaAberto, setPainelFaixaAberto] = useState(false); // modal de seleção do material das faixas
   const [processedMedicaoId, setProcessedMedicaoId] = useState(null);
   const [avulsosSalvos, setAvulsosSalvos] = useState({});  // { ambiente_nome: [avulso] } — carregados de orçamentos salvos (Opção A)
 
@@ -210,6 +213,7 @@ export default function CriarOrcamento() {
           if (largura <= 0 || comprimento <= 0) return;
           novasPecas.push({
             id: pm.id, nome: pm.nome || 'Peça', ambiente_nome: amb.nome,
+            type: pm.tipo === 'faixa' ? 'faixa' : null,   // preserva p/ material alternativo de faixas
             area_liq: Math.round(largura * comprimento * 10000) / 10000,
             espessura: pm.tipo === 'faixa' ? (parseFloat(pm.espessura) || 2) : 2,
             meia_esquadria_ml: 0, reto_simples_ml: 0, cortes: 0,
@@ -370,6 +374,7 @@ export default function CriarOrcamento() {
           setPecas(resumo.map(r => ({
             id:                isValidUUID(r.peca_id) ? r.peca_id : crypto.randomUUID(),
             nome:              r.nome ?? '—',
+            type:              r.type ?? null,          // preserva 'faixa' p/ material alternativo de faixas
             descricao:         r.descricao ?? null,
             ambiente_nome:     r.ambiente_nome ?? null,
             item_nome:         r.item_nome ?? null,
@@ -666,6 +671,17 @@ export default function CriarOrcamento() {
     if (!bulkMaterialId) return;
     setPecas(prev => prev.map(p =>
       p.incluida ? { ...p, materiais: [bulkMaterialId] } : p
+    ));
+  }
+
+  // ── Material alternativo de faixas (escopo global) ───
+  // Reatribui o material de todas as peças-faixa incluídas. O custo é derivado do
+  // material no render (precoPeca), então trocar `materiais` já refaz o cálculo.
+  function aplicarMaterialAsFaixas(matId, acabamento = null) {
+    setFaixaMaterialId(matId);
+    if (!matId) return;
+    setPecas(prev => prev.map(p =>
+      p.incluida && isFaixa(p) ? { ...p, materiais: [matId], acabamentoSel: acabamento ?? null } : p
     ));
   }
 
@@ -1647,6 +1663,31 @@ export default function CriarOrcamento() {
             </span>
           </div>
 
+          {/* Material alternativo para faixas — aplica a todas as faixas de uma vez */}
+          {pecasIncluidas.some(isFaixa) && (
+            <div className="flex flex-wrap items-center gap-2 mb-3 px-3 py-2.5 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/40 rounded-2xl dark:rounded-none">
+              <iconify-icon icon="solar:ruler-linear" width="13" className="text-orange-600 dark:text-yellow-400 shrink-0"></iconify-icon>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 dark:text-zinc-400 shrink-0">
+                Material das faixas ({pecasIncluidas.filter(isFaixa).length})
+              </span>
+              <button
+                onClick={() => setPainelFaixaAberto(true)}
+                className={`flex-1 min-w-[160px] flex items-center justify-between gap-2 bg-white dark:bg-black border text-xs font-mono px-2 py-1.5 rounded-md dark:rounded-none outline-none transition-colors ${
+                  faixaMaterialId
+                    ? 'border-orange-500/60 dark:border-yellow-400/60 text-zinc-900 dark:text-white'
+                    : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:border-orange-500/40 dark:hover:border-yellow-400/40'
+                }`}
+              >
+                <span className="truncate">
+                  {faixaMaterialId
+                    ? (materiais.find(m => m.id === faixaMaterialId)?.nome ?? 'Material')
+                    : 'Selecionar material alternativo…'}
+                </span>
+                <iconify-icon icon="solar:alt-arrow-down-linear" width="12" className="shrink-0 opacity-60"></iconify-icon>
+              </button>
+            </div>
+          )}
+
           <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-[2rem] dark:rounded-none overflow-hidden">
             {loadingPecas ? (
               <div className="px-4 py-8 flex items-center justify-center gap-2 text-zinc-500 dark:text-zinc-600">
@@ -2050,6 +2091,20 @@ export default function CriarOrcamento() {
           </div>
         </div>
       </div>
+
+      {/* ── Painel lateral: material alternativo das faixas (global) ── */}
+      {painelFaixaAberto && (
+        <PainelMaterial
+          key="pm-faixas"
+          pecaId="faixas"
+          pecaNome={`Faixas — material alternativo (${pecasIncluidas.filter(isFaixa).length})`}
+          selecionados={faixaMaterialId ? [faixaMaterialId] : []}
+          onConfirmar={(_, sel, acabamento) => { aplicarMaterialAsFaixas(sel[0] ?? '', acabamento ?? null); setPainelFaixaAberto(false); }}
+          onFechar={() => setPainelFaixaAberto(false)}
+          todosM={materiais}
+          single
+        />
+      )}
 
       {/* ── Painel lateral: material por peça ───────── */}
       {painelMaterialPecaId && pecaPainel && (

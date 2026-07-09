@@ -3,7 +3,7 @@ import PainelMaterial from './PainelMaterial';
 import PainelMaterialLinear from './PainelMaterialLinear';
 import ModalProdutoAvulso from './ModalProdutoAvulso';
 import ModalServicoExtra from './ModalServicoExtra';
-import { fmt, precoPeca, precoAcabamento, ACAB_TIPO_NOME, aplicarAutoMatchNaLista } from '../../utils/orcamentoUtils';
+import { fmt, precoPeca, precoAcabamento, ACAB_TIPO_NOME, aplicarAutoMatchNaLista, isFaixa } from '../../utils/orcamentoUtils';
 
 export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, produtosCatalogo, avulsosSalvos = {}, onSalvar, onVoltar, todosM, matLineares = [], precosCatMaterial = [], acabamentosUnitarios = [], salvando = false, grupoExtras = {} }) {
 
@@ -76,6 +76,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
               uid: stoneUid,
               idBase: p.id,
               tipo: 'pedra',
+              type: p.type ?? null,               // preserva 'faixa' p/ material alternativo de faixas
               nome: p.nome,
               ambiente_nome: p.ambiente_nome ?? null,
               item_nome: grupoNomeVal,
@@ -245,6 +246,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
 
   // ── UI State ─────────────────────────────────────────────────────
   const [expandido, setExpandido] = useState(null);              // { amb, vId }
+  const [faixaMatByVersao, setFaixaMatByVersao] = useState({});  // { [vId]: matId } — material alternativo de faixas por versão
   const [editandoNomeVersao, setEditandoNomeVersao] = useState(null); // { amb, vId }
   const [modalAvulsoKey, setModalAvulsoKey] = useState(null);   // { amb, vId }
   const [modalServicoKey, setModalServicoKey] = useState(null); // { amb, vId }
@@ -257,7 +259,9 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
   function confirmarMatVersao(_, selecionados, acabamento = null) {
     const matId = selecionados[0] ?? '';
     if (!painelMatVersao) return;
-    if (painelMatVersao.itemKey !== null) {
+    if (painelMatVersao.faixa) {
+      aplicarMaterialAsFaixasVersao(painelMatVersao.amb, painelMatVersao.vId, matId);
+    } else if (painelMatVersao.itemKey !== null) {
       editarItemMat(painelMatVersao.amb, painelMatVersao.vId, painelMatVersao.itemKey, matId, acabamento);
     } else {
       editarPecaMat(painelMatVersao.amb, painelMatVersao.vId, painelMatVersao.uid, matId, acabamento);
@@ -551,7 +555,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
       pcsGroup.forEach((p, idx) => {
         const stoneUid = `${p.id}-${Math.random()}`;
         if (idx === 0) firstStoneUid = stoneUid;
-        pecasListRaw.push({ uid: stoneUid, idBase: p.id, tipo: 'pedra', nome: p.nome, ambiente_nome: p.ambiente_nome ?? null, item_nome: grupoNomeVal, matId: null, matAcabamento: null, area_liq: p.area_liq ?? 0, grupo_quantidade: p.grupo_quantidade ?? 1, espessura: p.espessura ?? 2, meia_esquadria_ml: p.meia_esquadria_ml ?? 0, reto_simples_ml: p.reto_simples_ml ?? 0, boleado_ml: p.boleado_ml ?? 0, boleado_duplo_ml: p.boleado_duplo_ml ?? 0, reto_duplo_ml: p.reto_duplo_ml ?? 0, chanfrado_ml: p.chanfrado_ml ?? 0, cortes: p.cortes ?? 0 });
+        pecasListRaw.push({ uid: stoneUid, idBase: p.id, tipo: 'pedra', type: p.type ?? null, nome: p.nome, ambiente_nome: p.ambiente_nome ?? null, item_nome: grupoNomeVal, matId: null, matAcabamento: null, area_liq: p.area_liq ?? 0, grupo_quantidade: p.grupo_quantidade ?? 1, espessura: p.espessura ?? 2, meia_esquadria_ml: p.meia_esquadria_ml ?? 0, reto_simples_ml: p.reto_simples_ml ?? 0, boleado_ml: p.boleado_ml ?? 0, boleado_duplo_ml: p.boleado_duplo_ml ?? 0, reto_duplo_ml: p.reto_duplo_ml ?? 0, chanfrado_ml: p.chanfrado_ml ?? 0, cortes: p.cortes ?? 0 });
       });
       const geKey = `${amb}::${gKey}`;
       const ge = grupoExtras[geKey];
@@ -694,6 +698,30 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
           p.tipo === 'acabamento' && p.idPedraUid === pUid ? { ...p, matLinearId: null } : p
         );
         return { ...v, pecasList: aplicarAutoMatchNaLista(comReMatch, todosM, matLineares, precosCatMaterial) };
+      }),
+    }));
+  }
+
+  // ── Material alternativo de faixas (escopo: por versão) ───
+  // Reatribui o matId de todas as pedras-faixa da versão e força re-match dos
+  // acabamentos filhos (zera matLinearId) para o material linear acompanhar a nova pedra.
+  function aplicarMaterialAsFaixasVersao(amb, vId, matId) {
+    setFaixaMatByVersao(prev => ({ ...prev, [vId]: matId }));
+    if (!matId) return;
+    setAmbiVersoes(prev => ({
+      ...prev,
+      [amb]: (prev[amb] ?? []).map(v => {
+        if (v.id !== vId) return v;
+        const faixaUids = new Set(
+          v.pecasList.filter(pw => pw.tipo === 'pedra' && isFaixa(pw)).map(pw => pw.uid)
+        );
+        if (faixaUids.size === 0) return v;
+        const comNovoMat = v.pecasList.map(pw => {
+          if (pw.tipo === 'pedra' && faixaUids.has(pw.uid)) return { ...pw, matId, matAcabamento: null };
+          if (pw.tipo === 'acabamento' && faixaUids.has(pw.idPedraUid)) return { ...pw, matLinearId: null };
+          return pw;
+        });
+        return { ...v, pecasList: aplicarAutoMatchNaLista(comNovoMat, todosM, matLineares, precosCatMaterial) };
       }),
     }));
   }
@@ -1131,6 +1159,30 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                         {/* Área expandida: peças agrupadas por item + avulsos */}
                         {isExp && (
                           <div className="border-t border-zinc-200/80 dark:border-zinc-800">
+                            {/* Material alternativo para faixas desta versão */}
+                            {v.pecasList.some(pw => pw.tipo === 'pedra' && isFaixa(pw)) && (
+                              <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/40">
+                                <iconify-icon icon="solar:ruler-linear" width="13" className="text-orange-600 dark:text-yellow-400 shrink-0"></iconify-icon>
+                                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 dark:text-zinc-400 shrink-0">
+                                  Material das faixas ({v.pecasList.filter(pw => pw.tipo === 'pedra' && isFaixa(pw)).length})
+                                </span>
+                                <button
+                                  onClick={() => setPainelMatVersao({ amb, vId: v.id, uid: null, itemKey: null, faixa: true, atual: faixaMatByVersao[v.id] ?? null, label: 'Faixas — material alternativo' })}
+                                  className={`flex-1 min-w-[160px] flex items-center justify-between gap-2 bg-white dark:bg-black border text-xs font-mono px-2 py-1.5 rounded-md dark:rounded-none outline-none transition-colors ${
+                                    faixaMatByVersao[v.id]
+                                      ? 'border-orange-500/60 dark:border-yellow-400/60 text-zinc-900 dark:text-white'
+                                      : 'border-zinc-200/80 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:border-orange-500/40 dark:hover:border-yellow-400/40'
+                                  }`}
+                                >
+                                  <span className="truncate">
+                                    {faixaMatByVersao[v.id]
+                                      ? (todosM.find(m => m.id === faixaMatByVersao[v.id])?.nome ?? 'Material')
+                                      : 'Selecionar material alternativo…'}
+                                  </span>
+                                  <iconify-icon icon="solar:alt-arrow-down-linear" width="12" className="shrink-0 opacity-60"></iconify-icon>
+                                </button>
+                              </div>
+                            )}
                             {/* Peças — agrupadas por item_nome quando existir */}
                             {(() => {
                               // Helper: renderiza uma linha de acabamento linear

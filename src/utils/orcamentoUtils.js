@@ -219,6 +219,15 @@ export function fmt(v) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// Identifica se uma peça é uma faixa. Faixas de medição chegam com type: 'faixa'
+// (preservado no mapeamento) e nome default "Faixa"; o match por nome (/faixa/i)
+// cobre também faixas manuais/renomeadas ("Faixa 1", "Faixa cuba", etc.).
+// Aceita tanto peça bruta (`type`) quanto linha de pedra da TelaVersoes (`type` copiado).
+export function isFaixa(p) {
+  if (!p) return false;
+  return p.type === 'faixa' || /faixa/i.test(p.nome ?? '');
+}
+
 export function precoPeca(peca, materialId, todosM, acabamentoSel = null) {
   if (!peca || !materialId) return 0;
   const m = (todosM || []).find(x => x.id === materialId);
