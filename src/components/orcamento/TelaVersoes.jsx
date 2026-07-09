@@ -497,8 +497,8 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
     if (!v) return 0;
     const tPecas = v.pecasList.filter(pw => !excluidosAmb.includes(pw.uid)).reduce((s, pw) => {
       if (pw.tipo === 'acabamento') {
-        const gQtd = v.pecasList.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
-        return s + gQtd * (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
+        // ml já é o total do grupo (normalize atribui o total ao representante) — não multiplicar por grupo_quantidade
+        return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
       }
       if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
       const pOrig = pecas.find(p => p.id === pw.idBase);
@@ -1137,9 +1137,9 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                               // topLevel: renderiza o acabamento como um item próprio de topo
                               // (sem o conector visual de "filho da peça acima" e sem recuo).
                               const renderAcabamento = (pw, indent = false, topLevel = false) => {
-                                const gQtd = v.pecasList.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
                                 const subAcComputed = precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null);
-                                const subAc = (pw.precoManual != null ? pw.precoManual : subAcComputed) * gQtd;
+                                // ml já é o total do grupo — não multiplicar por grupo_quantidade
+                                const subAc = pw.precoManual != null ? pw.precoManual : subAcComputed;
                                 const isEditingPM = editandoPrecoManual?.uid === pw.uid;
                                 const excluida = (excluidos[amb] ?? []).includes(pw.uid);
                                 const padding = topLevel ? 'px-4' : (indent ? 'pl-10 pr-4' : 'pl-6 pr-4');
@@ -1171,14 +1171,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         onChange={e => editarAcabamentoMl(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
                                         className="w-14 bg-white dark:bg-black rounded-md dark:rounded-none border border-amber-400 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
                                       />
-                                      {gQtd > 1 ? (
-                                        <div className="flex flex-col items-start shrink-0">
-                                          <span className="font-mono text-[8px] text-amber-700/60">ml/un.</span>
-                                          <span className="font-mono text-[8px] text-orange-600/70 dark:text-yellow-400/70">{(pw.ml * gQtd).toFixed(2)} ml ({gQtd}×)</span>
-                                        </div>
-                                      ) : (
-                                        <span className="font-mono text-[10px] text-amber-700">ml</span>
-                                      )}
+                                      <span className="font-mono text-[10px] text-amber-700">ml</span>
                                     </div>
                                     {pw.matLinearId
                                       ? <button onClick={() => setPainelLinearVersao({ amb, vId: v.id, uid: pw.uid })} className="font-mono text-[8px] uppercase tracking-widest px-2 py-0.5 border border-amber-500 dark:border-amber-600/40 text-amber-700 dark:text-amber-400 shrink-0 flex items-center gap-1 hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-colors">
@@ -1422,8 +1415,8 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                 // Subtotal inclui pedras + acabamentos + recortes
                                 const subtotalItem = pwsItem.filter(pw => !(excluidos[amb] ?? []).includes(pw.uid)).reduce((s, pw) => {
                                   if (pw.tipo === 'acabamento') {
-                                    const gQtd = pwsItem.find(p => p.uid === pw.idPedraUid)?.grupo_quantidade ?? 1;
-                                    return s + gQtd * (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
+                                    // ml já é o total do grupo — não multiplicar por grupo_quantidade
+                                    return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
                                   }
                                   if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);

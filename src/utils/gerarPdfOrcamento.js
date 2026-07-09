@@ -522,13 +522,13 @@ async function buildOrcamentoPdf(
         if (mostrarAcab) {
           const acabByTipo = new Map();
           pecasItem.forEach(p => {
-            const gQtd = p.grupo_quantidade ?? 1;
+            // ml/valor já são totais do grupo — não multiplicar por grupo_quantidade
             (Array.isArray(p.acabamentos) ? p.acabamentos : []).forEach(ac => {
               if (Number(ac.ml ?? 0) <= 0) return;
               if (!acabByTipo.has(ac.tipo)) acabByTipo.set(ac.tipo, { ml: 0, valor: 0 });
               const e = acabByTipo.get(ac.tipo);
-              e.ml    += Number(ac.ml    ?? 0) * gQtd;
-              e.valor += Number(ac.valor ?? 0) * gQtd;
+              e.ml    += Number(ac.ml    ?? 0);
+              e.valor += Number(ac.valor ?? 0);
             });
           });
 
