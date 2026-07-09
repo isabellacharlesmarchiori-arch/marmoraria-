@@ -35,7 +35,7 @@ export default function AbaCarrinho({
     const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null);
     const [editandoAmbCarrinho,  setEditandoAmbCarrinho]  = useState(null);
     const [avisoIncluido, setAvisoIncluido] = useState(null); // { orcId, pedidoNumero }
-    const [nivelDetalhe, setNivelDetalhe] = useState({}); // { orcId: 'ambientes' | 'itens' | 'pecas' } — filtro visual do painel expandido (default: 'pecas')
+    const [detalheAberto, setDetalheAberto] = useState({}); // { [nodeKey]: true } — nós (ambiente/item) abertos no accordion aninhado do painel expandido
 
     function toggleCarrinhoDetalhes(orcId) {
         setCarrinhoExpandido(prev => {
@@ -575,350 +575,263 @@ export default function AbaCarrinho({
                                         return ambientes.find(a => a.id === ambId)?.nome ?? orc.ambiente_nome ?? 'Ambiente';
                                     };
 
-                                    // Nível de detalhe exibido (filtro visual): 'ambientes' | 'itens' | 'pecas' (padrão)
-                                    const nivel = nivelDetalhe[orc.id] ?? 'pecas';
+                                    const ACAB_LABELS = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', boleado: 'Boleado', boleado_duplo: 'Boleado Duplo', reto_duplo: 'Reto Duplo', chanfrado: 'Chanfrado', ME: 'Meia-Esquadria', RS: 'Reto Simples', BO: 'Boleado', BD: 'Boleado Duplo', RD: 'Reto Duplo', CF: 'Chanfrado' };
+
+                                    // Accordion aninhado: ambiente → item → peças (nomes reais). Cada nó expande/colapsa; começa tudo fechado.
+                                    const ambKey = (id) => `${orc.id}::amb::${id}`;
+                                    const itmKey = (id, it) => `${orc.id}::item::${id}::${it}`;
+                                    const isOpen = (k) => !!detalheAberto[k];
+                                    const toggleNo = (k) => setDetalheAberto(prev => ({ ...prev, [k]: !prev[k] }));
+
+                                    // Folha do accordion: linhas de peça + acabamentos + furos de um conjunto de peças
+                                    const renderPecas = (pecasList, px) => {
+                                        const acabByTipo = new Map();
+                                        const furo = { valor: 0, labels: [] };
+                                        pecasList.forEach(p => {
+                                            (p.acabamentos ?? []).forEach(ac => {
+                                                if (Number(ac.ml ?? 0) <= 0) return;
+                                                if (!acabByTipo.has(ac.tipo)) acabByTipo.set(ac.tipo, { ml: 0, valor: 0 });
+                                                const e = acabByTipo.get(ac.tipo);
+                                                e.ml    += Number(ac.ml ?? 0);
+                                                e.valor += Number(ac.valor ?? 0);
+                                            });
+                                            furo.valor += Number(p.valor_recortes ?? 0);
+                                            (p.recortes ?? []).forEach(r => {
+                                                const nm = r.funcao_label ?? r.funcao ?? r.tipo ?? r.nome ?? 'Recorte';
+                                                if (nm && !furo.labels.includes(nm)) furo.labels.push(nm);
+                                            });
+                                        });
+                                        return [
+                                            ...pecasList.map((p, pi) => {
+                                                const qtd = p.grupo_quantidade ?? 1;
+                                                const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0) - (p.valor_recortes ?? 0);
+                                                const areaTotal = p.area != null ? Number(p.area) : null;
+                                                const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
+                                                const valorUnit = qtd > 1 ? valorPedra / qtd : null;
+                                                const isEditPeca = editandoPecaCarrinho?.orcId === orc.id && editandoPecaCarrinho?.pecaId === p.id;
+                                                return (
+                                                    <div key={p.id ?? pi} className={`flex items-center justify-between py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors group/peca ${px}`}>
+                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                            <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
+                                                            {isEditPeca ? (
+                                                                <input
+                                                                    autoFocus
+                                                                    value={editandoPecaCarrinho.nome}
+                                                                    onChange={e => setEditandoPecaCarrinho(prev => ({ ...prev, nome: e.target.value }))}
+                                                                    onBlur={() => actions.renomearPecaCarrinho(orc.id, p.id, p.pecaDbId, editandoPecaCarrinho.nome, () => setEditandoPecaCarrinho(null))}
+                                                                    onKeyDown={e => {
+                                                                        if (e.key === 'Enter') actions.renomearPecaCarrinho(orc.id, p.id, p.pecaDbId, editandoPecaCarrinho.nome, () => setEditandoPecaCarrinho(null));
+                                                                        if (e.key === 'Escape') setEditandoPecaCarrinho(null);
+                                                                    }}
+                                                                    className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[11px] px-1.5 py-0.5 outline-none"
+                                                                />
+                                                            ) : (
+                                                                <>
+                                                                    <span className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
+                                                                    <button
+                                                                        onClick={() => setEditandoPecaCarrinho({ orcId: orc.id, pecaId: p.id, pecaDbId: p.peca_id ?? null, nome: p.nome ?? '' })}
+                                                                        className="opacity-0 group-hover/peca:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
+                                                                        title="Renomear peça"
+                                                                    >
+                                                                        <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            {areaTotal != null && (
+                                                                areaUnit != null ? (
+                                                                    <div className="flex flex-col items-end shrink-0">
+                                                                        <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
+                                                                        <span className="font-mono text-[9px] text-orange-600/70 dark:text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
+                                                                )
+                                                            )}
+                                                            {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
+                                                        </div>
+                                                        {valorUnit != null ? (
+                                                            <div className="flex flex-col items-end shrink-0 ml-3">
+                                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
+                                                                <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            }),
+                                            ...[...acabByTipo.entries()].map(([tipo, { ml, valor }]) => {
+                                                const label = ACAB_LABELS[tipo] ?? tipo;
+                                                const vlrMl = ml > 0 ? valor / ml : 0;
+                                                return (
+                                                    <div key={`acab-${tipo}`} className={`flex items-center justify-between py-1.5 border-b border-amber-200 dark:border-amber-900/20 bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors ${px}`}>
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-600/60 shrink-0 ml-1"></iconify-icon>
+                                                            <span className="text-[10px] text-amber-700 dark:text-amber-400/80 truncate">{label}</span>
+                                                            <span className="font-mono text-[9px] text-amber-700/70 shrink-0">{ml.toFixed(2)} ml</span>
+                                                            {vlrMl > 0 && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
+                                                        </div>
+                                                        <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
+                                                    </div>
+                                                );
+                                            }),
+                                            ...(furo.valor > 0 || furo.labels.length > 0 ? [(
+                                                <div key="furo" className={`flex items-center justify-between py-1.5 border-b border-sky-200/60 dark:border-sky-900/20 bg-sky-50/60 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-colors ${px}`}>
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <iconify-icon icon="solar:scissors-linear" width="11" className="text-sky-600/70 shrink-0 ml-1"></iconify-icon>
+                                                        <span className="text-[10px] text-sky-700 dark:text-sky-400/80 truncate">{furo.labels.length > 0 ? furo.labels.join(', ') : 'Furos / Recortes'}</span>
+                                                    </div>
+                                                    <span className="font-mono text-[11px] text-sky-600 dark:text-sky-400 shrink-0 ml-3">{fmtBRL(furo.valor)}</span>
+                                                </div>
+                                            )] : []),
+                                        ];
+                                    };
 
                                     return (
-                                        <div className="border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-black/40">
-                                            {/* ── Abas: nível de detalhe (só filtra a exibição, não altera dados) ── */}
-                                            <div className="flex items-center gap-1 px-5 py-2 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-200/40 dark:bg-zinc-950/40">
-                                                {[
-                                                    { key: 'ambientes', label: 'Ambientes' },
-                                                    { key: 'itens',     label: 'Itens' },
-                                                    { key: 'pecas',     label: 'Peças' },
-                                                ].map(tab => (
-                                                    <button
-                                                        key={tab.key}
-                                                        onClick={() => setNivelDetalhe(prev => ({ ...prev, [orc.id]: tab.key }))}
-                                                        className={`font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 border transition-colors ${nivel === tab.key ? 'border-orange-300 dark:border-yellow-400/40 text-orange-700 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5' : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-300'}`}
-                                                    >
-                                                        {tab.label}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                        <div className="border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-black">
                                             {grupos.map(([ambId, pecasGrupo], gi) => {
                                                 const ambNome = nomeDoAmbiente(ambId);
-                                                const subtotal = pecasGrupo.reduce((s, p) => s + (p.valor ?? 0), 0);
-                                                // Itens manuais só no último/único grupo
                                                 const showManuais = gi === grupos.length - 1 && (orc.itens_manuais ?? []).length > 0;
+                                                const subtotal = pecasGrupo.reduce((s, p) => s + (p.valor ?? 0), 0);
                                                 const subtotalComManuais = subtotal + (showManuais ? (orc.itens_manuais ?? []).reduce((s, it) => s + (it.total ?? 0), 0) : 0);
+                                                const kAmb = ambKey(ambId);
+                                                const ambOpen = isOpen(kAmb);
+                                                const isRealAmb = ambId && ambId !== '__sem_ambiente__';
+                                                const isEditAmb = isRealAmb && editandoAmbCarrinho?.ambId === ambId;
+                                                // Agrupa peças do ambiente por item (nome real)
+                                                const itMap = new Map();
+                                                const itOrdem = [];
+                                                pecasGrupo.forEach(p => {
+                                                    const k = p.item_nome ?? '__sem_item__';
+                                                    if (!itMap.has(k)) { itMap.set(k, []); itOrdem.push(k); }
+                                                    itMap.get(k).push(p);
+                                                });
+                                                const temItens = pecasGrupo.some(p => p.item_nome);
 
                                                 return (
                                                     <div key={ambId} className={gi > 0 ? 'border-t border-zinc-200/80 dark:border-zinc-800' : ''}>
-                                                        {/* Header do ambiente */}
-                                                        {(() => {
-                                                            const isRealAmb = ambId && ambId !== '__sem_ambiente__';
-                                                            const isEditAmb = isRealAmb && editandoAmbCarrinho?.ambId === ambId;
-                                                            return (
-                                                                <div className="flex items-center gap-2 px-5 py-2.5 bg-zinc-200/70 dark:bg-zinc-950/70 border-b border-zinc-200 dark:border-zinc-900 group/amb">
+                                                        {/* ── Accordion nível 1: Ambiente ── */}
+                                                        <div className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-black border-b border-zinc-200 dark:border-zinc-900 group/amb">
+                                                            {isEditAmb ? (
+                                                                <>
                                                                     <div className="w-1 h-4 bg-orange-500 dark:bg-yellow-400 shrink-0"></div>
-                                                                    {isEditAmb ? (
-                                                                        <>
-                                                                            <input
-                                                                                autoFocus
-                                                                                value={editandoAmbCarrinho.novo}
-                                                                                onChange={e => setEditandoAmbCarrinho(prev => ({ ...prev, novo: e.target.value }))}
-                                                                                onBlur={() => actions.renomearAmbCarrinho(ambId, editandoAmbCarrinho.novo, () => setEditandoAmbCarrinho(null))}
-                                                                                onKeyDown={e => {
-                                                                                    if (e.key === 'Enter') actions.renomearAmbCarrinho(ambId, editandoAmbCarrinho.novo, () => setEditandoAmbCarrinho(null));
-                                                                                    if (e.key === 'Escape') setEditandoAmbCarrinho(null);
-                                                                                }}
-                                                                                className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[10px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none font-semibold"
-                                                                            />
-                                                                            <button onClick={() => setEditandoAmbCarrinho(null)} className="font-mono text-[8px] text-zinc-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-800 dark:text-zinc-200 font-bold flex-1">
-                                                                                {ambNome}
-                                                                            </span>
-                                                                            {isRealAmb && (
-                                                                                <button
-                                                                                    onClick={() => setEditandoAmbCarrinho({ ambId, novo: ambNome })}
-                                                                                    className="opacity-0 group-hover/amb:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
-                                                                                    title="Renomear ambiente"
-                                                                                >
-                                                                                    <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
-                                                                                </button>
-                                                                            )}
-                                                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 shrink-0">{fmtBRL(subtotalComManuais)}</span>
-                                                                        </>
+                                                                    <input
+                                                                        autoFocus
+                                                                        value={editandoAmbCarrinho.novo}
+                                                                        onChange={e => setEditandoAmbCarrinho(prev => ({ ...prev, novo: e.target.value }))}
+                                                                        onBlur={() => actions.renomearAmbCarrinho(ambId, editandoAmbCarrinho.novo, () => setEditandoAmbCarrinho(null))}
+                                                                        onKeyDown={e => {
+                                                                            if (e.key === 'Enter') actions.renomearAmbCarrinho(ambId, editandoAmbCarrinho.novo, () => setEditandoAmbCarrinho(null));
+                                                                            if (e.key === 'Escape') setEditandoAmbCarrinho(null);
+                                                                        }}
+                                                                        className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[10px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none font-semibold"
+                                                                    />
+                                                                    <button onClick={() => setEditandoAmbCarrinho(null)} className="font-mono text-[8px] text-zinc-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <button onClick={() => toggleNo(kAmb)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                                                                        <iconify-icon icon={ambOpen ? 'solar:alt-arrow-down-linear' : 'solar:alt-arrow-right-linear'} width="12" className="text-zinc-400 dark:text-zinc-600 shrink-0"></iconify-icon>
+                                                                        <div className="w-1 h-4 bg-orange-500 dark:bg-yellow-400 shrink-0"></div>
+                                                                        <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-800 dark:text-zinc-200 font-bold truncate">{ambNome}</span>
+                                                                    </button>
+                                                                    {isRealAmb && (
+                                                                        <button
+                                                                            onClick={() => setEditandoAmbCarrinho({ ambId, novo: ambNome })}
+                                                                            className="opacity-0 group-hover/amb:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
+                                                                            title="Renomear ambiente"
+                                                                        >
+                                                                            <iconify-icon icon="solar:pen-linear" width="10"></iconify-icon>
+                                                                        </button>
                                                                     )}
-                                                                </div>
-                                                            );
-                                                        })()}
+                                                                    <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 shrink-0">{fmtBRL(subtotalComManuais)}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
 
-                                                        {/* Peças do grupo — agrupadas por item (oculto no nível 'ambientes') */}
-                                                        {nivel !== 'ambientes' && (() => {
-                                                            const temItens = pecasGrupo.some(p => p.item_nome);
-                                                            if (!temItens) {
-                                                                // Sem itens: só há peças/acabamentos soltos → nada a exibir no nível 'itens'
-                                                                if (nivel !== 'pecas') return [];
-                                                                const ACAB_LABELS_F = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', boleado: 'Boleado', boleado_duplo: 'Boleado Duplo', reto_duplo: 'Reto Duplo', chanfrado: 'Chanfrado', ME: 'Meia-Esquadria', RS: 'Reto Simples', BO: 'Boleado', BD: 'Boleado Duplo', RD: 'Reto Duplo', CF: 'Chanfrado' };
-                                                                // Agrega acabamentos e furos/recortes de todas as peças
-                                                                // (ml/valor já são o total do grupo — não multiplicar por grupo_quantidade)
-                                                                const acabFlatMap = new Map();
-                                                                const furoFlat = { valor: 0, labels: [] };
-                                                                pecasGrupo.forEach(p => {
-                                                                    (p.acabamentos ?? []).forEach(ac => {
-                                                                        if (Number(ac.ml ?? 0) <= 0) return;
-                                                                        if (!acabFlatMap.has(ac.tipo)) acabFlatMap.set(ac.tipo, { ml: 0, valor: 0 });
-                                                                        const e = acabFlatMap.get(ac.tipo);
-                                                                        e.ml    += Number(ac.ml ?? 0);
-                                                                        e.valor += Number(ac.valor ?? 0);
-                                                                    });
-                                                                    furoFlat.valor += Number(p.valor_recortes ?? 0);
-                                                                    (p.recortes ?? []).forEach(r => {
-                                                                        const nm = r.funcao_label ?? r.funcao ?? r.tipo ?? r.nome ?? 'Recorte';
-                                                                        if (nm && !furoFlat.labels.includes(nm)) furoFlat.labels.push(nm);
-                                                                    });
-                                                                });
-                                                                return [
-                                                                    ...pecasGrupo.map((p, pi) => {
-                                                                        const qtd = p.grupo_quantidade ?? 1;
-                                                                        const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0) - (p.valor_recortes ?? 0);
-                                                                        const areaTotal = p.area != null ? Number(p.area) : null;
-                                                                        const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
-                                                                        const valorUnit = qtd > 1 ? valorPedra / qtd : null;
-                                                                        return (
-                                                                            <div key={p.id ?? pi} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
-                                                                                <div className="flex items-center gap-3 min-w-0">
-                                                                                    <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                                    <span className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
-                                                                                    {areaTotal != null && (
-                                                                                        areaUnit != null ? (
-                                                                                            <div className="flex flex-col items-end shrink-0">
-                                                                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
-                                                                                                <span className="font-mono text-[9px] text-orange-600/70 dark:text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
-                                                                                        )
-                                                                                    )}
-                                                                                    {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
-                                                                                </div>
-                                                                                {valorUnit != null ? (
-                                                                                    <div className="flex flex-col items-end shrink-0 ml-3">
-                                                                                        <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
-                                                                                        <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
-                                                                                )}
-                                                                            </div>
-                                                                        );
-                                                                    }),
-                                                                    ...[...acabFlatMap.entries()].map(([tipo, { ml, valor }]) => {
-                                                                        const label = ACAB_LABELS_F[tipo] ?? tipo;
-                                                                        const vlrMl = ml > 0 ? valor / ml : 0;
-                                                                        return (
-                                                                            <div key={`acab-flat-${tipo}`} className="flex items-center justify-between px-5 py-1.5 border-b border-amber-200 dark:border-amber-900/20 bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors">
-                                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                                    <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-600/60 shrink-0 ml-1"></iconify-icon>
-                                                                                    <span className="text-[10px] text-amber-700 dark:text-amber-400/80 truncate">{label}</span>
-                                                                                    <span className="font-mono text-[9px] text-amber-700/70 shrink-0">{ml.toFixed(2)} ml</span>
-                                                                                    {vlrMl > 0 && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
-                                                                                </div>
-                                                                                <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
-                                                                            </div>
-                                                                        );
-                                                                    }),
-                                                                    ...(furoFlat.valor > 0 || furoFlat.labels.length > 0 ? [(
-                                                                        <div key="furo-flat" className="flex items-center justify-between px-5 py-1.5 border-b border-sky-200/60 dark:border-sky-900/20 bg-sky-50/60 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-colors">
-                                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                                <iconify-icon icon="solar:scissors-linear" width="11" className="text-sky-600/70 shrink-0 ml-1"></iconify-icon>
-                                                                                <span className="text-[10px] text-sky-700 dark:text-sky-400/80 truncate">{furoFlat.labels.length > 0 ? furoFlat.labels.join(', ') : 'Furos / Recortes'}</span>
-                                                                            </div>
-                                                                            <span className="font-mono text-[11px] text-sky-600 dark:text-sky-400 shrink-0 ml-3">{fmtBRL(furoFlat.valor)}</span>
-                                                                        </div>
-                                                                    )] : []),
-                                                                ];
-                                                            }
-                                                            // Group by item_nome
-                                                            const itMap = new Map();
-                                                            const itOrdem = [];
-                                                            pecasGrupo.forEach(p => {
-                                                                const k = p.item_nome ?? '__sem_item__';
-                                                                if (!itMap.has(k)) { itMap.set(k, []); itOrdem.push(k); }
-                                                                itMap.get(k).push(p);
-                                                            });
-                                                            const ACAB_LABELS = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', boleado: 'Boleado', boleado_duplo: 'Boleado Duplo', reto_duplo: 'Reto Duplo', chanfrado: 'Chanfrado', ME: 'Meia-Esquadria', RS: 'Reto Simples', BO: 'Boleado', BD: 'Boleado Duplo', RD: 'Reto Duplo', CF: 'Chanfrado' };
-                                                            return itOrdem.flatMap(itemKey => {
-                                                                const nomeItem  = itemKey === '__sem_item__' ? null : itemKey;
-                                                                const pecasItem = itMap.get(itemKey);
-                                                                const subtotalItem = pecasItem.reduce((s, p) => s + (p.valor ?? 0), 0);
+                                                        {/* Conteúdo do ambiente: itens (nível 2) */}
+                                                        {ambOpen && (
+                                                            <>
 
-                                                                // Agrega acabamentos e furos/recortes das peças do item por tipo
-                                                                // (ml/valor já são o total do grupo — não multiplicar por grupo_quantidade)
-                                                                const acabByTipo = new Map();
-                                                                const furoItem = { valor: 0, labels: [] };
-                                                                pecasItem.forEach(p => {
-                                                                    (p.acabamentos ?? []).forEach(ac => {
-                                                                        if (Number(ac.ml ?? 0) <= 0) return;
-                                                                        const t = ac.tipo;
-                                                                        if (!acabByTipo.has(t)) acabByTipo.set(t, { ml: 0, valor: 0 });
-                                                                        const e = acabByTipo.get(t);
-                                                                        e.ml    += Number(ac.ml    ?? 0);
-                                                                        e.valor += Number(ac.valor ?? 0);
-                                                                    });
-                                                                    furoItem.valor += Number(p.valor_recortes ?? 0);
-                                                                    (p.recortes ?? []).forEach(r => {
-                                                                        const nm = r.funcao_label ?? r.funcao ?? r.tipo ?? r.nome ?? 'Recorte';
-                                                                        if (nm && !furoItem.labels.includes(nm)) furoItem.labels.push(nm);
-                                                                    });
-                                                                });
-                                                                const acabRows = [...acabByTipo.entries()];
-
-                                                                const px = nomeItem ? 'pl-9 pr-5' : 'px-5';
-                                                                const isEditItem = editandoItemCarrinho?.orcId === orc.id && editandoItemCarrinho?.itemNome === nomeItem;
-                                                                return [
-                                                                    // Header do item
-                                                                    ...(nomeItem ? [
-                                                                        <div key={`item-hdr-${itemKey}`} className="flex items-center gap-2 pl-6 pr-5 py-2 bg-zinc-50 dark:bg-zinc-900/40 border-b border-zinc-200/60 dark:border-zinc-800/60 border-l-2 border-l-orange-400/50 dark:border-l-yellow-400/40 group/item">
-                                                                            <iconify-icon icon="solar:box-minimalistic-linear" width="12" className="text-orange-500/70 dark:text-yellow-400/60 shrink-0"></iconify-icon>
-                                                                            {isEditItem ? (
-                                                                                <>
-                                                                                    <input
-                                                                                        autoFocus
-                                                                                        value={editandoItemCarrinho.novo}
-                                                                                        onChange={e => setEditandoItemCarrinho(prev => ({ ...prev, novo: e.target.value }))}
-                                                                                        onBlur={() => actions.renomearItemCarrinho(orc.id, nomeItem, editandoItemCarrinho.novo, () => setEditandoItemCarrinho(null))}
-                                                                                        onKeyDown={e => {
-                                                                                            if (e.key === 'Enter') actions.renomearItemCarrinho(orc.id, nomeItem, editandoItemCarrinho.novo, () => setEditandoItemCarrinho(null));
-                                                                                            if (e.key === 'Escape') setEditandoItemCarrinho(null);
-                                                                                        }}
-                                                                                        className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none"
-                                                                                    />
-                                                                                    <button onClick={() => setEditandoItemCarrinho(null)} className="font-mono text-[8px] text-zinc-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
-                                                                                </>
-                                                                            ) : (
-                                                                                <>
-                                                                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                                                        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-700 dark:text-zinc-300 font-semibold truncate">{nomeItem}</span>
-                                                                                        {(() => { const qtd = pecasItem[0]?.grupo_quantidade ?? 1; return qtd > 1 ? <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtd}</span> : null; })()}
-                                                                                    </div>
-                                                                                    <button
-                                                                                        onClick={() => setEditandoItemCarrinho({ orcId: orc.id, itemNome: nomeItem, novo: nomeItem })}
-                                                                                        className="opacity-0 group-hover/item:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
-                                                                                        title="Renomear item"
-                                                                                    >
-                                                                                        <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
-                                                                                    </button>
-                                                                                    <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 font-semibold shrink-0">{fmtBRL(subtotalItem)}</span>
-                                                                                </>
-                                                                            )}
-                                                                        </div>
-                                                                    ] : []),
-                                                                    // Linhas de pedra (valor = total − acabamentos) — só no nível 'pecas'
-                                                                    ...(nivel === 'pecas' ? pecasItem.map((p, pi) => {
-                                                                        const qtd = p.grupo_quantidade ?? 1;
-                                                                        const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0) - (p.valor_recortes ?? 0);
-                                                                        const areaTotal = p.area != null ? Number(p.area) : null;
-                                                                        const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
-                                                                        const valorUnit = qtd > 1 ? valorPedra / qtd : null;
-                                                                        const isEditPeca = editandoPecaCarrinho?.orcId === orc.id && editandoPecaCarrinho?.pecaId === p.id;
-                                                                        return (
-                                                                            <div key={p.id ?? pi} className={`flex items-center justify-between py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors group/peca ${px}`}>
-                                                                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                                                    <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                                    {isEditPeca ? (
+                                                                {temItens ? itOrdem.map(itemKey => {
+                                                                    const nomeItem = itemKey === '__sem_item__' ? null : itemKey;
+                                                                    const pecasItem = itMap.get(itemKey);
+                                                                    // Item sem nome → peças direto (sem sub-accordion)
+                                                                    if (!nomeItem) {
+                                                                        return <React.Fragment key={itemKey}>{renderPecas(pecasItem, 'pl-9 pr-5')}</React.Fragment>;
+                                                                    }
+                                                                    const subtotalItem = pecasItem.reduce((s, p) => s + (p.valor ?? 0), 0);
+                                                                    const kItm = itmKey(ambId, nomeItem);
+                                                                    const itemOpen = isOpen(kItm);
+                                                                    const isEditItem = editandoItemCarrinho?.orcId === orc.id && editandoItemCarrinho?.itemNome === nomeItem;
+                                                                    const qtdItem = pecasItem[0]?.grupo_quantidade ?? 1;
+                                                                    return (
+                                                                        <div key={itemKey}>
+                                                                            {/* ── Accordion nível 2: Item ── */}
+                                                                            <div className="flex items-center gap-2 pl-6 pr-5 py-2 bg-white dark:bg-black border-b border-zinc-200/60 dark:border-zinc-800/60 border-l-2 border-l-orange-400/50 dark:border-l-yellow-400/40 group/item">
+                                                                                {isEditItem ? (
+                                                                                    <>
                                                                                         <input
                                                                                             autoFocus
-                                                                                            value={editandoPecaCarrinho.nome}
-                                                                                            onChange={e => setEditandoPecaCarrinho(prev => ({ ...prev, nome: e.target.value }))}
-                                                                                            onBlur={() => actions.renomearPecaCarrinho(orc.id, p.id, p.pecaDbId, editandoPecaCarrinho.nome, () => setEditandoPecaCarrinho(null))}
+                                                                                            value={editandoItemCarrinho.novo}
+                                                                                            onChange={e => setEditandoItemCarrinho(prev => ({ ...prev, novo: e.target.value }))}
+                                                                                            onBlur={() => actions.renomearItemCarrinho(orc.id, nomeItem, editandoItemCarrinho.novo, () => setEditandoItemCarrinho(null))}
                                                                                             onKeyDown={e => {
-                                                                                                if (e.key === 'Enter') actions.renomearPecaCarrinho(orc.id, p.id, p.pecaDbId, editandoPecaCarrinho.nome, () => setEditandoPecaCarrinho(null));
-                                                                                                if (e.key === 'Escape') setEditandoPecaCarrinho(null);
+                                                                                                if (e.key === 'Enter') actions.renomearItemCarrinho(orc.id, nomeItem, editandoItemCarrinho.novo, () => setEditandoItemCarrinho(null));
+                                                                                                if (e.key === 'Escape') setEditandoItemCarrinho(null);
                                                                                             }}
-                                                                                            className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[11px] px-1.5 py-0.5 outline-none"
+                                                                                            className="flex-1 min-w-0 bg-zinc-50 dark:bg-black border border-orange-500/40 dark:border-yellow-400/40 text-zinc-900 dark:text-white text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 outline-none"
                                                                                         />
-                                                                                    ) : (
-                                                                                        <>
-                                                                                            <span className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
-                                                                                            <button
-                                                                                                onClick={() => setEditandoPecaCarrinho({ orcId: orc.id, pecaId: p.id, pecaDbId: p.peca_id ?? null, nome: p.nome ?? '' })}
-                                                                                                className="opacity-0 group-hover/peca:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
-                                                                                                title="Renomear peça"
-                                                                                            >
-                                                                                                <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
-                                                                                            </button>
-                                                                                        </>
-                                                                                    )}
-                                                                                    {areaTotal != null && (
-                                                                                        areaUnit != null ? (
-                                                                                            <div className="flex flex-col items-end shrink-0">
-                                                                                                <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{areaUnit.toFixed(2)} m²/un.</span>
-                                                                                                <span className="font-mono text-[9px] text-orange-600/70 dark:text-yellow-400/70">{areaTotal.toFixed(2)} m² ({qtd}×)</span>
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">{areaTotal.toFixed(2)} m²</span>
-                                                                                        )
-                                                                                    )}
-                                                                                    {p.espessura && p.espessura !== '—' && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">{p.espessura}cm</span>}
-                                                                                </div>
-                                                                                {valorUnit != null ? (
-                                                                                    <div className="flex flex-col items-end shrink-0 ml-3">
-                                                                                        <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-500">{fmtBRL(valorUnit)}/un.</span>
-                                                                                        <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400">{fmtBRL(valorPedra)}</span>
-                                                                                    </div>
+                                                                                        <button onClick={() => setEditandoItemCarrinho(null)} className="font-mono text-[8px] text-zinc-500 dark:text-zinc-600 px-1 shrink-0">✕</button>
+                                                                                    </>
                                                                                 ) : (
-                                                                                    <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(valorPedra)}</span>
+                                                                                    <>
+                                                                                        <button onClick={() => toggleNo(kItm)} className="flex items-center gap-1.5 flex-1 min-w-0 text-left">
+                                                                                            <iconify-icon icon={itemOpen ? 'solar:alt-arrow-down-linear' : 'solar:alt-arrow-right-linear'} width="11" className="text-zinc-400 dark:text-zinc-600 shrink-0"></iconify-icon>
+                                                                                            <iconify-icon icon="solar:box-minimalistic-linear" width="12" className="text-orange-500/70 dark:text-yellow-400/60 shrink-0"></iconify-icon>
+                                                                                            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-700 dark:text-zinc-300 font-semibold truncate">{nomeItem}</span>
+                                                                                            {qtdItem > 1 && <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtdItem}</span>}
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => setEditandoItemCarrinho({ orcId: orc.id, itemNome: nomeItem, novo: nomeItem })}
+                                                                                            className="opacity-0 group-hover/item:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
+                                                                                            title="Renomear item"
+                                                                                        >
+                                                                                            <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
+                                                                                        </button>
+                                                                                        <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 font-semibold shrink-0">{fmtBRL(subtotalItem)}</span>
+                                                                                    </>
                                                                                 )}
                                                                             </div>
-                                                                        );
-                                                                    }) : []),
-                                                                    // Linhas de acabamento (após todas as pedras) — só no nível 'pecas'
-                                                                    ...(nivel === 'pecas' ? acabRows.map(([tipo, { ml, valor }]) => {
-                                                                        const label = ACAB_LABELS[tipo] ?? tipo;
-                                                                        const vlrMl = ml > 0 ? valor / ml : 0;
-                                                                        return (
-                                                                            <div key={`acab-${itemKey}-${tipo}`} className={`flex items-center justify-between py-1.5 border-b border-amber-200 dark:border-amber-900/20 bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors ${px}`}>
-                                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                                    <iconify-icon icon="solar:ruler-angular-linear" width="11" className="text-amber-600/60 shrink-0 ml-1"></iconify-icon>
-                                                                                    <span className="text-[10px] text-amber-700 dark:text-amber-400/80 truncate">{label}</span>
-                                                                                    <span className="font-mono text-[9px] text-amber-700/70 shrink-0">{ml.toFixed(2)} ml</span>
-                                                                                    {vlrMl > 0 && <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 shrink-0">({fmtBRL(vlrMl)}/ml)</span>}
-                                                                                </div>
-                                                                                <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
-                                                                            </div>
-                                                                        );
-                                                                    }) : []),
-                                                                    // Linha de furos/recortes (cuba, cooktop, torneira…) — valor agregado (valor_recortes) — só no nível 'pecas'
-                                                                    ...(nivel === 'pecas' && (furoItem.valor > 0 || furoItem.labels.length > 0) ? [(
-                                                                        <div key={`furo-${itemKey}`} className={`flex items-center justify-between py-1.5 border-b border-sky-200/60 dark:border-sky-900/20 bg-sky-50/60 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-colors ${px}`}>
-                                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                                <iconify-icon icon="solar:scissors-linear" width="11" className="text-sky-600/70 shrink-0 ml-1"></iconify-icon>
-                                                                                <span className="text-[10px] text-sky-700 dark:text-sky-400/80 truncate">{furoItem.labels.length > 0 ? furoItem.labels.join(', ') : 'Furos / Recortes'}</span>
-                                                                            </div>
-                                                                            <span className="font-mono text-[11px] text-sky-600 dark:text-sky-400 shrink-0 ml-3">{fmtBRL(furoItem.valor)}</span>
+                                                                            {/* Peças do item (nível 3) */}
+                                                                            {itemOpen && renderPecas(pecasItem, 'pl-12 pr-5')}
                                                                         </div>
-                                                                    )] : []),
-                                                                ];
-                                                            });
-                                                        })()}
+                                                                    );
+                                                                }) : renderPecas(pecasGrupo, 'pl-9 pr-5')}
 
-                                                        {/* Itens manuais (último grupo) — só no nível 'pecas' */}
-                                                        {nivel === 'pecas' && showManuais && (orc.itens_manuais ?? []).map((item, ii) => (
-                                                            <div key={`manual-${ii}`} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 last:border-b-0 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
-                                                                <div className="flex items-center gap-3 min-w-0">
-                                                                    <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                    <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{item.nome_peca || 'Item'}</span>
-                                                                    <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">
-                                                                        {Number(item.quantidade ?? 0).toFixed(2)} {item.tipo === 'area' ? 'm²' : 'ML'}
-                                                                    </span>
-                                                                </div>
-                                                                <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(item.total ?? 0)}</span>
-                                                            </div>
-                                                        ))}
+                                                                {/* Itens manuais do ambiente (último grupo) */}
+                                                                {showManuais && (orc.itens_manuais ?? []).map((item, ii) => (
+                                                                    <div key={`manual-${ii}`} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 last:border-b-0 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
+                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                            <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
+                                                                            <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{item.nome_peca || 'Item'}</span>
+                                                                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600 shrink-0">
+                                                                                {Number(item.quantidade ?? 0).toFixed(2)} {item.tipo === 'area' ? 'm²' : 'ML'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-400 shrink-0 ml-3">{fmtBRL(item.total ?? 0)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 );
                                             })}
 
-                                            {/* Produtos avulsos — só no nível 'pecas' */}
-                                            {nivel === 'pecas' && (orc.avulsos ?? []).length > 0 && (
+                                            {/* Produtos avulsos */}
+                                            {(orc.avulsos ?? []).length > 0 && (
                                                 <div className="border-t border-zinc-200/80 dark:border-zinc-800/50">
-                                                    <div className="flex items-center justify-between px-5 py-2 bg-zinc-100/60 dark:bg-zinc-950/40">
+                                                    <div className="flex items-center justify-between px-5 py-2 bg-white dark:bg-black">
                                                         <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Produtos avulsos</span>
                                                     </div>
                                                     {orc.avulsos.map(av => (
@@ -945,7 +858,7 @@ export default function AbaCarrinho({
                                             )}
 
                                             {/* Total */}
-                                            <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-200 dark:bg-zinc-950/80">
+                                            <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-black">
                                                 <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Total</span>
                                                 <span className="font-mono text-sm font-bold text-orange-600 dark:text-yellow-400">{fmtBRL(orc.valor_total)}</span>
                                             </div>
