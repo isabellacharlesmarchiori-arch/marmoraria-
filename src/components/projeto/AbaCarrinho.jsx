@@ -809,8 +809,8 @@ export default function AbaCarrinho({
                                                                             )}
                                                                         </div>
                                                                     ] : []),
-                                                                    // Linhas de pedra (valor = total − acabamentos)
-                                                                    ...pecasItem.map((p, pi) => {
+                                                                    // Linhas de pedra (valor = total − acabamentos) — só no nível 'pecas'
+                                                                    ...(nivel === 'pecas' ? pecasItem.map((p, pi) => {
                                                                         const qtd = p.grupo_quantidade ?? 1;
                                                                         const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0) - (p.valor_recortes ?? 0);
                                                                         const areaTotal = p.area != null ? Number(p.area) : null;
@@ -867,9 +867,9 @@ export default function AbaCarrinho({
                                                                                 )}
                                                                             </div>
                                                                         );
-                                                                    }),
-                                                                    // Linhas de acabamento (após todas as pedras)
-                                                                    ...acabRows.map(([tipo, { ml, valor }]) => {
+                                                                    }) : []),
+                                                                    // Linhas de acabamento (após todas as pedras) — só no nível 'pecas'
+                                                                    ...(nivel === 'pecas' ? acabRows.map(([tipo, { ml, valor }]) => {
                                                                         const label = ACAB_LABELS[tipo] ?? tipo;
                                                                         const vlrMl = ml > 0 ? valor / ml : 0;
                                                                         return (
@@ -883,9 +883,9 @@ export default function AbaCarrinho({
                                                                                 <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 shrink-0 ml-3">{fmtBRL(valor)}</span>
                                                                             </div>
                                                                         );
-                                                                    }),
-                                                                    // Linha de furos/recortes (cuba, cooktop, torneira…) — valor agregado (valor_recortes)
-                                                                    ...(furoItem.valor > 0 || furoItem.labels.length > 0 ? [(
+                                                                    }) : []),
+                                                                    // Linha de furos/recortes (cuba, cooktop, torneira…) — valor agregado (valor_recortes) — só no nível 'pecas'
+                                                                    ...(nivel === 'pecas' && (furoItem.valor > 0 || furoItem.labels.length > 0) ? [(
                                                                         <div key={`furo-${itemKey}`} className={`flex items-center justify-between py-1.5 border-b border-sky-200/60 dark:border-sky-900/20 bg-sky-50/60 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-colors ${px}`}>
                                                                             <div className="flex items-center gap-2 min-w-0">
                                                                                 <iconify-icon icon="solar:scissors-linear" width="11" className="text-sky-600/70 shrink-0 ml-1"></iconify-icon>
@@ -898,8 +898,8 @@ export default function AbaCarrinho({
                                                             });
                                                         })()}
 
-                                                        {/* Itens manuais (último grupo) */}
-                                                        {showManuais && (orc.itens_manuais ?? []).map((item, ii) => (
+                                                        {/* Itens manuais (último grupo) — só no nível 'pecas' */}
+                                                        {nivel === 'pecas' && showManuais && (orc.itens_manuais ?? []).map((item, ii) => (
                                                             <div key={`manual-${ii}`} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 last:border-b-0 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
                                                                 <div className="flex items-center gap-3 min-w-0">
                                                                     <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
@@ -915,8 +915,8 @@ export default function AbaCarrinho({
                                                 );
                                             })}
 
-                                            {/* Produtos avulsos */}
-                                            {(orc.avulsos ?? []).length > 0 && (
+                                            {/* Produtos avulsos — só no nível 'pecas' */}
+                                            {nivel === 'pecas' && (orc.avulsos ?? []).length > 0 && (
                                                 <div className="border-t border-zinc-200/80 dark:border-zinc-800/50">
                                                     <div className="flex items-center justify-between px-5 py-2 bg-zinc-100/60 dark:bg-zinc-950/40">
                                                         <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Produtos avulsos</span>
