@@ -35,6 +35,7 @@ export default function AbaCarrinho({
     const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null);
     const [editandoAmbCarrinho,  setEditandoAmbCarrinho]  = useState(null);
     const [avisoIncluido, setAvisoIncluido] = useState(null); // { orcId, pedidoNumero }
+    const [nivelDetalhe, setNivelDetalhe] = useState({}); // { orcId: 'ambientes' | 'itens' | 'pecas' } — filtro visual do painel expandido (default: 'pecas')
 
     function toggleCarrinhoDetalhes(orcId) {
         setCarrinhoExpandido(prev => {
@@ -574,8 +575,27 @@ export default function AbaCarrinho({
                                         return ambientes.find(a => a.id === ambId)?.nome ?? orc.ambiente_nome ?? 'Ambiente';
                                     };
 
+                                    // Nível de detalhe exibido (filtro visual): 'ambientes' | 'itens' | 'pecas' (padrão)
+                                    const nivel = nivelDetalhe[orc.id] ?? 'pecas';
+
                                     return (
                                         <div className="border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-black/40">
+                                            {/* ── Abas: nível de detalhe (só filtra a exibição, não altera dados) ── */}
+                                            <div className="flex items-center gap-1 px-5 py-2 border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-200/40 dark:bg-zinc-950/40">
+                                                {[
+                                                    { key: 'ambientes', label: 'Ambientes' },
+                                                    { key: 'itens',     label: 'Itens' },
+                                                    { key: 'pecas',     label: 'Peças' },
+                                                ].map(tab => (
+                                                    <button
+                                                        key={tab.key}
+                                                        onClick={() => setNivelDetalhe(prev => ({ ...prev, [orc.id]: tab.key }))}
+                                                        className={`font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 border transition-colors ${nivel === tab.key ? 'border-orange-300 dark:border-yellow-400/40 text-orange-700 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5' : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-300'}`}
+                                                    >
+                                                        {tab.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                             {grupos.map(([ambId, pecasGrupo], gi) => {
                                                 const ambNome = nomeDoAmbiente(ambId);
                                                 const subtotal = pecasGrupo.reduce((s, p) => s + (p.valor ?? 0), 0);
@@ -590,8 +610,8 @@ export default function AbaCarrinho({
                                                             const isRealAmb = ambId && ambId !== '__sem_ambiente__';
                                                             const isEditAmb = isRealAmb && editandoAmbCarrinho?.ambId === ambId;
                                                             return (
-                                                                <div className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 dark:bg-zinc-950/50 border-b border-zinc-100 dark:border-zinc-900 group/amb">
-                                                                    <div className="w-0.5 h-4 bg-orange-500/50 dark:bg-yellow-400/50 shrink-0"></div>
+                                                                <div className="flex items-center gap-2 px-5 py-2.5 bg-zinc-200/70 dark:bg-zinc-950/70 border-b border-zinc-200 dark:border-zinc-900 group/amb">
+                                                                    <div className="w-1 h-4 bg-orange-500 dark:bg-yellow-400 shrink-0"></div>
                                                                     {isEditAmb ? (
                                                                         <>
                                                                             <input
@@ -609,7 +629,7 @@ export default function AbaCarrinho({
                                                                         </>
                                                                     ) : (
                                                                         <>
-                                                                            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-700 dark:text-zinc-300 font-semibold flex-1">
+                                                                            <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-800 dark:text-zinc-200 font-bold flex-1">
                                                                                 {ambNome}
                                                                             </span>
                                                                             {isRealAmb && (
@@ -628,27 +648,35 @@ export default function AbaCarrinho({
                                                             );
                                                         })()}
 
-                                                        {/* Peças do grupo — agrupadas por item */}
-                                                        {(() => {
+                                                        {/* Peças do grupo — agrupadas por item (oculto no nível 'ambientes') */}
+                                                        {nivel !== 'ambientes' && (() => {
                                                             const temItens = pecasGrupo.some(p => p.item_nome);
                                                             if (!temItens) {
+                                                                // Sem itens: só há peças/acabamentos soltos → nada a exibir no nível 'itens'
+                                                                if (nivel !== 'pecas') return [];
                                                                 const ACAB_LABELS_F = { meia_esquadria: 'Meia-Esquadria', reto_simples: 'Reto Simples', boleado: 'Boleado', boleado_duplo: 'Boleado Duplo', reto_duplo: 'Reto Duplo', chanfrado: 'Chanfrado', ME: 'Meia-Esquadria', RS: 'Reto Simples', BO: 'Boleado', BD: 'Boleado Duplo', RD: 'Reto Duplo', CF: 'Chanfrado' };
-                                                                // Agrega acabamentos de todas as peças
+                                                                // Agrega acabamentos e furos/recortes de todas as peças
+                                                                // (ml/valor já são o total do grupo — não multiplicar por grupo_quantidade)
                                                                 const acabFlatMap = new Map();
+                                                                const furoFlat = { valor: 0, labels: [] };
                                                                 pecasGrupo.forEach(p => {
-                                                                    const gQtd = p.grupo_quantidade ?? 1;
                                                                     (p.acabamentos ?? []).forEach(ac => {
                                                                         if (Number(ac.ml ?? 0) <= 0) return;
                                                                         if (!acabFlatMap.has(ac.tipo)) acabFlatMap.set(ac.tipo, { ml: 0, valor: 0 });
                                                                         const e = acabFlatMap.get(ac.tipo);
-                                                                        e.ml    += Number(ac.ml ?? 0) * gQtd;
-                                                                        e.valor += Number(ac.valor ?? 0) * gQtd;
+                                                                        e.ml    += Number(ac.ml ?? 0);
+                                                                        e.valor += Number(ac.valor ?? 0);
+                                                                    });
+                                                                    furoFlat.valor += Number(p.valor_recortes ?? 0);
+                                                                    (p.recortes ?? []).forEach(r => {
+                                                                        const nm = r.funcao_label ?? r.funcao ?? r.tipo ?? r.nome ?? 'Recorte';
+                                                                        if (nm && !furoFlat.labels.includes(nm)) furoFlat.labels.push(nm);
                                                                     });
                                                                 });
                                                                 return [
                                                                     ...pecasGrupo.map((p, pi) => {
                                                                         const qtd = p.grupo_quantidade ?? 1;
-                                                                        const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0);
+                                                                        const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0) - (p.valor_recortes ?? 0);
                                                                         const areaTotal = p.area != null ? Number(p.area) : null;
                                                                         const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
                                                                         const valorUnit = qtd > 1 ? valorPedra / qtd : null;
@@ -656,7 +684,7 @@ export default function AbaCarrinho({
                                                                             <div key={p.id ?? pi} className="flex items-center justify-between px-5 py-2 border-b border-zinc-100/30 dark:border-zinc-900/30 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/15 transition-colors">
                                                                                 <div className="flex items-center gap-3 min-w-0">
                                                                                     <div className="w-px h-5 bg-zinc-100 dark:bg-zinc-800 shrink-0 ml-1"></div>
-                                                                                    <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
+                                                                                    <span className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
                                                                                     {areaTotal != null && (
                                                                                         areaUnit != null ? (
                                                                                             <div className="flex flex-col items-end shrink-0">
@@ -695,6 +723,15 @@ export default function AbaCarrinho({
                                                                             </div>
                                                                         );
                                                                     }),
+                                                                    ...(furoFlat.valor > 0 || furoFlat.labels.length > 0 ? [(
+                                                                        <div key="furo-flat" className="flex items-center justify-between px-5 py-1.5 border-b border-sky-200/60 dark:border-sky-900/20 bg-sky-50/60 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-colors">
+                                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                                <iconify-icon icon="solar:scissors-linear" width="11" className="text-sky-600/70 shrink-0 ml-1"></iconify-icon>
+                                                                                <span className="text-[10px] text-sky-700 dark:text-sky-400/80 truncate">{furoFlat.labels.length > 0 ? furoFlat.labels.join(', ') : 'Furos / Recortes'}</span>
+                                                                            </div>
+                                                                            <span className="font-mono text-[11px] text-sky-600 dark:text-sky-400 shrink-0 ml-3">{fmtBRL(furoFlat.valor)}</span>
+                                                                        </div>
+                                                                    )] : []),
                                                                 ];
                                                             }
                                                             // Group by item_nome
@@ -711,28 +748,34 @@ export default function AbaCarrinho({
                                                                 const pecasItem = itMap.get(itemKey);
                                                                 const subtotalItem = pecasItem.reduce((s, p) => s + (p.valor ?? 0), 0);
 
-                                                                // Agrega acabamentos de todas as peças do item por tipo
+                                                                // Agrega acabamentos e furos/recortes das peças do item por tipo
+                                                                // (ml/valor já são o total do grupo — não multiplicar por grupo_quantidade)
                                                                 const acabByTipo = new Map();
+                                                                const furoItem = { valor: 0, labels: [] };
                                                                 pecasItem.forEach(p => {
-                                                                    const gQtd = p.grupo_quantidade ?? 1;
                                                                     (p.acabamentos ?? []).forEach(ac => {
                                                                         if (Number(ac.ml ?? 0) <= 0) return;
                                                                         const t = ac.tipo;
                                                                         if (!acabByTipo.has(t)) acabByTipo.set(t, { ml: 0, valor: 0 });
                                                                         const e = acabByTipo.get(t);
-                                                                        e.ml    += Number(ac.ml    ?? 0) * gQtd;
-                                                                        e.valor += Number(ac.valor ?? 0) * gQtd;
+                                                                        e.ml    += Number(ac.ml    ?? 0);
+                                                                        e.valor += Number(ac.valor ?? 0);
+                                                                    });
+                                                                    furoItem.valor += Number(p.valor_recortes ?? 0);
+                                                                    (p.recortes ?? []).forEach(r => {
+                                                                        const nm = r.funcao_label ?? r.funcao ?? r.tipo ?? r.nome ?? 'Recorte';
+                                                                        if (nm && !furoItem.labels.includes(nm)) furoItem.labels.push(nm);
                                                                     });
                                                                 });
                                                                 const acabRows = [...acabByTipo.entries()];
 
-                                                                const px = nomeItem ? 'px-7' : 'px-5';
+                                                                const px = nomeItem ? 'pl-9 pr-5' : 'px-5';
                                                                 const isEditItem = editandoItemCarrinho?.orcId === orc.id && editandoItemCarrinho?.itemNome === nomeItem;
                                                                 return [
                                                                     // Header do item
                                                                     ...(nomeItem ? [
-                                                                        <div key={`item-hdr-${itemKey}`} className="flex items-center gap-2 px-5 py-1.5 bg-zinc-100/30 dark:bg-zinc-900/30 border-b border-zinc-100/40 dark:border-zinc-900/40 group/item">
-                                                                            <iconify-icon icon="solar:folder-linear" width="10" className="text-zinc-400 dark:text-zinc-700 shrink-0"></iconify-icon>
+                                                                        <div key={`item-hdr-${itemKey}`} className="flex items-center gap-2 pl-6 pr-5 py-2 bg-zinc-50 dark:bg-zinc-900/40 border-b border-zinc-200/60 dark:border-zinc-800/60 border-l-2 border-l-orange-400/50 dark:border-l-yellow-400/40 group/item">
+                                                                            <iconify-icon icon="solar:box-minimalistic-linear" width="12" className="text-orange-500/70 dark:text-yellow-400/60 shrink-0"></iconify-icon>
                                                                             {isEditItem ? (
                                                                                 <>
                                                                                     <input
@@ -751,7 +794,7 @@ export default function AbaCarrinho({
                                                                             ) : (
                                                                                 <>
                                                                                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 truncate">{nomeItem}</span>
+                                                                                        <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-700 dark:text-zinc-300 font-semibold truncate">{nomeItem}</span>
                                                                                         {(() => { const qtd = pecasItem[0]?.grupo_quantidade ?? 1; return qtd > 1 ? <span className="font-mono text-[9px] px-1 py-0.5 border border-zinc-600/50 text-zinc-400 bg-zinc-800/60 shrink-0">x{qtd}</span> : null; })()}
                                                                                     </div>
                                                                                     <button
@@ -761,7 +804,7 @@ export default function AbaCarrinho({
                                                                                     >
                                                                                         <iconify-icon icon="solar:pen-linear" width="9"></iconify-icon>
                                                                                     </button>
-                                                                                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 shrink-0">{fmtBRL(subtotalItem)}</span>
+                                                                                    <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 font-semibold shrink-0">{fmtBRL(subtotalItem)}</span>
                                                                                 </>
                                                                             )}
                                                                         </div>
@@ -769,7 +812,7 @@ export default function AbaCarrinho({
                                                                     // Linhas de pedra (valor = total − acabamentos)
                                                                     ...pecasItem.map((p, pi) => {
                                                                         const qtd = p.grupo_quantidade ?? 1;
-                                                                        const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0);
+                                                                        const valorPedra = (p.valor ?? 0) - (p.valor_acabamentos ?? 0) - (p.valor_recortes ?? 0);
                                                                         const areaTotal = p.area != null ? Number(p.area) : null;
                                                                         const areaUnit  = areaTotal != null && qtd > 1 ? Math.round(areaTotal / qtd * 10000) / 10000 : null;
                                                                         const valorUnit = qtd > 1 ? valorPedra / qtd : null;
@@ -792,7 +835,7 @@ export default function AbaCarrinho({
                                                                                         />
                                                                                     ) : (
                                                                                         <>
-                                                                                            <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
+                                                                                            <span className="text-[11px] text-zinc-600 dark:text-zinc-400 truncate">{qtd > 1 ? `${qtd}× ${p.nome ?? 'Peça'}` : (p.nome ?? 'Peça')}</span>
                                                                                             <button
                                                                                                 onClick={() => setEditandoPecaCarrinho({ orcId: orc.id, pecaId: p.id, pecaDbId: p.peca_id ?? null, nome: p.nome ?? '' })}
                                                                                                 className="opacity-0 group-hover/peca:opacity-100 p-0.5 text-zinc-400 dark:text-zinc-700 hover:text-orange-600 dark:hover:text-yellow-400 transition-all shrink-0"
@@ -841,6 +884,16 @@ export default function AbaCarrinho({
                                                                             </div>
                                                                         );
                                                                     }),
+                                                                    // Linha de furos/recortes (cuba, cooktop, torneira…) — valor agregado (valor_recortes)
+                                                                    ...(furoItem.valor > 0 || furoItem.labels.length > 0 ? [(
+                                                                        <div key={`furo-${itemKey}`} className={`flex items-center justify-between py-1.5 border-b border-sky-200/60 dark:border-sky-900/20 bg-sky-50/60 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-colors ${px}`}>
+                                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                                <iconify-icon icon="solar:scissors-linear" width="11" className="text-sky-600/70 shrink-0 ml-1"></iconify-icon>
+                                                                                <span className="text-[10px] text-sky-700 dark:text-sky-400/80 truncate">{furoItem.labels.length > 0 ? furoItem.labels.join(', ') : 'Furos / Recortes'}</span>
+                                                                            </div>
+                                                                            <span className="font-mono text-[11px] text-sky-600 dark:text-sky-400 shrink-0 ml-3">{fmtBRL(furoItem.valor)}</span>
+                                                                        </div>
+                                                                    )] : []),
                                                                 ];
                                                             });
                                                         })()}
