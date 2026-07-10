@@ -1,10 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { fmt } from '../../utils/orcamentoUtils';
+import { useAuth } from '../../lib/AuthContext';
+import { carregarFavoritos, salvarFavoritos } from '../../utils/favoritosMateriais';
 
 export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabamentoInicial = null, onConfirmar, onFechar, todosM, single = false }) {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('todos');
   const [sel, setSel] = useState(selecionados);
+
+  // Favoritos por usuário (IDs de materiais). Semeados com os padrões na 1ª carga.
+  const [favoritos, setFavoritos] = useState(() => carregarFavoritos(userId, todosM));
+
+  function toggleFavorito(id, e) {
+    e.stopPropagation(); // não selecionar o material ao favoritar
+    setFavoritos(prev => {
+      const proximo = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      salvarFavoritos(userId, proximo);
+      return proximo;
+    });
+  }
 
   // ── Painel de variação ────────────────────────────────────────────
   // painelAberto: true enquanto o usuário escolhe a variante do material clicado.
@@ -32,9 +49,12 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
 
   const filtrados = useMemo(() => todosM.filter(m => {
     const matchBusca = busca === '' || m.nome.toLowerCase().includes(busca.toLowerCase()) || (m.cor ?? '').toLowerCase().includes(busca.toLowerCase());
-    const matchCat = categoria === 'todos' || m.categoria === categoria;
+    const matchCat =
+      categoria === 'todos' ? true
+      : categoria === 'favoritos' ? favoritos.includes(m.id)
+      : m.categoria === categoria;
     return matchBusca && matchCat;
-  }), [busca, categoria, todosM]);
+  }), [busca, categoria, todosM, favoritos]);
 
   function abrirVariantes(id) {
     const vars = todosM.find(m => m.id === id)?.variacoes_precos ?? [];
@@ -112,6 +132,18 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
           </div>
           {/* Categorias + Limpar */}
           <div className="flex gap-1.5 flex-wrap items-center">
+            {/* Aba Favoritos — antes das categorias */}
+            <button
+              onClick={() => setCategoria('favoritos')}
+              className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border transition-colors flex items-center gap-1 ${
+                categoria === 'favoritos'
+                  ? 'border-amber-300 dark:border-amber-400/40 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-400/5'
+                  : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:border-amber-400 dark:hover:border-amber-500/60 hover:text-amber-600 dark:hover:text-amber-400'
+              }`}
+            >
+              <iconify-icon icon={categoria === 'favoritos' ? 'solar:star-bold' : 'solar:star-linear'} width="9"></iconify-icon>
+              Favoritos{favoritos.length > 0 ? ` (${favoritos.length})` : ''}
+            </button>
             {['todos', ...categoriasDisponiveis].map(cat => (
               <button
                 key={cat}
@@ -141,8 +173,16 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
         {/* Lista de materiais */}
         <div className="flex-1 overflow-y-auto">
           {filtrados.length === 0 ? (
-            <div className="py-12 text-center">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum material</p>
+            <div className="py-12 text-center px-6">
+              {categoria === 'favoritos' && busca === '' ? (
+                <>
+                  <iconify-icon icon="solar:star-linear" width="20" className="text-zinc-300 dark:text-zinc-700"></iconify-icon>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700 mt-2">Nenhum favorito</p>
+                  <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-700 mt-1 normal-case tracking-normal">Clique na ★ ao lado de um material para favoritá-lo</p>
+                </>
+              ) : (
+                <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum material</p>
+              )}
             </div>
           ) : (
             filtrados.map(m => {
@@ -165,7 +205,20 @@ export default function PainelMaterial({ pecaId, pecaNome, selecionados, acabame
                   )}
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-zinc-900 dark:text-white font-medium truncate">{m.nome}</div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-zinc-900 dark:text-white font-medium truncate">{m.nome}</span>
+                      <button
+                        onClick={e => toggleFavorito(m.id, e)}
+                        className={`shrink-0 transition-colors ${
+                          favoritos.includes(m.id)
+                            ? 'text-amber-400 hover:text-amber-500'
+                            : 'text-zinc-300 dark:text-zinc-700 hover:text-amber-400'
+                        }`}
+                        title={favoritos.includes(m.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                      >
+                        <iconify-icon icon={favoritos.includes(m.id) ? 'solar:star-bold' : 'solar:star-linear'} width="12"></iconify-icon>
+                      </button>
+                    </div>
                     <div className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">{m.cor} · {m.categoria}</div>
                   </div>
                   {/* Preço */}
