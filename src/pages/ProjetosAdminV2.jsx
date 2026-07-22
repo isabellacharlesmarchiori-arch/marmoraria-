@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { getOrCreateProjetoAvulso, isProjetoAvulso } from '../utils/projetoAvulso';
 import ModalNovoClienteInline from '../components/ModalNovoClienteInline';
 // Valida que um valor é um UUID v4 real — rejeita null, undefined, string 'null', string vazia
 function isValidUUID(v) {
@@ -204,7 +206,12 @@ export default function Projetos() {
     const matchStatus = filtroStatus === 'todos' || p.status === filtroStatus;
 
     let matchResponsabilidade = true;
-    if (isAdmin) {
+    if (isProjetoAvulso(p)) {
+      // Avulso é coletivo: aparece em "Meus"/"Todos" de qualquer usuário,
+      // nunca em "Compartilhados" nem em filtro por vendedor específico
+      const visao = isAdmin ? filtroResponsabilidade : filtroVisao;
+      matchResponsabilidade = visao === 'meus' || visao === 'todos';
+    } else if (isAdmin) {
       if (filtroResponsabilidade === 'meus') matchResponsabilidade = p.vendedor_id === session?.user?.id;
       else if (filtroResponsabilidade === 'compartilhados') matchResponsabilidade = p.compartilhado && p.vendedor_id !== session?.user?.id;
       else if (filtroResponsabilidade !== 'todos') matchResponsabilidade = p.vendedor_id === filtroResponsabilidade;
@@ -224,6 +231,16 @@ export default function Projetos() {
   );
 
   // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const [criandoAvulso, setCriandoAvulso] = useState(false);
+  const handleOrcamentoAvulso = async () => {
+    if (criandoAvulso) return;
+    setCriandoAvulso(true);
+    const { data, error } = await getOrCreateProjetoAvulso(profile?.empresa_id, session?.user?.id);
+    setCriandoAvulso(false);
+    if (error || !data) { toast.error(`Erro ao abrir orçamento avulso: ${error?.message ?? 'projeto não retornado'}`); return; }
+    navigate(`/projetos/${data.id}`, { state: { activeTab: 'orcamentos' } });
+  };
 
   const handleCloseModal = () => {
     setModalAberto(false);
@@ -353,13 +370,23 @@ export default function Projetos() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight uppercase">Projetos</h1>
         </div>
 
-        <button
-          onClick={() => { setEditingProjetoId(null); setModalAberto(true); }}
-          className="shrink-0 flex items-center justify-center gap-2 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-mono text-[11px] font-bold uppercase tracking-widest px-6 py-3 border border-orange-400 dark:border-transparent shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] dark:shadow-none hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] dark:hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] hover:-translate-y-0.5 dark:hover:bg-yellow-300 transition-all rounded-xl dark:rounded-none w-full md:w-auto mt-4 md:mt-0 max-w-[200px]"
-        >
-          <iconify-icon icon="solar:add-circle-linear" width="16"></iconify-icon>
-          Novo projeto
-        </button>
+        <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-full md:w-auto mt-4 md:mt-0">
+          <button
+            onClick={handleOrcamentoAvulso}
+            disabled={criandoAvulso}
+            className="shrink-0 flex items-center justify-center gap-2 bg-transparent text-zinc-600 dark:text-zinc-400 font-mono text-[11px] uppercase tracking-widest px-6 py-3 border border-zinc-300 dark:border-zinc-700 hover:border-orange-500 hover:text-orange-600 dark:hover:border-yellow-400 dark:hover:text-yellow-400 transition-all rounded-xl dark:rounded-none w-full md:w-auto disabled:opacity-50"
+          >
+            <iconify-icon icon="solar:document-add-linear" width="15"></iconify-icon>
+            {criandoAvulso ? 'Abrindo...' : 'Orçamento avulso'}
+          </button>
+          <button
+            onClick={() => { setEditingProjetoId(null); setModalAberto(true); }}
+            className="shrink-0 flex items-center justify-center gap-2 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-mono text-[11px] font-bold uppercase tracking-widest px-6 py-3 border border-orange-400 dark:border-transparent shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] dark:shadow-none hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] dark:hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] hover:-translate-y-0.5 dark:hover:bg-yellow-300 transition-all rounded-xl dark:rounded-none w-full md:w-auto max-w-none md:max-w-[200px]"
+          >
+            <iconify-icon icon="solar:add-circle-linear" width="16"></iconify-icon>
+            Novo projeto
+          </button>
+        </div>
       </div>
 
       {/* Barra de filtros */}
@@ -475,7 +502,9 @@ export default function Projetos() {
               </div>
             ) : (
               projetosPaginados.map((p, i) => {
-                const compartilhadoDeOutro = p.compartilhado && p.vendedor_id !== session?.user?.id;
+                const ehAvulso = isProjetoAvulso(p);
+                // Avulso é coletivo — não recebe o visual de "compartilhado de outro"
+                const compartilhadoDeOutro = !ehAvulso && p.compartilhado && p.vendedor_id !== session?.user?.id;
                 const corDono = p.vendedor_cor ?? '#6B7280';
                 return (
                 <div
@@ -506,7 +535,13 @@ export default function Projetos() {
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 mt-0.5 truncate uppercase tracking-tighter">{p.cliente}</span>
+                    {ehAvulso ? (
+                      <span className="mt-0.5 px-1.5 py-0.5 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 text-[8px] font-mono uppercase tracking-widest text-amber-700 dark:text-amber-400 w-max rounded-md dark:rounded-none">
+                        Avulso
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600 mt-0.5 truncate uppercase tracking-tighter">{p.cliente}</span>
+                    )}
                   </div>
                   <div className="col-span-2">
                     <StatusPill status={p.status} />
@@ -515,13 +550,15 @@ export default function Projetos() {
                     <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-600">{p.data}</span>
                   </div>
                   <div className="col-span-3 flex items-center justify-end gap-1.5 sm:gap-3">
+                    {!ehAvulso && (
                     <button
                       onClick={(e) => handleEditProjeto(e, p)}
                       className="w-8 h-8 flex items-center justify-center text-zinc-400 dark:text-zinc-600 hover:text-orange-500 hover:bg-orange-50 dark:hover:text-white dark:hover:bg-white/5 rounded-lg dark:rounded-none transition-all"
                     >
                       <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>
                     </button>
-                    {isAdmin && (
+                    )}
+                    {isAdmin && !ehAvulso && (
                       <button
                         onClick={(e) => handleDuplicateProjeto(e, p)}
                         className="w-8 h-8 flex items-center justify-center text-zinc-400 dark:text-zinc-600 hover:text-orange-500 hover:bg-orange-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-400/10 rounded-lg dark:rounded-none transition-all"

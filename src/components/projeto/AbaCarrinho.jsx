@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_CONFIG, fmtBRL, calcDataFinalDiasUteis, calcParcelas } from '../../utils/projetoUtils';
+import { isProjetoAvulso } from '../../utils/projetoAvulso';
 import CamposParcelamento from '../../pages/financeiro/lancamentos/CamposParcelamento';
 import ModalImportarPDF from './ModalImportarPDF';
 
@@ -291,6 +292,12 @@ export default function AbaCarrinho({
                                             {pedidoDoOrc && (
                                                 <span className="shrink-0 px-1.5 py-0.5 border border-blue-400 dark:border-blue-500/50 text-[8px] font-mono uppercase tracking-widest text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10">
                                                     Pedido {pedidoDoOrc}
+                                                </span>
+                                            )}
+                                            {/* Projeto avulso é coletivo — identifica quem criou cada versão */}
+                                            {isProjetoAvulso(projeto) && orc.vendedor_nome && (
+                                                <span className="shrink-0 px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                                                    {orc.vendedor_nome.split(' ')[0]}
                                                 </span>
                                             )}
                                         </span>

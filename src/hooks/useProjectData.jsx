@@ -5,7 +5,7 @@ import { normalizarAmbiente } from '../utils/projetoUtils';
 
 const AMBIENTES_SELECT = `
     id, nome,
-    orcamentos(id, nome_versao, valor_total, desconto_total, majoramento_percentual, rt_percentual, rt_arquiteto_nome, valor_frete, status, created_at, itens_manuais, descartado_em,
+    orcamentos(id, nome_versao, valor_total, desconto_total, majoramento_percentual, rt_percentual, rt_arquiteto_nome, valor_frete, status, created_at, itens_manuais, descartado_em, vendedor_id, usuarios!vendedor_id(nome),
         orcamento_pecas(*, pecas(nome_livre, area_liquida_m2, espessura_cm, ambiente_id, dimensoes)),
         orcamento_avulsos(id, produto_id, nome, quantidade, valor_unitario, valor_total, produtos_avulsos(nome))
     )

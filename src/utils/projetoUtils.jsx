@@ -441,6 +441,9 @@ export function normalizarAmbiente(amb) {
     const versoes = orcamentosDoAmb.map(orc => ({
         id:             orc.id,
         nome:           orc.nome_versao ?? orc.nome ?? 'Versão',
+        vendedor_id:    orc.vendedor_id ?? null,
+        // Nome de quem criou a versão — exibido no projeto avulso (coletivo)
+        vendedor_nome:  (Array.isArray(orc.usuarios) ? orc.usuarios[0] : orc.usuarios)?.nome ?? null,
         status:         orc.status ?? 'rascunho',
         valor_total:    orc.valor_total ?? 0,
         desconto_total: orc.desconto_total ?? 0,

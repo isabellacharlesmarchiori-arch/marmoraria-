@@ -18,6 +18,7 @@ import ModalEditarVersao from '../components/projeto/ModalEditarVersao';
 import DrawerItemManual from '../components/projeto/DrawerItemManual';
 import DrawerEdicaoPeca from '../components/projeto/DrawerEdicaoPeca';
 import ModalAgendarMedicao from '../components/projeto/ModalAgendarMedicao';
+import ModalMigrarAvulso from '../components/projeto/ModalMigrarAvulso';
 import AbaMedicoes from '../components/projeto/AbaMedicoes';
 import AbaCarrinho from '../components/projeto/AbaCarrinho';
 import AbaPedidos from '../components/projeto/AbaPedidos';
@@ -26,6 +27,7 @@ import {
     StatusPill, MedicaoPill,
     fmtBRL, calcDataFinalDiasUteis, calcParcelas,
 } from '../utils/projetoUtils';
+import { isProjetoAvulso } from '../utils/projetoAvulso';
 // gerarPdfOrcamento é importado dinamicamente no click handler para não bloquear o bundle inicial
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -70,9 +72,18 @@ export default function TelaProjetoVendedor() {
 
     const isViewOnlyAdmin = isAdmin && projeto && projeto.vendedor_id !== session?.user?.id;
 
+    // ── Projeto avulso (coletivo da empresa) ─────────────────────────────
+    const ehAvulso = isProjetoAvulso(projeto);
+    const [modalMigrar, setModalMigrar] = useState(false);
+    // Orçamentos de outros vendedores dentro do avulso — aviso no modal de migração
+    const temItensDeOutros = ehAvulso && ambientes.some(a =>
+        (a.orcamentos ?? []).some(o => o.vendedor_id && o.vendedor_id !== session?.user?.id)
+    );
+
     // ── Compartilhamento ─────────────────────────────────────────────────
     const isDono = !!projeto && projeto.vendedor_id === session?.user?.id;
-    const podeCompartilhar = isDono || isAdmin;
+    // Avulso já nasce compartilhado e não pode ser descompartilhado
+    const podeCompartilhar = (isDono || isAdmin) && !ehAvulso;
     const [salvandoCompartilhar, setSalvandoCompartilhar] = useState(false);
 
     // Guard: vendedor não-dono só acessa projeto compartilhado
@@ -479,7 +490,12 @@ export default function TelaProjetoVendedor() {
                                 <div className="flex items-center gap-3 flex-wrap">
                                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tighter">{projeto?.nome ?? '—'}</h1>
                                     <StatusPill status={projeto?.status ?? 'aprovado'} />
-                                    {projeto?.compartilhado && (
+                                    {ehAvulso ? (
+                                        <span className="px-2.5 py-0.5 border border-amber-300 dark:border-amber-400/30 text-[9px] font-mono uppercase text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-400/5 flex items-center gap-1.5 rounded-full dark:rounded-none">
+                                            <iconify-icon icon="solar:document-add-linear" width="11"></iconify-icon>
+                                            Avulso
+                                        </span>
+                                    ) : projeto?.compartilhado && (
                                         <span className="px-2.5 py-0.5 border border-emerald-200 dark:border-green-500/30 text-[9px] font-mono uppercase text-emerald-700 dark:text-green-400 bg-emerald-50 dark:bg-green-400/5 flex items-center gap-1.5 rounded-full dark:rounded-none">
                                             <iconify-icon icon="solar:users-group-two-rounded-linear" width="11"></iconify-icon>
                                             Compartilhado
@@ -487,11 +503,15 @@ export default function TelaProjetoVendedor() {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-500">
-                                    <iconify-icon icon="solar:user-linear" width="13" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
-                                    <a href={`/clientes/${projeto?.cliente?.id}`} className="hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
-                                        {projeto?.cliente?.nome ?? '—'}
-                                    </a>
-                                    <span className="text-zinc-400 dark:text-zinc-700">·</span>
+                                    {!ehAvulso && (
+                                        <>
+                                            <iconify-icon icon="solar:user-linear" width="13" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
+                                            <a href={`/clientes/${projeto?.cliente?.id}`} className="hover:text-orange-600 dark:hover:text-yellow-400 transition-colors">
+                                                {projeto?.cliente?.nome ?? '—'}
+                                            </a>
+                                            <span className="text-zinc-400 dark:text-zinc-700">·</span>
+                                        </>
+                                    )}
                                     <iconify-icon icon="solar:calendar-linear" width="13" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
                                     <span>{projeto?.criado_em ?? '—'}</span>
                                     <span className="text-zinc-400 dark:text-zinc-700">·</span>
@@ -536,6 +556,25 @@ export default function TelaProjetoVendedor() {
                         </div>
                     </div>
                 </section>
+
+                {/* ── Banner projeto avulso ─────────────────────────────── */}
+                {ehAvulso && (
+                    <section className="sys-reveal -mt-4 mb-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 rounded-2xl dark:rounded-none px-5 py-3">
+                            <div className="flex items-center gap-2.5 font-mono text-[11px] text-amber-800 dark:text-amber-400">
+                                <iconify-icon icon="solar:info-circle-linear" width="15" className="shrink-0"></iconify-icon>
+                                Orçamento avulso — vincule a um cliente para finalizar
+                            </div>
+                            <button
+                                onClick={() => setModalMigrar(true)}
+                                className="shrink-0 flex items-center gap-2 border border-amber-400 dark:border-amber-400/40 text-amber-800 dark:text-amber-400 text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded-md dark:rounded-none hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-colors w-max"
+                            >
+                                <iconify-icon icon="solar:arrow-right-up-linear" width="12"></iconify-icon>
+                                Migrar para projeto
+                            </button>
+                        </div>
+                    </section>
+                )}
 
                 {/* ── Tabs ──────────────────────────────────────────────── */}
                 <div className="sys-reveal sys-delay-100 flex border-b border-zinc-200/80 dark:border-zinc-800 mb-6">
@@ -632,6 +671,17 @@ export default function TelaProjetoVendedor() {
                     />
                 )}
             </main>
+
+            {/* ══ MODAL — Migrar avulso para projeto real ════════════════ */}
+            <ModalMigrarAvulso
+                aberto={modalMigrar}
+                onClose={() => setModalMigrar(false)}
+                projetoAvulsoId={projeto?.id}
+                empresaId={profile?.empresa_id}
+                userId={session?.user?.id}
+                temItensDeOutros={temItensDeOutros}
+                onMigrado={(novoId) => { setModalMigrar(false); navigate(`/projetos/${novoId}`); }}
+            />
 
             {/* ══ PAINEL LATERAL — Dados da medição ══════════════════════ */}
             {painelMedicao && (() => {
