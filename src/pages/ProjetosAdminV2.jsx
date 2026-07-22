@@ -42,6 +42,8 @@ export default function Projetos() {
   const [buscaInput, setBuscaInput] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [filtroResponsabilidade, setFiltroResponsabilidade] = useState('todos');
+  // Visão do vendedor: 'meus' | 'compartilhados' (admin usa filtroResponsabilidade)
+  const [filtroVisao, setFiltroVisao] = useState('meus');
   const [filtroVendedor, setFiltroVendedor] = useState('');
   const [arquitetos, setArquitetos] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
@@ -74,7 +76,8 @@ export default function Projetos() {
     const empresaId = profile?.empresa_id;
     if (!empresaId) return;
     try {
-      const cached = localStorage.getItem(`projetos_cache_${empresaId}`);
+      // Cache por usuário — evita vendedor ver cache de admin no mesmo navegador
+      const cached = localStorage.getItem(`projetos_cache_${empresaId}_${session?.user?.id}`);
       if (cached) {
         const { projetos: p, clientes: c, arquitetos: a, vendedores: v } = JSON.parse(cached);
         if (p?.length) { setProjetos(p); setLoadingProjetos(false); }
@@ -83,7 +86,7 @@ export default function Projetos() {
         if (v?.length) setVendedores(v);
       }
     } catch { /* cache corrompido — ignora */ }
-  }, [profile?.empresa_id]);
+  }, [profile?.empresa_id, session?.user?.id]);
 
   // Fetch projetos e clientes
   useEffect(() => {
@@ -102,12 +105,13 @@ export default function Projetos() {
 
         let projetosQuery = supabase
           .from('projetos')
-          .select('id, nome, status, created_at, vendedor_id, arquiteto_id, rt_padrao_percentual, clientes(id, nome), arquitetos(id, nome)')
+          .select('id, nome, status, created_at, vendedor_id, arquiteto_id, rt_padrao_percentual, compartilhado, clientes(id, nome), arquitetos(id, nome), usuarios!vendedor_id(nome, cor_vendedor)')
           .eq('empresa_id', empresaId)
           .neq('status', 'perdido')
           .order('created_at', { ascending: false });
 
-        if (!isAdmin) projetosQuery = projetosQuery.eq('vendedor_id', session.user.id);
+        // Vendedor: os próprios projetos + os compartilhados pela equipe
+        if (!isAdmin) projetosQuery = projetosQuery.or(`vendedor_id.eq.${session.user.id},compartilhado.eq.true`);
 
         const queries = [
           projetosQuery,
@@ -131,6 +135,7 @@ export default function Projetos() {
         const projetosNormalizados = dataProjetos ? dataProjetos.map(p => {
           const cli = Array.isArray(p.clientes)  ? p.clientes[0]  : p.clientes;
           const arq = Array.isArray(p.arquitetos) ? p.arquitetos[0] : p.arquitetos;
+          const dono = Array.isArray(p.usuarios) ? p.usuarios[0] : p.usuarios;
           return {
             id:                   p.id,
             nome:                 p.nome,
@@ -141,6 +146,9 @@ export default function Projetos() {
             arquiteto_nome:       arq?.nome ?? null,
             rt_padrao_percentual: p.rt_padrao_percentual ?? 0,
             vendedor_id:          p.vendedor_id,
+            compartilhado:        !!p.compartilhado,
+            vendedor_nome:        dono?.nome ?? null,
+            vendedor_cor:         dono?.cor_vendedor ?? null,
             data: p.created_at
               ? new Date(p.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
               : '—',
@@ -153,7 +161,7 @@ export default function Projetos() {
         if (dataVendedores)       setVendedores(dataVendedores);
 
         try {
-          localStorage.setItem(`projetos_cache_${empresaId}`, JSON.stringify({
+          localStorage.setItem(`projetos_cache_${empresaId}_${session.user.id}`, JSON.stringify({
             projetos:   projetosNormalizados ?? [],
             clientes:   dataClientes    ?? [],
             arquitetos: dataArquitetos  ?? [],
@@ -186,7 +194,7 @@ export default function Projetos() {
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [busca, filtroStatus, filtroResponsabilidade]);
+  }, [busca, filtroStatus, filtroResponsabilidade, filtroVisao]);
 
   const projetosFiltrados = useMemo(() => projetos.filter(p => {
     const q = busca.toLowerCase();
@@ -198,13 +206,16 @@ export default function Projetos() {
     let matchResponsabilidade = true;
     if (isAdmin) {
       if (filtroResponsabilidade === 'meus') matchResponsabilidade = p.vendedor_id === session?.user?.id;
+      else if (filtroResponsabilidade === 'compartilhados') matchResponsabilidade = p.compartilhado && p.vendedor_id !== session?.user?.id;
       else if (filtroResponsabilidade !== 'todos') matchResponsabilidade = p.vendedor_id === filtroResponsabilidade;
     } else {
-      matchResponsabilidade = p.vendedor_id === session?.user?.id;
+      matchResponsabilidade = filtroVisao === 'compartilhados'
+        ? p.compartilhado && p.vendedor_id !== session?.user?.id
+        : p.vendedor_id === session?.user?.id;
     }
 
     return matchBusca && matchStatus && matchResponsabilidade;
-  }), [projetos, busca, filtroStatus, filtroResponsabilidade, session?.user?.id, isAdmin]);
+  }), [projetos, busca, filtroStatus, filtroResponsabilidade, filtroVisao, session?.user?.id, isAdmin]);
 
   const totalPages = Math.ceil(projetosFiltrados.length / PAGE_SIZE) || 1;
   const projetosPaginados = projetosFiltrados.slice(
@@ -368,6 +379,27 @@ export default function Projetos() {
             </button>
           ))}
 
+          {!isAdmin && (
+            <div className="flex items-center gap-1 ml-0 md:ml-2 pl-0 md:pl-2 border-l-0 md:border-l border-zinc-200 dark:border-zinc-800">
+              {[
+                { key: 'meus',           label: 'Meus projetos'  },
+                { key: 'compartilhados', label: 'Compartilhados' },
+              ].map(v => (
+                <button
+                  key={v.key}
+                  onClick={() => setFiltroVisao(v.key)}
+                  className={`px-4 py-2 text-[10px] font-mono uppercase tracking-widest transition-all cursor-pointer rounded-xl dark:rounded-none border ${
+                    filtroVisao === v.key
+                      ? 'bg-white dark:bg-zinc-900 text-orange-600 dark:text-yellow-400 shadow-sm dark:shadow-none border-zinc-200/80 dark:border-zinc-700 font-bold'
+                      : 'bg-transparent text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white border-transparent'
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {isAdmin && (
             <div className="flex items-center gap-2 ml-0 md:ml-2 pl-0 md:pl-2 border-l-0 md:border-l border-zinc-200 dark:border-zinc-800">
               <span className="font-mono text-[9px] uppercase text-zinc-500 dark:text-zinc-500 ml-2 md:ml-0">Exibir:</span>
@@ -378,6 +410,7 @@ export default function Projetos() {
               >
                 <option value="todos">Todos os Projetos</option>
                 <option value="meus">Meus Projetos</option>
+                <option value="compartilhados">Compartilhados</option>
                 {loadingProjetos ? (
                   <option value="" disabled>Carregando equipe...</option>
                 ) : (
@@ -441,20 +474,35 @@ export default function Projetos() {
                 <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Nenhum projeto encontrado</span>
               </div>
             ) : (
-              projetosPaginados.map((p, i) => (
+              projetosPaginados.map((p, i) => {
+                const compartilhadoDeOutro = p.compartilhado && p.vendedor_id !== session?.user?.id;
+                const corDono = p.vendedor_cor ?? '#6B7280';
+                return (
                 <div
                   key={p.id}
                   onClick={() => navigate(`/projetos/${p.id}`)}
                   className={`card-interactive grid grid-cols-12 items-center px-6 py-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-white/[0.02] group ${
                     i < projetosPaginados.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-900/50' : ''
                   }`}
+                  // Fundo levinho na cor do vendedor dono (~15% de opacidade via sufixo hex 26)
+                  style={compartilhadoDeOutro ? { backgroundColor: `${corDono}26` } : undefined}
                 >
                   <div className="col-span-5 flex flex-col min-w-0 pr-4">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-zinc-900 dark:text-white font-medium truncate group-hover:text-orange-600 dark:group-hover:text-yellow-400 transition-colors">{p.nome}</span>
-                      {isAdmin && p.vendedor_id !== session?.user?.id && (
+                      {compartilhadoDeOutro ? (
+                        <span className="flex items-center gap-1.5 px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 bg-white/70 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-600 dark:text-zinc-300 shrink-0 rounded-md dark:rounded-none">
+                          <span
+                            className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold text-white shrink-0"
+                            style={{ backgroundColor: corDono }}
+                          >
+                            {(p.vendedor_nome ?? 'V')[0].toUpperCase()}
+                          </span>
+                          {p.vendedor_nome?.split(' ')[0] || 'Vendedor'}
+                        </span>
+                      ) : isAdmin && p.vendedor_id !== session?.user?.id && (
                         <span className="px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400 shrink-0 rounded-md dark:rounded-none">
-                          OP: {vendedores.find(v => v.id === p.vendedor_id)?.nome?.split(' ')[0] || 'Vendedor'}
+                          OP: {p.vendedor_nome?.split(' ')[0] || vendedores.find(v => v.id === p.vendedor_id)?.nome?.split(' ')[0] || 'Vendedor'}
                         </span>
                       )}
                     </div>
@@ -493,7 +541,8 @@ export default function Projetos() {
                     <iconify-icon icon="solar:arrow-right-linear" width="14" className="text-zinc-300 dark:text-zinc-800 group-hover:text-orange-600 dark:group-hover:text-yellow-400 transition-colors"></iconify-icon>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
 
             {projetosFiltrados.length > PAGE_SIZE && (

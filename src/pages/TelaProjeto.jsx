@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { parseEndereco } from '../utils/endereco';
 import ModalOrcamentoManual from '../components/ModalOrcamentoManual';
@@ -67,6 +69,34 @@ export default function TelaProjetoVendedor() {
     });
 
     const isViewOnlyAdmin = isAdmin && projeto && projeto.vendedor_id !== session?.user?.id;
+
+    // ── Compartilhamento ─────────────────────────────────────────────────
+    const isDono = !!projeto && projeto.vendedor_id === session?.user?.id;
+    const podeCompartilhar = isDono || isAdmin;
+    const [salvandoCompartilhar, setSalvandoCompartilhar] = useState(false);
+
+    // Guard: vendedor não-dono só acessa projeto compartilhado
+    useEffect(() => {
+        if (loadingProjeto || !projeto || isAdmin) return;
+        if (projeto.vendedor_id !== session?.user?.id && !projeto.compartilhado) {
+            toast.error('Projeto não disponível');
+            navigate('/projetos', { replace: true });
+        }
+    }, [loadingProjeto, projeto, isAdmin, session?.user?.id, navigate]);
+
+    async function handleToggleCompartilhar() {
+        if (!projeto || salvandoCompartilhar) return;
+        const novoValor = !projeto.compartilhado;
+        setSalvandoCompartilhar(true);
+        const { error } = await supabase
+            .from('projetos')
+            .update({ compartilhado: novoValor })
+            .eq('id', projeto.id);
+        setSalvandoCompartilhar(false);
+        if (error) { toast.error('Erro ao alterar compartilhamento: ' + error.message); return; }
+        setProjeto(prev => ({ ...prev, compartilhado: novoValor }));
+        toast.success(novoValor ? 'Projeto compartilhado com a equipe' : 'Compartilhamento removido');
+    }
 
     // Abre modal de edição preenchido com dados existentes
     function handleAbrirEditar(m) {
@@ -449,6 +479,12 @@ export default function TelaProjetoVendedor() {
                                 <div className="flex items-center gap-3 flex-wrap">
                                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tighter">{projeto?.nome ?? '—'}</h1>
                                     <StatusPill status={projeto?.status ?? 'aprovado'} />
+                                    {projeto?.compartilhado && (
+                                        <span className="px-2.5 py-0.5 border border-emerald-200 dark:border-green-500/30 text-[9px] font-mono uppercase text-emerald-700 dark:text-green-400 bg-emerald-50 dark:bg-green-400/5 flex items-center gap-1.5 rounded-full dark:rounded-none">
+                                            <iconify-icon icon="solar:users-group-two-rounded-linear" width="11"></iconify-icon>
+                                            Compartilhado
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-500">
                                     <iconify-icon icon="solar:user-linear" width="13" className="text-zinc-500 dark:text-zinc-600"></iconify-icon>
@@ -466,6 +502,20 @@ export default function TelaProjetoVendedor() {
 
                             {/* Ações */}
                             <div className="flex items-center gap-2 flex-wrap">
+                                {podeCompartilhar && (
+                                <button
+                                    onClick={handleToggleCompartilhar}
+                                    disabled={salvandoCompartilhar}
+                                    className={`flex items-center gap-2 border text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 rounded-md dark:rounded-none transition-colors disabled:opacity-50 ${
+                                        projeto?.compartilhado
+                                            ? 'border-emerald-300 dark:border-green-500/30 bg-emerald-50 dark:bg-green-400/5 text-emerald-700 dark:text-green-400 hover:border-emerald-500 dark:hover:border-green-400'
+                                            : 'border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-orange-500 hover:text-orange-600 dark:hover:border-white dark:hover:text-white'
+                                    }`}
+                                >
+                                    <iconify-icon icon={projeto?.compartilhado ? 'solar:users-group-two-rounded-bold' : 'solar:users-group-two-rounded-linear'} width="13"></iconify-icon>
+                                    {projeto?.compartilhado ? 'Compartilhado' : 'Compartilhar'}
+                                </button>
+                                )}
                                 <button
                                     onClick={() => { setNovoStatus(projeto?.status ?? 'orcado'); setModalStatus(true); }}
                                     className="flex items-center gap-2 border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-[11px] font-mono uppercase tracking-widest px-4 py-2.5 rounded-md dark:rounded-none hover:border-orange-500 hover:text-orange-600 dark:hover:border-white dark:hover:text-white transition-colors"

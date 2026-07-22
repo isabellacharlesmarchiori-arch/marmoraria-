@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link, useNavigate, Outlet } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -186,6 +187,27 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
   const userName = profile?.nome ?? 'Usuário';
   const userInitials = userName.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
+  // ── Minha cor (usuarios.cor_vendedor) — usada nos projetos compartilhados ──
+  const podeEscolherCor = perfilBase === 'vendedor' || perfilBase === 'admin';
+  const [corVendedor, setCorVendedor] = useState(profile?.cor_vendedor ?? null);
+  const corDebounceRef = useRef(null);
+  useEffect(() => { setCorVendedor(profile?.cor_vendedor ?? null); }, [profile?.cor_vendedor]);
+
+  const handleCorChange = (e) => {
+    const cor = e.target.value;
+    setCorVendedor(cor); // feedback visual imediato
+    // Debounce: o input color dispara change continuamente enquanto arrasta
+    if (corDebounceRef.current) clearTimeout(corDebounceRef.current);
+    corDebounceRef.current = setTimeout(async () => {
+      const { error } = await supabase
+        .from('usuarios')
+        .update({ cor_vendedor: cor })
+        .eq('id', session?.user?.id);
+      if (error) toast.error('Erro ao salvar sua cor: ' + error.message);
+      else toast.success('Sua cor foi atualizada');
+    }, 600);
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-white font-sans selection:bg-orange-500 selection:text-white dark:selection:bg-gray-50 dark:selection:text-black">
       {/* Background patterns — only visible in dark mode */}
@@ -259,9 +281,29 @@ const AppShell = ({ notifCount: notifCountProp = 0 }) => {
 
         {/* 4. Rodapé Usuário */}
         <div className="flex items-center gap-3 px-4 py-3 border-t border-zinc-200/80 dark:border-zinc-800 shrink-0">
-          <div className="w-7 h-7 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-center font-mono text-[10px] text-orange-600 dark:text-yellow-400 font-bold shrink-0">
-            {userInitials}
-          </div>
+          {podeEscolherCor ? (
+            <label
+              title="Minha cor — identifica seus projetos compartilhados"
+              className="relative w-7 h-7 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-center font-mono text-[10px] text-orange-600 dark:text-yellow-400 font-bold shrink-0 cursor-pointer hover:border-orange-400 dark:hover:border-yellow-400 transition-colors"
+              style={corVendedor ? { borderColor: corVendedor } : undefined}
+            >
+              {userInitials}
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white dark:border-[#080808]"
+                style={{ backgroundColor: corVendedor ?? '#9CA3AF' }}
+              ></span>
+              <input
+                type="color"
+                value={corVendedor ?? '#1D9E75'}
+                onChange={handleCorChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </label>
+          ) : (
+            <div className="w-7 h-7 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-center font-mono text-[10px] text-orange-600 dark:text-yellow-400 font-bold shrink-0">
+              {userInitials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-[11px] text-zinc-900 dark:text-white font-medium truncate">{userName}</div>
             <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-600 uppercase truncate">{perfilLabel}</div>

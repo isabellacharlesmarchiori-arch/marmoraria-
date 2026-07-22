@@ -84,7 +84,7 @@ export function useProjectData(projectId, activeTab) {
             try {
                 const empresaId = profile?.empresa_id;
                 let qProj = supabase.from('projetos')
-                    .select('*, clientes(id, nome, telefone, email, endereco), arquitetos(id, nome), usuarios!vendedor_id(nome), rt_padrao_percentual')
+                    .select('*, clientes(id, nome, telefone, email, endereco), arquitetos(id, nome), usuarios!vendedor_id(nome, cor_vendedor), rt_padrao_percentual')
                     .eq('id', projectId);
                 if (empresaId) qProj = qProj.eq('empresa_id', empresaId);
                 let qAmb = supabase.from('ambientes').select(AMBIENTES_SELECT).eq('projeto_id', projectId);
