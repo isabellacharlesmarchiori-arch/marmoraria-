@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { NOME_PROJETO_AVULSO } from '../../utils/projetoAvulso';
+import ModalNovoClienteInline from '../ModalNovoClienteInline';
 
 // Migração do projeto avulso coletivo.
 //
@@ -36,6 +37,10 @@ export default function ModalMigrarAvulso({
     const [novoClienteId, setNovoClienteId] = useState('');
     const [carregando, setCarregando] = useState(false);
     const [migrando, setMigrando] = useState(false);
+    // Criar cliente inline (mesmo padrão do modal de novo projeto):
+    // dados ficam em memória ('temp') e só são salvos ao confirmar a migração
+    const [modalNovoCliente, setModalNovoCliente] = useState(false);
+    const [clienteTemp, setClienteTemp] = useState(null);
 
     // Ids efetivamente selecionados, conforme o modo
     const selIds = modo === 'orcamentos' ? selecionadosIds : selMedicoes;
@@ -61,6 +66,7 @@ export default function ModalMigrarAvulso({
         if (!aberto) return;
         setStep(1);
         setSelMedicoes([]);
+        setClienteTemp(null);
     }, [aberto, modo]);
 
     useEffect(() => {
@@ -120,11 +126,28 @@ export default function ModalMigrarAvulso({
 
     async function resolverDestino() {
         if (modoDestino === 'existente') return destinoId;
+
+        // Cliente temporário: persiste no banco agora, antes de criar o projeto
+        // (mesmo fluxo do handleSaveProjeto em ProjetosAdminV2)
+        let clienteIdReal = novoClienteId;
+        if (clienteTemp && novoClienteId === 'temp') {
+            const { id: _id, isTemporario: _t, ...dadosCliente } = clienteTemp;
+            const { data: cliSalvo, error: errCli } = await supabase
+                .from('clientes')
+                .insert({ ...dadosCliente, empresa_id: empresaId })
+                .select('id, nome')
+                .single();
+            if (errCli) throw new Error('criar cliente: ' + errCli.message);
+            clienteIdReal = cliSalvo.id;
+            setClientes(prev => [...prev, cliSalvo].sort((a, b) => a.nome.localeCompare(b.nome)));
+            setClienteTemp(null);
+        }
+
         const { data, error } = await supabase
             .from('projetos')
             .insert({
                 nome:        novoNome.trim(),
-                cliente_id:  novoClienteId,
+                cliente_id:  clienteIdReal,
                 empresa_id:  empresaId,
                 vendedor_id: userId,
                 status:      'orcado',
@@ -388,15 +411,30 @@ export default function ModalMigrarAvulso({
                                     placeholder="Nome do projeto"
                                     className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none placeholder:text-zinc-400 dark:placeholder:text-zinc-700"
                                 />
-                                <select
-                                    value={novoClienteId}
-                                    onChange={e => setNovoClienteId(e.target.value)}
-                                    disabled={carregando}
-                                    className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none"
-                                >
-                                    <option value="">{carregando ? 'Carregando clientes...' : 'Selecione o cliente'}</option>
-                                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                                </select>
+                                <div>
+                                    <div className="flex items-center justify-end mb-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setModalNovoCliente(true)}
+                                            className="flex items-center gap-1 font-mono text-[9px] uppercase text-orange-600 dark:text-yellow-400 hover:text-orange-500 dark:hover:text-yellow-300 transition-colors"
+                                        >
+                                            <iconify-icon icon="solar:add-circle-linear" width="11"></iconify-icon>
+                                            Novo Cliente
+                                        </button>
+                                    </div>
+                                    <select
+                                        value={novoClienteId}
+                                        onChange={e => setNovoClienteId(e.target.value)}
+                                        disabled={carregando}
+                                        className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none"
+                                    >
+                                        <option value="">{carregando ? 'Carregando clientes...' : 'Selecione o cliente'}</option>
+                                        {clienteTemp && (
+                                            <option value="temp">{clienteTemp.nome} (novo — não salvo)</option>
+                                        )}
+                                        {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                                    </select>
+                                </div>
                             </div>
                         )}
 
@@ -419,6 +457,18 @@ export default function ModalMigrarAvulso({
                     </>
                 )}
             </div>
+
+            {/* Sub-modal: criar cliente inline (z-110 — fica acima deste modal) */}
+            {modalNovoCliente && (
+                <ModalNovoClienteInline
+                    onClose={() => setModalNovoCliente(false)}
+                    onCreated={dados => {
+                        setClienteTemp(dados);   // guarda em memória, sem tocar no banco
+                        setNovoClienteId('temp');
+                        setModalNovoCliente(false);
+                    }}
+                />
+            )}
         </div>
     );
 }
