@@ -3,19 +3,20 @@ import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { NOME_PROJETO_AVULSO } from '../../utils/projetoAvulso';
 
-// Modal de migração do projeto avulso coletivo para um projeto real.
-// Move TODAS as medições, ambientes e orçamentos do avulso (inclusive de outros
-// vendedores — o projeto é coletivo) e deleta o projeto-fantasma se possível.
+// Migração SELETIVA do projeto avulso coletivo: o usuário escolhe quais
+// ambientes (com seus orçamentos e medições) mover para um projeto real.
+// O [Avulsos] nunca é deletado — é coletivo e será reutilizado.
 export default function ModalMigrarAvulso({
     aberto,
     onClose,
     projetoAvulsoId,
     empresaId,
     userId,
-    temItensDeOutros, // orçamentos de outros vendedores dentro do avulso
-    onMigrado,        // (novoProjetoId) => void
+    ambientes = [], // normalizados (useProjectData) — versões trazem vendedor_id/nome/data
+    onMigrado,      // (novoProjetoId) => void
 }) {
     const [modo, setModo] = useState('existente'); // 'existente' | 'novo'
+    const [selecionados, setSelecionados] = useState([]); // ids de ambientes
     const [projetos, setProjetos] = useState([]);
     const [clientes, setClientes] = useState([]);
     const [destinoId, setDestinoId] = useState('');
@@ -23,6 +24,11 @@ export default function ModalMigrarAvulso({
     const [novoClienteId, setNovoClienteId] = useState('');
     const [carregando, setCarregando] = useState(false);
     const [migrando, setMigrando] = useState(false);
+
+    useEffect(() => {
+        if (!aberto) return;
+        setSelecionados([]); // limpa seleção a cada abertura
+    }, [aberto]);
 
     useEffect(() => {
         if (!aberto || !empresaId) return;
@@ -56,9 +62,13 @@ export default function ModalMigrarAvulso({
 
     if (!aberto) return null;
 
-    const podeConfirmar = modo === 'existente'
+    const toggleAmbiente = (ambId) =>
+        setSelecionados(prev => prev.includes(ambId) ? prev.filter(x => x !== ambId) : [...prev, ambId]);
+
+    const destinoOk = modo === 'existente'
         ? !!destinoId
         : novoNome.trim().length > 0 && !!novoClienteId;
+    const podeConfirmar = destinoOk && selecionados.length > 0;
 
     async function handleConfirmar() {
         if (!podeConfirmar || migrando) return;
@@ -82,29 +92,45 @@ export default function ModalMigrarAvulso({
                 destino = data.id;
             }
 
-            // 2-4. Move medições, ambientes e orçamentos (orcamentos.projeto_id
-            // existe e é preenchido em todo insert — sem este UPDATE ficariam
-            // apontando para o projeto deletado)
-            for (const tabela of ['medicoes', 'ambientes', 'orcamentos']) {
-                const { error } = await supabase
-                    .from(tabela)
+            // 2. Medições vinculadas aos ambientes selecionados (ambientes.medicao_id
+            // não vem no shape normalizado — busca direto no banco)
+            const { data: ambRaw, error: errAmbSel } = await supabase
+                .from('ambientes')
+                .select('id, medicao_id')
+                .in('id', selecionados)
+                .eq('empresa_id', empresaId);
+            if (errAmbSel) throw new Error('mapear medições: ' + errAmbSel.message);
+            const medicaoIds = [...new Set((ambRaw ?? []).map(a => a.medicao_id).filter(Boolean))];
+
+            // 3. Move ambientes selecionados
+            const { error: errAmb } = await supabase
+                .from('ambientes')
+                .update({ projeto_id: destino })
+                .in('id', selecionados)
+                .eq('empresa_id', empresaId);
+            if (errAmb) throw new Error('mover ambientes: ' + errAmb.message);
+
+            // 4. Move os orçamentos desses ambientes (orcamentos.projeto_id existe
+            // e é preenchido em todo insert — sem isto ficariam apontando pro avulso)
+            const { error: errOrc } = await supabase
+                .from('orcamentos')
+                .update({ projeto_id: destino })
+                .in('ambiente_id', selecionados)
+                .eq('empresa_id', empresaId);
+            if (errOrc) throw new Error('mover orçamentos: ' + errOrc.message);
+
+            // 5. Move as medições desses ambientes
+            if (medicaoIds.length > 0) {
+                const { error: errMed } = await supabase
+                    .from('medicoes')
                     .update({ projeto_id: destino })
-                    .eq('projeto_id', projetoAvulsoId)
+                    .in('id', medicaoIds)
                     .eq('empresa_id', empresaId);
-                if (error) throw new Error(`mover ${tabela}: ` + error.message);
+                if (errMed) throw new Error('mover medições: ' + errMed.message);
             }
 
-            // 5. Deleta o projeto-fantasma (agora vazio). Best-effort: se alguma
-            // FK externa (ex: notificacoes) bloquear, o fantasma vazio fica órfão
-            // sem prejudicar a migração — será reutilizado no próximo avulso.
-            const { error: errDel } = await supabase
-                .from('projetos')
-                .delete()
-                .eq('id', projetoAvulsoId)
-                .eq('empresa_id', empresaId);
-            if (errDel) console.warn('[MigrarAvulso] Projeto avulso não pôde ser deletado (segue vazio):', errDel.message);
-
-            toast.success('Migrado com sucesso');
+            // O [Avulsos] permanece (coletivo, reutilizável) — vazio ou não.
+            toast.success(`${selecionados.length} ambiente(s) migrado(s) com sucesso`);
             onMigrado(destino);
         } catch (err) {
             toast.error('Erro ao migrar: ' + err.message);
@@ -116,17 +142,59 @@ export default function ModalMigrarAvulso({
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !migrando && onClose()} />
-            <div className="relative bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl dark:rounded-none shadow-2xl w-full max-w-md p-6 flex flex-col gap-4">
+            <div className="relative bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl dark:rounded-none shadow-2xl w-full max-w-lg p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
                 <div>
                     <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">Migrar para projeto</h2>
                     <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-relaxed">
-                        Medições e orçamentos deste avulso serão movidos para o projeto escolhido.
+                        Selecione os ambientes que serão movidos — orçamentos e medições vão juntos.
                     </p>
-                    {temItensDeOutros && (
-                        <p className="mt-2 px-3 py-2 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 font-mono text-[10px] text-amber-700 dark:text-amber-400 rounded-md dark:rounded-none leading-relaxed">
-                            Este avulso contém orçamentos de outros vendedores — todos serão movidos juntos.
+                </div>
+
+                {/* Seleção de ambientes */}
+                <div className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none divide-y divide-zinc-100 dark:divide-zinc-900 max-h-56 overflow-y-auto">
+                    {ambientes.length === 0 ? (
+                        <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">
+                            Nenhum ambiente neste avulso
                         </p>
-                    )}
+                    ) : ambientes.map(amb => {
+                        const marcado = selecionados.includes(amb.id);
+                        return (
+                            <label
+                                key={amb.id}
+                                className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                                    marcado ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
+                                }`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={marcado}
+                                    onChange={() => toggleAmbiente(amb.id)}
+                                    className="mt-0.5 accent-orange-500 dark:accent-yellow-400 shrink-0"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{amb.nome}</div>
+                                    {(amb.orcamentos ?? []).map(o => {
+                                        const deOutro = o.vendedor_id && o.vendedor_id !== userId;
+                                        return (
+                                            <div key={o.id} className="flex items-center gap-2 font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 min-w-0">
+                                                <iconify-icon icon="solar:document-text-linear" width="10" className="shrink-0 text-zinc-400 dark:text-zinc-700"></iconify-icon>
+                                                <span className="truncate">{o.nome}</span>
+                                                {o.vendedor_nome && (
+                                                    <span className="shrink-0 text-zinc-400 dark:text-zinc-600">· {o.vendedor_nome.split(' ')[0]}</span>
+                                                )}
+                                                {o.data && <span className="shrink-0 text-zinc-400 dark:text-zinc-600">· {o.data}</span>}
+                                                {deOutro && (
+                                                    <span className="shrink-0 px-1 py-0.5 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 text-[7px] uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                                                        De outro vendedor
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </label>
+                        );
+                    })}
                 </div>
 
                 {/* Modo: existente | novo */}
@@ -195,7 +263,9 @@ export default function ModalMigrarAvulso({
                         disabled={!podeConfirmar || migrando}
                         className="flex-1 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black font-mono text-[10px] font-bold uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        {migrando ? 'Migrando...' : 'Confirmar migração'}
+                        {migrando
+                            ? 'Migrando...'
+                            : `Migrar ${selecionados.length > 0 ? `(${selecionados.length})` : ''}`}
                     </button>
                 </div>
             </div>

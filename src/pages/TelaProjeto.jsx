@@ -75,10 +75,6 @@ export default function TelaProjetoVendedor() {
     // ── Projeto avulso (coletivo da empresa) ─────────────────────────────
     const ehAvulso = isProjetoAvulso(projeto);
     const [modalMigrar, setModalMigrar] = useState(false);
-    // Orçamentos de outros vendedores dentro do avulso — aviso no modal de migração
-    const temItensDeOutros = ehAvulso && ambientes.some(a =>
-        (a.orcamentos ?? []).some(o => o.vendedor_id && o.vendedor_id !== session?.user?.id)
-    );
 
     // ── Compartilhamento ─────────────────────────────────────────────────
     const isDono = !!projeto && projeto.vendedor_id === session?.user?.id;
@@ -679,7 +675,7 @@ export default function TelaProjetoVendedor() {
                 projetoAvulsoId={projeto?.id}
                 empresaId={profile?.empresa_id}
                 userId={session?.user?.id}
-                temItensDeOutros={temItensDeOutros}
+                ambientes={ambientes}
                 onMigrado={(novoId) => { setModalMigrar(false); navigate(`/projetos/${novoId}`); }}
             />
 

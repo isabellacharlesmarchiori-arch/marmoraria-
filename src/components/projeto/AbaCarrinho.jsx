@@ -217,6 +217,11 @@ export default function AbaCarrinho({
                         const isExp = !!carrinhoExpandido[orc.id];
                         const isEditNome = carrinhoEditandoNome?.id === orc.id;
                         const nomeAtual = orc.nome ?? orc.nome_versao ?? 'Orçamento';
+                        // No avulso o nome identifica o orçamento (não há cliente) — nome
+                        // genérico/default ganha destaque âmbar pedindo identificação
+                        const ehAvulsoProj = isProjetoAvulso(projeto);
+                        const semNomeAvulso = ehAvulsoProj &&
+                            (!nomeAtual.trim() || /^(vers[aã]o|or[cç]amento)\b/i.test(nomeAtual.trim()));
                         const ajustes = actions.calcAjustes(orc);
                         const temAjustes = ajustes.maj > 0 || ajustes.rt > 0 || ajustes.frete > 0;
                         const arquitetoNomeProjeto = projeto?.arquitetos?.nome ?? null;
@@ -277,13 +282,26 @@ export default function AbaCarrinho({
                                                 if (e.key === 'Enter') actions.salvarNomeOrcamentoCarrinho(orc.id, carrinhoEditandoNome.nome, () => setCarrinhoEditandoNome(null));
                                                 if (e.key === 'Escape') setCarrinhoEditandoNome(null);
                                             }}
-                                            className="flex-1 bg-zinc-100 dark:bg-black border-b border-orange-500 dark:border-yellow-400 text-zinc-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0"
+                                            placeholder={ehAvulsoProj ? 'Ex: Cozinha João Silva' : undefined}
+                                            className="flex-1 bg-zinc-100 dark:bg-black border-b border-orange-500 dark:border-yellow-400 text-zinc-900 dark:text-white text-sm font-bold outline-none px-1 min-w-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-normal"
                                         />
                                     ) : (
                                         <span className="flex-1 flex items-center gap-2 min-w-0">
-                                            <span className={`text-sm font-semibold tracking-tight truncate ${modoMesclar && isMesclarChecked ? 'text-orange-300' : 'text-zinc-900 dark:text-white'}`}>
+                                            <span
+                                                // No avulso, clicar no nome já abre a edição (além do lápis) — exceto em modo mesclar/fechar
+                                                onClick={ehAvulsoProj && !modoMesclar && !modoFecharPedido ? (e) => { e.stopPropagation(); setCarrinhoEditandoNome({ id: orc.id, nome: semNomeAvulso ? '' : nomeAtual }); } : undefined}
+                                                className={`text-sm font-semibold tracking-tight truncate ${ehAvulsoProj ? 'cursor-text' : ''} ${modoMesclar && isMesclarChecked ? 'text-orange-300' : 'text-zinc-900 dark:text-white'}`}
+                                            >
                                                 {nomeAtual}
                                             </span>
+                                            {semNomeAvulso && (
+                                                <span
+                                                    onClick={(e) => { e.stopPropagation(); setCarrinhoEditandoNome({ id: orc.id, nome: '' }); }}
+                                                    className="shrink-0 px-1.5 py-0.5 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 text-[8px] font-mono uppercase tracking-widest text-amber-700 dark:text-amber-400 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-colors"
+                                                >
+                                                    Nomear — Ex: Cozinha João Silva
+                                                </span>
+                                            )}
                                             {orcsMesclados.has(orc.id) && (
                                                 <span className="shrink-0 px-1.5 py-0.5 border border-orange-400 dark:border-orange-400/40 text-[8px] font-mono uppercase tracking-widest text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-400/5">
                                                     Mesclado
