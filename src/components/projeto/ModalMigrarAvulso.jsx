@@ -1,42 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { NOME_PROJETO_AVULSO } from '../../utils/projetoAvulso';
+import { fmtBRL } from '../../utils/projetoUtils';
 
-// Migração SELETIVA do projeto avulso coletivo: o usuário escolhe quais
-// ambientes (com seus orçamentos e medições) mover para um projeto real.
-// O [Avulsos] nunca é deletado — é coletivo e será reutilizado.
+// Migração do projeto avulso coletivo em 2 passos:
+//   Passo 1 — seleção (depende do modo: 'medicoes' | 'orcamentos')
+//   Passo 2 — projeto de destino (existente ou novo)
+//
+// modo 'medicoes':   MOVE medições selecionadas + ambientes/orçamentos vinculados.
+// modo 'orcamentos': MOVE orçamentos selecionados + seus ambientes; a medição mãe
+//                    é DUPLICADA no destino (a original fica intacta no avulso).
+// O [Avulsos] nunca é deletado — é coletivo e reutilizável.
 export default function ModalMigrarAvulso({
     aberto,
     onClose,
     projetoAvulsoId,
     empresaId,
     userId,
-    ambientes = [], // normalizados (useProjectData) — versões trazem vendedor_id/nome/data
-    onMigrado,      // (novoProjetoId) => void
+    ambientes = [],           // normalizados (useProjectData) — versões com vendedor_id/nome
+    modo = 'orcamentos',      // 'medicoes' | 'orcamentos'
+    onMigrado,                // (novoProjetoId) => void
 }) {
-    const [modo, setModo] = useState('existente'); // 'existente' | 'novo'
-    const [selecionados, setSelecionados] = useState([]); // ids de ambientes
+    const [step, setStep] = useState(1);
+    const [selecionados, setSelecionados] = useState([]); // ids de medições OU de orçamentos
+    const [medicoes, setMedicoes] = useState([]);
     const [projetos, setProjetos] = useState([]);
     const [clientes, setClientes] = useState([]);
+    const [modoDestino, setModoDestino] = useState('existente'); // 'existente' | 'novo'
     const [destinoId, setDestinoId] = useState('');
     const [novoNome, setNovoNome] = useState('');
     const [novoClienteId, setNovoClienteId] = useState('');
     const [carregando, setCarregando] = useState(false);
     const [migrando, setMigrando] = useState(false);
 
+    // Versões achatadas com referência ao ambiente pai (modo 'orcamentos')
+    const versoes = useMemo(() => ambientes.flatMap(a =>
+        (a.orcamentos ?? []).map(o => ({ ...o, ambiente_id: a.id, ambiente_nome: a.nome }))
+    ), [ambientes]);
+
+    // Ambientes com seleção parcial de versões — as irmãs vão junto (ambiente é movido)
+    const temSelecaoParcial = useMemo(() => {
+        if (modo !== 'orcamentos') return false;
+        const porAmbiente = {};
+        versoes.forEach(v => {
+            porAmbiente[v.ambiente_id] ??= { total: 0, sel: 0 };
+            porAmbiente[v.ambiente_id].total++;
+            if (selecionados.includes(v.id)) porAmbiente[v.ambiente_id].sel++;
+        });
+        return Object.values(porAmbiente).some(x => x.sel > 0 && x.sel < x.total);
+    }, [modo, versoes, selecionados]);
+
     useEffect(() => {
         if (!aberto) return;
-        setSelecionados([]); // limpa seleção a cada abertura
-    }, [aberto]);
+        setStep(1);
+        setSelecionados([]);
+    }, [aberto, modo]);
 
     useEffect(() => {
         if (!aberto || !empresaId) return;
         let ativo = true;
         (async () => {
             setCarregando(true);
-            // Projetos de qualquer vendedor da empresa — o avulso é coletivo
-            const [resProj, resCli] = await Promise.all([
+            const buscas = [
                 supabase
                     .from('projetos')
                     .select('id, nome, clientes(nome)')
@@ -49,88 +75,175 @@ export default function ModalMigrarAvulso({
                     .select('id, nome')
                     .eq('empresa_id', empresaId)
                     .order('nome'),
-            ]);
+            ];
+            // Modo medições: busca as medições do avulso no open (o shape
+            // normalizado de ambientes não serve — medições agendadas não têm ambiente)
+            if (modo === 'medicoes' && projetoAvulsoId) {
+                buscas.push(
+                    supabase
+                        .from('medicoes')
+                        .select('id, responsavel, data_medicao, status')
+                        .eq('projeto_id', projetoAvulsoId)
+                        .eq('empresa_id', empresaId)
+                        .order('data_medicao', { ascending: false })
+                );
+            }
+            const [resProj, resCli, resMed] = await Promise.all(buscas);
             if (!ativo) return;
             if (resProj.error) toast.error('Erro ao carregar projetos: ' + resProj.error.message);
             else setProjetos(resProj.data ?? []);
             if (resCli.error) toast.error('Erro ao carregar clientes: ' + resCli.error.message);
             else setClientes(resCli.data ?? []);
+            if (resMed) {
+                if (resMed.error) toast.error('Erro ao carregar medições: ' + resMed.error.message);
+                else setMedicoes(resMed.data ?? []);
+            }
             setCarregando(false);
         })();
         return () => { ativo = false; };
-    }, [aberto, empresaId]);
+    }, [aberto, empresaId, modo, projetoAvulsoId]);
 
     if (!aberto) return null;
 
-    const toggleAmbiente = (ambId) =>
-        setSelecionados(prev => prev.includes(ambId) ? prev.filter(x => x !== ambId) : [...prev, ambId]);
+    const toggleSel = (id) =>
+        setSelecionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
-    const destinoOk = modo === 'existente'
+    const destinoOk = modoDestino === 'existente'
         ? !!destinoId
         : novoNome.trim().length > 0 && !!novoClienteId;
-    const podeConfirmar = destinoOk && selecionados.length > 0;
 
-    async function handleConfirmar() {
-        if (!podeConfirmar || migrando) return;
-        setMigrando(true);
-        try {
-            // 1. Resolve o projeto de destino (existente ou novo)
-            let destino = destinoId;
-            if (modo === 'novo') {
-                const { data, error } = await supabase
-                    .from('projetos')
-                    .insert({
-                        nome:        novoNome.trim(),
-                        cliente_id:  novoClienteId,
-                        empresa_id:  empresaId,
-                        vendedor_id: userId,
-                        status:      'orcado',
-                    })
-                    .select('id')
-                    .single();
-                if (error) throw new Error('criar projeto: ' + error.message);
-                destino = data.id;
-            }
+    async function resolverDestino() {
+        if (modoDestino === 'existente') return destinoId;
+        const { data, error } = await supabase
+            .from('projetos')
+            .insert({
+                nome:        novoNome.trim(),
+                cliente_id:  novoClienteId,
+                empresa_id:  empresaId,
+                vendedor_id: userId,
+                status:      'orcado',
+            })
+            .select('id')
+            .single();
+        if (error) throw new Error('criar projeto: ' + error.message);
+        return data.id;
+    }
 
-            // 2. Medições vinculadas aos ambientes selecionados (ambientes.medicao_id
-            // não vem no shape normalizado — busca direto no banco)
-            const { data: ambRaw, error: errAmbSel } = await supabase
-                .from('ambientes')
-                .select('id, medicao_id')
-                .in('id', selecionados)
-                .eq('empresa_id', empresaId);
-            if (errAmbSel) throw new Error('mapear medições: ' + errAmbSel.message);
-            const medicaoIds = [...new Set((ambRaw ?? []).map(a => a.medicao_id).filter(Boolean))];
+    // ── CASO A — move medições + ambientes/orçamentos vinculados ─────────
+    async function migrarMedicoes(destino) {
+        const { error: errMed } = await supabase
+            .from('medicoes')
+            .update({ projeto_id: destino })
+            .in('id', selecionados)
+            .eq('empresa_id', empresaId);
+        if (errMed) throw new Error('mover medições: ' + errMed.message);
 
-            // 3. Move ambientes selecionados
-            const { error: errAmb } = await supabase
-                .from('ambientes')
-                .update({ projeto_id: destino })
-                .in('id', selecionados)
-                .eq('empresa_id', empresaId);
-            if (errAmb) throw new Error('mover ambientes: ' + errAmb.message);
+        // Ambientes vinculados às medições movidas (subselect não existe no
+        // client — busca os ids antes para mover os orçamentos)
+        const { data: ambVinc, error: errBusca } = await supabase
+            .from('ambientes')
+            .select('id')
+            .in('medicao_id', selecionados)
+            .eq('empresa_id', empresaId);
+        if (errBusca) throw new Error('mapear ambientes: ' + errBusca.message);
+        const ambIds = (ambVinc ?? []).map(a => a.id);
 
-            // 4. Move os orçamentos desses ambientes (orcamentos.projeto_id existe
-            // e é preenchido em todo insert — sem isto ficariam apontando pro avulso)
+        const { error: errAmb } = await supabase
+            .from('ambientes')
+            .update({ projeto_id: destino })
+            .in('medicao_id', selecionados)
+            .eq('empresa_id', empresaId);
+        if (errAmb) throw new Error('mover ambientes: ' + errAmb.message);
+
+        if (ambIds.length > 0) {
             const { error: errOrc } = await supabase
                 .from('orcamentos')
                 .update({ projeto_id: destino })
-                .in('ambiente_id', selecionados)
+                .in('ambiente_id', ambIds)
                 .eq('empresa_id', empresaId);
             if (errOrc) throw new Error('mover orçamentos: ' + errOrc.message);
+        }
+        toast.success(`${selecionados.length} medição(ões) e orçamentos vinculados migrados`);
+    }
 
-            // 5. Move as medições desses ambientes
-            if (medicaoIds.length > 0) {
-                const { error: errMed } = await supabase
-                    .from('medicoes')
-                    .update({ projeto_id: destino })
-                    .in('id', medicaoIds)
-                    .eq('empresa_id', empresaId);
-                if (errMed) throw new Error('mover medições: ' + errMed.message);
-            }
+    // ── CASO B — move orçamentos + ambientes; DUPLICA a medição mãe ──────
+    async function migrarOrcamentos(destino) {
+        const versoesSel = versoes.filter(v => selecionados.includes(v.id));
+        const ambienteIds = [...new Set(versoesSel.map(v => v.ambiente_id))];
 
-            // O [Avulsos] permanece (coletivo, reutilizável) — vazio ou não.
-            toast.success(`${selecionados.length} ambiente(s) migrado(s) com sucesso`);
+        // medicao_id não vem no shape normalizado — busca no banco
+        const { data: ambRaw, error: errAmbSel } = await supabase
+            .from('ambientes')
+            .select('id, medicao_id')
+            .in('id', ambienteIds)
+            .eq('empresa_id', empresaId);
+        if (errAmbSel) throw new Error('mapear medições: ' + errAmbSel.message);
+
+        // Duplica cada medição mãe (uma cópia por medição, mesmo com N ambientes)
+        const medIds = [...new Set((ambRaw ?? []).map(a => a.medicao_id).filter(Boolean))];
+        const mapaMedicao = {}; // id original → id da cópia
+        if (medIds.length > 0) {
+            const { data: medsOrig, error: errMeds } = await supabase
+                .from('medicoes')
+                .select('*')
+                .in('id', medIds)
+                .eq('empresa_id', empresaId);
+            if (errMeds) throw new Error('ler medições: ' + errMeds.message);
+
+            const copias = (medsOrig ?? []).map(m => {
+                const { id, ...resto } = m;
+                const novoId = crypto.randomUUID();
+                mapaMedicao[m.id] = novoId;
+                return {
+                    ...resto,
+                    id:         novoId,
+                    projeto_id: destino,
+                    // Defusa tg_processar_medicao no INSERT da cópia (senão o trigger
+                    // criaria um SEGUNDO ambiente no destino):
+                    // - medidas null mata a condição "formato antigo"
+                    // - status 'processada' mata a "formato novo" (e é o estado real:
+                    //   a medição já gerou ambiente/orçamento)
+                    medidas: null,
+                    status:  m.json_medicao ? 'processada' : m.status,
+                };
+            });
+            const { error: errIns } = await supabase.from('medicoes').insert(copias);
+            if (errIns) throw new Error('duplicar medições: ' + errIns.message);
+        }
+
+        // Move os ambientes apontando para a cópia da medição
+        for (const amb of (ambRaw ?? [])) {
+            const payload = { projeto_id: destino };
+            if (amb.medicao_id && mapaMedicao[amb.medicao_id]) payload.medicao_id = mapaMedicao[amb.medicao_id];
+            const { error: errAmb } = await supabase
+                .from('ambientes')
+                .update(payload)
+                .eq('id', amb.id)
+                .eq('empresa_id', empresaId);
+            if (errAmb) throw new Error('mover ambientes: ' + errAmb.message);
+        }
+
+        // Move TODOS os orçamentos dos ambientes afetados (não só os selecionados):
+        // versões irmãs não selecionadas iriam junto visualmente de qualquer forma
+        // (são embed do ambiente movido) — atualizar o projeto_id delas mantém o
+        // campo denormalizado consistente com a realidade
+        const { error: errOrc } = await supabase
+            .from('orcamentos')
+            .update({ projeto_id: destino })
+            .in('ambiente_id', ambienteIds)
+            .eq('empresa_id', empresaId);
+        if (errOrc) throw new Error('mover orçamentos: ' + errOrc.message);
+
+        toast.success(`${versoesSel.length} orçamento(s) migrado(s), medição duplicada no projeto destino`);
+    }
+
+    async function handleConfirmar() {
+        if (!destinoOk || selecionados.length === 0 || migrando) return;
+        setMigrando(true);
+        try {
+            const destino = await resolverDestino();
+            if (modo === 'medicoes') await migrarMedicoes(destino);
+            else await migrarOrcamentos(destino);
             onMigrado(destino);
         } catch (err) {
             toast.error('Erro ao migrar: ' + err.message);
@@ -139,135 +252,191 @@ export default function ModalMigrarAvulso({
         }
     }
 
+    const fmtData = (iso) => iso
+        ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '—';
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !migrando && onClose()} />
             <div className="relative bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl dark:rounded-none shadow-2xl w-full max-w-lg p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
-                <div>
-                    <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">Migrar para projeto</h2>
-                    <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-relaxed">
-                        Selecione os ambientes que serão movidos — orçamentos e medições vão juntos.
-                    </p>
-                </div>
 
-                {/* Seleção de ambientes */}
-                <div className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none divide-y divide-zinc-100 dark:divide-zinc-900 max-h-56 overflow-y-auto">
-                    {ambientes.length === 0 ? (
-                        <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">
-                            Nenhum ambiente neste avulso
+                {/* Cabeçalho + indicador de passo */}
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">Migrar para projeto</h2>
+                        <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-relaxed">
+                            {step === 1
+                                ? (modo === 'medicoes'
+                                    ? 'Passo 1 de 2 — selecione as medições que serão movidas (ambientes e orçamentos vinculados vão juntos).'
+                                    : 'Passo 1 de 2 — selecione os orçamentos que serão movidos (a medição de origem é duplicada, a original fica no avulso).')
+                                : 'Passo 2 de 2 — escolha o projeto de destino.'}
                         </p>
-                    ) : ambientes.map(amb => {
-                        const marcado = selecionados.includes(amb.id);
-                        return (
-                            <label
-                                key={amb.id}
-                                className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                                    marcado ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
-                                }`}
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={marcado}
-                                    onChange={() => toggleAmbiente(amb.id)}
-                                    className="mt-0.5 accent-orange-500 dark:accent-yellow-400 shrink-0"
-                                />
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{amb.nome}</div>
-                                    {(amb.orcamentos ?? []).map(o => {
-                                        const deOutro = o.vendedor_id && o.vendedor_id !== userId;
-                                        return (
-                                            <div key={o.id} className="flex items-center gap-2 font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 min-w-0">
-                                                <iconify-icon icon="solar:document-text-linear" width="10" className="shrink-0 text-zinc-400 dark:text-zinc-700"></iconify-icon>
-                                                <span className="truncate">{o.nome}</span>
-                                                {o.vendedor_nome && (
-                                                    <span className="shrink-0 text-zinc-400 dark:text-zinc-600">· {o.vendedor_nome.split(' ')[0]}</span>
-                                                )}
-                                                {o.data && <span className="shrink-0 text-zinc-400 dark:text-zinc-600">· {o.data}</span>}
-                                                {deOutro && (
-                                                    <span className="shrink-0 px-1 py-0.5 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 text-[7px] uppercase tracking-widest text-amber-700 dark:text-amber-400">
-                                                        De outro vendedor
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </label>
-                        );
-                    })}
-                </div>
-
-                {/* Modo: existente | novo */}
-                <div className="flex gap-px w-max">
-                    {[
-                        { key: 'existente', label: 'Projeto existente' },
-                        { key: 'novo',      label: 'Criar novo projeto' },
-                    ].map(m => (
-                        <button
-                            key={m.key}
-                            onClick={() => setModo(m.key)}
-                            className={`px-4 py-2 font-mono text-[10px] uppercase tracking-widest border transition-colors ${
-                                modo === m.key
-                                    ? 'border-orange-500 dark:border-yellow-400 text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5'
-                                    : 'border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white'
-                            }`}
-                        >
-                            {m.label}
-                        </button>
-                    ))}
-                </div>
-
-                {modo === 'existente' ? (
-                    <select
-                        value={destinoId}
-                        onChange={e => setDestinoId(e.target.value)}
-                        disabled={carregando}
-                        className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none"
-                    >
-                        <option value="">{carregando ? 'Carregando projetos...' : 'Selecione o projeto de destino'}</option>
-                        {projetos.map(p => {
-                            const cli = Array.isArray(p.clientes) ? p.clientes[0] : p.clientes;
-                            return <option key={p.id} value={p.id}>{p.nome}{cli?.nome ? ` — ${cli.nome}` : ''}</option>;
-                        })}
-                    </select>
-                ) : (
-                    <div className="flex flex-col gap-3">
-                        <input
-                            value={novoNome}
-                            onChange={e => setNovoNome(e.target.value)}
-                            placeholder="Nome do projeto"
-                            className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none placeholder:text-zinc-400 dark:placeholder:text-zinc-700"
-                        />
-                        <select
-                            value={novoClienteId}
-                            onChange={e => setNovoClienteId(e.target.value)}
-                            disabled={carregando}
-                            className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none"
-                        >
-                            <option value="">{carregando ? 'Carregando clientes...' : 'Selecione o cliente'}</option>
-                            {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
                     </div>
+                    <span className="shrink-0 font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-800 px-2 py-1">
+                        {step}/2
+                    </span>
+                </div>
+
+                {/* ── PASSO 1 — seleção ─────────────────────────────────── */}
+                {step === 1 && (
+                    <>
+                        <div className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none divide-y divide-zinc-100 dark:divide-zinc-900 max-h-64 overflow-y-auto">
+                            {modo === 'medicoes' ? (
+                                carregando ? (
+                                    <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Carregando medições...</p>
+                                ) : medicoes.length === 0 ? (
+                                    <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhuma medição neste avulso</p>
+                                ) : medicoes.map(m => (
+                                    <label
+                                        key={m.id}
+                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                                            selecionados.includes(m.id) ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selecionados.includes(m.id)}
+                                            onChange={() => toggleSel(m.id)}
+                                            className="accent-orange-500 dark:accent-yellow-400 shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{m.responsavel || '—'}</div>
+                                            <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-0.5">{fmtData(m.data_medicao)}</div>
+                                        </div>
+                                        <span className="shrink-0 px-2 py-0.5 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                                            {m.status ?? '—'}
+                                        </span>
+                                    </label>
+                                ))
+                            ) : (
+                                versoes.length === 0 ? (
+                                    <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum orçamento neste avulso</p>
+                                ) : versoes.map(v => (
+                                    <label
+                                        key={v.id}
+                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                                            selecionados.includes(v.id) ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selecionados.includes(v.id)}
+                                            onChange={() => toggleSel(v.id)}
+                                            className="accent-orange-500 dark:accent-yellow-400 shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{v.nome}</div>
+                                            <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-0.5 truncate">
+                                                {v.ambiente_nome}
+                                                {v.vendedor_nome ? ` · ${v.vendedor_nome.split(' ')[0]}` : ''}
+                                            </div>
+                                        </div>
+                                        <span className="shrink-0 font-mono text-[11px] font-bold text-orange-600 dark:text-yellow-400">
+                                            {fmtBRL(v.valor_total ?? 0)}
+                                        </span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+
+                        {temSelecaoParcial && (
+                            <p className="px-3 py-2 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 font-mono text-[10px] text-amber-700 dark:text-amber-400 rounded-md dark:rounded-none leading-relaxed">
+                                Um ambiente tem versões não selecionadas — o ambiente inteiro é movido, então elas vão junto.
+                            </p>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                            <button
+                                onClick={onClose}
+                                className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => setStep(2)}
+                                disabled={selecionados.length === 0}
+                                className="flex-1 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black font-mono text-[10px] font-bold uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Próximo {selecionados.length > 0 ? `(${selecionados.length})` : ''}
+                            </button>
+                        </div>
+                    </>
                 )}
 
-                <div className="flex gap-2 pt-1">
-                    <button
-                        onClick={onClose}
-                        disabled={migrando}
-                        className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none transition-colors disabled:opacity-50"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        onClick={handleConfirmar}
-                        disabled={!podeConfirmar || migrando}
-                        className="flex-1 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black font-mono text-[10px] font-bold uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        {migrando
-                            ? 'Migrando...'
-                            : `Migrar ${selecionados.length > 0 ? `(${selecionados.length})` : ''}`}
-                    </button>
-                </div>
+                {/* ── PASSO 2 — destino ─────────────────────────────────── */}
+                {step === 2 && (
+                    <>
+                        <div className="flex gap-px w-max">
+                            {[
+                                { key: 'existente', label: 'Projeto existente' },
+                                { key: 'novo',      label: 'Criar novo projeto' },
+                            ].map(m => (
+                                <button
+                                    key={m.key}
+                                    onClick={() => setModoDestino(m.key)}
+                                    className={`px-4 py-2 font-mono text-[10px] uppercase tracking-widest border transition-colors ${
+                                        modoDestino === m.key
+                                            ? 'border-orange-500 dark:border-yellow-400 text-orange-600 dark:text-yellow-400 bg-orange-50 dark:bg-yellow-400/5'
+                                            : 'border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    {m.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {modoDestino === 'existente' ? (
+                            <select
+                                value={destinoId}
+                                onChange={e => setDestinoId(e.target.value)}
+                                disabled={carregando}
+                                className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none"
+                            >
+                                <option value="">{carregando ? 'Carregando projetos...' : 'Selecione o projeto de destino'}</option>
+                                {projetos.map(p => {
+                                    const cli = Array.isArray(p.clientes) ? p.clientes[0] : p.clientes;
+                                    return <option key={p.id} value={p.id}>{p.nome}{cli?.nome ? ` — ${cli.nome}` : ''}</option>;
+                                })}
+                            </select>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                <input
+                                    value={novoNome}
+                                    onChange={e => setNovoNome(e.target.value)}
+                                    placeholder="Nome do projeto"
+                                    className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none placeholder:text-zinc-400 dark:placeholder:text-zinc-700"
+                                />
+                                <select
+                                    value={novoClienteId}
+                                    onChange={e => setNovoClienteId(e.target.value)}
+                                    disabled={carregando}
+                                    className="w-full bg-zinc-50 dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:border-orange-500 dark:focus:border-yellow-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-lg dark:rounded-none"
+                                >
+                                    <option value="">{carregando ? 'Carregando clientes...' : 'Selecione o cliente'}</option>
+                                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                                </select>
+                            </div>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                            <button
+                                onClick={() => setStep(1)}
+                                disabled={migrando}
+                                className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none transition-colors disabled:opacity-50"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                onClick={handleConfirmar}
+                                disabled={!destinoOk || migrando}
+                                className="flex-1 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black font-mono text-[10px] font-bold uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {migrando ? 'Migrando...' : `Confirmar migração (${selecionados.length})`}
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

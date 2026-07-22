@@ -676,6 +676,7 @@ export default function TelaProjetoVendedor() {
                 empresaId={profile?.empresa_id}
                 userId={session?.user?.id}
                 ambientes={ambientes}
+                modo={activeTab === 'medicoes' ? 'medicoes' : 'orcamentos'}
                 onMigrado={(novoId) => { setModalMigrar(false); navigate(`/projetos/${novoId}`); }}
             />
 
