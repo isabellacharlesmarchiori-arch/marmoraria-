@@ -219,11 +219,13 @@ export default function TelaProjetoVendedor() {
     const cancelarMesclar = () => { setModoMesclar(false); setMesclarIds([]); setModalMesclar(null); };
     const toggleMesclarId = (orcId) => setMesclarIds(p => p.includes(orcId) ? p.filter(x => x !== orcId) : [...p, orcId]);
 
-    // ── Migrar avulso (seleção inline na aba de orçamentos) ──────────────────
-    const [modoMigrar,  setModoMigrar]  = useState(false);
-    const [migrarIds,   setMigrarIds]   = useState([]); // orcIds selecionados
-    const cancelarMigrar = () => { setModoMigrar(false); setMigrarIds([]); };
-    const toggleMigrarId = (orcId) => setMigrarIds(p => p.includes(orcId) ? p.filter(x => x !== orcId) : [...p, orcId]);
+    // ── Migrar avulso (seleção inline nas abas de orçamentos e medições) ─────
+    // modoMigrar guarda a qual aba a seleção pertence: null | 'medicoes' | 'orcamentos'
+    // (os ids em migrarIds são de medições ou de orçamentos, conforme o valor)
+    const [modoMigrar,  setModoMigrar]  = useState(null);
+    const [migrarIds,   setMigrarIds]   = useState([]);
+    const cancelarMigrar = () => { setModoMigrar(null); setMigrarIds([]); };
+    const toggleMigrarId = (itemId) => setMigrarIds(p => p.includes(itemId) ? p.filter(x => x !== itemId) : [...p, itemId]);
 
     // ── Fechar Pedido ────────────────────────────────────────────────────────
     const [modoFecharPedido,   setModoFecharPedido]   = useState(false);
@@ -569,13 +571,14 @@ export default function TelaProjetoVendedor() {
                             </div>
                             <button
                                 onClick={() => {
+                                    // Seleção inline na aba ativa (Pedidos cai em orçamentos)
                                     if (activeTab === 'medicoes') {
-                                        setModalMigrar(true); // Caso A: modal em 2 passos
+                                        setModoMigrar('medicoes');
                                     } else {
-                                        // Caso B: seleção inline nos cards da aba de orçamentos
                                         setActiveTab('orcamentos');
-                                        setModoMigrar(true);
+                                        setModoMigrar('orcamentos');
                                     }
+                                    setMigrarIds([]);
                                 }}
                                 className="shrink-0 flex items-center gap-2 border border-amber-400 dark:border-amber-400/40 text-amber-800 dark:text-amber-400 text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded-md dark:rounded-none hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-colors w-max"
                             >
@@ -620,6 +623,9 @@ export default function TelaProjetoVendedor() {
                         vendedorId={projeto?.vendedor_id}
                         sessionUserId={session?.user?.id}
                         isViewOnlyAdmin={isViewOnlyAdmin}
+                        modoMigrar={modoMigrar === 'medicoes'} migrarIds={migrarIds}
+                        toggleMigrarId={toggleMigrarId} cancelarMigrar={cancelarMigrar}
+                        onEscolherDestino={() => setModalMigrar(true)}
                         onAbrirNovoAgendamento={handleAbrirNovoAgendamento}
                         onAbrirEditar={handleAbrirEditar}
                         onVerDados={setPainelMedicao}
@@ -651,7 +657,7 @@ export default function TelaProjetoVendedor() {
                         orcsMesclados={orcsMesclados} setOrcsMesclados={setOrcsMesclados}
                         toastMesclar={toastMesclar} setToastMesclar={setToastMesclar}
                         cancelarMesclar={cancelarMesclar} toggleMesclarId={toggleMesclarId}
-                        modoMigrar={modoMigrar} migrarIds={migrarIds}
+                        modoMigrar={modoMigrar === 'orcamentos'} migrarIds={migrarIds}
                         toggleMigrarId={toggleMigrarId} cancelarMigrar={cancelarMigrar}
                         onEscolherDestino={() => setModalMigrar(true)}
                         modoFecharPedido={modoFecharPedido} setModoFecharPedido={setModoFecharPedido}
@@ -693,7 +699,7 @@ export default function TelaProjetoVendedor() {
                 empresaId={profile?.empresa_id}
                 userId={session?.user?.id}
                 ambientes={ambientes}
-                modo={activeTab === 'medicoes' ? 'medicoes' : 'orcamentos'}
+                modo={modoMigrar ?? 'orcamentos'}
                 selecionadosIds={migrarIds}
                 onMigrado={(novoId) => { setModalMigrar(false); cancelarMigrar(); navigate(`/projetos/${novoId}`); }}
             />

@@ -4,16 +4,14 @@ import { supabase } from '../../lib/supabase';
 import { NOME_PROJETO_AVULSO } from '../../utils/projetoAvulso';
 import ModalNovoClienteInline from '../ModalNovoClienteInline';
 
-// Migração do projeto avulso coletivo.
+// Migração do projeto avulso coletivo. A seleção acontece INLINE na aba ativa
+// (modoMigrar do AbaCarrinho/AbaMedicoes) — este modal recebe os ids prontos
+// via `selecionadosIds` e renderiza apenas a escolha de destino.
 //
-// modo 'medicoes':   stepper em 2 passos (passo 1 = seleção de medições aqui
-//                    dentro; passo 2 = destino). MOVE medições + ambientes/
-//                    orçamentos vinculados.
-// modo 'orcamentos': a seleção acontece INLINE na aba de orçamentos (modoMigrar
-//                    do AbaCarrinho) — este modal recebe os ids prontos via
-//                    `selecionadosIds` e renderiza só a escolha de destino.
-//                    MOVE orçamentos + ambientes; a medição mãe é DUPLICADA no
-//                    destino (a original fica intacta no avulso).
+// modo 'medicoes':   ids são de medições. MOVE medições + ambientes/orçamentos
+//                    vinculados.
+// modo 'orcamentos': ids são de orçamentos. MOVE orçamentos + ambientes; a
+//                    medição mãe é DUPLICADA no destino (original fica no avulso).
 // O [Avulsos] nunca é deletado — é coletivo e reutilizável.
 export default function ModalMigrarAvulso({
     aberto,
@@ -23,12 +21,9 @@ export default function ModalMigrarAvulso({
     userId,
     ambientes = [],           // normalizados (useProjectData)
     modo = 'orcamentos',      // 'medicoes' | 'orcamentos'
-    selecionadosIds = [],     // modo 'orcamentos': orcIds vindos da seleção inline
+    selecionadosIds = [],     // medicaoIds ou orcIds vindos da seleção inline
     onMigrado,                // (novoProjetoId) => void
 }) {
-    const [step, setStep] = useState(1);           // usado só no modo 'medicoes'
-    const [selMedicoes, setSelMedicoes] = useState([]);
-    const [medicoes, setMedicoes] = useState([]);
     const [projetos, setProjetos] = useState([]);
     const [clientes, setClientes] = useState([]);
     const [modoDestino, setModoDestino] = useState('existente'); // 'existente' | 'novo'
@@ -42,8 +37,8 @@ export default function ModalMigrarAvulso({
     const [modalNovoCliente, setModalNovoCliente] = useState(false);
     const [clienteTemp, setClienteTemp] = useState(null);
 
-    // Ids efetivamente selecionados, conforme o modo
-    const selIds = modo === 'orcamentos' ? selecionadosIds : selMedicoes;
+    // Ids selecionados inline na aba (medições ou orçamentos, conforme o modo)
+    const selIds = selecionadosIds;
 
     // Versões achatadas com referência ao ambiente pai (mapeamento do Caso B)
     const versoes = useMemo(() => ambientes.flatMap(a =>
@@ -64,8 +59,6 @@ export default function ModalMigrarAvulso({
 
     useEffect(() => {
         if (!aberto) return;
-        setStep(1);
-        setSelMedicoes([]);
         setClienteTemp(null);
     }, [aberto, modo]);
 
@@ -74,7 +67,7 @@ export default function ModalMigrarAvulso({
         let ativo = true;
         (async () => {
             setCarregando(true);
-            const buscas = [
+            const [resProj, resCli] = await Promise.all([
                 supabase
                     .from('projetos')
                     .select('id, nome, clientes(nome)')
@@ -87,38 +80,18 @@ export default function ModalMigrarAvulso({
                     .select('id, nome')
                     .eq('empresa_id', empresaId)
                     .order('nome'),
-            ];
-            // Modo medições: busca as medições do avulso no open (medições
-            // agendadas não têm ambiente — a prop `ambientes` não serviria)
-            if (modo === 'medicoes' && projetoAvulsoId) {
-                buscas.push(
-                    supabase
-                        .from('medicoes')
-                        .select('id, responsavel, data_medicao, status')
-                        .eq('projeto_id', projetoAvulsoId)
-                        .eq('empresa_id', empresaId)
-                        .order('data_medicao', { ascending: false })
-                );
-            }
-            const [resProj, resCli, resMed] = await Promise.all(buscas);
+            ]);
             if (!ativo) return;
             if (resProj.error) toast.error('Erro ao carregar projetos: ' + resProj.error.message);
             else setProjetos(resProj.data ?? []);
             if (resCli.error) toast.error('Erro ao carregar clientes: ' + resCli.error.message);
             else setClientes(resCli.data ?? []);
-            if (resMed) {
-                if (resMed.error) toast.error('Erro ao carregar medições: ' + resMed.error.message);
-                else setMedicoes(resMed.data ?? []);
-            }
             setCarregando(false);
         })();
         return () => { ativo = false; };
-    }, [aberto, empresaId, modo, projetoAvulsoId]);
+    }, [aberto, empresaId]);
 
     if (!aberto) return null;
-
-    const toggleMedicao = (id) =>
-        setSelMedicoes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
     const destinoOk = modoDestino === 'existente'
         ? !!destinoId
@@ -281,90 +254,23 @@ export default function ModalMigrarAvulso({
         }
     }
 
-    const fmtData = (iso) => iso
-        ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-        : '—';
-
-    // Modo 'orcamentos' não tem passo 1 — vai direto para o destino
-    const mostrarDestino = modo === 'orcamentos' || step === 2;
-
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !migrando && onClose()} />
             <div className="relative bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl dark:rounded-none shadow-2xl w-full max-w-lg p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
 
                 {/* Cabeçalho */}
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">Migrar para projeto</h2>
-                        <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-relaxed">
-                            {modo === 'orcamentos'
-                                ? `${selIds.length} orçamento(s) selecionado(s) — escolha o projeto de destino. A medição de origem é duplicada, a original fica no avulso.`
-                                : step === 1
-                                    ? 'Passo 1 de 2 — selecione as medições que serão movidas (ambientes e orçamentos vinculados vão juntos).'
-                                    : 'Passo 2 de 2 — escolha o projeto de destino.'}
-                        </p>
-                    </div>
-                    {modo === 'medicoes' && (
-                        <span className="shrink-0 font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-800 px-2 py-1">
-                            {step}/2
-                        </span>
-                    )}
+                <div>
+                    <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">Migrar para projeto</h2>
+                    <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-relaxed">
+                        {modo === 'orcamentos'
+                            ? `${selIds.length} orçamento(s) selecionado(s) — escolha o projeto de destino. A medição de origem é duplicada, a original fica no avulso.`
+                            : `${selIds.length} medição(ões) selecionada(s) — escolha o projeto de destino. Ambientes e orçamentos vinculados vão juntos.`}
+                    </p>
                 </div>
 
-                {/* ── PASSO 1 (só modo medições) — seleção ──────────────── */}
-                {!mostrarDestino && (
-                    <>
-                        <div className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none divide-y divide-zinc-100 dark:divide-zinc-900 max-h-64 overflow-y-auto">
-                            {carregando ? (
-                                <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Carregando medições...</p>
-                            ) : medicoes.length === 0 ? (
-                                <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhuma medição neste avulso</p>
-                            ) : medicoes.map(m => (
-                                <label
-                                    key={m.id}
-                                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                                        selMedicoes.includes(m.id) ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selMedicoes.includes(m.id)}
-                                        onChange={() => toggleMedicao(m.id)}
-                                        className="accent-orange-500 dark:accent-yellow-400 shrink-0"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{m.responsavel || '—'}</div>
-                                        <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-0.5">{fmtData(m.data_medicao)}</div>
-                                    </div>
-                                    <span className="shrink-0 px-2 py-0.5 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                                        {m.status ?? '—'}
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className="flex gap-2 pt-1">
-                            <button
-                                onClick={onClose}
-                                className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={() => setStep(2)}
-                                disabled={selMedicoes.length === 0}
-                                className="flex-1 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black font-mono text-[10px] font-bold uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                                Próximo {selMedicoes.length > 0 ? `(${selMedicoes.length})` : ''}
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {/* ── DESTINO (passo 2 / único passo do modo orçamentos) ── */}
-                {mostrarDestino && (
-                    <>
+                {/* ── DESTINO (único passo — seleção veio inline da aba) ── */}
+                <>
                         {temSelecaoParcial && (
                             <p className="px-3 py-2 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 font-mono text-[10px] text-amber-700 dark:text-amber-400 rounded-md dark:rounded-none leading-relaxed">
                                 Um ambiente tem versões não selecionadas — o ambiente inteiro é movido, então elas vão junto.
@@ -440,11 +346,11 @@ export default function ModalMigrarAvulso({
 
                         <div className="flex gap-2 pt-1">
                             <button
-                                onClick={modo === 'medicoes' ? () => setStep(1) : onClose}
+                                onClick={onClose}
                                 disabled={migrando}
                                 className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none transition-colors disabled:opacity-50"
                             >
-                                {modo === 'medicoes' ? 'Voltar' : 'Cancelar'}
+                                Cancelar
                             </button>
                             <button
                                 onClick={handleConfirmar}
@@ -454,8 +360,7 @@ export default function ModalMigrarAvulso({
                                 {migrando ? 'Migrando...' : `Confirmar migração (${selIds.length})`}
                             </button>
                         </div>
-                    </>
-                )}
+                </>
             </div>
 
             {/* Sub-modal: criar cliente inline (z-110 — fica acima deste modal) */}

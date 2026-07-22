@@ -22,6 +22,7 @@ export default function AbaMedicoes({
     vendedorId,
     sessionUserId,
     isViewOnlyAdmin,
+    modoMigrar = false, migrarIds = [], toggleMigrarId, cancelarMigrar, onEscolherDestino,
     onAbrirNovoAgendamento,
     onAbrirEditar,
     onVerDados,
@@ -69,18 +70,36 @@ export default function AbaMedicoes({
 
     const pedidosPendentes = getPedidosComProducaoPendente(pedidosOrdenados, orcamentosMap, medicoesList);
 
+    // Checkbox âmbar do modo migrar — mesmo markup dos checkboxes do AbaCarrinho
+    function CheckboxMigrar({ medicaoId }) {
+        const marcada = migrarIds.includes(medicaoId);
+        return (
+            <div
+                className={`w-4 h-4 mt-0.5 flex items-center justify-center shrink-0 border transition-colors ${marcada ? 'border-amber-400 bg-amber-400/20' : 'border-zinc-200/80 dark:border-zinc-600 hover:border-amber-400'}`}
+                onClick={e => { e.stopPropagation(); toggleMigrarId(medicaoId); }}
+            >
+                {marcada && <iconify-icon icon="solar:check-read-linear" width="10" className="text-amber-400"></iconify-icon>}
+            </div>
+        );
+    }
+
     function renderPrelimRow(m, i, total) {
         const isAprovada = m?.status === 'aprovada' || m?.status === 'concluida';
+        const isMigrarChecked = modoMigrar && migrarIds.includes(m?.id);
         return (
             <div
                 key={m?.id}
+                onClick={modoMigrar ? () => toggleMigrarId(m.id) : undefined}
                 className={`grid grid-cols-12 items-center px-4 py-3.5 transition-colors ${
-                    isAprovada
-                        ? 'bg-green-50 dark:bg-green-400/[0.03] border-l-2 border-l-green-300 dark:border-l-green-500/50 hover:bg-green-100 dark:hover:bg-green-400/[0.05]'
-                        : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'
-                } ${i < total - 1 ? 'border-b border-zinc-100 dark:border-zinc-900' : ''}`}
+                    isMigrarChecked
+                        ? 'bg-amber-100 dark:bg-amber-400/5 border-l-2 border-l-amber-500 dark:border-l-amber-400/60'
+                        : isAprovada
+                            ? 'bg-green-50 dark:bg-green-400/[0.03] border-l-2 border-l-green-300 dark:border-l-green-500/50 hover:bg-green-100 dark:hover:bg-green-400/[0.05]'
+                            : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'
+                } ${modoMigrar ? 'cursor-pointer' : ''} ${i < total - 1 ? 'border-b border-zinc-100 dark:border-zinc-900' : ''}`}
             >
                 <div className="col-span-4 flex items-start gap-2">
+                    {modoMigrar && <CheckboxMigrar medicaoId={m?.id} />}
                     <iconify-icon
                         icon={isAprovada ? 'solar:check-circle-linear' : 'solar:calendar-linear'}
                         width="13"
@@ -101,7 +120,7 @@ export default function AbaMedicoes({
                     <MedicaoPill status={m?.status ?? 'agendada'} />
                 </div>
                 <div className="col-span-3 flex items-center justify-end gap-1.5">
-                    {m?.status !== 'agendada' && m?.status !== 'pendente' && (
+                    {!modoMigrar && m?.status !== 'agendada' && m?.status !== 'pendente' && (
                         <button
                             onClick={() => onVerDados(m)}
                             className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-md dark:rounded-none transition-colors border ${
@@ -114,7 +133,7 @@ export default function AbaMedicoes({
                             Ver Dados
                         </button>
                     )}
-                    {!isViewOnlyAdmin && (
+                    {!modoMigrar && !isViewOnlyAdmin && (
                         <>
                             <button
                                 onClick={() => onAbrirEditar(m)}
@@ -140,16 +159,21 @@ export default function AbaMedicoes({
     function renderProdRow(m, i, total) {
         const isAprovada = m?.status === 'aprovada' || m?.status === 'concluida';
         const pedidoNum = getPedidoNumero(m);
+        const isMigrarChecked = modoMigrar && migrarIds.includes(m?.id);
         return (
             <div
                 key={m?.id}
+                onClick={modoMigrar ? () => toggleMigrarId(m.id) : undefined}
                 className={`grid grid-cols-12 items-center px-4 py-3.5 transition-colors ${
-                    isAprovada
-                        ? 'bg-green-50 dark:bg-green-400/[0.03] border-l-2 border-l-green-300 dark:border-l-green-500/50 hover:bg-green-100 dark:hover:bg-green-400/[0.05]'
-                        : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'
-                } ${i < total - 1 ? 'border-b border-zinc-100 dark:border-zinc-900' : ''}`}
+                    isMigrarChecked
+                        ? 'bg-amber-100 dark:bg-amber-400/5 border-l-2 border-l-amber-500 dark:border-l-amber-400/60'
+                        : isAprovada
+                            ? 'bg-green-50 dark:bg-green-400/[0.03] border-l-2 border-l-green-300 dark:border-l-green-500/50 hover:bg-green-100 dark:hover:bg-green-400/[0.05]'
+                            : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'
+                } ${modoMigrar ? 'cursor-pointer' : ''} ${i < total - 1 ? 'border-b border-zinc-100 dark:border-zinc-900' : ''}`}
             >
                 <div className="col-span-4 flex items-start gap-2">
+                    {modoMigrar && <CheckboxMigrar medicaoId={m?.id} />}
                     <iconify-icon
                         icon={isAprovada ? 'solar:check-circle-linear' : 'solar:calendar-linear'}
                         width="13"
@@ -169,7 +193,7 @@ export default function AbaMedicoes({
                     <MedicaoPill status={m?.status ?? 'agendada'} />
                 </div>
                 <div className="col-span-3 flex items-center justify-end gap-1.5">
-                    {m?.status !== 'agendada' && (() => {
+                    {!modoMigrar && m?.status !== 'agendada' && (() => {
                         const svgUrl = parseSvgUrl(m?.svg_url);
                         return svgUrl ? (
                             <button
@@ -189,7 +213,7 @@ export default function AbaMedicoes({
                             </span>
                         );
                     })()}
-                    {m?.status !== 'agendada' && getAmbientesProducao(m).size > 0 && (() => {
+                    {!modoMigrar && m?.status !== 'agendada' && getAmbientesProducao(m).size > 0 && (() => {
                         const canDiff = !!m?.json_medicao && pedidoNum !== null;
                         return (
                             <button
@@ -203,7 +227,7 @@ export default function AbaMedicoes({
                             </button>
                         );
                     })()}
-                    {!isViewOnlyAdmin && m?.status === 'agendada' && (
+                    {!modoMigrar && !isViewOnlyAdmin && m?.status === 'agendada' && (
                         <button
                             onClick={() => onEditarProducao?.(m, pedidoNum)}
                             title="Editar agendamento"
@@ -227,7 +251,28 @@ export default function AbaMedicoes({
                     01 // Medições
                 </div>
                 <div className="flex items-center gap-2">
-                    {isMedidorCombinado && vendedorId === sessionUserId && (
+                    {/* ── Modo Migrar (avulso): controles ativos — mesmo padrão do AbaCarrinho ── */}
+                    {modoMigrar && (
+                        <>
+                            <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse inline-block"></span>
+                                {migrarIds.length} selecionada{migrarIds.length !== 1 ? 's' : ''}
+                            </span>
+                            <button onClick={cancelarMigrar} className="flex items-center gap-1.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors">
+                                <iconify-icon icon="solar:close-linear" width="12"></iconify-icon>
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={onEscolherDestino}
+                                disabled={migrarIds.length < 1}
+                                className="flex items-center gap-1.5 bg-amber-500 text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 hover:bg-amber-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <iconify-icon icon="solar:arrow-right-up-linear" width="12"></iconify-icon>
+                                Escolher destino ({migrarIds.length})
+                            </button>
+                        </>
+                    )}
+                    {!modoMigrar && isMedidorCombinado && vendedorId === sessionUserId && (
                         <button
                             onClick={onFazerMedicao}
                             className="flex items-center gap-2 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl dark:rounded-none border border-orange-500 dark:border-yellow-400/40 hover:bg-orange-600 dark:hover:bg-yellow-300 hover:shadow-[0_0_12px_rgba(249,115,22,0.2)] dark:hover:shadow-[0_0_12px_rgba(250,204,21,0.2)] transition-all"
@@ -236,6 +281,7 @@ export default function AbaMedicoes({
                             Fazer Medição
                         </button>
                     )}
+                    {!modoMigrar && (
                     <button
                         onClick={onAbrirNovoAgendamento}
                         className="flex items-center gap-2 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 rounded-md dark:rounded-none hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(250,204,21,0.3)] transition-all"
@@ -243,6 +289,7 @@ export default function AbaMedicoes({
                         <iconify-icon icon="solar:calendar-add-linear" width="14"></iconify-icon>
                         Agendar medição
                     </button>
+                    )}
                 </div>
             </div>
 
@@ -302,6 +349,7 @@ export default function AbaMedicoes({
                                     </span>
                                 </div>
                                 <div className="col-span-3 flex items-center justify-end gap-1.5">
+                                    {!modoMigrar && (
                                     <button
                                         onClick={() => onAgendarProducao?.(pedido, pedidoNum)}
                                         className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest rounded-md dark:rounded-none border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-3 py-1 hover:border-orange-500 dark:hover:border-yellow-400 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
@@ -309,6 +357,7 @@ export default function AbaMedicoes({
                                         <iconify-icon icon="solar:calendar-add-linear" width="11"></iconify-icon>
                                         Agendar
                                     </button>
+                                    )}
                                 </div>
                             </div>
                         );
