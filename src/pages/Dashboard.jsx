@@ -91,6 +91,7 @@ function DashboardContent() {
     const refreshingDash = useRef(false);
 
     const isReady = !loading && !profileLoading && !!session && !!profile;
+    const isAdmin = profile?.perfil === 'admin' || profile?.role === 'admin';
 
 
     useEffect(() => {
@@ -104,9 +105,10 @@ function DashboardContent() {
     }, [isReady]);
 
     useEffect(() => {
-        if (!profile?.empresa_id) return;
+        if (!profile?.empresa_id || !session?.user?.id) return;
         try {
-            const cached = localStorage.getItem(`dash_cache_${profile.empresa_id}`);
+            // Cache por usuário (não só por empresa) — evita vendedor ver cache de admin no mesmo navegador
+            const cached = localStorage.getItem(`dash_cache_${profile.empresa_id}_${session.user.id}`);
             if (cached) {
                 const { projetos: p, notifs: n, medicoes: m } = JSON.parse(cached);
                 if (p?.length) { setProjetos(p); setDataLoading(false); }
@@ -114,7 +116,7 @@ function DashboardContent() {
                 if (m?.length) setMedicoesPendentes(m);
             }
         } catch { /* ignora cache corrompido */ }
-    }, [profile?.empresa_id]);
+    }, [profile?.empresa_id, session?.user?.id]);
 
     useEffect(() => {
         if (!session?.user?.id || !profile?.empresa_id) {
@@ -127,13 +129,30 @@ function DashboardContent() {
             if (!refreshingDash.current) setDataLoading(true);
             refreshingDash.current = true;
             try {
+                // Vendedor só vê os próprios projetos no dashboard; admin vê todos da empresa
+                let projQuery = supabase
+                    .from('projetos')
+                    .select('id, nome, status, created_at, clientes(nome)')
+                    .eq('empresa_id', profile.empresa_id)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                if (!isAdmin) projQuery = projQuery.eq('vendedor_id', session.user.id);
+
+                // Medições: sem vendedor_id direto — filtra pelo vendedor do projeto via join.
+                // !inner é necessário: sem ele, o filtro no embed só anula o projeto aninhado em vez de excluir a linha
+                let medQuery = supabase
+                    .from('medicoes')
+                    .select(isAdmin
+                        ? 'id, status, data_medicao, projetos(id, nome)'
+                        : 'id, status, data_medicao, projetos!inner(id, nome, vendedor_id)')
+                    .eq('empresa_id', profile.empresa_id)
+                    .in('status', ['enviada', 'processada'])
+                    .order('data_medicao', { ascending: false })
+                    .limit(5);
+                if (!isAdmin) medQuery = medQuery.eq('projetos.vendedor_id', session.user.id);
+
                 const [projRes, notifRes, medRes] = await Promise.allSettled([
-                    supabase
-                        .from('projetos')
-                        .select('id, nome, status, created_at, clientes(nome)')
-                        .eq('empresa_id', profile.empresa_id)
-                        .order('created_at', { ascending: false })
-                        .limit(10),
+                    projQuery,
                     supabase
                         .from('notificacoes')
                         .select('*')
@@ -141,13 +160,7 @@ function DashboardContent() {
                         .eq('usuario_id', session.user.id)
                         .order('created_at', { ascending: false })
                         .limit(5),
-                    supabase
-                        .from('medicoes')
-                        .select('id, status, data_medicao, projetos(id, nome)')
-                        .eq('empresa_id', profile.empresa_id)
-                        .in('status', ['enviada', 'processada'])
-                        .order('data_medicao', { ascending: false })
-                        .limit(5),
+                    medQuery,
                 ]);
                 if (!isMounted) return;
 
@@ -160,7 +173,7 @@ function DashboardContent() {
                 if (medData)   setMedicoesPendentes(medData);
 
                 try {
-                    localStorage.setItem(`dash_cache_${profile.empresa_id}`, JSON.stringify({
+                    localStorage.setItem(`dash_cache_${profile.empresa_id}_${session.user.id}`, JSON.stringify({
                         projetos: projData  ?? [],
                         notifs:   notifData ?? [],
                         medicoes: medData   ?? [],
@@ -175,7 +188,7 @@ function DashboardContent() {
 
         fetchData();
         return () => { isMounted = false; };
-    }, [session?.user?.id, profile?.empresa_id]);
+    }, [session?.user?.id, profile?.empresa_id, isAdmin]);
 
     async function handleClickNotif(n) {
         if (!n.lida) {
