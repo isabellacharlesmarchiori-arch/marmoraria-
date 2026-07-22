@@ -2,15 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { NOME_PROJETO_AVULSO } from '../../utils/projetoAvulso';
-import { fmtBRL } from '../../utils/projetoUtils';
 
-// Migração do projeto avulso coletivo em 2 passos:
-//   Passo 1 — seleção (depende do modo: 'medicoes' | 'orcamentos')
-//   Passo 2 — projeto de destino (existente ou novo)
+// Migração do projeto avulso coletivo.
 //
-// modo 'medicoes':   MOVE medições selecionadas + ambientes/orçamentos vinculados.
-// modo 'orcamentos': MOVE orçamentos selecionados + seus ambientes; a medição mãe
-//                    é DUPLICADA no destino (a original fica intacta no avulso).
+// modo 'medicoes':   stepper em 2 passos (passo 1 = seleção de medições aqui
+//                    dentro; passo 2 = destino). MOVE medições + ambientes/
+//                    orçamentos vinculados.
+// modo 'orcamentos': a seleção acontece INLINE na aba de orçamentos (modoMigrar
+//                    do AbaCarrinho) — este modal recebe os ids prontos via
+//                    `selecionadosIds` e renderiza só a escolha de destino.
+//                    MOVE orçamentos + ambientes; a medição mãe é DUPLICADA no
+//                    destino (a original fica intacta no avulso).
 // O [Avulsos] nunca é deletado — é coletivo e reutilizável.
 export default function ModalMigrarAvulso({
     aberto,
@@ -18,12 +20,13 @@ export default function ModalMigrarAvulso({
     projetoAvulsoId,
     empresaId,
     userId,
-    ambientes = [],           // normalizados (useProjectData) — versões com vendedor_id/nome
+    ambientes = [],           // normalizados (useProjectData)
     modo = 'orcamentos',      // 'medicoes' | 'orcamentos'
+    selecionadosIds = [],     // modo 'orcamentos': orcIds vindos da seleção inline
     onMigrado,                // (novoProjetoId) => void
 }) {
-    const [step, setStep] = useState(1);
-    const [selecionados, setSelecionados] = useState([]); // ids de medições OU de orçamentos
+    const [step, setStep] = useState(1);           // usado só no modo 'medicoes'
+    const [selMedicoes, setSelMedicoes] = useState([]);
     const [medicoes, setMedicoes] = useState([]);
     const [projetos, setProjetos] = useState([]);
     const [clientes, setClientes] = useState([]);
@@ -34,9 +37,12 @@ export default function ModalMigrarAvulso({
     const [carregando, setCarregando] = useState(false);
     const [migrando, setMigrando] = useState(false);
 
-    // Versões achatadas com referência ao ambiente pai (modo 'orcamentos')
+    // Ids efetivamente selecionados, conforme o modo
+    const selIds = modo === 'orcamentos' ? selecionadosIds : selMedicoes;
+
+    // Versões achatadas com referência ao ambiente pai (mapeamento do Caso B)
     const versoes = useMemo(() => ambientes.flatMap(a =>
-        (a.orcamentos ?? []).map(o => ({ ...o, ambiente_id: a.id, ambiente_nome: a.nome }))
+        (a.orcamentos ?? []).map(o => ({ ...o, ambiente_id: a.id }))
     ), [ambientes]);
 
     // Ambientes com seleção parcial de versões — as irmãs vão junto (ambiente é movido)
@@ -46,15 +52,15 @@ export default function ModalMigrarAvulso({
         versoes.forEach(v => {
             porAmbiente[v.ambiente_id] ??= { total: 0, sel: 0 };
             porAmbiente[v.ambiente_id].total++;
-            if (selecionados.includes(v.id)) porAmbiente[v.ambiente_id].sel++;
+            if (selIds.includes(v.id)) porAmbiente[v.ambiente_id].sel++;
         });
         return Object.values(porAmbiente).some(x => x.sel > 0 && x.sel < x.total);
-    }, [modo, versoes, selecionados]);
+    }, [modo, versoes, selIds]);
 
     useEffect(() => {
         if (!aberto) return;
         setStep(1);
-        setSelecionados([]);
+        setSelMedicoes([]);
     }, [aberto, modo]);
 
     useEffect(() => {
@@ -76,8 +82,8 @@ export default function ModalMigrarAvulso({
                     .eq('empresa_id', empresaId)
                     .order('nome'),
             ];
-            // Modo medições: busca as medições do avulso no open (o shape
-            // normalizado de ambientes não serve — medições agendadas não têm ambiente)
+            // Modo medições: busca as medições do avulso no open (medições
+            // agendadas não têm ambiente — a prop `ambientes` não serviria)
             if (modo === 'medicoes' && projetoAvulsoId) {
                 buscas.push(
                     supabase
@@ -105,8 +111,8 @@ export default function ModalMigrarAvulso({
 
     if (!aberto) return null;
 
-    const toggleSel = (id) =>
-        setSelecionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const toggleMedicao = (id) =>
+        setSelMedicoes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
     const destinoOk = modoDestino === 'existente'
         ? !!destinoId
@@ -134,7 +140,7 @@ export default function ModalMigrarAvulso({
         const { error: errMed } = await supabase
             .from('medicoes')
             .update({ projeto_id: destino })
-            .in('id', selecionados)
+            .in('id', selIds)
             .eq('empresa_id', empresaId);
         if (errMed) throw new Error('mover medições: ' + errMed.message);
 
@@ -143,7 +149,7 @@ export default function ModalMigrarAvulso({
         const { data: ambVinc, error: errBusca } = await supabase
             .from('ambientes')
             .select('id')
-            .in('medicao_id', selecionados)
+            .in('medicao_id', selIds)
             .eq('empresa_id', empresaId);
         if (errBusca) throw new Error('mapear ambientes: ' + errBusca.message);
         const ambIds = (ambVinc ?? []).map(a => a.id);
@@ -151,7 +157,7 @@ export default function ModalMigrarAvulso({
         const { error: errAmb } = await supabase
             .from('ambientes')
             .update({ projeto_id: destino })
-            .in('medicao_id', selecionados)
+            .in('medicao_id', selIds)
             .eq('empresa_id', empresaId);
         if (errAmb) throw new Error('mover ambientes: ' + errAmb.message);
 
@@ -163,12 +169,12 @@ export default function ModalMigrarAvulso({
                 .eq('empresa_id', empresaId);
             if (errOrc) throw new Error('mover orçamentos: ' + errOrc.message);
         }
-        toast.success(`${selecionados.length} medição(ões) e orçamentos vinculados migrados`);
+        toast.success(`${selIds.length} medição(ões) e orçamentos vinculados migrados`);
     }
 
     // ── CASO B — move orçamentos + ambientes; DUPLICA a medição mãe ──────
     async function migrarOrcamentos(destino) {
-        const versoesSel = versoes.filter(v => selecionados.includes(v.id));
+        const versoesSel = versoes.filter(v => selIds.includes(v.id));
         const ambienteIds = [...new Set(versoesSel.map(v => v.ambiente_id))];
 
         // medicao_id não vem no shape normalizado — busca no banco
@@ -238,7 +244,7 @@ export default function ModalMigrarAvulso({
     }
 
     async function handleConfirmar() {
-        if (!destinoOk || selecionados.length === 0 || migrando) return;
+        if (!destinoOk || selIds.length === 0 || migrando) return;
         setMigrando(true);
         try {
             const destino = await resolverDestino();
@@ -256,95 +262,64 @@ export default function ModalMigrarAvulso({
         ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
         : '—';
 
+    // Modo 'orcamentos' não tem passo 1 — vai direto para o destino
+    const mostrarDestino = modo === 'orcamentos' || step === 2;
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !migrando && onClose()} />
             <div className="relative bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl dark:rounded-none shadow-2xl w-full max-w-lg p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
 
-                {/* Cabeçalho + indicador de passo */}
+                {/* Cabeçalho */}
                 <div className="flex items-start justify-between gap-3">
                     <div>
                         <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">Migrar para projeto</h2>
                         <p className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-relaxed">
-                            {step === 1
-                                ? (modo === 'medicoes'
+                            {modo === 'orcamentos'
+                                ? `${selIds.length} orçamento(s) selecionado(s) — escolha o projeto de destino. A medição de origem é duplicada, a original fica no avulso.`
+                                : step === 1
                                     ? 'Passo 1 de 2 — selecione as medições que serão movidas (ambientes e orçamentos vinculados vão juntos).'
-                                    : 'Passo 1 de 2 — selecione os orçamentos que serão movidos (a medição de origem é duplicada, a original fica no avulso).')
-                                : 'Passo 2 de 2 — escolha o projeto de destino.'}
+                                    : 'Passo 2 de 2 — escolha o projeto de destino.'}
                         </p>
                     </div>
-                    <span className="shrink-0 font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-800 px-2 py-1">
-                        {step}/2
-                    </span>
+                    {modo === 'medicoes' && (
+                        <span className="shrink-0 font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-800 px-2 py-1">
+                            {step}/2
+                        </span>
+                    )}
                 </div>
 
-                {/* ── PASSO 1 — seleção ─────────────────────────────────── */}
-                {step === 1 && (
+                {/* ── PASSO 1 (só modo medições) — seleção ──────────────── */}
+                {!mostrarDestino && (
                     <>
                         <div className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none divide-y divide-zinc-100 dark:divide-zinc-900 max-h-64 overflow-y-auto">
-                            {modo === 'medicoes' ? (
-                                carregando ? (
-                                    <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Carregando medições...</p>
-                                ) : medicoes.length === 0 ? (
-                                    <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhuma medição neste avulso</p>
-                                ) : medicoes.map(m => (
-                                    <label
-                                        key={m.id}
-                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                                            selecionados.includes(m.id) ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
-                                        }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selecionados.includes(m.id)}
-                                            onChange={() => toggleSel(m.id)}
-                                            className="accent-orange-500 dark:accent-yellow-400 shrink-0"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{m.responsavel || '—'}</div>
-                                            <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-0.5">{fmtData(m.data_medicao)}</div>
-                                        </div>
-                                        <span className="shrink-0 px-2 py-0.5 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                                            {m.status ?? '—'}
-                                        </span>
-                                    </label>
-                                ))
-                            ) : (
-                                versoes.length === 0 ? (
-                                    <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhum orçamento neste avulso</p>
-                                ) : versoes.map(v => (
-                                    <label
-                                        key={v.id}
-                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
-                                            selecionados.includes(v.id) ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
-                                        }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selecionados.includes(v.id)}
-                                            onChange={() => toggleSel(v.id)}
-                                            className="accent-orange-500 dark:accent-yellow-400 shrink-0"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{v.nome}</div>
-                                            <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-0.5 truncate">
-                                                {v.ambiente_nome}
-                                                {v.vendedor_nome ? ` · ${v.vendedor_nome.split(' ')[0]}` : ''}
-                                            </div>
-                                        </div>
-                                        <span className="shrink-0 font-mono text-[11px] font-bold text-orange-600 dark:text-yellow-400">
-                                            {fmtBRL(v.valor_total ?? 0)}
-                                        </span>
-                                    </label>
-                                ))
-                            )}
+                            {carregando ? (
+                                <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Carregando medições...</p>
+                            ) : medicoes.length === 0 ? (
+                                <p className="px-4 py-6 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-700">Nenhuma medição neste avulso</p>
+                            ) : medicoes.map(m => (
+                                <label
+                                    key={m.id}
+                                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                                        selMedicoes.includes(m.id) ? 'bg-orange-50 dark:bg-yellow-400/5' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
+                                    }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selMedicoes.includes(m.id)}
+                                        onChange={() => toggleMedicao(m.id)}
+                                        className="accent-orange-500 dark:accent-yellow-400 shrink-0"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{m.responsavel || '—'}</div>
+                                        <div className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 mt-0.5">{fmtData(m.data_medicao)}</div>
+                                    </div>
+                                    <span className="shrink-0 px-2 py-0.5 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-[8px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                                        {m.status ?? '—'}
+                                    </span>
+                                </label>
+                            ))}
                         </div>
-
-                        {temSelecaoParcial && (
-                            <p className="px-3 py-2 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 font-mono text-[10px] text-amber-700 dark:text-amber-400 rounded-md dark:rounded-none leading-relaxed">
-                                Um ambiente tem versões não selecionadas — o ambiente inteiro é movido, então elas vão junto.
-                            </p>
-                        )}
 
                         <div className="flex gap-2 pt-1">
                             <button
@@ -355,18 +330,24 @@ export default function ModalMigrarAvulso({
                             </button>
                             <button
                                 onClick={() => setStep(2)}
-                                disabled={selecionados.length === 0}
+                                disabled={selMedicoes.length === 0}
                                 className="flex-1 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black font-mono text-[10px] font-bold uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                Próximo {selecionados.length > 0 ? `(${selecionados.length})` : ''}
+                                Próximo {selMedicoes.length > 0 ? `(${selMedicoes.length})` : ''}
                             </button>
                         </div>
                     </>
                 )}
 
-                {/* ── PASSO 2 — destino ─────────────────────────────────── */}
-                {step === 2 && (
+                {/* ── DESTINO (passo 2 / único passo do modo orçamentos) ── */}
+                {mostrarDestino && (
                     <>
+                        {temSelecaoParcial && (
+                            <p className="px-3 py-2 border border-amber-300 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/5 font-mono text-[10px] text-amber-700 dark:text-amber-400 rounded-md dark:rounded-none leading-relaxed">
+                                Um ambiente tem versões não selecionadas — o ambiente inteiro é movido, então elas vão junto.
+                            </p>
+                        )}
+
                         <div className="flex gap-px w-max">
                             {[
                                 { key: 'existente', label: 'Projeto existente' },
@@ -421,18 +402,18 @@ export default function ModalMigrarAvulso({
 
                         <div className="flex gap-2 pt-1">
                             <button
-                                onClick={() => setStep(1)}
+                                onClick={modo === 'medicoes' ? () => setStep(1) : onClose}
                                 disabled={migrando}
                                 className="flex-1 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-mono text-[10px] uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none transition-colors disabled:opacity-50"
                             >
-                                Voltar
+                                {modo === 'medicoes' ? 'Voltar' : 'Cancelar'}
                             </button>
                             <button
                                 onClick={handleConfirmar}
-                                disabled={!destinoOk || migrando}
+                                disabled={!destinoOk || selIds.length === 0 || migrando}
                                 className="flex-1 bg-orange-500 dark:bg-yellow-400 text-white dark:text-black font-mono text-[10px] font-bold uppercase tracking-widest py-2.5 rounded-lg dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                {migrando ? 'Migrando...' : `Confirmar migração (${selecionados.length})`}
+                                {migrando ? 'Migrando...' : `Confirmar migração (${selIds.length})`}
                             </button>
                         </div>
                     </>

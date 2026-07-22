@@ -14,6 +14,7 @@ export default function AbaCarrinho({
     isViewOnlyAdmin,
     loadingPecasOrc,
     fetchPecasParaOrcamento,
+    modoMigrar, migrarIds = [], toggleMigrarId, cancelarMigrar, onEscolherDestino,
     modoMesclar, setModoMesclar, mesclarIds, setMesclarIds,
     modalMesclar, setModalMesclar, loadingMesclar, setLoadingMesclar,
     orcsMesclados, setOrcsMesclados, toastMesclar, setToastMesclar,
@@ -55,7 +56,7 @@ export default function AbaCarrinho({
         (amb.orcamentos ?? []).map(orc => ({ ...orc, ambiente_id: amb.id, ambiente_nome: amb.nome }))
     );
     const totalGeral = orcamentosCarrinho.reduce((s, o) => s + (o.valor_total ?? 0), 0);
-    const modoAtivo = modoMesclar || modoFecharPedido;
+    const modoAtivo = modoMesclar || modoFecharPedido || modoMigrar;
     const pedidosOrdenados = [...pedidosFechados].reverse(); // oldest first → Pedido 1, 2, 3...
 
     function handleToggleFecharId(orcId) {
@@ -128,6 +129,28 @@ export default function AbaCarrinho({
                             >
                                 <iconify-icon icon="solar:merge-linear" width="12"></iconify-icon>
                                 Mesclar ({mesclarIds.length})
+                            </button>
+                        </>
+                    )}
+
+                    {/* ── Modo Migrar (avulso): controles ativos ── */}
+                    {modoMigrar && (
+                        <>
+                            <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse inline-block"></span>
+                                {migrarIds.length} selecionado{migrarIds.length !== 1 ? 's' : ''}
+                            </span>
+                            <button onClick={cancelarMigrar} className="flex items-center gap-1.5 border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-[11px] font-mono uppercase tracking-widest px-3 py-1 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors">
+                                <iconify-icon icon="solar:close-linear" width="12"></iconify-icon>
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={onEscolherDestino}
+                                disabled={migrarIds.length < 1}
+                                className="flex items-center gap-1.5 bg-amber-500 text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 hover:bg-amber-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <iconify-icon icon="solar:arrow-right-up-linear" width="12"></iconify-icon>
+                                Escolher destino ({migrarIds.length})
                             </button>
                         </>
                     )}
@@ -227,6 +250,7 @@ export default function AbaCarrinho({
                         const arquitetoNomeProjeto = projeto?.arquitetos?.nome ?? null;
                         const isMesclarChecked = mesclarIds.includes(orc.id);
                         const isFecharChecked  = fecharIds.includes(orc.id);
+                        const isMigrarChecked  = migrarIds.includes(orc.id);
                         const isDescartado     = !!orc.descartado_em;
                         const pedidoDoOrcIdx   = pedidosOrdenados.findIndex(p => (p.cenario_ids ?? []).includes(orc.id));
                         const pedidoDoOrc      = pedidoDoOrcIdx !== -1 ? pedidoDoOrcIdx + 1 : null;
@@ -237,13 +261,15 @@ export default function AbaCarrinho({
                                 className={`bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none transition-colors
                                     ${modoMesclar && isMesclarChecked ? 'border-orange-500 dark:border-orange-500/60 bg-orange-100 dark:bg-orange-400/5' : ''}
                                     ${modoFecharPedido && isFecharChecked ? 'border-green-500 dark:border-green-500/60 bg-green-100 dark:bg-green-400/5' : ''}
-                                    ${!modoMesclar && !modoFecharPedido ? 'border-zinc-200/80 dark:border-zinc-800' : ''}
+                                    ${modoMigrar && isMigrarChecked ? 'border-amber-500 dark:border-amber-500/60 bg-amber-100 dark:bg-amber-400/5' : ''}
+                                    ${!modoAtivo ? 'border-zinc-200/80 dark:border-zinc-800' : ''}
                                     ${isDescartado ? 'opacity-40' : ''}
                                     ${modoAtivo ? 'cursor-pointer' : ''}
                                 `}
                                 onClick={
                                     modoMesclar ? () => toggleMesclarId(orc.id) :
                                     modoFecharPedido ? () => handleToggleFecharId(orc.id) :
+                                    modoMigrar ? () => toggleMigrarId(orc.id) :
                                     undefined
                                 }
                             >
@@ -256,6 +282,15 @@ export default function AbaCarrinho({
                                             onClick={e => { e.stopPropagation(); toggleMesclarId(orc.id); }}
                                         >
                                             {isMesclarChecked && <iconify-icon icon="solar:check-read-linear" width="10" className="text-orange-400"></iconify-icon>}
+                                        </div>
+                                    )}
+                                    {/* Checkbox migrar avulso (âmbar) */}
+                                    {modoMigrar && (
+                                        <div
+                                            className={`w-4 h-4 flex items-center justify-center shrink-0 border transition-colors ${isMigrarChecked ? 'border-amber-400 bg-amber-400/20' : 'border-zinc-200/80 dark:border-zinc-600 hover:border-amber-400'}`}
+                                            onClick={e => { e.stopPropagation(); toggleMigrarId(orc.id); }}
+                                        >
+                                            {isMigrarChecked && <iconify-icon icon="solar:check-read-linear" width="10" className="text-amber-400"></iconify-icon>}
                                         </div>
                                     )}
                                     {/* Checkbox fechar pedido (verde) */}
@@ -288,8 +323,8 @@ export default function AbaCarrinho({
                                     ) : (
                                         <span className="flex-1 flex items-center gap-2 min-w-0">
                                             <span
-                                                // No avulso, clicar no nome já abre a edição (além do lápis) — exceto em modo mesclar/fechar
-                                                onClick={ehAvulsoProj && !modoMesclar && !modoFecharPedido ? (e) => { e.stopPropagation(); setCarrinhoEditandoNome({ id: orc.id, nome: semNomeAvulso ? '' : nomeAtual }); } : undefined}
+                                                // No avulso, clicar no nome já abre a edição (além do lápis) — exceto com modo de seleção ativo
+                                                onClick={ehAvulsoProj && !modoAtivo ? (e) => { e.stopPropagation(); setCarrinhoEditandoNome({ id: orc.id, nome: semNomeAvulso ? '' : nomeAtual }); } : undefined}
                                                 className={`text-sm font-semibold tracking-tight truncate ${ehAvulsoProj ? 'cursor-text' : ''} ${modoMesclar && isMesclarChecked ? 'text-orange-300' : 'text-zinc-900 dark:text-white'}`}
                                             >
                                                 {nomeAtual}

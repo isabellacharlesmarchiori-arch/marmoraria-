@@ -219,6 +219,12 @@ export default function TelaProjetoVendedor() {
     const cancelarMesclar = () => { setModoMesclar(false); setMesclarIds([]); setModalMesclar(null); };
     const toggleMesclarId = (orcId) => setMesclarIds(p => p.includes(orcId) ? p.filter(x => x !== orcId) : [...p, orcId]);
 
+    // ── Migrar avulso (seleção inline na aba de orçamentos) ──────────────────
+    const [modoMigrar,  setModoMigrar]  = useState(false);
+    const [migrarIds,   setMigrarIds]   = useState([]); // orcIds selecionados
+    const cancelarMigrar = () => { setModoMigrar(false); setMigrarIds([]); };
+    const toggleMigrarId = (orcId) => setMigrarIds(p => p.includes(orcId) ? p.filter(x => x !== orcId) : [...p, orcId]);
+
     // ── Fechar Pedido ────────────────────────────────────────────────────────
     const [modoFecharPedido,   setModoFecharPedido]   = useState(false);
     const [fecharIds,          setFecharIds]          = useState([]);
@@ -562,7 +568,15 @@ export default function TelaProjetoVendedor() {
                                 Orçamento avulso — vincule a um cliente para finalizar
                             </div>
                             <button
-                                onClick={() => setModalMigrar(true)}
+                                onClick={() => {
+                                    if (activeTab === 'medicoes') {
+                                        setModalMigrar(true); // Caso A: modal em 2 passos
+                                    } else {
+                                        // Caso B: seleção inline nos cards da aba de orçamentos
+                                        setActiveTab('orcamentos');
+                                        setModoMigrar(true);
+                                    }
+                                }}
                                 className="shrink-0 flex items-center gap-2 border border-amber-400 dark:border-amber-400/40 text-amber-800 dark:text-amber-400 text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded-md dark:rounded-none hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-colors w-max"
                             >
                                 <iconify-icon icon="solar:arrow-right-up-linear" width="12"></iconify-icon>
@@ -637,6 +651,9 @@ export default function TelaProjetoVendedor() {
                         orcsMesclados={orcsMesclados} setOrcsMesclados={setOrcsMesclados}
                         toastMesclar={toastMesclar} setToastMesclar={setToastMesclar}
                         cancelarMesclar={cancelarMesclar} toggleMesclarId={toggleMesclarId}
+                        modoMigrar={modoMigrar} migrarIds={migrarIds}
+                        toggleMigrarId={toggleMigrarId} cancelarMigrar={cancelarMigrar}
+                        onEscolherDestino={() => setModalMigrar(true)}
                         modoFecharPedido={modoFecharPedido} setModoFecharPedido={setModoFecharPedido}
                         fecharIds={fecharIds} setFecharIds={setFecharIds}
                         modalFechar={modalFechar} setModalFechar={setModalFechar}
@@ -677,7 +694,8 @@ export default function TelaProjetoVendedor() {
                 userId={session?.user?.id}
                 ambientes={ambientes}
                 modo={activeTab === 'medicoes' ? 'medicoes' : 'orcamentos'}
-                onMigrado={(novoId) => { setModalMigrar(false); navigate(`/projetos/${novoId}`); }}
+                selecionadosIds={migrarIds}
+                onMigrado={(novoId) => { setModalMigrar(false); cancelarMigrar(); navigate(`/projetos/${novoId}`); }}
             />
 
             {/* ══ PAINEL LATERAL — Dados da medição ══════════════════════ */}
