@@ -199,6 +199,10 @@ export default function Projetos() {
   }, [busca, filtroStatus, filtroResponsabilidade, filtroVisao]);
 
   const projetosFiltrados = useMemo(() => projetos.filter(p => {
+    // Projeto-fantasma de avulsos não entra na listagem principal — acesso
+    // é só pelo botão "Orçamento avulso" ou pela tela de detalhe direto.
+    if (isProjetoAvulso(p)) return false;
+
     const q = busca.toLowerCase();
     const matchBusca = !q ||
       p.nome.toLowerCase().includes(q) ||
@@ -206,12 +210,7 @@ export default function Projetos() {
     const matchStatus = filtroStatus === 'todos' || p.status === filtroStatus;
 
     let matchResponsabilidade = true;
-    if (isProjetoAvulso(p)) {
-      // Avulso é coletivo: aparece em "Meus"/"Todos" de qualquer usuário,
-      // nunca em "Compartilhados" nem em filtro por vendedor específico
-      const visao = isAdmin ? filtroResponsabilidade : filtroVisao;
-      matchResponsabilidade = visao === 'meus' || visao === 'todos';
-    } else if (isAdmin) {
+    if (isAdmin) {
       if (filtroResponsabilidade === 'meus') matchResponsabilidade = p.vendedor_id === session?.user?.id;
       else if (filtroResponsabilidade === 'compartilhados') matchResponsabilidade = p.compartilhado && p.vendedor_id !== session?.user?.id;
       else if (filtroResponsabilidade !== 'todos') matchResponsabilidade = p.vendedor_id === filtroResponsabilidade;
