@@ -4,6 +4,7 @@ import { gerarPdfDiferenca } from '../../utils/gerarPdfDiferenca';
 
 const fmtBRL = v => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtNum = (v, d = 4) => v == null ? '—' : Number(v).toFixed(d).replace('.', ',');
+const fmtCm  = v => v == null ? null : (Number.isInteger(Number(v)) ? Number(v) : Number(v).toFixed(1).replace('.', ','));
 
 const ACABAMENTO_LABELS = {
     meia_esquadria: 'Meia-Esquadria',
@@ -26,22 +27,24 @@ function buildMedicaoIndex(jsonMedicao) {
     ambientes.forEach(amb => {
         const ambNome = (amb.nome ?? amb.ambiente ?? '').trim();
 
-        // Peças normais (comportamento existente)
+        // Peças normais (comportamento existente) — sem largura/comprimento individual, só área
         (amb.pecas ?? []).forEach(p => {
             const pecaNome = (p.nome ?? '').trim();
             const key = `${ambNome}|||${pecaNome}`;
             if (!map.has(key)) map.set(key, []);
             const area = Math.round((parseFloat(p.area_m2 ?? p.area_liquida_m2 ?? 0)) * 10000) / 10000;
-            map.get(key).push(area);
+            map.get(key).push({ area, largura: null, comprimento: null });
         });
 
-        // Faixas do ambiente
+        // Faixas do ambiente — o medidor grava largura_cm/comprimento_cm, permite comparação dimensional
         (amb.faixas ?? []).forEach(f => {
             const faixaNome = (f.nome ?? 'Faixa').trim();
             const key = `${ambNome}|||${faixaNome}`;
             if (!map.has(key)) map.set(key, []);
             const area = Math.round((parseFloat(f.area_m2 ?? 0)) * 10000) / 10000;
-            map.get(key).push(area);
+            const largura     = f.largura_cm     != null ? Number(f.largura_cm)     : null;
+            const comprimento = f.comprimento_cm != null ? Number(f.comprimento_cm) : null;
+            map.get(key).push({ area, largura, comprimento });
         });
     });
 
@@ -84,11 +87,13 @@ function buildMedicaoIndex(jsonMedicao) {
                 if (area <= 0) return;
                 const key = `${g._ambNome}|||Guarnição`;
                 if (!map.has(key)) map.set(key, []);
-                map.get(key).push(area);
+                const largura     = g.largura_cm     != null ? Number(g.largura_cm)     : null;
+                const comprimento = g.comprimento_cm != null ? Number(g.comprimento_cm) : null;
+                map.get(key).push({ area, largura, comprimento });
             });
         }
     }
-    map.forEach(arr => arr.sort((a, b) => a - b));
+    map.forEach(arr => arr.sort((a, b) => a.area - b.area));
     return map;
 }
 
@@ -160,7 +165,7 @@ export default function PainelDiferencaMedicao({
             const [opsResult, orcsResult] = await Promise.all([
                 supabase
                     .from('orcamento_pecas')
-                    .select('peca_id, material_id, valor_area, valor_total, item_nome, acabamentos, recortes, pecas(nome_livre, area_liquida_m2, ambiente_id)')
+                    .select('peca_id, material_id, valor_area, valor_total, item_nome, acabamentos, recortes, pecas(nome_livre, area_liquida_m2, ambiente_id, dimensoes)')
                     .in('orcamento_id', pedido.cenario_ids),
                 supabase
                     .from('orcamentos')
@@ -201,7 +206,8 @@ export default function PainelDiferencaMedicao({
                 const [ambNome, pecaNome] = key.split('|||');
                 opsGroup.forEach((op, idx) => {
                     const areaPedido = op.pecas?.area_liquida_m2 ?? null;
-                    const areaReal   = candidatos[idx] !== undefined ? candidatos[idx] : null;
+                    const candidato  = candidatos[idx] !== undefined ? candidatos[idx] : null;
+                    const areaReal   = candidato?.area ?? null;
                     const diferenca  = areaReal !== null && areaPedido !== null
                         ? Math.round((areaReal - areaPedido) * 10000) / 10000
                         : null;
@@ -211,11 +217,23 @@ export default function PainelDiferencaMedicao({
                     const impacto = diferenca !== null && precoM2 !== null
                         ? diferenca * precoM2
                         : null;
+
+                    // Largura/comprimento só existem para faixas/guarnições — o medidor grava
+                    // essas dimensões; peças de área normal não têm essa granularidade (só m²).
+                    const dim = op.pecas?.dimensoes ?? {};
+                    const da  = Number(dim.altura  ?? 0);
+                    const dl  = Number(dim.largura ?? 0);
+                    const larguraPedido     = (da && dl) ? Math.min(da, dl) : null;
+                    const comprimentoPedido = (da || dl) ? Math.max(da, dl) : null;
+                    const larguraReal       = candidato?.largura     ?? null;
+                    const comprimentoReal   = candidato?.comprimento ?? null;
+
                     todasPecas.push({
                         ambienteNome: ambNome,
                         pecaNome:     pecaNome || '—',
                         materialNome: matNomeMap[op.material_id] ?? '—',
                         areaPedido, areaReal, diferenca, precoM2, impacto,
+                        larguraPedido, comprimentoPedido, larguraReal, comprimentoReal,
                         semCorrespondencia: areaReal === null,
                     });
                 });
@@ -261,6 +279,7 @@ export default function PainelDiferencaMedicao({
                 const diferenca = qtdReal !== null && qtdPedido !== null
                     ? qtdReal - qtdPedido
                     : null;
+                if (qtdPedido === qtdReal) return; // contagem igual nos dois lados — sem mudança, não lista
                 linhasRc.push({ funcao, qtdPedido, qtdReal, diferenca });
             });
 
@@ -346,155 +365,94 @@ export default function PainelDiferencaMedicao({
                     ) : (
                         <>
                             {/* ── Seção: Peças ───────────────────────────────────────── */}
-                            <SectionHeader label="Peças" />
-                            {rows.length === 0 ? (
-                                <EmptySection label="Sem diferenças de área" />
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[760px] text-[11px] font-mono border-collapse">
-                                        <thead>
-                                            <tr className="bg-zinc-800 dark:bg-zinc-900 text-white">
-                                                {['Ambiente', 'Peça', 'Material', 'm² Ped.', 'm² Real', 'Diferença', 'R$/m²', 'Impacto'].map((h, i) => (
-                                                    <th key={h} className={`py-2.5 px-3 font-semibold tracking-wider text-[10px] uppercase ${i >= 3 ? 'text-right' : 'text-left'}`}>{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rows.map((row, i) => {
-                                                const diffPos = row.diferenca !== null && row.diferenca > 0;
-                                                const diffNeg = row.diferenca !== null && row.diferenca < 0;
-                                                const diffStr = row.diferenca !== null
-                                                    ? (row.diferenca >= 0 ? '+' : '') + fmtNum(row.diferenca, 4)
-                                                    : '—';
-                                                return (
-                                                    <tr key={i} className={`border-b border-zinc-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-zinc-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
-                                                        <td className="px-3 py-2.5 text-zinc-600 dark:text-zinc-400">{row.ambienteNome}</td>
-                                                        <td className="px-3 py-2.5 text-zinc-900 dark:text-white font-medium">{row.pecaNome}</td>
-                                                        <td className="px-3 py-2.5 text-zinc-600 dark:text-zinc-400">{row.materialNome}</td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">{fmtNum(row.areaPedido, 4)}</td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
-                                                            {row.areaReal !== null
-                                                                ? fmtNum(row.areaReal, 4)
-                                                                : <span className="text-amber-500 dark:text-amber-400">—</span>}
-                                                        </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-amber-500 dark:text-amber-400'}`}>
-                                                            {diffStr}
-                                                        </td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
-                                                            {row.precoM2 !== null
-                                                                ? fmtBRL(row.precoM2)
-                                                                : <span className="text-zinc-300 dark:text-zinc-700">—</span>}
-                                                        </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
-                                                            {row.impacto !== null ? fmtBRL(row.impacto) : '—'}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                            {rows.length > 0 && (
+                                <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800">
+                                    <h3 className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-semibold mb-3">Peças</h3>
+                                    <div className="flex flex-col gap-2.5">
+                                        {rows.map((row, i) => {
+                                            const temDimensao =
+                                                !row.semCorrespondencia &&
+                                                row.larguraPedido != null && row.comprimentoPedido != null &&
+                                                row.larguraReal   != null && row.comprimentoReal   != null;
+                                            const temArea = !row.semCorrespondencia && row.areaPedido != null && row.areaReal != null;
+                                            return (
+                                                <div key={i} className="flex items-start justify-between gap-4 border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none px-4 py-3">
+                                                    <div className="flex flex-col gap-1 min-w-0">
+                                                        <span className="text-sm font-medium text-zinc-900 dark:text-white">{row.pecaNome}</span>
+                                                        <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+                                                            {row.ambienteNome} · {row.materialNome}
+                                                        </span>
+                                                        {row.semCorrespondencia ? (
+                                                            <span className="text-[12px] text-amber-600 dark:text-amber-400 mt-1">
+                                                                Não encontrada na medição de produção
+                                                            </span>
+                                                        ) : temDimensao ? (
+                                                            <span className="text-[12px] text-zinc-600 dark:text-zinc-300 mt-1">
+                                                                Metragem: {fmtCm(row.larguraPedido)}x{fmtCm(row.comprimentoPedido)} → {fmtCm(row.larguraReal)}x{fmtCm(row.comprimentoReal)} cm
+                                                            </span>
+                                                        ) : temArea ? (
+                                                            <span className="text-[12px] text-zinc-600 dark:text-zinc-300 mt-1">
+                                                                Área: {fmtNum(row.areaPedido, 2)} m² → {fmtNum(row.areaReal, 2)} m²
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                    {row.impacto != null && Math.abs(row.impacto) > 0.005 && (
+                                                        <span className={`font-mono text-sm font-semibold shrink-0 ${row.impacto > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400'}`}>
+                                                            {row.impacto > 0 ? '+' : '−'}{fmtBRL(Math.abs(row.impacto))}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 
                             {/* ── Seção: Acabamentos ─────────────────────────────────── */}
-                            <SectionHeader label="Acabamentos" />
-                            {rowsAcabamentos.length === 0 ? (
-                                <EmptySection label="Sem diferenças de acabamento" />
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[600px] text-[11px] font-mono border-collapse">
-                                        <thead>
-                                            <tr className="bg-zinc-800 dark:bg-zinc-900 text-white">
-                                                {['Tipo', 'ml Ped.', 'ml Real', 'Diferença', 'R$/ml', 'Impacto'].map((h, i) => (
-                                                    <th key={h} className={`py-2.5 px-3 font-semibold tracking-wider text-[10px] uppercase ${i >= 1 ? 'text-right' : 'text-left'}`}>{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rowsAcabamentos.map((row, i) => {
-                                                const diffPos = row.diferenca !== null && row.diferenca > 0;
-                                                const diffNeg = row.diferenca !== null && row.diferenca < 0;
-                                                const diffStr = row.diferenca !== null
-                                                    ? (row.diferenca >= 0 ? '+' : '') + fmtNum(row.diferenca, 2)
-                                                    : '—';
-                                                return (
-                                                    <tr key={i} className={`border-b border-zinc-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-zinc-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
-                                                        <td className="px-3 py-2.5 text-zinc-900 dark:text-white font-medium">
-                                                            {ACABAMENTO_LABELS[row.tipo] ?? row.tipo}
-                                                        </td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
-                                                            {row.mlPedido !== null
-                                                                ? fmtNum(row.mlPedido, 2)
-                                                                : <span className="text-amber-500 dark:text-amber-400">—</span>}
-                                                        </td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
-                                                            {row.mlReal !== null
-                                                                ? fmtNum(row.mlReal, 2)
-                                                                : <span className="text-amber-500 dark:text-amber-400">—</span>}
-                                                        </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
-                                                            {diffStr}
-                                                        </td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
-                                                            {row.precoMl !== null
-                                                                ? fmtBRL(row.precoMl)
-                                                                : <span className="text-zinc-300 dark:text-zinc-700">—</span>}
-                                                        </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${row.impacto > 0 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : row.impacto < 0 ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
-                                                            {row.impacto !== null ? fmtBRL(row.impacto) : '—'}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                            {rowsAcabamentos.length > 0 && (
+                                <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800">
+                                    <h3 className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-semibold mb-3">Acabamentos</h3>
+                                    <div className="flex flex-col gap-2.5">
+                                        {rowsAcabamentos.map((row, i) => (
+                                            <div key={i} className="flex items-start justify-between gap-4 border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none px-4 py-3">
+                                                <div className="flex flex-col gap-1 min-w-0">
+                                                    <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                        {ACABAMENTO_LABELS[row.tipo] ?? row.tipo}
+                                                    </span>
+                                                    <span className="text-[12px] text-zinc-600 dark:text-zinc-300">
+                                                        Metragem: {row.mlPedido != null ? `${fmtNum(row.mlPedido, 2)} m` : 'não previsto'} → {row.mlReal != null ? `${fmtNum(row.mlReal, 2)} m` : 'não medido'}
+                                                    </span>
+                                                </div>
+                                                {row.impacto != null && Math.abs(row.impacto) > 0.005 && (
+                                                    <span className={`font-mono text-sm font-semibold shrink-0 ${row.impacto > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400'}`}>
+                                                        {row.impacto > 0 ? '+' : '−'}{fmtBRL(Math.abs(row.impacto))}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
                             {/* ── Seção: Recortes ────────────────────────────────────── */}
-                            <SectionHeader label="Recortes" />
-                            {rowsRecortes.length === 0 ? (
-                                <EmptySection label="Sem recortes registrados" />
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[420px] text-[11px] font-mono border-collapse">
-                                        <thead>
-                                            <tr className="bg-zinc-800 dark:bg-zinc-900 text-white">
-                                                {['Tipo de Furo', 'Qtd Ped.', 'Qtd Real', 'Diferença'].map((h, i) => (
-                                                    <th key={h} className={`py-2.5 px-3 font-semibold tracking-wider text-[10px] uppercase ${i >= 1 ? 'text-right' : 'text-left'}`}>{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rowsRecortes.map((row, i) => {
-                                                const diffPos = row.diferenca !== null && row.diferenca > 0;
-                                                const diffNeg = row.diferenca !== null && row.diferenca < 0;
-                                                const label   = row.funcao
-                                                    .replace(/_/g, ' ')
-                                                    .replace(/\b\w/g, c => c.toUpperCase());
-                                                return (
-                                                    <tr key={i} className={`border-b border-zinc-100 dark:border-zinc-900 ${i % 2 === 1 ? 'bg-zinc-50 dark:bg-zinc-900/30' : 'bg-white dark:bg-transparent'}`}>
-                                                        <td className="px-3 py-2.5 text-zinc-900 dark:text-white font-medium">{label}</td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
-                                                            {row.qtdPedido !== null
-                                                                ? row.qtdPedido
-                                                                : <span className="text-amber-500 dark:text-amber-400">—</span>}
-                                                        </td>
-                                                        <td className="px-3 py-2.5 text-right text-zinc-600 dark:text-zinc-400">
-                                                            {row.qtdReal !== null
-                                                                ? row.qtdReal
-                                                                : <span className="text-amber-500 dark:text-amber-400">—</span>}
-                                                        </td>
-                                                        <td className={`px-3 py-2.5 text-right font-semibold ${diffPos ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-400/5' : diffNeg ? 'text-green-700 dark:text-green-400' : 'text-zinc-300 dark:text-zinc-700'}`}>
-                                                            {row.diferenca !== null
-                                                                ? (row.diferenca >= 0 ? '+' : '') + row.diferenca
-                                                                : '—'}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                            {rowsRecortes.length > 0 && (
+                                <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800">
+                                    <h3 className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-semibold mb-3">Recortes</h3>
+                                    <div className="flex flex-col gap-2">
+                                        {rowsRecortes.map((row, i) => {
+                                            const label = row.funcao
+                                                .replace(/_/g, ' ')
+                                                .replace(/\b\w/g, c => c.toUpperCase());
+                                            return (
+                                                <div key={i} className="flex items-center justify-between border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:rounded-none px-4 py-2.5">
+                                                    <span className="text-sm text-zinc-900 dark:text-white">{label}</span>
+                                                    <span className="text-[12px] text-zinc-600 dark:text-zinc-300">
+                                                        {row.qtdPedido ?? 'nenhum'} → {row.qtdReal ?? 'nenhum'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 
@@ -549,22 +507,6 @@ export default function PainelDiferencaMedicao({
                 </div>
             </div>
         </>
-    );
-}
-
-function SectionHeader({ label }) {
-    return (
-        <div className="px-6 py-2.5 bg-zinc-100 dark:bg-zinc-900/60 border-b border-zinc-200/80 dark:border-zinc-800">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-semibold">{label}</span>
-        </div>
-    );
-}
-
-function EmptySection({ label }) {
-    return (
-        <div className="px-6 py-3 border-b border-zinc-100 dark:border-zinc-900">
-            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-600">{label}</span>
-        </div>
     );
 }
 

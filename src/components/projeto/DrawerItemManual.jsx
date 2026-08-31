@@ -72,8 +72,8 @@ export default function DrawerItemManual({ itemManualEmEdicao, setItemManualEmEd
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={itemManualEmEdicao.itemData.preco_unitario ?? 0}
-                                onChange={e => setItemManualEmEdicao(prev => ({ ...prev, itemData: { ...prev.itemData, preco_unitario: parseFloat(e.target.value) || 0 } }))}
+                                value={itemManualEmEdicao.itemData.preco_unitario ?? ''}
+                                onChange={e => setItemManualEmEdicao(prev => ({ ...prev, itemData: { ...prev.itemData, preco_unitario: e.target.value } }))}
                                 className="w-full bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm px-4 py-3 rounded-md dark:rounded-none focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 transition-colors font-mono"
                             />
                         </div>

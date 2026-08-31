@@ -184,7 +184,7 @@ export default function CriarOrcamento() {
   }
   function updateAvulsoQtd(ambId, avId, quantidade) {
     setAmbientesManual(prev => prev.map(a => a.id === ambId ? {
-      ...a, avulsosManual: a.avulsosManual.map(av => av.id === avId ? { ...av, quantidade: parseInt(quantidade) || 1 } : av),
+      ...a, avulsosManual: a.avulsosManual.map(av => av.id === avId ? { ...av, quantidade } : av),
     } : a));
   }
 
@@ -223,7 +223,9 @@ export default function CriarOrcamento() {
       });
       // Avulsos
       amb.avulsosManual.forEach(av => {
-        novosAvulsos.push({ id: av.produto_id, nome: av.nome, subcategoria: av.subcategoria, preco: av.preco, qty: av.quantidade });
+        const qty = parseInt(av.quantidade, 10);
+        if (!Number.isInteger(qty) || qty < 1) return;
+        novosAvulsos.push({ id: av.produto_id, nome: av.nome, subcategoria: av.subcategoria, preco: av.preco, qty });
       });
     });
 
@@ -237,7 +239,7 @@ export default function CriarOrcamento() {
     for (const amb of ambientesManual) {
       const temConteudo =
         amb.pecasManual.some(pm => pm.tipo === 'poligono' ? parseFloat(pm.area_manual) > 0 : parseFloat(pm.largura) > 0 && parseFloat(pm.comprimento) > 0) ||
-        amb.avulsosManual.length > 0 ||
+        amb.avulsosManual.some(av => parseInt(av.quantidade, 10) >= 1) ||
         amb.acabamentosManual.some(ac => parseFloat(ac.ml) > 0);
       if (!temConteudo) continue;
       const ambId = crypto.randomUUID();

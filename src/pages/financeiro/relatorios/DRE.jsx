@@ -754,6 +754,8 @@ export default function DRE() {
   const [mesAno,    setMesAno]    = useState(mesAtualISO);
   const [trim,      setTrim]      = useState('T1');
   const [ano,       setAno]       = useState(anoAtual);
+  const anoNum    = parseInt(ano, 10);
+  const anoValido = Number.isInteger(anoNum) && anoNum >= 2020 && anoNum <= 2099;
   const [campoData, setCampoData] = useState('competencia');
   const [comparar,  setComparar]  = useState(false);
   const [mostrarZeradas, setMostrarZeradas] = useState(false);
@@ -778,13 +780,13 @@ export default function DRE() {
 
   const carregar = useCallback(async () => {
     const empId = profile?.empresa_id;
-    if (!empId) return;
+    if (!empId || !anoValido) return;
     setLoading(true);
     setErro(null);
 
     try {
-      const { inicio, fim } = getLimites(modo, mesAno, trim, ano);
-      const prev            = getPrevLimites(modo, mesAno, trim, ano);
+      const { inicio, fim } = getLimites(modo, mesAno, trim, anoNum);
+      const prev            = getPrevLimites(modo, mesAno, trim, anoNum);
 
       const [rPlano, rLancs, rLancsAnt, rEmp] = await Promise.all([
         supabase
@@ -823,7 +825,7 @@ export default function DRE() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.empresa_id, modo, mesAno, trim, ano, campoData, comparar]);
+  }, [profile?.empresa_id, modo, mesAno, trim, anoValido, anoNum, campoData, comparar]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -980,7 +982,7 @@ export default function DRE() {
             ))}
             <input
               type="number" min="2020" max="2099" value={ano}
-              onChange={e => setAno(Number(e.target.value))}
+              onChange={e => setAno(e.target.value)}
               className={INPUT_CLS + ' w-20'}
             />
           </div>
@@ -988,9 +990,12 @@ export default function DRE() {
         {modo === 'anual' && (
           <input
             type="number" min="2020" max="2099" value={ano}
-            onChange={e => setAno(Number(e.target.value))}
+            onChange={e => setAno(e.target.value)}
             className={INPUT_CLS + ' w-24'}
           />
+        )}
+        {(modo === 'trimestral' || modo === 'anual') && !anoValido && (
+          <span className="font-mono text-[9px] text-red-500">Informe um ano válido (2020–2099).</span>
         )}
 
         {/* Regime — dois botões grandes e destacados */}

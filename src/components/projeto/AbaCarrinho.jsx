@@ -1105,6 +1105,7 @@ export default function AbaCarrinho({
                                                     setParcelas={lista => setModalFechar(p => ({ ...p, parcelas_lista: lista }))}
                                                     valorTotal={totalSel}
                                                     dataPrimeiraParcela={modalFechar.prazo_data ?? new Date().toISOString().slice(0, 10)}
+                                                    onValidoChange={valido => setModalFechar(p => ({ ...p, parcelasNumValido: valido }))}
                                                 />
                                             )}
                                         </div>
@@ -1156,8 +1157,8 @@ export default function AbaCarrinho({
                                                     <div className="flex items-center gap-2">
                                                         <input
                                                             type="number" min="1" max="365"
-                                                            value={modalFechar.prazo_dias ?? 15}
-                                                            onChange={e => setModalFechar(p => ({ ...p, prazo_dias: Math.max(1, parseInt(e.target.value) || 1) }))}
+                                                            value={modalFechar.prazo_dias ?? ''}
+                                                            onChange={e => setModalFechar(p => ({ ...p, prazo_dias: e.target.value }))}
                                                             className="w-24 bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 focus:border-blue-400 outline-none text-zinc-900 dark:text-white text-sm font-mono px-3 py-1.5"
                                                         />
                                                         <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-500">dias úteis</span>
@@ -1165,6 +1166,11 @@ export default function AbaCarrinho({
                                                     {dataFinalCalc && (
                                                         <p className="font-mono text-[10px] text-blue-400">
                                                             → Entrega prevista: {new Date(dataFinalCalc + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                        </p>
+                                                    )}
+                                                    {!prazoValido && (
+                                                        <p className="font-mono text-[10px] text-red-500">
+                                                            Informe um número válido de dias úteis (mínimo 1).
                                                         </p>
                                                     )}
                                                 </div>
@@ -1185,7 +1191,7 @@ export default function AbaCarrinho({
                                     </button>
                                     <button
                                         onClick={() => actions.confirmarFechamento(fecharIds, modalFechar, { setLoadingFechar, cancelarFecharPedido, setToastFechar })}
-                                        disabled={loadingFechar || !prazoValido || !modalFechar.forma_pagamento}
+                                        disabled={loadingFechar || !prazoValido || !modalFechar.forma_pagamento || (modalFechar.parcelamento_tipo === 'parcelado' && modalFechar.parcelasNumValido === false)}
                                         className="flex-1 bg-blue-600 text-white font-bold font-mono text-[10px] uppercase py-2.5 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         {loadingFechar

@@ -504,7 +504,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
         // ml já é o total do grupo (normalize atribui o total ao representante) — não multiplicar por grupo_quantidade
         return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
       }
-      if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
+      if (pw.tipo === 'recorte')    return s + (Number(pw.precoUnit) || 0);
       const pOrig = pecas.find(p => p.id === pw.idBase);
       return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
     }, 0);
@@ -1220,7 +1220,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                       <input
                                         type="number" min="0" step="0.01"
                                         value={pw.ml}
-                                        onChange={e => editarAcabamentoMl(amb, v.id, pw.uid, parseFloat(e.target.value) || 0)}
+                                        onChange={e => editarAcabamentoMl(amb, v.id, pw.uid, e.target.value)}
                                         className="w-14 bg-white dark:bg-black rounded-md dark:rounded-none border border-amber-400 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-amber-500/60 text-right"
                                       />
                                       <span className="font-mono text-[10px] text-amber-700">ml</span>
@@ -1313,7 +1313,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                         <input
                                           type="number" min="0" step="0.01"
                                           value={precoUnit}
-                                          onChange={e => editarRecorteTipoPreco(amb, v.id, nome, parseFloat(e.target.value) || 0)}
+                                          onChange={e => editarRecorteTipoPreco(amb, v.id, nome, e.target.value)}
                                           className="w-16 bg-white dark:bg-black rounded-md dark:rounded-none border border-teal-400 dark:border-teal-900/40 text-teal-800 dark:text-teal-300 font-mono text-[10px] px-1.5 py-0.5 outline-none focus:border-teal-500/60 text-right"
                                         />
                                       </div>
@@ -1470,7 +1470,7 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                     // ml já é o total do grupo — não multiplicar por grupo_quantidade
                                     return s + (pw.precoManual != null ? pw.precoManual : precoAcabamento(pw.ml, pw.matLinearId, matLineares, pw.precoMlOverride ?? null));
                                   }
-                                  if (pw.tipo === 'recorte')    return s + (pw.precoUnit ?? 0);
+                                  if (pw.tipo === 'recorte')    return s + (Number(pw.precoUnit) || 0);
                                   const pOrig = pecas.find(p => p.id === pw.idBase);
                                   return s + (pw.precoManual != null ? pw.precoManual : precoPeca(pOrig, pw.matId, todosM, pw.matAcabamento));
                                 }, 0);
@@ -1590,7 +1590,11 @@ export default function TelaVersoes({ versoes: initialVersoes, pecas, produtos, 
                                       <div className="flex items-center gap-1.5">
                                         <input type="number" min="1" value={a.qty} onChange={e => editarAvulsoQty(amb, v.id, a.uid, e.target.value)} className="w-12 bg-white dark:bg-black rounded-md dark:rounded-none border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-orange-500 dark:focus:border-yellow-400 text-center" />
                                         <input value={String(a.valorUnit).replace('.', ',')} onChange={e => editarAvulsoValor(amb, v.id, a.uid, e.target.value)} className="w-20 bg-white dark:bg-black rounded-md dark:rounded-none border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white text-xs font-mono px-2 py-1 outline-none focus:border-orange-500 dark:focus:border-yellow-400" />
-                                        <button onClick={() => setEditandoAvulso(null)} className="text-orange-600 dark:text-yellow-400 p-1 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors">
+                                        <button
+                                          onClick={() => { const q = parseInt(a.qty, 10); if (Number.isInteger(q) && q >= 1) setEditandoAvulso(null); }}
+                                          title={Number.isInteger(parseInt(a.qty, 10)) && parseInt(a.qty, 10) >= 1 ? undefined : 'Informe uma quantidade válida (mínimo 1)'}
+                                          className="text-orange-600 dark:text-yellow-400 p-1 hover:bg-orange-100 dark:hover:bg-yellow-400/10 transition-colors"
+                                        >
                                           <iconify-icon icon="solar:check-circle-linear" width="13"></iconify-icon>
                                         </button>
                                       </div>

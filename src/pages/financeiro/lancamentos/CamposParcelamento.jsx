@@ -64,22 +64,35 @@ export default function CamposParcelamento({
   setParcelas,
   valorTotal,
   dataPrimeiraParcela,
+  onValidoChange,
 }) {
-  const [numeroParcelas, setNumeroParcelas] = useState(Math.max(parcelas.length, 2));
+  const [numeroParcelas, setNumeroParcelas] = useState(String(Math.max(parcelas.length, 2)));
   const [intervalo,      setIntervalo]      = useState('mensal');
+
+  const numeroParcelasNum   = parseInt(numeroParcelas, 10);
+  const numeroParcelasValido = Number.isInteger(numeroParcelasNum) && numeroParcelasNum >= 2 && numeroParcelasNum <= 48;
+  const valoresParcelasValidos = parcelas.length > 0 && parcelas.every(p => Number(p.valor) > 0);
 
   // Gera parcelas iniciais quando o componente monta (parcelado acabou de ser marcado)
   useEffect(() => {
     if (parcelas.length === 0 && dataPrimeiraParcela && valorTotal > 0) {
       setParcelas(gerarParcelas(2, valorTotal, dataPrimeiraParcela, 'mensal'));
-      setNumeroParcelas(2);
+      setNumeroParcelas('2');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Avisa o componente pai se o parcelamento inteiro (número de parcelas + valores) é válido (bloqueia conclusão se não for)
+  useEffect(() => {
+    onValidoChange?.(numeroParcelasValido && valoresParcelasValidos);
+  }, [numeroParcelasValido, valoresParcelasValidos]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleNumero(e) {
-    const n = Math.max(2, Math.min(48, parseInt(e.target.value, 10) || 2));
-    setNumeroParcelas(n);
-    setParcelas(gerarParcelas(n, valorTotal, dataPrimeiraParcela, intervalo));
+    const raw = e.target.value;
+    setNumeroParcelas(raw);
+    const n = parseInt(raw, 10);
+    if (Number.isInteger(n) && n >= 2 && n <= 48) {
+      setParcelas(gerarParcelas(n, valorTotal, dataPrimeiraParcela, intervalo));
+    }
   }
 
   function handleDistribuir() {
@@ -113,6 +126,11 @@ export default function CamposParcelamento({
             onChange={handleNumero}
             className={INPUT}
           />
+          {!numeroParcelasValido && (
+            <span className="font-mono text-[9px] text-red-500">
+              Informe um número de parcelas entre 2 e 48.
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col gap-1">

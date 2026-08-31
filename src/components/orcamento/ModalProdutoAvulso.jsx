@@ -14,7 +14,9 @@ export default function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCata
       busca === '' || (p.nome ?? '').toLowerCase().includes(busca.toLowerCase()) || (p.subcategoria ?? '').toLowerCase().includes(busca.toLowerCase())
     ), [busca, catalogo]);
 
-  const preco = precoCustom !== '' ? parseFloat(precoCustom.replace(',', '.')) || 0 : (prodSel?.preco ?? 0);
+  const preco     = precoCustom !== '' ? parseFloat(precoCustom.replace(',', '.')) || 0 : (prodSel?.preco ?? 0);
+  const qtyNum    = parseInt(qty, 10);
+  const qtyValida = Number.isInteger(qtyNum) && qtyNum >= 1;
 
   function handleSelecionar(p) {
     setProdSel(p);
@@ -23,8 +25,8 @@ export default function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCata
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!prodSel) return;
-    onConfirmar({ ...prodSel, qty, preco });
+    if (!prodSel || !qtyValida) return;
+    onConfirmar({ ...prodSel, qty: qtyNum, preco });
   }
 
   return (
@@ -80,9 +82,12 @@ export default function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCata
                   type="number"
                   min="1"
                   value={qty}
-                  onChange={e => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={e => setQty(e.target.value)}
                   className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm font-mono px-3 py-2.5 rounded-md dark:rounded-none outline-none focus:border-orange-500 dark:focus:border-yellow-400 transition-colors"
                 />
+                {!qtyValida && (
+                  <span className="font-mono text-[9px] text-red-500">Informe uma quantidade válida (mínimo 1).</span>
+                )}
               </div>
               <div>
                 <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-500 block mb-1.5">Valor unit. (R$)</label>
@@ -108,7 +113,7 @@ export default function ModalProdutoAvulso({ onConfirmar, onFechar, produtosCata
             </button>
             <button
               type="submit"
-              disabled={!prodSel}
+              disabled={!prodSel || !qtyValida}
               className="flex-1 bg-orange-500 text-white dark:bg-yellow-400 dark:text-black font-mono text-[10px] uppercase tracking-widest py-2.5 rounded-xl dark:rounded-none hover:bg-orange-600 dark:hover:bg-yellow-300 transition-colors font-bold disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Adicionar

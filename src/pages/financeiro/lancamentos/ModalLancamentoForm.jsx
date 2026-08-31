@@ -128,10 +128,12 @@ export default function ModalLancamentoForm({
   const editando = lancamentoEditando != null;
   const ehGrupo  = editando && !!lancamentoEditando?.grupo_parcelamento_id;
 
-  const qtd             = Math.max(1, parseInt(qtdParcelas) || 1);
-  const valorParcelaNum = parseFloat(valorParcela) || 0;
-  const valorTotal      = qtd * valorParcelaNum;
-  const multiParcelas   = qtd > 1;
+  const qtdParsed        = parseInt(qtdParcelas, 10);
+  const qtdValida        = Number.isInteger(qtdParsed) && qtdParsed >= 1;
+  const qtd              = qtdValida ? qtdParsed : 0;
+  const valorParcelaNum  = parseFloat(valorParcela) || 0;
+  const valorTotal       = qtd * valorParcelaNum;
+  const multiParcelas    = qtd > 1;
 
   // ── inicialização ao abrir ────────────────────────────────────────────────
 
@@ -230,8 +232,7 @@ export default function ModalLancamentoForm({
   }
 
   function handleQtd(v) {
-    const n = Math.max(1, parseInt(v) || 1);
-    setQtdParcelas(n);
+    setQtdParcelas(v);
   }
 
   // ── validação ─────────────────────────────────────────────────────────────
@@ -243,12 +244,14 @@ export default function ModalLancamentoForm({
       return 'Valor da parcela deve ser maior que zero.';
     if (!form.categoria_id)
       return 'Categoria é obrigatória.';
-    if (qtd < 1)
-      return 'Quantidade de parcelas deve ser ≥ 1.';
+    if (!qtdValida)
+      return 'Quantidade de parcelas deve ser um número ≥ 1.';
     if (multiParcelas && !periodicidade)
       return 'Periodicidade é obrigatória para lançamentos parcelados.';
     if (multiParcelas && parcelas.some(p => !p.data_vencimento))
       return 'Preencha todas as datas de vencimento das parcelas.';
+    if (multiParcelas && parcelas.some(p => !(Number(p.valor) > 0)))
+      return 'Preencha um valor válido (maior que zero) para todas as parcelas.';
     if (form.data_vencimento < form.data_emissao)
       return 'Data de vencimento não pode ser anterior à data de emissão.';
     return null;
@@ -295,7 +298,7 @@ export default function ModalLancamentoForm({
       const payloads = parcelas.map((p, i) => ({
         ...buildBase(),
         descricao:             `${form.descricao.trim()} (${i + 1}/${total})`,
-        valor_previsto:        p.valor,
+        valor_previsto:        Number(p.valor),
         valor_pago:            0,
         status:                'pendente',
         data_vencimento:       p.data_vencimento,

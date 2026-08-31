@@ -1,17 +1,31 @@
 // Helpers compartilhados para lógica de medição de produção.
 // Importar aqui em vez de duplicar em cada aba.
 
+// tipo_medicao pode vir tanto em ambiente.tipo_medicao quanto aninhado em
+// ambiente.extras.tipo_medicao, dependendo da versão do app medidor que gravou
+// o registro (mesmo fallback usado em PainelDetalhesMedicao.jsx).
+function tipoMedicaoDoAmbiente(a) {
+    return a?.tipo_medicao ?? a?.extras?.tipo_medicao;
+}
+
 export function getTipoMedicao(medicao) {
     if (medicao.tipo) return medicao.tipo;
-    const t = medicao?.json_medicao?.ambientes?.[0]?.tipo_medicao;
+    const t = tipoMedicaoDoAmbiente(medicao?.json_medicao?.ambientes?.[0]);
     return t === 'producao' ? 'producao' : 'preliminar';
 }
 
-// Set<string> dos nomes de ambientes com tipo_medicao='producao' dentro do json_medicao.
+// Set<string> dos nomes de ambientes "de produção" dentro do json_medicao.
+//
+// O campo ambiente.tipo_medicao (e seu fallback em ambiente.extras.tipo_medicao)
+// NÃO reflete preliminar-vs-produção na prática: no app medidor real, todo
+// ambiente grava tipo_medicao='orcamento', independente do tipo da medição
+// (confirmado em produção — nenhum registro real tem esse campo = 'producao').
+// A classificação confiável é a coluna medicoes.tipo (via getTipoMedicao) —
+// quando a medição inteira é de produção, todos os seus ambientes contam.
 export function getAmbientesProducao(medicao) {
+    if (getTipoMedicao(medicao) !== 'producao') return new Set();
     return new Set(
         (medicao?.json_medicao?.ambientes ?? [])
-            .filter(a => a.tipo_medicao === 'producao')
             .map(a => a.nome)
             .filter(Boolean)
     );

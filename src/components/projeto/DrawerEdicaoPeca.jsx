@@ -31,8 +31,8 @@ export default function DrawerEdicaoPeca({ pecaEmEdicao, setPecaEmEdicao, onRemo
                             <label className="text-[10px] uppercase font-mono text-zinc-500 dark:text-zinc-500 block mb-2">Valor (R$)</label>
                             <input
                                 type="number"
-                                value={pecaEmEdicao?.pecaData?.valor ?? 0}
-                                onChange={e => setPecaEmEdicao(prev => ({ ...prev, pecaData: { ...prev?.pecaData, valor: Number(e.target.value) } }))}
+                                value={pecaEmEdicao?.pecaData?.valor ?? ''}
+                                onChange={e => setPecaEmEdicao(prev => ({ ...prev, pecaData: { ...prev?.pecaData, valor: e.target.value } }))}
                                 className="w-full bg-zinc-100 dark:bg-black border border-zinc-200/80 dark:border-zinc-800 text-zinc-900 dark:text-white text-sm px-4 py-3 rounded-none focus:outline-none focus:border-orange-500 dark:focus:border-yellow-400 focus:shadow-[0_0_10px_rgba(249,115,22,0.15)] dark:focus:shadow-[0_0_10px_rgba(250,204,21,0.15)] transition-colors"
                             />
                         </div>

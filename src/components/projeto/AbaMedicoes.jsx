@@ -12,6 +12,17 @@ const TABLE_HEADER = (
     </div>
 );
 
+// Tabela de Produção tem até 2 botões de texto na coluna de ação (Ver Desenho + Diferença) —
+// precisa de mais largura que a de Medições Preliminares, que só tem 1 botão de texto.
+const TABLE_HEADER_PRODUCAO = (
+    <div className="grid grid-cols-12 px-4 py-2.5 border-b border-zinc-200/80 dark:border-zinc-800">
+        <span className="col-span-4 font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Data</span>
+        <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Medidor</span>
+        <span className="col-span-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600">Status</span>
+        <span className="col-span-4 font-mono text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-600 text-right">Ação</span>
+    </div>
+);
+
 export default function AbaMedicoes({
     medicoes,
     pedidosFechados = [],
@@ -188,17 +199,17 @@ export default function AbaMedicoes({
                         )}
                     </div>
                 </div>
-                <div className="col-span-3 font-mono text-[11px] text-zinc-500 dark:text-zinc-500">{m?.medidor ?? '—'}</div>
+                <div className="col-span-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 truncate">{m?.medidor ?? '—'}</div>
                 <div className="col-span-2">
                     <MedicaoPill status={m?.status ?? 'agendada'} />
                 </div>
-                <div className="col-span-3 flex items-center justify-end gap-1.5">
+                <div className="col-span-4 flex items-center justify-end gap-2">
                     {!modoMigrar && m?.status !== 'agendada' && (() => {
                         const svgUrl = parseSvgUrl(m?.svg_url);
                         return svgUrl ? (
                             <button
                                 onClick={() => setDesenhoAberto(svgUrl)}
-                                className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-md dark:rounded-none transition-colors border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white"
+                                className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-md dark:rounded-none transition-colors border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white"
                             >
                                 <iconify-icon icon="solar:map-linear" width="12"></iconify-icon>
                                 Ver Desenho
@@ -206,7 +217,7 @@ export default function AbaMedicoes({
                         ) : (
                             <span
                                 title="Desenho não disponível"
-                                className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-md dark:rounded-none border border-zinc-200/80 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700 cursor-not-allowed"
+                                className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-md dark:rounded-none border border-zinc-200/80 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700 cursor-not-allowed"
                             >
                                 <iconify-icon icon="solar:map-linear" width="12"></iconify-icon>
                                 Ver Desenho
@@ -220,7 +231,7 @@ export default function AbaMedicoes({
                                 onClick={canDiff ? () => onVerDiferenca?.(m, pedidoNum) : undefined}
                                 disabled={!canDiff}
                                 title={canDiff ? 'Ver diferença de área' : 'Medição sem dados ou pedido não vinculado'}
-                                className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-md dark:rounded-none border transition-colors ${canDiff ? 'border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white' : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700 cursor-not-allowed'}`}
+                                className={`flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-md dark:rounded-none border transition-colors ${canDiff ? 'border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white' : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700 cursor-not-allowed'}`}
                             >
                                 <iconify-icon icon="solar:layers-minimalistic-linear" width="12"></iconify-icon>
                                 Diferença
@@ -317,7 +328,7 @@ export default function AbaMedicoes({
                     Medições de Produção
                 </div>
                 <div className="bg-white/90 dark:bg-[#0a0a0a] backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl shadow-zinc-200/40 dark:shadow-none rounded-2xl dark:rounded-none">
-                    {TABLE_HEADER}
+                    {TABLE_HEADER_PRODUCAO}
 
                     {medProducao.map((m, i) => renderProdRow(m, i, totalProdRows))}
 
@@ -342,17 +353,17 @@ export default function AbaMedicoes({
                                         </span>
                                     </div>
                                 </div>
-                                <div className="col-span-3 font-mono text-[11px] text-zinc-400 dark:text-zinc-600">—</div>
+                                <div className="col-span-2 font-mono text-[11px] text-zinc-400 dark:text-zinc-600">—</div>
                                 <div className="col-span-2">
                                     <span className="font-mono text-[9px] px-2 py-0.5 rounded-full dark:rounded-none border border-amber-400/40 text-amber-600 dark:text-amber-400/70 bg-amber-50 dark:bg-amber-400/5 uppercase tracking-widest whitespace-nowrap">
                                         Aguardando
                                     </span>
                                 </div>
-                                <div className="col-span-3 flex items-center justify-end gap-1.5">
+                                <div className="col-span-4 flex items-center justify-end gap-2">
                                     {!modoMigrar && (
                                     <button
                                         onClick={() => onAgendarProducao?.(pedido, pedidoNum)}
-                                        className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest rounded-md dark:rounded-none border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-3 py-1 hover:border-orange-500 dark:hover:border-yellow-400 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
+                                        className="flex items-center gap-1.5 shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-widest rounded-md dark:rounded-none border border-zinc-200/80 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-3 py-1 hover:border-orange-500 dark:hover:border-yellow-400 hover:text-orange-600 dark:hover:text-yellow-400 transition-colors"
                                     >
                                         <iconify-icon icon="solar:calendar-add-linear" width="11"></iconify-icon>
                                         Agendar

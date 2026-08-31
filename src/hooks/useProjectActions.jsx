@@ -436,6 +436,9 @@ export function useProjectActions(projectId, {
     // pecaEmEdicao: { ambienteId, versaoId, pecaId, pecaData }
     // clearFn: () => setPecaEmEdicao(null)
     function handleSalvarEdicaoPeca(pecaEmEdicao, clearFn) {
+        const valorNum = Number(pecaEmEdicao?.pecaData?.valor);
+        if (!(valorNum >= 0)) { alert('Informe um valor válido para a peça.'); return; }
+        const pecaData = { ...pecaEmEdicao.pecaData, valor: valorNum };
         setAmbientes(prev => prev.map(amb => {
             if (amb.id !== pecaEmEdicao.ambienteId) return amb;
             return {
@@ -443,7 +446,7 @@ export function useProjectActions(projectId, {
                 orcamentos: amb.orcamentos.map(v => {
                     if (v.id !== pecaEmEdicao.versaoId) return v;
                     const newPecas = v.pecas.map(p =>
-                        p.id === pecaEmEdicao.pecaId ? pecaEmEdicao.pecaData : p
+                        p.id === pecaEmEdicao.pecaId ? pecaData : p
                     );
                     const novoValorTotal = newPecas.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
                     return { ...v, pecas: newPecas, valor_total: novoValorTotal };
@@ -500,9 +503,15 @@ export function useProjectActions(projectId, {
         const { ambienteId, orcamentoId, itemIndex, itemData } = itemManualEmEdicao;
         const versao = ambientes.find(a => a.id === ambienteId)?.orcamentos.find(o => o.id === orcamentoId);
         if (!versao) return;
+        const quantidadeNum = parseFloat(itemData.quantidade);
+        const precoNum      = parseFloat(itemData.preco_unitario);
+        if (!(quantidadeNum > 0)) { alert('Informe uma quantidade válida (maior que zero).'); return; }
+        if (!(precoNum >= 0))     { alert('Informe um preço unitário válido.'); return; }
         const itemAtualizado = {
             ...itemData,
-            total: (parseFloat(itemData.quantidade) || 0) * (itemData.preco_unitario || 0),
+            quantidade:     quantidadeNum,
+            preco_unitario: precoNum,
+            total: quantidadeNum * precoNum,
         };
         const novosItens = versao.itens_manuais.map((it, i) => i === itemIndex ? itemAtualizado : it);
         const novoTotal  = novosItens.reduce((s, it) => s + (it.total || 0), 0);
@@ -827,7 +836,10 @@ export function useProjectActions(projectId, {
         if (!forma_pagamento || !prazo_data_final) return;
 
         const temParcelas      = parcelamento_tipo === 'parcelado';
-        const parcelas_detalhes = temParcelas && parcelas_lista?.length > 0 ? parcelas_lista : null;
+        if (temParcelas && parcelas_lista?.some(p => !(Number(p.valor) > 0))) return;
+        const parcelas_detalhes = temParcelas && parcelas_lista?.length > 0
+            ? parcelas_lista.map(p => ({ ...p, valor: Number(p.valor) }))
+            : null;
         const totalSel = fecharIds.reduce((s, oid) => {
             const orc = ambientes.flatMap(a => a.orcamentos ?? []).find(o => o.id === oid);
             return s + (orc?.valor_total ?? 0);

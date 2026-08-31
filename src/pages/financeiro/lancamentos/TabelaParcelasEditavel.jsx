@@ -16,19 +16,19 @@ const TH = 'px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-5
 
 export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal }) {
   function editar(i, campo, raw) {
-    const valor = campo === 'valor' ? (parseFloat(raw) || 0) : raw;
     onChange(
       parcelas.map((p, idx) =>
         idx === i
-          ? { ...p, [campo]: valor, ...(campo === 'data_vencimento' ? { competencia: raw.slice(0, 7) } : {}) }
+          ? { ...p, [campo]: raw, ...(campo === 'data_vencimento' ? { competencia: raw.slice(0, 7) } : {}) }
           : p
       )
     );
   }
 
-  const somaTotal = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
-  const temTotal  = valorTotal !== undefined && valorTotal > 0;
-  const bate      = temTotal && Math.abs(somaTotal - valorTotal) < 0.01;
+  const somaTotal   = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+  const temTotal    = valorTotal !== undefined && valorTotal > 0;
+  const bate        = temTotal && Math.abs(somaTotal - valorTotal) < 0.01;
+  const temInvalida = parcelas.some(p => !(Number(p.valor) > 0));
 
   return (
     <div className="flex flex-col gap-2">
@@ -73,7 +73,7 @@ export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal 
                     step="0.01"
                     value={p.valor}
                     onChange={e => editar(i, 'valor', e.target.value)}
-                    className={INPUT + ' text-right tabular-nums'}
+                    className={INPUT + ' text-right tabular-nums' + (Number(p.valor) > 0 ? '' : ' border-red-500 dark:border-red-500')}
                   />
                 </td>
               </tr>
@@ -109,6 +109,11 @@ export default function TabelaParcelasEditavel({ parcelas, onChange, valorTotal 
           )}
         </table>
       </div>
+      {temInvalida && (
+        <span className="font-mono text-[9px] text-red-500">
+          Todas as parcelas precisam de um valor maior que zero.
+        </span>
+      )}
     </div>
   );
 }

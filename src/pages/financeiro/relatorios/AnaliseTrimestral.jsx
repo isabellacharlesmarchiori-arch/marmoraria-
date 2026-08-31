@@ -112,9 +112,12 @@ export default function AnaliseTrimestral() {
   const [plano, setPlano] = useState([]);
   const [lancsPorTrim, setLancsPorTrim] = useState({});
 
+  const anoNum    = parseInt(ano, 10);
+  const anoValido = Number.isInteger(anoNum) && anoNum >= 2020 && anoNum <= 2099;
+
   const carregar = useCallback(async () => {
     const empId = profile?.empresa_id;
-    if (!empId) { setLoading(false); return; }
+    if (!empId || !anoValido) { setLoading(false); return; }
     setLoading(true);
     setErro(null);
 
@@ -128,7 +131,7 @@ export default function AnaliseTrimestral() {
           .order('ordem'),
 
         ...TRIMS.map(t => {
-          const { inicio, fim } = limitesTrimestre(t, ano);
+          const { inicio, fim } = limitesTrimestre(t, anoNum);
           return supabase
             .from('financeiro_lancamentos')
             .select('categoria_id, tipo, valor_previsto, status')
@@ -153,7 +156,7 @@ export default function AnaliseTrimestral() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.empresa_id, ano]);
+  }, [profile?.empresa_id, anoValido, anoNum]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -194,9 +197,12 @@ export default function AnaliseTrimestral() {
         min="2020"
         max="2099"
         value={ano}
-        onChange={e => setAno(Number(e.target.value))}
+        onChange={e => setAno(e.target.value)}
         className="bg-white dark:bg-[#0a0a0a] border border-zinc-200/80 dark:border-zinc-800 px-3 py-1.5 font-mono text-[10px] text-zinc-900 dark:text-white outline-none focus:border-orange-500 dark:focus:border-yellow-400 rounded-md dark:rounded-none transition-colors w-24"
       />
+      {!anoValido && (
+        <span className="font-mono text-[9px] text-red-500">Informe um ano válido (2020–2099).</span>
+      )}
       <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-600">
         Regime de competência. Variações &gt;10% em negrito.
       </span>
