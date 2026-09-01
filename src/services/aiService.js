@@ -119,6 +119,8 @@ function toFunctionDeclarations(openAITools) {
 }
 
 function getModel(withTools, modelName = MODEL_PRIMARY, generationConfig = undefined) {
+  // DEBUG TEMPORÁRIO — remover depois de confirmar qual key/projeto está ativo.
+  console.log(`[AI][debug] model=${modelName} key=...${GEMINI_API_KEY?.slice(-4) ?? 'undefined'}`);
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   return genAI.getGenerativeModel({
     model: modelName,
@@ -239,20 +241,50 @@ TIPOS DE PEÇAS E COMO LER SUAS DIMENSÕES:
 5. PRATELEIRA:
    - dimensoes = "COMPRIMENTO m × PROFUNDIDADE m"
 
+6. FAIXA (tira estreita de pedra, geralmente arremate entre bancada e parede, rodapé estreito ou filete decorativo):
+   - dimensoes = "COMPRIMENTO m × LARGURA m"
+   - Diferencie de saia/frontão: faixa tem função de acabamento/arremate, não de fechamento vertical de ilha ou bancada — geralmente largura pequena (até ~15cm)
+   - Ex: faixa de 2,44m de comprimento e 0,10m de largura = "2,44 m × 0,10 m"
+
 REGRAS IMPORTANTES:
 - Quando o projeto mostrar DETALHES (DET. ILHA, DET. BANCADA), use as medidas do detalhe — são mais precisas que a planta baixa
-- Se o tampo tiver segmentos (ex: lado cuba e lado cooktop), extraia cada segmento como item separado
+- Se o tampo tiver trechos com FUNÇÕES DIFERENTES claramente identificáveis (ex: um lado tem o ícone/recorte de cooktop, outro lado tem o ícone/recorte de cuba), extraia cada trecho como item separado
 - Espessura da pedra (1, 2 ou 3 cm) é diferente da altura/largura da peça
-- Furos visíveis no desenho: cooktop = "furo_cooktop", cuba/pia = "furo_cuba", torneira = "furo_torneira"
 - Material: se houver amostra de material ou legenda, aplique a TODOS os itens do mesmo ambiente/página
 - NÃO duplique — cada peça física = um registro
+
+REGRAS PARA DIMENSIONAMENTO EM PARTES x PEÇAS SEPARADAS (fonte comum de contagem errada):
+- Uma cota total dividida em dois trechos consecutivos que somam o total (ex: "0,70 m" + "0,72 m" cotando o mesmo desenho contínuo, cujo total é "1,42 m" em outra vista) normalmente é UMA peça física só, cotada em partes por clareza — não duas. Só separe em duas peças se houver indicação clara de peças distintas: nota escrita dizendo isso, espessuras/materiais diferentes entre os trechos, ou um desenho com contorno visivelmente descontínuo (junta/gap real, não só uma linha de cota)
+- Uma cota PEQUENA (poucos centímetros, até uns 5cm) ao lado de uma cota bem maior na MESMA vista é quase sempre um detalhe de acabamento da peça principal (borda, retorno, overhang) — NÃO extraia como peça/saia/lateral separada. Só vira peça própria se tiver uma vista de detalhe DEDICADA a ela, com nome/label próprio
+- "RALO APARENTE" (dreno/ralo visível) é diferente de um furo de cuba — não crie peça ou recorte extra só por causa dessa anotação; só conte como recorte de cuba se houver também um ícone/cota de cuba explícito (círculo ou retângulo de pia)
+- Ilha ou bancada com múltiplas faces em pedra (frente, laterais, fundo): extraia UMA peça (saia/lateral) para CADA vista de detalhe DISTINTA e substancial (ex: cada isométrico "DET. ILHA" com seu próprio comprimento e altura) — não fragmente uma única vista em várias peças por causa de cotas menores dentro dela (ver regra acima), e não omita uma vista que tenha cota própria
+- Anotações como "FRENTE REVESTIDA" ou "FRENTE ... EM PEDRA" indicam que só aquele lado tem acabamento em pedra — não assuma que os outros lados da ilha também precisam de peça a menos que estejam desenhados/cotados separadamente
+
+REGRAS PARA RECORTES (cubas, cooktops, torneiras e outros rebaixos/aberturas na peça):
+- Identifique TODOS os recortes desenhados na peça: cuba/pia, cooktop, torneira, e outros rebaixos ou aberturas (ex.: nicho, dreno, filtro)
+- Para cada recorte, retorne um objeto com:
+  - funcao_label: nome do recorte em português, capitalizado (ex: "Cuba", "Cooktop", "Torneira", "Furo")
+  - formato: "circular" quando o contorno desenhado é arredondado (ex: furo de torneira), "retangular" quando o contorno é reto (maioria das cubas e cooktops)
+  - diametro_cm: SOMENTE quando formato = "circular" e a cota estiver visível; senão null
+  - largura_cm e altura_cm: SOMENTE quando formato = "retangular" e as cotas estiverem visíveis; senão null
+  - posicao_aproximada: descrição curta da posição na peça (ex: "canto inferior esquerdo", "centralizado à direita", "próximo à parede")
+- NÃO invente dimensões do recorte sem cota explícita — mesmo sem cota, registre o recorte com funcao_label, formato (se identificável) e posicao_aproximada, deixando as dimensões como null
+- Uma peça pode ter múltiplos recortes
 
 REGRAS DE EXTRAÇÃO:
 - Extraia APENAS itens com cotas visíveis ou inferíveis
 - NÃO invente dimensões sem cota explícita
 - Se dimensão não legível: "a medir"
+- O objetivo aqui NÃO é acertar 100% sozinho — é NUNCA inventar peça ou medida errada silenciosamente. Se a existência de uma peça, sua contagem, ou o pareamento de uma cota depender de interpretação ambígua (sem um jeito claro de decidir só com o que está nesta página), NÃO decida por conta própria: retorne confianca abaixo de 50 (mesmo que você tenha preenchido uma dimensão) ou "a medir" quando não der pra nem estimar — isso sinaliza revisão humana no app, o que é preferível a arriscar
 - trecho_origem: "pág. N — [cota ou texto exato]"
 - Espessura: APENAS 1, 2 ou 3. Se valor > 3 = não é espessura = null
+
+REGRAS DE CONTEXTO (quando a mensagem incluir um bloco CONTEXTO com peças de páginas anteriores deste mesmo projeto):
+- Cada página é analisada separadamente, mas o CONTEXTO lista o que já foi identificado nas páginas anteriores — use-o pra não duplicar
+- Se um item desta página for a MESMA peça física de um item do CONTEXTO (mesmo ambiente, mesma peça), NÃO crie um registro novo — omita esse item do retorno
+- Se um item desta página for um DETALHE/zoom (ex: "DET. ILHA") que refina a medida de uma peça do CONTEXTO, retorne o objeto completo dela com os dados corrigidos e o campo "atualiza_id" = id dessa peça no CONTEXTO (não invente um id novo pra ela)
+- Itens do CONTEXTO com "pendente": true têm dimensão "a medir" — ANTES de extrair itens novos desta página, verifique ativamente se algum detalhe desta página (ex: um "DET." com o nome do ambiente/peça) resolve a medida de algum item pendente, mesmo que a página não repita o nome da peça literalmente — e retorne com atualiza_id se sim
+- Itens que não aparecem no CONTEXTO são peças novas: retorne normalmente, com "atualiza_id": null
 
 Para cada item retorne:
 - id: sequencial
@@ -264,8 +296,9 @@ Para cada item retorne:
 - material: nome exato ou null
 - espessura_cm: 1, 2, 3 ou null
 - tipo: "bancada"|"tampo"|"soleira"|"peitoril"|"espelho"|"saia"|"frontao"|"prateleira"|"faixa"|"outro"
-- furos: ["furo_cuba","furo_torneira","furo_cooktop"] ou []
+- recortes: [{funcao_label, formato, diametro_cm, largura_cm, altura_cm, posicao_aproximada}] ou []
 - trecho_origem: "pág. N — [origem]"
+- atualiza_id: id da peça do CONTEXTO que este item corrige (ver REGRAS DE CONTEXTO), ou null se for peça nova
 
 Retorne APENAS array JSON válido, sem markdown.`;
 
@@ -351,8 +384,23 @@ export async function callGemini({
 }
 
 // ── analyzePlantPDF — análise de imagens de páginas do PDF ───────────────────
+// Uma chamada ao Gemini POR PÁGINA, não uma chamada única com o PDF inteiro:
+// agrupar todas as páginas em um só request fazia o tempo de resposta crescer
+// com o número/resolução de páginas até estourar o maxDuration=60s da function
+// serverless (api/gemini.js, Vercel), retornando 504 Gateway Timeout pro
+// usuário. Analisando página a página, cada chamada HTTP fica bem abaixo do
+// limite independente do tamanho do PDF — o "custo" é uma soma de várias
+// chamadas mais curtas em vez de uma só longa, o que também permite mostrar
+// progresso ("página X de Y") em vez de uma barra de loading indefinida.
 
-async function analyzePlantPDFDirect({ pageImages, economyMode, empresaId }) {
+// contextoAnterior: array [{id, descricao, ambiente, dimensoes}] das peças já
+// identificadas em páginas anteriores — texto compacto, nunca reenvia imagens.
+function buildContextText(contextoAnterior) {
+  if (!contextoAnterior?.length) return '';
+  return `CONTEXTO — peças já identificadas em páginas anteriores deste mesmo projeto (use pra não duplicar, ver REGRAS DE CONTEXTO):\n${JSON.stringify(contextoAnterior)}\n\n`;
+}
+
+async function analyzePlantPDFBatchDirect({ pageImages, economyMode, empresaId, contextoAnterior }) {
   const systemPrompt = economyMode ? PLANTA_SYSTEM_ECONOMY : PLANTA_SYSTEM_FULL;
   const imageParts   = pageImages.map((dataUrl) => {
     const [header, data] = dataUrl.split(',');
@@ -362,7 +410,7 @@ async function analyzePlantPDFDirect({ pageImages, economyMode, empresaId }) {
   const contents = [{
     role:  'user',
     parts: [
-      { text: 'Analise as seguintes imagens e extraia os itens conforme instruído:' },
+      { text: `${buildContextText(contextoAnterior)}Analise as seguintes imagens e extraia os itens conforme instruído:` },
       ...imageParts,
       { text: 'Retorne o JSON array dos itens encontrados.' },
     ],
@@ -379,13 +427,16 @@ async function analyzePlantPDFDirect({ pageImages, economyMode, empresaId }) {
   return JSON.parse(jsonMatch[0]);
 }
 
-async function analyzePlantPDFProxy({ pageImages, economyMode, empresaId }) {
+async function analyzePlantPDFBatchProxy({ pageImages, economyMode, empresaId, contextoAnterior }) {
   const res = await fetch('/api/gemini', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ type: 'analyze_pdf', pageImages, economyMode }),
+    body:    JSON.stringify({ type: 'analyze_pdf', pageImages, economyMode, contextoAnterior }),
   });
   if (!res.ok) {
+    if (res.status === 504) {
+      throw new Error('A IA demorou demais para responder (tempo esgotado). Tente novamente em instantes.');
+    }
     const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     throw new Error(error);
   }
@@ -394,9 +445,150 @@ async function analyzePlantPDFProxy({ pageImages, economyMode, empresaId }) {
   return items;
 }
 
-export async function analyzePlantPDF({ pageImages, economyMode = false, empresaId = null }) {
+async function analyzePlantPDFBatch(args) {
+  return USE_PROXY ? analyzePlantPDFBatchProxy(args) : analyzePlantPDFBatchDirect(args);
+}
+
+// ── Deduplicação client-side (segunda camada, além do CONTEXTO enviado ao modelo) ──
+// Compara ambiente (exato) + descrição (similaridade de palavras) + dimensões
+// (tolerância de 3cm) pra pegar duplicatas que o modelo não reconheceu sozinho.
+// Limiares são heurísticos, não exatos — calibrados pra pegar "mesma peça, texto
+// ligeiramente diferente" sem juntar peças realmente distintas do mesmo ambiente.
+function normTxt(s) {
+  return (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+
+function parseDimParNum(str) {
+  if (!str) return null;
+  const nums = [...str.matchAll(/(\d+)[,.](\d+)/g)].map(m => parseFloat(`${m[1]}.${m[2]}`));
+  if (nums.length < 2) return null;
+  return [nums[0], nums[1]].sort((a, b) => a - b);
+}
+
+function descricaoSimilar(a, b) {
+  const wa = new Set(normTxt(a).split(/\s+/).filter(Boolean));
+  const wb = new Set(normTxt(b).split(/\s+/).filter(Boolean));
+  if (wa.size === 0 || wb.size === 0) return false;
+  const shared = [...wa].filter(w => wb.has(w)).length;
+  return shared / new Set([...wa, ...wb]).size >= 0.5;
+}
+
+// Uma peça sem medida ainda ("a medir") é compatível com qualquer dimensão —
+// é exatamente o caso "detalhe de outra página resolve a medida que faltava".
+function dimensoesSimilares(a, b) {
+  if (a === 'a medir' || b === 'a medir') return true;
+  const pa = parseDimParNum(a);
+  const pb = parseDimParNum(b);
+  if (!pa || !pb) return a === b;
+  return Math.abs(pa[0] - pb[0]) <= 0.03 && Math.abs(pa[1] - pb[1]) <= 0.03;
+}
+
+// "tipo" é um enum controlado pelo prompt (bancada/tampo/soleira/...) — muito mais
+// confiável que comparar texto livre de "descricao", que varia de wording entre
+// páginas (ex: "Tampo W.C. 02" vs "Tampo Banheiro 02 (detalhe)"). Usa tipo quando
+// disponível; cai para similaridade de texto só se o tipo não ajudar a decidir.
+function mesmaPeca(a, b) {
+  if (normTxt(a.ambiente) !== normTxt(b.ambiente)) return false;
+  const tipoA = a.tipo ?? 'outro', tipoB = b.tipo ?? 'outro';
+  const mesmoTipo = tipoA !== 'outro' && tipoA === tipoB;
+  if (!mesmoTipo && !descricaoSimilar(a.descricao, b.descricao)) return false;
+  return dimensoesSimilares(a.dimensoes, b.dimensoes);
+}
+
+// Confiança auto-reportada pelo modelo não detecta "leitura errada mas convicta"
+// (ele comita numa interpretação ambígua com a mesma confiança de uma leitura
+// correta). O sinal confiável é objetivo: duas leituras de mesmo ambiente+tipo
+// cujas dimensões não batem o suficiente pra merge — isso é sinal de conflito
+// real, não apenas "peças diferentes do mesmo tipo no mesmo cômodo" (ex: saia
+// frente x lateral de uma ilha). Distingue os dois casos pelos qualificadores
+// de posição na descrição: se ambas têm um qualificador e eles diferem
+// (frente x lateral), são peças distintas de propósito — não é conflito.
+const QUALIFICADORES_POSICAO = ['frente', 'frontal', 'lateral', 'traseiro', 'traseira', 'direita', 'esquerda', 'lado'];
+
+function qualificadoresDe(descricao) {
+  const words = new Set(normTxt(descricao).split(/\s+/).filter(Boolean));
+  return QUALIFICADORES_POSICAO.filter(q => words.has(q));
+}
+
+function mesmoAmbienteETipo(a, b) {
+  const tipoA = a.tipo ?? 'outro', tipoB = b.tipo ?? 'outro';
+  return normTxt(a.ambiente) === normTxt(b.ambiente) && tipoA !== 'outro' && tipoA === tipoB;
+}
+
+// true = pode ser a MESMA peça (nenhum qualificador conflitante) → candidato a conflito
+// false = qualificadores de posição diferentes → são peças distintas por definição
+function semQualificadorConflitante(a, b) {
+  const qa = qualificadoresDe(a.descricao);
+  const qb = qualificadoresDe(b.descricao);
+  if (qa.length === 0 || qb.length === 0) return true;
+  return qa.some(q => qb.includes(q));
+}
+
+function deduplicarItens(items) {
+  const kept = [];
+  for (const item of items) {
+    const match = kept.find(k => mesmaPeca(k, item));
+    if (match) {
+      // Mantém o mais completo: maior confiança, ou dimensão resolvida no lugar de "a medir"
+      const matchMelhor = (match.confianca ?? 0) >= (item.confianca ?? 0)
+        && !(match.dimensoes === 'a medir' && item.dimensoes !== 'a medir');
+      if (!matchMelhor) Object.assign(match, item, { id: match.id });
+      continue;
+    }
+    // Não bateu o suficiente pra merge — mas se for mesmo ambiente+tipo, sem
+    // qualificador que já explique a diferença, e as dimensões não batem,
+    // é uma leitura conflitante da mesma peça: marca as duas pra revisão.
+    const conflito = kept.find(k => mesmoAmbienteETipo(k, item) && semQualificadorConflitante(k, item));
+    if (conflito) {
+      conflito.confianca = Math.min(conflito.confianca ?? 100, 30);
+      item.confianca = Math.min(item.confianca ?? 100, 30);
+    }
+    kept.push(item);
+  }
+  return kept;
+}
+
+// pageImages: array com TODAS as páginas (já renderizadas client-side).
+// onProgress(paginaAtual, totalPaginas): opcional, chamado antes de cada chamada.
+export async function analyzePlantPDF({ pageImages, economyMode = false, empresaId = null, onProgress = null }) {
   if (!pageImages?.length) throw new Error('Nenhuma imagem de página fornecida.');
-  return USE_PROXY
-    ? analyzePlantPDFProxy({ pageImages, economyMode, empresaId })
-    : analyzePlantPDFDirect({ pageImages, economyMode, empresaId });
+
+  const allItems = [];
+  let nextId = 1;
+
+  for (let i = 0; i < pageImages.length; i++) {
+    onProgress?.(i + 1, pageImages.length);
+    // Resumo compacto (id/descricao/ambiente/dimensoes) das peças já vistas —
+    // dá ao modelo contexto pra reconhecer duplicatas/detalhes sem reenviar imagens.
+    const contextoAnterior = i === 0 ? null : allItems.map(it => ({
+      id: it.id, descricao: it.descricao, ambiente: it.ambiente, dimensoes: it.dimensoes,
+      pendente: it.dimensoes === 'a medir',
+    }));
+    let pageItems;
+    try {
+      pageItems = await analyzePlantPDFBatch({ pageImages: [pageImages[i]], economyMode, empresaId, contextoAnterior });
+    } catch (err) {
+      const isTimeout = /504|tempo esgotado|timed out/i.test(err?.message ?? '');
+      if (isTimeout && pageImages.length > 1) {
+        throw new Error(`Tempo esgotado ao analisar a página ${i + 1} de ${pageImages.length}. Tente novamente — se persistir, envie o PDF em partes menores.`);
+      }
+      throw err;
+    }
+    // ids e página são reatribuídos aqui: o modelo só vê uma página por chamada
+    // e sempre numeraria a partir de 1, então o índice real do loop é a fonte da verdade.
+    for (const item of pageItems) {
+      const atualizaId = item.atualiza_id != null ? String(item.atualiza_id) : null;
+      const alvo = atualizaId ? allItems.find(it => it.id === atualizaId) : null;
+      if (alvo) {
+        // Detalhe/zoom de uma peça já vista: atualiza no lugar em vez de criar item novo.
+        Object.assign(alvo, item, { id: alvo.id, pagina: alvo.pagina, atualiza_id: undefined });
+      } else {
+        allItems.push({ ...item, id: String(nextId++), pagina: i + 1, atualiza_id: undefined });
+      }
+    }
+  }
+
+  // Segunda camada: pega duplicatas que o modelo não reconheceu via CONTEXTO
+  // (ex: mesma peça descrita de forma um pouco diferente em páginas distintas).
+  return deduplicarItens(allItems);
 }

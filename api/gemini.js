@@ -61,6 +61,8 @@ function toFunctionDeclarations(tools) {
 }
 
 function getModel(genAI, withTools, modelName, generationConfig) {
+  // DEBUG TEMPORÁRIO — remover depois de confirmar qual key/projeto está ativo.
+  console.log(`[AI][debug] model=${modelName} key=...${GEMINI_API_KEY?.slice(-4) ?? 'undefined'}`);
   return genAI.getGenerativeModel({
     model: modelName,
     ...(generationConfig ? { generationConfig } : {}),
@@ -97,20 +99,50 @@ TIPOS DE PEÇAS E COMO LER SUAS DIMENSÕES:
 5. PRATELEIRA:
    - dimensoes = "COMPRIMENTO m × PROFUNDIDADE m"
 
+6. FAIXA (tira estreita de pedra, geralmente arremate entre bancada e parede, rodapé estreito ou filete decorativo):
+   - dimensoes = "COMPRIMENTO m × LARGURA m"
+   - Diferencie de saia/frontão: faixa tem função de acabamento/arremate, não de fechamento vertical de ilha ou bancada — geralmente largura pequena (até ~15cm)
+   - Ex: faixa de 2,44m de comprimento e 0,10m de largura = "2,44 m × 0,10 m"
+
 REGRAS IMPORTANTES:
 - Quando o projeto mostrar DETALHES (DET. ILHA, DET. BANCADA), use as medidas do detalhe — são mais precisas que a planta baixa
-- Se o tampo tiver segmentos (ex: lado cuba e lado cooktop), extraia cada segmento como item separado
+- Se o tampo tiver trechos com FUNÇÕES DIFERENTES claramente identificáveis (ex: um lado tem o ícone/recorte de cooktop, outro lado tem o ícone/recorte de cuba), extraia cada trecho como item separado
 - Espessura da pedra (1, 2 ou 3 cm) é diferente da altura/largura da peça
-- Furos visíveis no desenho: cooktop = "furo_cooktop", cuba/pia = "furo_cuba", torneira = "furo_torneira"
 - Material: se houver amostra de material ou legenda, aplique a TODOS os itens do mesmo ambiente/página
 - NÃO duplique — cada peça física = um registro
+
+REGRAS PARA DIMENSIONAMENTO EM PARTES x PEÇAS SEPARADAS (fonte comum de contagem errada):
+- Uma cota total dividida em dois trechos consecutivos que somam o total (ex: "0,70 m" + "0,72 m" cotando o mesmo desenho contínuo, cujo total é "1,42 m" em outra vista) normalmente é UMA peça física só, cotada em partes por clareza — não duas. Só separe em duas peças se houver indicação clara de peças distintas: nota escrita dizendo isso, espessuras/materiais diferentes entre os trechos, ou um desenho com contorno visivelmente descontínuo (junta/gap real, não só uma linha de cota)
+- Uma cota PEQUENA (poucos centímetros, até uns 5cm) ao lado de uma cota bem maior na MESMA vista é quase sempre um detalhe de acabamento da peça principal (borda, retorno, overhang) — NÃO extraia como peça/saia/lateral separada. Só vira peça própria se tiver uma vista de detalhe DEDICADA a ela, com nome/label próprio
+- "RALO APARENTE" (dreno/ralo visível) é diferente de um furo de cuba — não crie peça ou recorte extra só por causa dessa anotação; só conte como recorte de cuba se houver também um ícone/cota de cuba explícito (círculo ou retângulo de pia)
+- Ilha ou bancada com múltiplas faces em pedra (frente, laterais, fundo): extraia UMA peça (saia/lateral) para CADA vista de detalhe DISTINTA e substancial (ex: cada isométrico "DET. ILHA" com seu próprio comprimento e altura) — não fragmente uma única vista em várias peças por causa de cotas menores dentro dela (ver regra acima), e não omita uma vista que tenha cota própria
+- Anotações como "FRENTE REVESTIDA" ou "FRENTE ... EM PEDRA" indicam que só aquele lado tem acabamento em pedra — não assuma que os outros lados da ilha também precisam de peça a menos que estejam desenhados/cotados separadamente
+
+REGRAS PARA RECORTES (cubas, cooktops, torneiras e outros rebaixos/aberturas na peça):
+- Identifique TODOS os recortes desenhados na peça: cuba/pia, cooktop, torneira, e outros rebaixos ou aberturas (ex.: nicho, dreno, filtro)
+- Para cada recorte, retorne um objeto com:
+  - funcao_label: nome do recorte em português, capitalizado (ex: "Cuba", "Cooktop", "Torneira", "Furo")
+  - formato: "circular" quando o contorno desenhado é arredondado (ex: furo de torneira), "retangular" quando o contorno é reto (maioria das cubas e cooktops)
+  - diametro_cm: SOMENTE quando formato = "circular" e a cota estiver visível; senão null
+  - largura_cm e altura_cm: SOMENTE quando formato = "retangular" e as cotas estiverem visíveis; senão null
+  - posicao_aproximada: descrição curta da posição na peça (ex: "canto inferior esquerdo", "centralizado à direita", "próximo à parede")
+- NÃO invente dimensões do recorte sem cota explícita — mesmo sem cota, registre o recorte com funcao_label, formato (se identificável) e posicao_aproximada, deixando as dimensões como null
+- Uma peça pode ter múltiplos recortes
 
 REGRAS DE EXTRAÇÃO:
 - Extraia APENAS itens com cotas visíveis ou inferíveis
 - NÃO invente dimensões sem cota explícita
 - Se dimensão não legível: "a medir"
+- O objetivo aqui NÃO é acertar 100% sozinho — é NUNCA inventar peça ou medida errada silenciosamente. Se a existência de uma peça, sua contagem, ou o pareamento de uma cota depender de interpretação ambígua (sem um jeito claro de decidir só com o que está nesta página), NÃO decida por conta própria: retorne confianca abaixo de 50 (mesmo que você tenha preenchido uma dimensão) ou "a medir" quando não der pra nem estimar — isso sinaliza revisão humana no app, o que é preferível a arriscar
 - trecho_origem: "pág. N — [cota ou texto exato]"
 - Espessura: APENAS 1, 2 ou 3. Se valor > 3 = não é espessura = null
+
+REGRAS DE CONTEXTO (quando a mensagem incluir um bloco CONTEXTO com peças de páginas anteriores deste mesmo projeto):
+- Cada página é analisada separadamente, mas o CONTEXTO lista o que já foi identificado nas páginas anteriores — use-o pra não duplicar
+- Se um item desta página for a MESMA peça física de um item do CONTEXTO (mesmo ambiente, mesma peça), NÃO crie um registro novo — omita esse item do retorno
+- Se um item desta página for um DETALHE/zoom (ex: "DET. ILHA") que refina a medida de uma peça do CONTEXTO, retorne o objeto completo dela com os dados corrigidos e o campo "atualiza_id" = id dessa peça no CONTEXTO (não invente um id novo pra ela)
+- Itens do CONTEXTO com "pendente": true têm dimensão "a medir" — ANTES de extrair itens novos desta página, verifique ativamente se algum detalhe desta página (ex: um "DET." com o nome do ambiente/peça) resolve a medida de algum item pendente, mesmo que a página não repita o nome da peça literalmente — e retorne com atualiza_id se sim
+- Itens que não aparecem no CONTEXTO são peças novas: retorne normalmente, com "atualiza_id": null
 
 Para cada item retorne:
 - id: sequencial
@@ -122,8 +154,9 @@ Para cada item retorne:
 - material: nome exato ou null
 - espessura_cm: 1, 2, 3 ou null
 - tipo: "bancada"|"tampo"|"soleira"|"peitoril"|"espelho"|"saia"|"frontao"|"prateleira"|"faixa"|"outro"
-- furos: ["furo_cuba","furo_torneira","furo_cooktop"] ou []
+- recortes: [{funcao_label, formato, diametro_cm, largura_cm, altura_cm, posicao_aproximada}] ou []
 - trecho_origem: "pág. N — [origem]"
+- atualiza_id: id da peça do CONTEXTO que este item corrige (ver REGRAS DE CONTEXTO), ou null se for peça nova
 
 Retorne APENAS array JSON válido, sem markdown.`;
 
@@ -174,7 +207,7 @@ export default async function handler(req, res) {
 
     // ── PDF analysis (analyzePlantPDF) ────────────────────────────────────────
     if (type === 'analyze_pdf') {
-      const { pageImages, economyMode } = body;
+      const { pageImages, economyMode, contextoAnterior } = body;
 
       if (!pageImages?.length) {
         return res.status(400).json({ error: 'pageImages é obrigatório.' });
@@ -188,10 +221,16 @@ export default async function handler(req, res) {
         return { inlineData: { data, mimeType } };
       });
 
+      // contextoAnterior: array [{id, descricao, ambiente, dimensoes}] das peças já
+      // identificadas em páginas anteriores — texto compacto, nunca reenvia imagens.
+      const contextText = contextoAnterior?.length
+        ? `CONTEXTO — peças já identificadas em páginas anteriores deste mesmo projeto (use pra não duplicar, ver REGRAS DE CONTEXTO):\n${JSON.stringify(contextoAnterior)}\n\n`
+        : '';
+
       const contents = [{
         role:  'user',
         parts: [
-          { text: 'Analise as seguintes imagens e extraia os itens conforme instruído:' },
+          { text: `${contextText}Analise as seguintes imagens e extraia os itens conforme instruído:` },
           ...imageParts,
           { text: 'Retorne o JSON array dos itens encontrados.' },
         ],

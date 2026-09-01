@@ -46,6 +46,26 @@ function parseDimensoes(str) {
   return { comprimento: matches[0], largura: matches[1] };
 }
 
+// Normaliza recortes retornados pela IA (funcao_label, formato, diametro_cm/largura_cm/altura_cm,
+// posicao_aproximada) para o mesmo formato gravado em `pecas.recortes` pelo app SmartStone.
+function normalizeRecortes(raw) {
+  if (!Array.isArray(raw)) return [];
+  const numOrNull = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
+  return raw
+    .filter(rc => rc && typeof rc === 'object')
+    .map(rc => {
+      const formato = rc.formato === 'circular' ? 'circular' : 'retangular';
+      return {
+        funcao_label:       rc.funcao_label ?? rc.funcao ?? 'Recorte',
+        formato,
+        diametro_cm:        formato === 'circular'  ? numOrNull(rc.diametro_cm)  : null,
+        largura_cm:         formato === 'retangular' ? numOrNull(rc.largura_cm)  : null,
+        altura_cm:          formato === 'retangular' ? numOrNull(rc.altura_cm)   : null,
+        posicao_aproximada: rc.posicao_aproximada ?? null,
+      };
+    });
+}
+
 // Returns {comprimento, largura} where one is a "X,XX" string and the other is null,
 // when str has the format "X × a medir" or "a medir × Y" (exactly one side unknown).
 // Returns null for fully unknown ('a medir'), fully known, or unrecognised formats.
@@ -488,7 +508,16 @@ const [fileName,     setFileName]     = useState('');
       setChatMessages(prev => [...prev, { role: 'assistant', text: `Renderizando "${file.name}"…` }]);
 
       const pageImages  = await pdfToImages(doc);
-      const extracted   = await analyzePlantPDF({ pageImages, empresaId });
+      const extracted   = await analyzePlantPDF({
+        pageImages,
+        empresaId,
+        onProgress: (pagina, total) => {
+          setChatMessages(prev => [
+            ...prev.slice(0, -1),
+            { role: 'assistant', text: total > 1 ? `Analisando página ${pagina} de ${total}…` : `Analisando "${file.name}"…` },
+          ]);
+        },
+      });
 
       // Normalize ids to strings and fill new fields from enriched prompt
       const normalizedItems = extracted.map((item, i) => {
@@ -503,7 +532,7 @@ const [fileName,     setFileName]     = useState('');
           material:     item.material ?? null,
           espessura_cm: esp,
           tipo:         item.tipo ?? 'outro',
-          furos:        Array.isArray(item.furos) ? item.furos : [],
+          recortes:     normalizeRecortes(item.recortes),
           trecho_origem:    item.trecho_origem ?? null,
           material_id:      match?.id ?? null,
           material_resolved: false,
@@ -593,7 +622,7 @@ const [fileName,     setFileName]     = useState('');
           material:     item.material ?? null,
           espessura_cm: esp,
           tipo:         item.tipo ?? 'outro',
-          furos:        Array.isArray(item.furos) ? item.furos : [],
+          recortes:     normalizeRecortes(item.recortes),
           trecho_origem:     item.trecho_origem ?? null,
           material_id:       match?.id ?? null,
           material_resolved: false,
@@ -841,7 +870,7 @@ const [fileName,     setFileName]     = useState('');
           area_bruta_m2: area, area_liquida_m2: area,
           dimensoes: dims ?? {},
           arestas: { meia_esquadria_ml: 0, reto_simples_ml: 0 },
-          recortes: (item.furos ?? []).map(f => ({ tipo: f, quantidade: 1 })),
+          recortes: item.recortes ?? [],
           incluida: true, created_at: new Date().toISOString(),
         };
       });
@@ -857,7 +886,11 @@ const [fileName,     setFileName]     = useState('');
         const valorArea = Math.round(p.area_liquida_m2 * precoM2 * 100) / 100;
         return {
           peca_id: p.id, material_id: item.material_id ?? null,
-          item_nome: item.descricao,
+          // null (não item.descricao): item_nome agrupa peças de um mesmo conjunto (ex:
+          // "Ilha Cozinha" com Tampo+Frontão+Saia). Peças de PDF são avulsas — repetir o
+          // nome da peça aqui faz o cabeçalho do grupo duplicar o nome da própria peça
+          // na revisão do orçamento (AbaCarrinho.jsx).
+          item_nome: null,
           ambiente_nome: item.ambiente ?? 'Geral',
           valor_area: valorArea, valor_acabamentos: 0, valor_recortes: 0,
           valor_total: valorArea,
