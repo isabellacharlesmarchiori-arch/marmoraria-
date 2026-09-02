@@ -216,9 +216,14 @@ export function buildChatSystemPrompt(perfil, nome, nomeEmpresa, economyMode = f
   ].join('\n');
 }
 
-const PLANTA_SYSTEM_FULL = `Você é um especialista em leitura de plantas baixas para marmoraria. Analise TODAS as imagens/páginas do PDF e identifique os itens em pedra natural ou artificial.
-
-TIPOS DE PEÇAS E COMO LER SUAS DIMENSÕES:
+// Bloco de regras COMPARTILHADO entre o pipeline de visão (PLANTA_SYSTEM_FULL,
+// analisa imagem de página) e o pipeline vetorial (PLANTA_SYSTEM_VETORIAL,
+// analisa texto+coordenadas extraídos de PDF vetorial ou DXF — ver
+// analyzePlantaVetorial). Tipos de peça, ambiguidade de dimensionamento,
+// filosofia de confiança e contexto entre páginas são as mesmas regras
+// independente de a fonte ser imagem ou texto estruturado — só a seção de
+// RECORTES muda (depende de ver o ícone do recorte, texto sozinho não dá).
+const PLANTA_TIPOS_E_REGRAS = `TIPOS DE PEÇAS E COMO LER SUAS DIMENSÕES:
 
 1. TAMPO / BANCADA (peça horizontal):
    - dimensoes = "COMPRIMENTO m × PROFUNDIDADE m"
@@ -258,9 +263,9 @@ REGRAS PARA DIMENSIONAMENTO EM PARTES x PEÇAS SEPARADAS (fonte comum de contage
 - Uma cota PEQUENA (poucos centímetros, até uns 5cm) ao lado de uma cota bem maior na MESMA vista é quase sempre um detalhe de acabamento da peça principal (borda, retorno, overhang) — NÃO extraia como peça/saia/lateral separada. Só vira peça própria se tiver uma vista de detalhe DEDICADA a ela, com nome/label próprio
 - "RALO APARENTE" (dreno/ralo visível) é diferente de um furo de cuba — não crie peça ou recorte extra só por causa dessa anotação; só conte como recorte de cuba se houver também um ícone/cota de cuba explícito (círculo ou retângulo de pia)
 - Ilha ou bancada com múltiplas faces em pedra (frente, laterais, fundo): extraia UMA peça (saia/lateral) para CADA vista de detalhe DISTINTA e substancial (ex: cada isométrico "DET. ILHA" com seu próprio comprimento e altura) — não fragmente uma única vista em várias peças por causa de cotas menores dentro dela (ver regra acima), e não omita uma vista que tenha cota própria
-- Anotações como "FRENTE REVESTIDA" ou "FRENTE ... EM PEDRA" indicam que só aquele lado tem acabamento em pedra — não assuma que os outros lados da ilha também precisam de peça a menos que estejam desenhados/cotados separadamente
+- Anotações como "FRENTE REVESTIDA" ou "FRENTE ... EM PEDRA" indicam que só aquele lado tem acabamento em pedra — não assuma que os outros lados da ilha também precisam de peça a menos que estejam desenhados/cotados separadamente`;
 
-REGRAS PARA RECORTES (cubas, cooktops, torneiras e outros rebaixos/aberturas na peça):
+const PLANTA_RECORTES_VISUAL = `REGRAS PARA RECORTES (cubas, cooktops, torneiras e outros rebaixos/aberturas na peça):
 - Identifique TODOS os recortes desenhados na peça: cuba/pia, cooktop, torneira, e outros rebaixos ou aberturas (ex.: nicho, dreno, filtro)
 - Para cada recorte, retorne um objeto com:
   - funcao_label: nome do recorte em português, capitalizado (ex: "Cuba", "Cooktop", "Torneira", "Furo")
@@ -269,9 +274,21 @@ REGRAS PARA RECORTES (cubas, cooktops, torneiras e outros rebaixos/aberturas na 
   - largura_cm e altura_cm: SOMENTE quando formato = "retangular" e as cotas estiverem visíveis; senão null
   - posicao_aproximada: descrição curta da posição na peça (ex: "canto inferior esquerdo", "centralizado à direita", "próximo à parede")
 - NÃO invente dimensões do recorte sem cota explícita — mesmo sem cota, registre o recorte com funcao_label, formato (se identificável) e posicao_aproximada, deixando as dimensões como null
-- Uma peça pode ter múltiplos recortes
+- Uma peça pode ter múltiplos recortes`;
 
-REGRAS DE EXTRAÇÃO:
+// Sem imagem, não dá pra ver o ÍCONE do recorte (círculo x retângulo) — só o
+// texto da anotação, quando existe. Formato fica null por padrão aqui, ao
+// contrário do pipeline de visão onde o contorno desenhado define o formato.
+const PLANTA_RECORTES_TEXTO = `REGRAS PARA RECORTES (cubas, cooktops, torneiras) — SEM DESENHO, SÓ TEXTO:
+- Como você não vê o ícone/contorno do recorte, só extraia um recorte quando houver uma ANOTAÇÃO TEXTUAL explícita identificando-o perto da peça (ex: "CUBA DECA DE SOBREPOR", "TORNEIRA DE BANCADA - BICA ALTA"). "RALO APARENTE" NÃO é anotação de cuba — não conta como recorte de cuba
+- Para cada recorte, retorne um objeto com:
+  - funcao_label: nome do recorte em português, capitalizado (ex: "Cuba", "Cooktop", "Torneira")
+  - formato: null, a menos que a própria anotação de texto diga explicitamente "circular"/"redondo" ou "retangular"/"quadrado"
+  - diametro_cm / largura_cm / altura_cm: null, a menos que haja uma cota numérica próxima explicitamente associada ao recorte (não invente a partir de um "tamanho típico")
+  - posicao_aproximada: baseada na posição relativa (x,y) do texto do recorte dentro da peça (ex: coordenada x menor = mais à esquerda)
+- Uma peça pode ter múltiplos recortes`;
+
+const PLANTA_EXTRACAO_E_CONTEXTO = `REGRAS DE EXTRAÇÃO:
 - Extraia APENAS itens com cotas visíveis ou inferíveis
 - NÃO invente dimensões sem cota explícita
 - Se dimensão não legível: "a medir"
@@ -284,9 +301,9 @@ REGRAS DE CONTEXTO (quando a mensagem incluir um bloco CONTEXTO com peças de p�
 - Se um item desta página for a MESMA peça física de um item do CONTEXTO (mesmo ambiente, mesma peça), NÃO crie um registro novo — omita esse item do retorno
 - Se um item desta página for um DETALHE/zoom (ex: "DET. ILHA") que refina a medida de uma peça do CONTEXTO, retorne o objeto completo dela com os dados corrigidos e o campo "atualiza_id" = id dessa peça no CONTEXTO (não invente um id novo pra ela)
 - Itens do CONTEXTO com "pendente": true têm dimensão "a medir" — ANTES de extrair itens novos desta página, verifique ativamente se algum detalhe desta página (ex: um "DET." com o nome do ambiente/peça) resolve a medida de algum item pendente, mesmo que a página não repita o nome da peça literalmente — e retorne com atualiza_id se sim
-- Itens que não aparecem no CONTEXTO são peças novas: retorne normalmente, com "atualiza_id": null
+- Itens que não aparecem no CONTEXTO são peças novas: retorne normalmente, com "atualiza_id": null`;
 
-Para cada item retorne:
+const PLANTA_SCHEMA = `Para cada item retorne:
 - id: sequencial
 - descricao: nome claro (ex: "Tampo Ilha Cozinha - lado cooktop")
 - dimensoes: "X,XX m × Y,YY m" ou "X,XX m × a medir" ou "a medir"
@@ -301,6 +318,32 @@ Para cada item retorne:
 - atualiza_id: id da peça do CONTEXTO que este item corrige (ver REGRAS DE CONTEXTO), ou null se for peça nova
 
 Retorne APENAS array JSON válido, sem markdown.`;
+
+const PLANTA_SYSTEM_FULL = `Você é um especialista em leitura de plantas baixas para marmoraria. Analise TODAS as imagens/páginas do PDF e identifique os itens em pedra natural ou artificial.
+
+${PLANTA_TIPOS_E_REGRAS}
+
+${PLANTA_RECORTES_VISUAL}
+
+${PLANTA_EXTRACAO_E_CONTEXTO}
+
+${PLANTA_SCHEMA}`;
+
+// Pipeline vetorial (PDF com texto real extraível, ou DXF): sem imagem — recebe
+// uma lista de {texto, x, y} (posição em pontos/unidades do desenho) já formatada
+// como texto no corpo da mensagem do usuário (ver buildVetorialText). Reaproveita
+// as mesmas regras de tipo/dimensionamento/contexto do pipeline de visão — a
+// ambiguidade de "duas cotas juntas = uma peça ou duas" é a mesma seja a fonte
+// imagem ou texto; só recortes muda (sem ícone pra ver formato/contorno).
+const PLANTA_SYSTEM_VETORIAL = `Você é um especialista em leitura de plantas baixas para marmoraria. Você NÃO recebe uma imagem do desenho — recebe uma lista de textos extraídos de um PDF vetorial ou arquivo DXF, cada um com sua posição (x,y em pontos/unidades do desenho, origem no canto superior esquerdo da página) e, quando disponível, a camada (layer) de origem. Use a proximidade espacial entre os textos pra inferir quais números são cota de qual peça — um valor numérico perto de um rótulo de ambiente ou de outro texto relacionado geralmente pertence à mesma peça/cota. Itens marcados "[cota ...]" vêm de entidades de cotagem do CAD (medida calculada pelo software) — trate como cota explícita, tão confiável quanto texto escrito pelo autor. Já itens marcados "[linha ...]" ou "[polilinha ...]" são geometria pura (comprimento medido no desenho, sem ser uma cota de verdade) — use como apoio SOMENTE quando não houver "[cota ...]" nem texto explícito por perto, e nesse caso retorne confianca mais baixa; "[cota ...]" e texto explícito sempre têm prioridade sobre geometria inferida. Itens marcados "[objeto] ..." vêm do nome de um bloco/família do CAD instanciado naquela posição (comum em louças/torneiras/mobiliário exportados de BIM) — o nome costuma descrever o objeto (ex: "Sink - Bathroom - Cuba de apoio redonda" = uma cuba ali) mesmo sem cota anexada; use isso pra identificar recortes (cuba/torneira) mas sem inventar dimensão que não esteja explícita em algum "[cota ...]" ou texto próximo.
+
+${PLANTA_TIPOS_E_REGRAS}
+
+${PLANTA_RECORTES_TEXTO}
+
+${PLANTA_EXTRACAO_E_CONTEXTO}
+
+${PLANTA_SCHEMA}`;
 
 const PLANTA_SYSTEM_ECONOMY = `Analise as imagens de planta baixa e extraia itens que usam pedra (bancadas, pias, soleiras, pisos etc).
 Retorne apenas JSON array: [{id, descricao, dimensoes, ambiente, pagina, confianca}].
@@ -449,6 +492,58 @@ async function analyzePlantPDFBatch(args) {
   return USE_PROXY ? analyzePlantPDFBatchProxy(args) : analyzePlantPDFBatchDirect(args);
 }
 
+// ── Pipeline vetorial (PDF com texto real, ou DXF) — sem imagem, só texto ────
+// textItems: [{texto, x, y, camada?}] de UMA página/arquivo. Ordena por posição
+// de leitura (y depois x) pra dar ao modelo uma pista de estrutura, já que não
+// há imagem pra ele "ver" o layout.
+function formatVetorialText(textItems) {
+  const ordenado = [...textItems].sort((a, b) => a.y - b.y || a.x - b.x);
+  return ordenado
+    .map(it => `"${it.texto}" @ (${it.x},${it.y})${it.camada ? ` [camada:${it.camada}]` : ''}`)
+    .join('\n');
+}
+
+async function analyzePlantaVetorialBatchDirect({ textItems, empresaId, contextoAnterior }) {
+  const contents = [{
+    role:  'user',
+    parts: [{
+      text: `${buildContextText(contextoAnterior)}Lista de textos extraídos desta página/arquivo, com posição (x,y em pontos/unidades do desenho, origem no canto superior esquerdo):\n\n${formatVetorialText(textItems)}\n\nAnalise e extraia os itens conforme instruído. Retorne o JSON array dos itens encontrados.`,
+    }],
+  }];
+  const model    = getModel(null, MODEL_PRIMARY,  { temperature: 0 });
+  const fallback = getModel(null, MODEL_FALLBACK, { temperature: 0 });
+  const result   = await generateWithRetry(model, { contents, systemInstruction: PLANTA_SYSTEM_VETORIAL }, fallback);
+  const rawText  = result.response.text();
+  const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+  const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+  await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada, tokensSaida, fromCache: false });
+  const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+  return JSON.parse(jsonMatch[0]);
+}
+
+async function analyzePlantaVetorialBatchProxy({ textItems, empresaId, contextoAnterior }) {
+  const res = await fetch('/api/gemini', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ type: 'analyze_vetorial', textItems, contextoAnterior }),
+  });
+  if (!res.ok) {
+    if (res.status === 504) {
+      throw new Error('A IA demorou demais para responder (tempo esgotado). Tente novamente em instantes.');
+    }
+    const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error);
+  }
+  const { items, tokensEntrada, tokensSaida } = await res.json();
+  await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false });
+  return items;
+}
+
+async function analyzePlantaVetorialBatch(args) {
+  return USE_PROXY ? analyzePlantaVetorialBatchProxy(args) : analyzePlantaVetorialBatchDirect(args);
+}
+
 // ── Deduplicação client-side (segunda camada, além do CONTEXTO enviado ao modelo) ──
 // Compara ambiente (exato) + descrição (similaridade de palavras) + dimensões
 // (tolerância de 3cm) pra pegar duplicatas que o modelo não reconheceu sozinho.
@@ -550,30 +645,23 @@ function deduplicarItens(items) {
 
 // pageImages: array com TODAS as páginas (já renderizadas client-side).
 // onProgress(paginaAtual, totalPaginas): opcional, chamado antes de cada chamada.
-export async function analyzePlantPDF({ pageImages, economyMode = false, empresaId = null, onProgress = null }) {
-  if (!pageImages?.length) throw new Error('Nenhuma imagem de página fornecida.');
-
+// Orquestração compartilhada entre o pipeline de visão e o vetorial: contexto
+// incremental por página, merge de atualiza_id, e dedup final. `callBatchForPage`
+// recebe (índice da página, contextoAnterior) e retorna os itens brutos daquela
+// página — quem chama decide COMO obter esses itens (imagem vs texto).
+async function runExtractionPipeline(totalPages, callBatchForPage, onProgress) {
   const allItems = [];
   let nextId = 1;
 
-  for (let i = 0; i < pageImages.length; i++) {
-    onProgress?.(i + 1, pageImages.length);
+  for (let i = 0; i < totalPages; i++) {
+    onProgress?.(i + 1, totalPages);
     // Resumo compacto (id/descricao/ambiente/dimensoes) das peças já vistas —
-    // dá ao modelo contexto pra reconhecer duplicatas/detalhes sem reenviar imagens.
+    // dá ao modelo contexto pra reconhecer duplicatas/detalhes sem reenviar a página inteira.
     const contextoAnterior = i === 0 ? null : allItems.map(it => ({
       id: it.id, descricao: it.descricao, ambiente: it.ambiente, dimensoes: it.dimensoes,
       pendente: it.dimensoes === 'a medir',
     }));
-    let pageItems;
-    try {
-      pageItems = await analyzePlantPDFBatch({ pageImages: [pageImages[i]], economyMode, empresaId, contextoAnterior });
-    } catch (err) {
-      const isTimeout = /504|tempo esgotado|timed out/i.test(err?.message ?? '');
-      if (isTimeout && pageImages.length > 1) {
-        throw new Error(`Tempo esgotado ao analisar a página ${i + 1} de ${pageImages.length}. Tente novamente — se persistir, envie o PDF em partes menores.`);
-      }
-      throw err;
-    }
+    const pageItems = await callBatchForPage(i, contextoAnterior);
     // ids e página são reatribuídos aqui: o modelo só vê uma página por chamada
     // e sempre numeraria a partir de 1, então o índice real do loop é a fonte da verdade.
     for (const item of pageItems) {
@@ -591,4 +679,31 @@ export async function analyzePlantPDF({ pageImages, economyMode = false, empresa
   // Segunda camada: pega duplicatas que o modelo não reconheceu via CONTEXTO
   // (ex: mesma peça descrita de forma um pouco diferente em páginas distintas).
   return deduplicarItens(allItems);
+}
+
+export async function analyzePlantPDF({ pageImages, economyMode = false, empresaId = null, onProgress = null }) {
+  if (!pageImages?.length) throw new Error('Nenhuma imagem de página fornecida.');
+
+  return runExtractionPipeline(pageImages.length, async (i, contextoAnterior) => {
+    try {
+      return await analyzePlantPDFBatch({ pageImages: [pageImages[i]], economyMode, empresaId, contextoAnterior });
+    } catch (err) {
+      const isTimeout = /504|tempo esgotado|timed out/i.test(err?.message ?? '');
+      if (isTimeout && pageImages.length > 1) {
+        throw new Error(`Tempo esgotado ao analisar a página ${i + 1} de ${pageImages.length}. Tente novamente — se persistir, envie o PDF em partes menores.`);
+      }
+      throw err;
+    }
+  }, onProgress);
+}
+
+// pageTextItems: array por página de [{texto, x, y, camada?}] — extraído de PDF
+// vetorial (getTextContent) ou de um DXF (entidades TEXT/MTEXT + geometria). DXF
+// não tem conceito de página: quem chama passa um array de 1 elemento.
+export async function analyzePlantaVetorial({ pageTextItems, empresaId = null, onProgress = null }) {
+  if (!pageTextItems?.length) throw new Error('Nenhum texto de página fornecido.');
+
+  return runExtractionPipeline(pageTextItems.length, (i, contextoAnterior) =>
+    analyzePlantaVetorialBatch({ textItems: pageTextItems[i], empresaId, contextoAnterior }),
+  onProgress);
 }

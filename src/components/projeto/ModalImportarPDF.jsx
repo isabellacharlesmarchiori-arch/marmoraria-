@@ -7,13 +7,28 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
 
+  // Tipo DXF não tem MIME type confiável no browser (costuma vir vazio ou
+  // application/octet-stream) — checa pela extensão também.
+  function aceitaArquivo(f) {
+    return f.type === 'application/pdf'
+      || f.type.startsWith('image/')
+      || f.name?.toLowerCase().endsWith('.dxf');
+  }
+
+  // Classificação pra exibir na lista — PDF só dá pra saber se é vetorial ou
+  // rasterizado depois de abrir o arquivo (na tela seguinte); aqui é só uma
+  // dica pelo tipo/extensão.
+  function classificarArquivo(f) {
+    if (f.name?.toLowerCase().endsWith('.dxf')) return { label: 'DXF · vetorial', recomendado: true };
+    if (f.type === 'application/pdf') return { label: 'PDF · verificamos se é vetorial', recomendado: null };
+    return { label: 'Imagem · menos preciso', recomendado: false };
+  }
+
   function addFiles(incoming) {
-    const pdfs = Array.from(incoming).filter(f =>
-      f.type === 'application/pdf' || f.type.startsWith('image/')
-    );
+    const validos = Array.from(incoming).filter(aceitaArquivo);
     setFiles(prev => {
       const existing = new Set(prev.map(f => f.name));
-      return [...prev, ...pdfs.filter(f => !existing.has(f.name))];
+      return [...prev, ...validos.filter(f => !existing.has(f.name))];
     });
   }
 
@@ -38,7 +53,7 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
               Importar projeto
             </h2>
             <p className="font-mono text-[10px] text-zinc-500 mt-0.5">
-              Selecione PDFs ou imagens do projeto
+              Selecione PDF, DXF ou imagens do projeto
             </p>
           </div>
           <button
@@ -65,7 +80,7 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
             <iconify-icon icon="solar:upload-linear" width="28" class="text-zinc-500" />
             <div className="text-center">
               <p className="font-mono text-[11px] text-zinc-300">
-                Arraste PDFs ou imagens aqui
+                Arraste PDF, DXF ou imagens aqui
               </p>
               <p className="font-mono text-[10px] text-zinc-600 mt-1">
                 ou <span className="text-yellow-400">clique para selecionar</span>
@@ -74,21 +89,37 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
             <input
               ref={inputRef}
               type="file"
-              accept=".pdf,image/png,image/jpeg,image/jpg"
+              accept=".pdf,.dxf,image/png,image/jpeg,image/jpg"
               multiple
               onChange={e => addFiles(e.target.files)}
               className="hidden"
             />
           </div>
 
+          {/* Aviso de precisão por formato */}
+          <div className="mt-3 flex items-start gap-2 px-3 py-2 bg-zinc-900/60 border border-zinc-800">
+            <iconify-icon icon="solar:info-circle-linear" width="12" class="text-zinc-500 shrink-0 mt-0.5" />
+            <p className="font-mono text-[9px] text-zinc-500 leading-relaxed">
+              <span className="text-emerald-400">PDF vetorial (exportado de CAD) e DXF</span> são mais precisos e rápidos — lemos o texto/coordenadas reais do desenho.
+              <span className="text-zinc-400"> PDF de imagem/escaneado</span> usa IA de visão pra interpretar os pixels — menos preciso, use só se não tiver o arquivo original em CAD/vetorial.
+            </p>
+          </div>
+
           {/* File list */}
           {files.length > 0 && (
             <ul className="mt-3 space-y-1.5">
-              {files.map((f, i) => (
+              {files.map((f, i) => {
+                const { label, recomendado } = classificarArquivo(f);
+                return (
                 <li key={i} className="flex items-center justify-between gap-3 px-3 py-2 bg-zinc-900 border border-zinc-800">
                   <div className="flex items-center gap-2 min-w-0">
                     <iconify-icon icon="solar:file-text-bold" width="13" class="text-yellow-400 shrink-0" />
                     <span className="font-mono text-[10px] text-zinc-300 truncate">{f.name}</span>
+                    <span className={`font-mono text-[8px] uppercase tracking-widest px-1.5 py-0.5 border shrink-0 ${
+                      recomendado === true  ? 'border-emerald-800 text-emerald-400' :
+                      recomendado === false ? 'border-zinc-700 text-zinc-500' :
+                                               'border-zinc-800 text-zinc-600'
+                    }`}>{label}</span>
                   </div>
                   <button
                     onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
@@ -97,7 +128,8 @@ export default function ModalImportarPDF({ projetoId, onClose }) {
                     <iconify-icon icon="solar:close-circle-linear" width="13" />
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>

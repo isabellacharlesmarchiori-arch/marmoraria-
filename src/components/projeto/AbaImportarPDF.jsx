@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, Fragment } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import DxfParser from 'dxf-parser';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { analyzePlantPDF, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
+import { analyzePlantPDF, analyzePlantaVetorial, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -54,7 +55,9 @@ function normalizeRecortes(raw) {
   return raw
     .filter(rc => rc && typeof rc === 'object')
     .map(rc => {
-      const formato = rc.formato === 'circular' ? 'circular' : 'retangular';
+      // null preservado (não força "retangular"): o pipeline vetorial retorna
+      // formato null quando não há como saber o contorno só pelo texto.
+      const formato = rc.formato === 'circular' ? 'circular' : rc.formato === 'retangular' ? 'retangular' : null;
       return {
         funcao_label:       rc.funcao_label ?? rc.funcao ?? 'Recorte',
         formato,
@@ -64,6 +67,161 @@ function normalizeRecortes(raw) {
         posicao_aproximada: rc.posicao_aproximada ?? null,
       };
     });
+}
+
+// Normalização de itens crus retornados pela IA (visão, vetorial ou DXF — mesmo
+// schema nos três) para o formato usado no estado `items` do componente.
+// Compartilhada pelos 4 pontos de entrada (loadPDF raster, loadPDF vetorial,
+// loadImage, loadDXF) pra não duplicar essa lógica em cada um.
+function normalizeExtractedItems(extracted, materiaisList) {
+  return extracted.map((item, i) => {
+    const rawEsp = item.espessura_cm != null ? Number(item.espessura_cm) : null;
+    const esp    = rawEsp != null && rawEsp >= 1 && rawEsp <= 3 ? rawEsp : null;
+    const match  = fuzzyMatchMaterial(item.material, materiaisList);
+    return {
+      ...item,
+      id:           String(item.id ?? i + 1),
+      pagina:       Number(item.pagina ?? 1),
+      confianca:    Number(item.confianca ?? 50),
+      material:     item.material ?? null,
+      espessura_cm: esp,
+      tipo:         item.tipo ?? 'outro',
+      recortes:     normalizeRecortes(item.recortes),
+      trecho_origem:     item.trecho_origem ?? null,
+      material_id:       match?.id ?? null,
+      material_resolved: false,
+    };
+  });
+}
+
+// $INSUNITS (código de grupo 70 do header DXF) → unidade real do desenho.
+// Sem isso não dá pra saber se "1.42" é metro, cm ou polegada.
+const DXF_UNIDADES = { 1: 'polegadas', 2: 'pés', 4: 'mm', 5: 'cm', 6: 'm' };
+
+// Ponto local (coordenadas dentro de um block) → coordenada absoluta do desenho,
+// aplicando a transformação do INSERT que instancia esse block (posição, escala,
+// rotação em Z). Simplificação 2D — ignora extrusão/rotação fora do plano XY,
+// suficiente pra planta baixa.
+function transformPontoDoBlock(local, insert) {
+  const sx = insert.xScale ?? 1, sy = insert.yScale ?? 1;
+  const rad = ((insert.rotation ?? 0) * Math.PI) / 180;
+  const lx = (local.x ?? 0) * sx, ly = (local.y ?? 0) * sy;
+  const cos = Math.cos(rad), sin = Math.sin(rad);
+  return {
+    x: (insert.position?.x ?? 0) + (lx * cos - ly * sin),
+    y: (insert.position?.y ?? 0) + (lx * sin + ly * cos),
+  };
+}
+
+// Converte uma entidade TEXT/MTEXT/DIMENSION em {texto, pos} — ou null se não for
+// um desses tipos ou não tiver o que precisa. DIMENSION usa `actualMeasurement`
+// (valor calculado pelo próprio CAD) — é a fonte de cota mais confiável do DXF,
+// bem mais que adivinhar por comprimento de linha. `text` só é considerado quando
+// o autor sobrescreveu manualmente o valor padrão (senão vem vazio ou "<>").
+function textoDeEntidade(e, sufixoUnidade) {
+  if ((e.type === 'TEXT' || e.type === 'MTEXT') && e.text) {
+    const pos = e.startPoint ?? e.position ?? e.insertionPoint ?? null;
+    if (!pos) return null;
+    return { texto: String(e.text).replace(/\\P/g, ' ').trim(), pos };
+  }
+  if (e.type === 'DIMENSION' && Number.isFinite(e.actualMeasurement)) {
+    const manual = (e.text ?? '').trim();
+    const valor  = (manual && manual !== '<>') ? manual : e.actualMeasurement.toFixed(2).replace('.', ',');
+    const pos    = e.middleOfText ?? e.anchorPoint ?? e.insertionPoint ?? null;
+    if (!pos) return null;
+    return { texto: `[cota ${valor}${sufixoUnidade}]`, pos };
+  }
+  return null;
+}
+
+// Extrai TEXT/MTEXT/DIMENSION de um DXF já parseado pelo dxf-parser, no formato
+// {texto,x,y,camada} usado pelo pipeline vetorial — incluindo o que está DENTRO
+// de blocks referenciados por INSERT. Em exports de BIM/Revit, boa parte do
+// conteúdo (móveis, louças, portas) vem como instâncias de block — sem resolver
+// isso, a extração perde a maioria do arquivo. Resolve só 1 nível de INSERT (não
+// desce em INSERTs aninhados dentro de blocks), suficiente pro caso comum de
+// blocos "achatados" (móveis/fixtures) sem a complexidade de recursão arbitrária.
+//
+// Geometria pura (LINE/LWPOLYLINE) só vira dica de medida em arquivos pequenos —
+// exports de BIM têm milhares de linhas de parede/mobiliário que afogam o sinal
+// real (as poucas dezenas de cotas/textos que interessam) em ruído; nesses casos
+// confia só em TEXT/MTEXT/DIMENSION, que carregam o dado estruturado de verdade.
+function extractDxfTextItems(dxf) {
+  const items    = [];
+  const unidade  = DXF_UNIDADES[dxf?.header?.['$INSUNITS']] ?? null;
+  const sufixoUnidade = unidade ? ` ${unidade}` : ' (unidade desconhecida)';
+  const entities = dxf?.entities ?? [];
+  const blocks   = dxf?.blocks ?? {};
+
+  // 1) TEXT/MTEXT/DIMENSION no nível raiz
+  entities.forEach(e => {
+    const r = textoDeEntidade(e, sufixoUnidade);
+    if (r) items.push({ texto: r.texto, x: Math.round(r.pos.x ?? 0), y: Math.round(r.pos.y ?? 0), camada: e.layer ?? null });
+  });
+
+  // 2) TEXT/MTEXT/DIMENSION dentro de blocks, resolvidos via INSERT (1 nível,
+  // coordenadas transformadas pra posição absoluta do desenho)
+  entities.filter(e => e.type === 'INSERT' && e.name).forEach(insert => {
+    const block = blocks[insert.name];
+    (block?.entities ?? []).forEach(be => {
+      const r = textoDeEntidade(be, sufixoUnidade);
+      if (!r) return;
+      const abs = transformPontoDoBlock(r.pos, insert);
+      items.push({ texto: r.texto, x: Math.round(abs.x), y: Math.round(abs.y), camada: be.layer ?? insert.layer ?? null });
+    });
+  });
+
+  // 2b) Nome do próprio block como rótulo — blocks de família (louças, torneiras,
+  // móveis, comuns em exports de BIM/Revit) quase nunca têm MTEXT interno, mas o
+  // NOME do block já descreve o objeto (ex: "Sink - Bathroom - Cuba de apoio
+  // redonda") na posição exata onde foi inserido. Só emite pra INSERTs em layers
+  // plausivelmente relevantes pra marmoraria — sem esse filtro, os ~977 INSERTs
+  // do arquivo (incluindo móveis, vegetação, topografia) virariam ruído de novo.
+  const LAYERS_RELEVANTES = /hidrossanit|mobili|bancada|cuba|pia|louça|louca/i;
+  entities
+    .filter(e => e.type === 'INSERT' && e.name && !e.name.startsWith('*') && LAYERS_RELEVANTES.test(e.layer ?? ''))
+    .forEach(insert => {
+      items.push({
+        texto: `[objeto] ${insert.name}`,
+        x: Math.round(insert.position?.x ?? 0), y: Math.round(insert.position?.y ?? 0),
+        camada: insert.layer ?? null,
+      });
+    });
+
+  // 3) Geometria (LINE/LWPOLYLINE) como apoio — só quando o arquivo é enxuto o
+  // bastante pra isso não virar ruído (ver comentário da função acima)
+  const linhasRaiz = entities.filter(e => e.type === 'LINE' && e.vertices?.length >= 2);
+  if (linhasRaiz.length <= 150) {
+    linhasRaiz.forEach(e => {
+      const [p1, p2] = e.vertices;
+      const len = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      items.push({
+        texto: `[linha ${len.toFixed(2)}${sufixoUnidade}]`,
+        x: Math.round((p1.x + p2.x) / 2), y: Math.round((p1.y + p2.y) / 2),
+        camada: e.layer ?? null,
+      });
+    });
+  }
+  entities
+    .filter(e => e.type === 'LWPOLYLINE' && e.vertices?.length >= 2)
+    .slice(0, 300)
+    .forEach(e => {
+      const xs = e.vertices.map(v => v.x), ys = e.vertices.map(v => v.y);
+      const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+      items.push({
+        texto: `[polilinha ${w.toFixed(2)}×${h.toFixed(2)}${sufixoUnidade}]`,
+        x: Math.round((Math.max(...xs) + Math.min(...xs)) / 2), y: Math.round((Math.max(...ys) + Math.min(...ys)) / 2),
+        camada: e.layer ?? null,
+      });
+    });
+
+  return items.filter(it => it.texto);
+}
+
+function chunkArray(arr, size) {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
+  return chunks.length ? chunks : [[]];
 }
 
 // Returns {comprimento, largura} where one is a "X,XX" string and the other is null,
@@ -442,8 +600,7 @@ const [fileName,     setFileName]     = useState('');
   // Auto-load first file from initialFiles on mount
   useEffect(() => {
     if (initialFiles?.length > 0) {
-      if (initialFiles[0]?.type.startsWith('image/')) loadImage(initialFiles[0]);
-      else loadPDF(initialFiles[0]);
+      loadFile(initialFiles[0]);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -481,6 +638,46 @@ const [fileName,     setFileName]     = useState('');
     return images;
   }
 
+  // ── PDF vetorial x rasterizado ───────────────────────────────────────────────
+  // Um PDF vetorial (exportado de CAD com texto/objetos reais) tem texto extraível
+  // via getTextContent(); um PDF escaneado/rasterizado (só imagem embutida) retorna
+  // vazio ou quase vazio mesmo tendo conteúdo visual — é a mesma checagem que
+  // `pdftotext` faz. Threshold folgado (30 chars/página): scans genuínos costumam
+  // vir com ZERO texto, não "pouco" — texto residual de OCR ruim é raro nesse contexto.
+  async function isPdfVetorial(doc, maxPaginas = 3) {
+    const n = Math.min(doc.numPages, maxPaginas);
+    let totalChars = 0;
+    for (let i = 1; i <= n; i++) {
+      const page    = await doc.getPage(i);
+      const content = await page.getTextContent();
+      totalChars += content.items.reduce((s, it) => s + (it.str?.replace(/\s/g, '').length ?? 0), 0);
+    }
+    return (totalChars / n) > 30;
+  }
+
+  // Extrai {texto, x, y} de uma página vetorial — x,y em pontos, origem no canto
+  // superior esquerdo (mais intuitivo que o padrão PDF, que é canto inferior esquerdo).
+  async function extractPageTextItems(page) {
+    const content  = await page.getTextContent();
+    const viewport = page.getViewport({ scale: 1 });
+    return content.items
+      .filter(it => it.str && it.str.trim())
+      .map(it => ({
+        texto: it.str.trim(),
+        x: Math.round(it.transform[4]),
+        y: Math.round(viewport.height - it.transform[5]),
+      }));
+  }
+
+  async function extractAllPagesTextItems(doc) {
+    const count = Math.min(doc.numPages, MAX_PDF_PAGES);
+    const pages = [];
+    for (let i = 1; i <= count; i++) {
+      pages.push(await extractPageTextItems(await doc.getPage(i)));
+    }
+    return pages;
+  }
+
   // ── PDF loading ────────────────────────────────────────────────────────────
   async function loadPDF(file) {
     if (!file || file.type !== 'application/pdf') return;
@@ -505,43 +702,34 @@ const [fileName,     setFileName]     = useState('');
         return;
       }
 
-      setChatMessages(prev => [...prev, { role: 'assistant', text: `Renderizando "${file.name}"…` }]);
+      // PDF vetorial (texto real extraível) é priorizado: parsing direto do texto,
+      // sem depender de interpretação visual do modelo — mais confiável. Só cai pro
+      // pipeline de visão (imagens renderizadas) quando o PDF é rasterizado/escaneado.
+      const vetorial = await isPdfVetorial(doc);
 
-      const pageImages  = await pdfToImages(doc);
-      const extracted   = await analyzePlantPDF({
-        pageImages,
-        empresaId,
-        onProgress: (pagina, total) => {
-          setChatMessages(prev => [
-            ...prev.slice(0, -1),
-            { role: 'assistant', text: total > 1 ? `Analisando página ${pagina} de ${total}…` : `Analisando "${file.name}"…` },
-          ]);
-        },
-      });
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        text: vetorial ? `Lendo texto vetorial de "${file.name}"…` : `Renderizando "${file.name}"…`,
+      }]);
 
-      // Normalize ids to strings and fill new fields from enriched prompt
-      const normalizedItems = extracted.map((item, i) => {
-        const rawEsp = item.espessura_cm != null ? Number(item.espessura_cm) : null;
-        const esp    = rawEsp != null && rawEsp >= 1 && rawEsp <= 3 ? rawEsp : null;
-        const match  = fuzzyMatchMaterial(item.material, materiaisRef.current);
-        return {
-          ...item,
-          id:           String(item.id ?? i + 1),
-          pagina:       Number(item.pagina ?? 1),
-          confianca:    Number(item.confianca ?? 50),
-          material:     item.material ?? null,
-          espessura_cm: esp,
-          tipo:         item.tipo ?? 'outro',
-          recortes:     normalizeRecortes(item.recortes),
-          trecho_origem:    item.trecho_origem ?? null,
-          material_id:      match?.id ?? null,
-          material_resolved: false,
-        };
-      });
+      const onProgress = (pagina, total) => {
+        setChatMessages(prev => [
+          ...prev.slice(0, -1),
+          { role: 'assistant', text: total > 1
+            ? `Analisando página ${pagina} de ${total}${vetorial ? ' (texto)' : ''}…`
+            : `Analisando "${file.name}"…` },
+        ]);
+      };
+
+      const extracted = vetorial
+        ? await analyzePlantaVetorial({ pageTextItems: await extractAllPagesTextItems(doc), empresaId, onProgress })
+        : await analyzePlantPDF({ pageImages: await pdfToImages(doc), empresaId, onProgress });
+
+      const normalizedItems = normalizeExtractedItems(extracted, materiaisRef.current);
 
       setItems(normalizedItems);
 
-      const summary = `Analisei "${file.name}" (${doc.numPages} pág.) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
+      const summary = `Analisei "${file.name}" (${doc.numPages} pág., ${vetorial ? 'PDF vetorial' : 'imagem'}) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
       setChatMessages(prev => [
         ...prev.slice(0, -1), // remove a mensagem de "Renderizando..."
         { role: 'assistant', text: summary },
@@ -609,25 +797,7 @@ const [fileName,     setFileName]     = useState('');
       setChatMessages(prev => [...prev, { role: 'assistant', text: `Analisando "${file.name}"…` }]);
 
       const extracted = await analyzePlantPDF({ pageImages: [dataUrl], empresaId });
-
-      const normalizedItems = extracted.map((item, i) => {
-        const rawEsp = item.espessura_cm != null ? Number(item.espessura_cm) : null;
-        const esp    = rawEsp != null && rawEsp >= 1 && rawEsp <= 3 ? rawEsp : null;
-        const match  = fuzzyMatchMaterial(item.material, materiaisRef.current);
-        return {
-          ...item,
-          id:           String(item.id ?? i + 1),
-          pagina:       Number(item.pagina ?? 1),
-          confianca:    Number(item.confianca ?? 50),
-          material:     item.material ?? null,
-          espessura_cm: esp,
-          tipo:         item.tipo ?? 'outro',
-          recortes:     normalizeRecortes(item.recortes),
-          trecho_origem:     item.trecho_origem ?? null,
-          material_id:       match?.id ?? null,
-          material_resolved: false,
-        };
-      });
+      const normalizedItems = normalizeExtractedItems(extracted, materiaisRef.current);
 
       setItems(normalizedItems);
 
@@ -665,12 +835,115 @@ const [fileName,     setFileName]     = useState('');
     }
   }
 
+  // ── DXF loading ────────────────────────────────────────────────────────────
+  async function loadDXF(file) {
+    setLoading(true);
+    setFileName(file.name);
+    setItems([]);
+    setPdfDoc(null);
+    setImageUrl(null);
+    setChatMessages(INITIAL_CHAT);
+    chatHistoryRef.current = [];
+
+    try {
+      if (!isConfigured) {
+        setChatMessages(prev => [...prev, {
+          role: 'error',
+          text: 'VITE_GEMINI_API_KEY não configurada. Adicione ao .env.local e reinicie.',
+        }]);
+        return;
+      }
+
+      // DXF legado (ANSI_1252, o padrão de exports do AutoCAD/Revit) não tem BOM;
+      // ler como UTF-8 direto corrompe acentos (`$DWGCODEPAGE` no header declara
+      // isso). Só usa UTF-8 quando o arquivo tem o BOM explícito.
+      const buffer  = await file.arrayBuffer();
+      const bytes   = new Uint8Array(buffer, 0, 3);
+      const temBOM  = bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
+      const text    = new TextDecoder(temBOM ? 'utf-8' : 'windows-1252').decode(buffer);
+
+      let dxf;
+      try {
+        dxf = new DxfParser().parseSync(text);
+      } catch (err) {
+        throw new Error(`Não consegui ler o arquivo DXF: ${err.message}`);
+      }
+
+      const textItems = extractDxfTextItems(dxf);
+      if (textItems.length === 0) {
+        throw new Error('Nenhum texto, cota ou geometria reconhecida no DXF — verifique se o arquivo tem entidades TEXT/MTEXT/DIMENSION/LINE/LWPOLYLINE.');
+      }
+
+      // DXF não tem conceito de página — quebra em blocos de ~150 itens (mesma
+      // ideia do PDF página-por-página: mantém cada chamada bem abaixo do limite
+      // de tempo/token, e reaproveita o mesmo contexto incremental entre blocos).
+      const pageTextItems = chunkArray(textItems, 150);
+
+      setChatMessages(prev => [...prev, { role: 'assistant', text: pageTextItems.length > 1
+        ? `Analisando "${file.name}" (DXF, parte 1 de ${pageTextItems.length})…`
+        : `Analisando "${file.name}" (DXF)…` }]);
+
+      const extracted = await analyzePlantaVetorial({
+        pageTextItems,
+        empresaId,
+        onProgress: (parte, total) => {
+          if (total <= 1) return;
+          setChatMessages(prev => [
+            ...prev.slice(0, -1),
+            { role: 'assistant', text: `Analisando "${file.name}" (DXF, parte ${parte} de ${total})…` },
+          ]);
+        },
+      });
+      const normalizedItems = normalizeExtractedItems(extracted, materiaisRef.current);
+
+      setItems(normalizedItems);
+
+      const summary = `Analisei "${file.name}" (DXF) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
+      setChatMessages(prev => [
+        ...prev.slice(0, -1),
+        { role: 'assistant', text: summary },
+      ]);
+
+      const materiaisAmbiguos = [...new Set(
+        normalizedItems
+          .filter(it => it.material && !it.material_id)
+          .map(it => it.material)
+      )];
+
+      let modelSeedText = `${summary}\n\nItens extraídos:\n${JSON.stringify(normalizedItems, null, 2)}`;
+
+      if (materiaisAmbiguos.length > 0) {
+        const pergunta = `Encontrei os seguintes materiais que não estão no catálogo: ${materiaisAmbiguos.join(', ')}. Para cada um, qual material do sistema devo usar? Ou posso cadastrar como novo?`;
+        setChatMessages(prev => [...prev, { role: 'assistant', text: pergunta }]);
+        modelSeedText += `\n\n${pergunta}`;
+      }
+
+      chatHistoryRef.current = [
+        { role: 'user',  parts: [{ text: 'DXF analisado. Quais itens foram encontrados?' }] },
+        { role: 'model', parts: [{ text: modelSeedText }] },
+      ];
+    } catch (err) {
+      setChatMessages(prev => [
+        ...prev.filter(m => m.text !== `Analisando "${file.name}" (DXF)…`),
+        { role: 'error', text: `Erro ao analisar DXF: ${err.message}` },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Dispatcher: escolhe loader pela extensão/tipo do arquivo ─────────────────
+  function loadFile(file) {
+    if (file.type.startsWith('image/')) return loadImage(file);
+    if (file.name?.toLowerCase().endsWith('.dxf')) return loadDXF(file);
+    return loadPDF(file);
+  }
+
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (file) {
       setFileList([]); setActiveFileIdx(0);
-      if (file.type.startsWith('image/')) loadImage(file);
-      else loadPDF(file);
+      loadFile(file);
     }
     e.target.value = '';
   }
@@ -682,9 +955,7 @@ const [fileName,     setFileName]     = useState('');
     setImageUrl(null);
     setItems([]);
     setSelectedItem(null);
-    const file = fileList[idx];
-    if (file.type?.startsWith('image/')) loadImage(file);
-    else loadPDF(file);
+    loadFile(fileList[idx]);
   }
 
   // ── Item click → jump to page ──────────────────────────────────────────────
@@ -1282,7 +1553,7 @@ const [fileName,     setFileName]     = useState('');
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,image/png,image/jpeg,image/jpg"
+        accept=".pdf,.dxf,image/png,image/jpeg,image/jpg"
         onChange={handleFileChange}
         className="hidden"
       />

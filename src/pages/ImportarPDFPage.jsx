@@ -37,7 +37,7 @@ export default function ImportarPDFPage() {
         </button>
         <div className="w-px h-4 bg-zinc-800" />
         <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-white">
-          Importar PDF
+          Importar Projeto
         </span>
         {initialFiles.length > 0 && (
           <span className="font-mono text-[10px] text-zinc-500">
