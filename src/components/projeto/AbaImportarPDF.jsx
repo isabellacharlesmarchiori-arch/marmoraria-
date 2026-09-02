@@ -11,6 +11,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 const MAX_PDF_PAGES = 10; // limite de páginas enviadas ao Gemini
+const PDF_SUPERSAMPLE = 1.5; // buffer renderizado maior que o devicePixelRatio — nitidez extra ao dar zoom (mesma ideia da prévia DXF)
 
 const INITIAL_CHAT = [
   { role: 'assistant', text: 'Faça upload de um PDF de projeto para eu extrair os itens automaticamente.' },
@@ -229,7 +230,10 @@ function chunkArray(arr, size) {
 // Evita pagar de novo pela mesma chamada ao reprocessar o mesmo arquivo durante
 // teste/debug. localStorage é suficiente pro caso de uso (só dev, não precisa
 // compartilhar entre usuários/dispositivos) — sem tabela nova no Supabase.
-const AI_CACHE_PREFIX     = 'aiExtractCache:';
+// v2: `pagina` nos itens cacheados passou a ser a página REAL do PDF (antes era
+// o índice local dentro da faixa processada) — prefixo novo invalida cache
+// antigo em vez de servir números de página errados pra quem já tinha testado.
+const AI_CACHE_PREFIX     = 'aiExtractCacheV2:';
 const AI_CACHE_MAX_ENTRIES = 20;                    // evita crescer sem limite
 const AI_CACHE_TTL_MS      = 7 * 24 * 60 * 60 * 1000; // 7 dias — cache é só de conveniência de dev
 
@@ -349,17 +353,25 @@ const TOOL_ATUALIZAR_ITEMS = {
 
 // ── PDF Viewer ────────────────────────────────────────────────────────────────
 
-function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileName, onClose, onSwap }) {
+function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileName, onClose, onSwap, pageRange = null }) {
   const pdfCanvasRef  = useRef(null);
   const annotCanvasRef = useRef(null);
   const renderTaskRef = useRef(null);
+  const containerRef  = useRef(null); // painel com scroll — usado pro pan e pra recentralizar no zoom
+  const zoomFocusRef  = useRef(null); // ponto do cursor a preservar após o próximo render (zoom centrado)
+  const panRef        = useRef(null); // {startX,startY,scrollLeft,scrollTop} enquanto arrasta pra pan
 
   const [activeTool,  setActiveTool]  = useState(null);
   const [annotations, setAnnotations] = useState({});
   const [isDrawing,   setIsDrawing]   = useState(false);
+  const [isPanning,   setIsPanning]   = useState(false);
   const drawRef = useRef({ tool: null, startX: 0, startY: 0, points: [] });
 
   const totalPages = pdfDoc?.numPages ?? 0;
+  // Restringe navegação à faixa detectada (seção de marmoraria) quando houver —
+  // o resto do documento (fundações, elétrica etc.) não é relevante nesse fluxo.
+  const pageMin = pageRange?.inicio ?? 1;
+  const pageMax = pageRange?.fim    ?? totalPages;
 
   // ── Render PDF page ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -377,16 +389,40 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
       const annot    = annotCanvasRef.current;
       if (!canvas || !annot || cancelled) return;
 
-      canvas.width  = viewport.width;
-      canvas.height = viewport.height;
-      annot.width   = viewport.width;
-      annot.height  = viewport.height;
+      // Renderiza num buffer maior que o tamanho exibido (devicePixelRatio ×
+      // supersample extra) e escala de volta via CSS — sem isso, o canvas fica
+      // borrado em telas retina mesmo com o PDF original em alta resolução,
+      // porque 1 "pixel" do canvas virava vários pixels físicos esticados.
+      const outputScale = (window.devicePixelRatio || 1) * PDF_SUPERSAMPLE;
+      canvas.width  = Math.floor(viewport.width  * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width  = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
 
-      const task = page.render({ canvasContext: canvas.getContext('2d'), viewport });
+      annot.width  = canvas.width;
+      annot.height = canvas.height;
+      // getPos() lê coordenadas em pixels CSS (getBoundingClientRect) — escala o
+      // contexto pra que os desenhos de anotação (em coordenadas CSS) caiam no
+      // lugar certo do buffer de maior resolução.
+      annot.getContext('2d').setTransform(outputScale, 0, 0, outputScale, 0, 0);
+
+      const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+      const task = page.render({ canvasContext: canvas.getContext('2d'), viewport, transform });
       renderTaskRef.current = task;
       try {
         await task.promise;
-        if (!cancelled) redrawAnnotations(currentPage, annotations, annot);
+        if (cancelled) return;
+        redrawAnnotations(currentPage, annotations, annot);
+
+        // Zoom centrado no cursor: reaplica o offset de scroll calculado no
+        // wheel handler agora que o canvas já tem o tamanho novo (antes disso
+        // o valor seria truncado pelo range de scroll ainda antigo).
+        const foco = zoomFocusRef.current;
+        if (foco && containerRef.current) {
+          containerRef.current.scrollLeft += foco.pointerX * (foco.ratio - 1);
+          containerRef.current.scrollTop  += foco.pointerY * (foco.ratio - 1);
+          zoomFocusRef.current = null;
+        }
       } catch (e) {
         if (e.name !== 'RenderingCancelledException') console.error(e);
       }
@@ -399,7 +435,13 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
   // ── Redraw annotations ─────────────────────────────────────────────────────
   function redrawAnnotations(page, allAnnotations, canvas) {
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // canvas.width/height são pixels do buffer (já multiplicados pelo
+    // devicePixelRatio/supersample); o ctx está com setTransform aplicado pra
+    // desenhar em pixels CSS — usa o tamanho CSS (canvas.style) pra limpar tudo
+    // sem depender desse fator.
+    const cssWidth  = parseFloat(canvas.style.width)  || canvas.width;
+    const cssHeight = parseFloat(canvas.style.height) || canvas.height;
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
     (allAnnotations[page] ?? []).forEach(ann => {
       if (ann.type === 'highlight') {
         ctx.fillStyle = 'rgba(250,204,21,0.30)';
@@ -423,8 +465,19 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
   }
 
   function onMouseDown(e) {
-    if (!activeTool || activeTool === 'eraser') {
-      setIsDrawing(activeTool === 'eraser');
+    if (!activeTool) {
+      // Nenhuma ferramenta de anotação ativa: arrastar faz pan (mão fechada),
+      // em vez de não fazer nada como antes.
+      panRef.current = {
+        startX: e.clientX, startY: e.clientY,
+        scrollLeft: containerRef.current?.scrollLeft ?? 0,
+        scrollTop:  containerRef.current?.scrollTop  ?? 0,
+      };
+      setIsPanning(true);
+      return;
+    }
+    if (activeTool === 'eraser') {
+      setIsDrawing(true);
       drawRef.current = { tool: activeTool, ...getPos(e), points: [getPos(e)] };
       return;
     }
@@ -434,6 +487,15 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
   }
 
   function onMouseMove(e) {
+    if (panRef.current) {
+      const dx = e.clientX - panRef.current.startX;
+      const dy = e.clientY - panRef.current.startY;
+      if (containerRef.current) {
+        containerRef.current.scrollLeft = panRef.current.scrollLeft - dx;
+        containerRef.current.scrollTop  = panRef.current.scrollTop  - dy;
+      }
+      return;
+    }
     if (!isDrawing || !activeTool) return;
     const pos = getPos(e);
     const { tool } = drawRef.current;
@@ -463,6 +525,11 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
   }
 
   function onMouseUp(e) {
+    if (panRef.current) {
+      panRef.current = null;
+      setIsPanning(false);
+      return;
+    }
     if (!isDrawing) return;
     setIsDrawing(false);
     const pos = getPos(e);
@@ -479,11 +546,41 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
     });
   }
 
+  // ── Zoom centrado no cursor (Ctrl/Cmd + roda do mouse, ou pinça de trackpad) ──
+  // Anexa via addEventListener nativo (não onWheel do React) porque o React
+  // marca wheel como listener passivo por padrão — preventDefault() dentro de
+  // um listener passivo é ignorado, e sem ele o Ctrl+scroll também dispara o
+  // zoom nativo da página do navegador junto com o nosso.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function handleWheel(e) {
+      if (!(e.ctrlKey || e.metaKey)) return; // scroll normal (pan vertical/horizontal) continua nativo
+      e.preventDefault();
+      const canvas = pdfCanvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const pointerX = e.clientX - rect.left;
+      const pointerY = e.clientY - rect.top;
+      const fator = Math.exp(-e.deltaY * 0.0015);
+
+      setScale(s => {
+        const novaScale = Math.min(3, Math.max(0.5, +(s * fator).toFixed(3)));
+        if (novaScale !== s) zoomFocusRef.current = { pointerX, pointerY, ratio: novaScale / s };
+        return novaScale;
+      });
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [setScale]);
+
   // ── Cursor ─────────────────────────────────────────────────────────────────
   const cursor = activeTool === 'highlight' ? 'crosshair'
                : activeTool === 'pencil'    ? 'cell'
                : activeTool === 'eraser'    ? 'cell'
-               : 'default';
+               : (isPanning ? 'grabbing' : 'grab');
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
@@ -556,18 +653,18 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
         {totalPages > 0 && (
           <div className="flex items-center gap-2">
             <button
-              disabled={currentPage <= 1}
-              onClick={() => setCurrentPage(p => p - 1)}
+              disabled={currentPage <= pageMin}
+              onClick={() => setCurrentPage(p => Math.max(pageMin, p - 1))}
               className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors"
             >
               <iconify-icon icon="solar:alt-arrow-left-linear" width="12" />
             </button>
-            <span className="font-mono text-[10px] text-zinc-500">
-              {currentPage} / {totalPages}
+            <span className="font-mono text-[10px] text-zinc-500" title={pageRange ? `Seção de marmoraria: págs. ${pageMin}-${pageMax} de ${totalPages}` : undefined}>
+              {currentPage} / {totalPages}{pageRange ? ` (seção ${pageMin}-${pageMax})` : ''}
             </span>
             <button
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= pageMax}
+              onClick={() => setCurrentPage(p => Math.min(pageMax, p + 1))}
               className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors"
             >
               <iconify-icon icon="solar:alt-arrow-right-linear" width="12" />
@@ -577,7 +674,7 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
       </div>
 
       {/* Canvas area */}
-      <div className="flex-1 overflow-auto flex justify-center p-4">
+      <div ref={containerRef} className="flex-1 overflow-auto flex justify-center p-4">
         {!pdfDoc ? (
           <div className="flex flex-col items-center justify-center text-zinc-700 gap-2 h-full">
             <iconify-icon icon="solar:file-text-linear" width="40" />
@@ -628,9 +725,14 @@ const [fileName,     setFileName]     = useState('');
   const [msgArquiteto,     setMsgArquiteto]     = useState('');
   const [materiais,        setMateriais]        = useState([]);
   const [imageUrl,         setImageUrl]         = useState(null);
-  const [forcarNovaAnalise, setForcarNovaAnalise] = useState(false); // ignora cache local de extração
   const [usouCache,         setUsouCache]         = useState(false); // resultado atual veio do cache, não de chamada nova
   const [dxfDoc,           setDxfDoc]           = useState(null);
+  const [paginaRange,      setPaginaRange]      = useState(null); // {inicio,fim} da seção detectada — null = PDF inteiro
+  // Debug/dev: testa a extração numa única página isolada (flash-lite, sem
+  // reprocessar o intervalo inteiro) — nunca aparece pra usuário final.
+  const [debugPagina,      setDebugPagina]      = useState('');
+  const [debugResultado,   setDebugResultado]   = useState(null);
+  const [debugLoading,     setDebugLoading]     = useState(false);
 
   // Gemini-format chat history (separate from display messages)
   const chatHistoryRef = useRef([]);
@@ -639,6 +741,7 @@ const [fileName,     setFileName]     = useState('');
   const fileInputRef  = useRef(null);
   const chatBottomRef = useRef(null);
   const autoLoadedRef = useRef(false); // guarda contra o double-invoke do efeito abaixo em React StrictMode (dev)
+  const lastFileRef    = useRef(null); // último File carregado — permite reprocessar sem re-upload ("forçar nova análise")
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -678,10 +781,10 @@ const [fileName,     setFileName]     = useState('');
   }, [empresaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── PDF → images helper ────────────────────────────────────────────────────
-  async function pdfToImages(doc) {
-    const count  = Math.min(doc.numPages, MAX_PDF_PAGES);
+  async function pdfToImages(doc, pageStart = 1, pageEnd = doc.numPages) {
+    const last   = Math.min(pageEnd, pageStart + MAX_PDF_PAGES - 1);
     const images = [];
-    for (let i = 1; i <= count; i++) {
+    for (let i = pageStart; i <= last; i++) {
       const page     = await doc.getPage(i);
       const viewport = page.getViewport({ scale: 2.0 });
       const canvas   = document.createElement('canvas');
@@ -699,15 +802,18 @@ const [fileName,     setFileName]     = useState('');
   // vazio ou quase vazio mesmo tendo conteúdo visual — é a mesma checagem que
   // `pdftotext` faz. Threshold folgado (30 chars/página): scans genuínos costumam
   // vir com ZERO texto, não "pouco" — texto residual de OCR ruim é raro nesse contexto.
-  async function isPdfVetorial(doc, maxPaginas = 3) {
-    const n = Math.min(doc.numPages, maxPaginas);
-    let totalChars = 0;
-    for (let i = 1; i <= n; i++) {
+  // Checa a partir de `pageStart` (não sempre a página 1) pra refletir o trecho
+  // que será de fato processado, caso a seção de marmoraria tenha sido localizada.
+  async function isPdfVetorial(doc, pageStart = 1, maxPaginas = 3) {
+    const last = Math.min(doc.numPages, pageStart + maxPaginas - 1);
+    let totalChars = 0, n = 0;
+    for (let i = pageStart; i <= last; i++) {
       const page    = await doc.getPage(i);
       const content = await page.getTextContent();
       totalChars += content.items.reduce((s, it) => s + (it.str?.replace(/\s/g, '').length ?? 0), 0);
+      n++;
     }
-    return (totalChars / n) > 30;
+    return n > 0 && (totalChars / n) > 30;
   }
 
   // Extrai {texto, x, y} de uma página vetorial — x,y em pontos, origem no canto
@@ -724,32 +830,135 @@ const [fileName,     setFileName]     = useState('');
       }));
   }
 
-  async function extractAllPagesTextItems(doc) {
-    const count = Math.min(doc.numPages, MAX_PDF_PAGES);
+  async function extractAllPagesTextItems(doc, pageStart = 1, pageEnd = doc.numPages) {
+    const last  = Math.min(pageEnd, pageStart + MAX_PDF_PAGES - 1);
     const pages = [];
-    for (let i = 1; i <= count; i++) {
+    for (let i = pageStart; i <= last; i++) {
       pages.push(await extractPageTextItems(await doc.getPage(i)));
     }
     return pages;
   }
 
+  // Agrupa os itens de texto de uma página em "linhas" por proximidade vertical
+  // (tolerância de 3pt) — necessário pra reconhecer entradas de índice/sumário
+  // ("TÍTULO DA SEÇÃO ... 37"), que extractPageTextItems (item a item) não preserva.
+  async function extractPageLines(page) {
+    const content  = await page.getTextContent();
+    const viewport = page.getViewport({ scale: 1 });
+    const items = content.items
+      .filter(it => it.str && it.str.trim())
+      .map(it => ({ texto: it.str.trim(), y: Math.round(viewport.height - it.transform[5]), x: it.transform[4] }))
+      .sort((a, b) => a.y - b.y || a.x - b.x);
+
+    const lines = [];
+    for (const it of items) {
+      const atual = lines[lines.length - 1];
+      if (atual && Math.abs(it.y - atual.y) <= 3) atual.texto += ' ' + it.texto;
+      else lines.push({ y: it.y, texto: it.texto });
+    }
+    return lines.map(l => l.texto);
+  }
+
+  const KEYWORDS_MARMORARIA = /bancada|marmoraria|granito|m[aá]rmore|pedra\s*(natural|ornamental)|quartzo/i;
+
+  // Tenta localizar, no índice/sumário (geralmente nas primeiras páginas de um
+  // projeto executivo), a faixa de páginas da seção de marmoraria/bancadas — pra
+  // processar só essa faixa em vez do PDF inteiro (economiza chamadas de IA e
+  // reduz ruído em projetos grandes). Heurística, não garantida: só confia que
+  // achou um índice de verdade se pelo menos MIN_ENTRADAS linhas baterem o padrão
+  // "título ... número" (evita casar um número solto em texto comum com página).
+  // Sem confiança suficiente, retorna null — quem chama cai pro PDF inteiro.
+  //
+  // A varredura do índice é ESCALONADA (5 → 10 → 15 páginas): projetos grandes
+  // podem ter índice de mais de uma página, e a entrada que fecha a seção de
+  // marmoraria (a próxima seção do índice, ex: Marcenaria) pode estar além da
+  // primeira leva. Varredura de texto é barata — vale expandir antes de desistir.
+  // Sem achar a entrada de fechamento em NENHUM estágio, NÃO cai silenciosamente
+  // pro PDF inteiro (isso é o que deixava página de outra seção vazar pro
+  // processamento sem aviso) — usa o teto técnico (MAX_PDF_PAGES a partir do
+  // início) e marca `aproximado: true` pra quem chama avisar o usuário.
+  async function localizarSecaoMarmoraria(doc) {
+    const MIN_ENTRADAS   = 5;
+    const BUFFER_PAGINAS = 2; // margem de segurança: número de "folha" impresso no
+                              // índice pode não bater 1:1 com a página física do PDF
+    const ESTAGIOS = [5, 10, 15];
+
+    const entradas = [];
+    let varridoAte = 0;
+
+    for (let estagio = 0; estagio < ESTAGIOS.length; estagio++) {
+      const alvo = Math.min(doc.numPages, ESTAGIOS[estagio]);
+      for (let i = varridoAte + 1; i <= alvo; i++) {
+        const linhas = await extractPageLines(await doc.getPage(i));
+        for (const linha of linhas) {
+          if (linha.length < 4) continue;
+          const nums = [...linha.matchAll(/\d+/g)];
+          if (nums.length === 0) continue;
+          const pagina = parseInt(nums[nums.length - 1][0], 10);
+          if (!Number.isFinite(pagina) || pagina < 1 || pagina > doc.numPages + 20) continue;
+          entradas.push({ titulo: linha, pagina });
+        }
+      }
+      varridoAte = alvo;
+      const esgotouVarredura = alvo >= doc.numPages || estagio === ESTAGIOS.length - 1;
+
+      if (entradas.length < MIN_ENTRADAS) {
+        if (esgotouVarredura) return null; // nunca pareceu um índice de verdade
+        continue; // índice pode continuar nas próximas páginas
+      }
+
+      const ordenadas = [...entradas].sort((a, b) => a.pagina - b.pagina);
+      const casadas = ordenadas
+        .map((e, idx) => ({ ...e, idx }))
+        .filter(e => KEYWORDS_MARMORARIA.test(e.titulo));
+
+      if (casadas.length === 0) {
+        if (esgotouVarredura) return null; // índice completo, sem seção de marmoraria
+        continue; // a seção pode estar mais adiante no índice
+      }
+
+      const ultimoIdx      = casadas[casadas.length - 1].idx;
+      const proximaEntrada = ordenadas[ultimoIdx + 1];
+
+      if (!proximaEntrada && !esgotouVarredura) continue; // pode achar o fechamento variando mais
+
+      let inicio = casadas[0].pagina;
+      let fim;
+      let aproximado = false;
+      if (proximaEntrada) {
+        fim = proximaEntrada.pagina - 1;
+      } else {
+        fim = inicio + MAX_PDF_PAGES - 1;
+        aproximado = true;
+      }
+
+      inicio = Math.max(1, inicio - BUFFER_PAGINAS);
+      fim    = Math.min(doc.numPages, Math.max(fim, inicio) + BUFFER_PAGINAS);
+
+      return { inicio, fim, titulos: casadas.map(e => e.titulo), aproximado };
+    }
+
+    return null;
+  }
+
   // ── PDF loading ────────────────────────────────────────────────────────────
-  async function loadPDF(file) {
+  async function loadPDF(file, forceNovo = false) {
     if (!file || file.type !== 'application/pdf') return;
     setLoading(true);
     setFileName(file.name);
     setItems([]);
     setImageUrl(null);
     setDxfDoc(null);
+    setPaginaRange(null);
     chatHistoryRef.current = [];
 
     try {
       const buffer = await file.arrayBuffer();
       const doc    = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise; // slice: pdf.js "detacha" o buffer original
       setPdfDoc(doc);
-      setCurrentPage(1);
 
       if (!isConfigured) {
+        setCurrentPage(1);
         setChatMessages(prev => [...prev, {
           role: 'error',
           text: 'VITE_GEMINI_API_KEY não configurada. Adicione ao .env.local e reinicie.',
@@ -759,13 +968,37 @@ const [fileName,     setFileName]     = useState('');
       }
 
       const fileHash  = await hashArrayBuffer(buffer);
-      const cacheHit  = !forcarNovaAnalise ? getAiCache(fileHash) : null;
+      const cacheHit  = !forceNovo ? getAiCache(fileHash) : null;
       setUsouCache(!!cacheHit);
+
+      // Em PDFs grandes, tenta achar a seção de marmoraria/bancadas pelo índice
+      // antes de processar tudo — evita gastar chamadas de IA em páginas de outras
+      // disciplinas (arquitetura, elétrica, etc.). Sem índice reconhecível ou sem
+      // bater nenhuma entrada, cai pro PDF inteiro (comportamento anterior).
+      const secao = doc.numPages > MAX_PDF_PAGES
+        ? await localizarSecaoMarmoraria(doc).catch(() => null)
+        : null;
+      const pageStart = secao?.inicio ?? 1;
+      const pageEnd   = secao?.fim    ?? doc.numPages;
+
+      // Restringe o visualizador à faixa detectada — o resto do documento
+      // (fundações, elétrica etc.) não é relevante nesse fluxo.
+      setPaginaRange(secao ? { inicio: pageStart, fim: pageEnd } : null);
+      setCurrentPage(pageStart);
+
+      if (secao) {
+        setChatMessages(prev => [...prev, {
+          role: 'assistant',
+          text: secao.aproximado
+            ? `📑 Encontrei o início da seção de marmoraria na página ${secao.inicio}, mas não achei no índice onde ela termina — processando até a página ${secao.fim} (de ${doc.numPages}) como aproximação…`
+            : `📑 Encontrei a seção de marmoraria nas páginas ${secao.inicio}-${secao.fim} (de ${doc.numPages}), processando essa faixa…`,
+        }]);
+      }
 
       // PDF vetorial (texto real extraível) é priorizado: parsing direto do texto,
       // sem depender de interpretação visual do modelo — mais confiável. Só cai pro
       // pipeline de visão (imagens renderizadas) quando o PDF é rasterizado/escaneado.
-      const vetorial = await isPdfVetorial(doc);
+      const vetorial = await isPdfVetorial(doc, pageStart);
 
       let extracted;
       if (cacheHit) {
@@ -777,18 +1010,26 @@ const [fileName,     setFileName]     = useState('');
           text: vetorial ? `Lendo texto vetorial de "${file.name}"…` : `Renderizando "${file.name}"…`,
         }]);
 
-        const onProgress = (pagina, total) => {
+        const onProgress = (pagina, total, paginaFim = pagina) => {
+          const rotuloPagina = paginaFim > pagina ? `páginas ${pagina}-${paginaFim}` : `página ${pagina}`;
           setChatMessages(prev => [
             ...prev.slice(0, -1),
             { role: 'assistant', text: total > 1
-              ? `Analisando página ${pagina} de ${total}${vetorial ? ' (texto)' : ''}…`
+              ? `Analisando ${rotuloPagina} de ${total}${vetorial ? ' (texto)' : ''}…`
               : `Analisando "${file.name}"…` },
           ]);
         };
 
         extracted = vetorial
-          ? await analyzePlantaVetorial({ pageTextItems: await extractAllPagesTextItems(doc), empresaId, onProgress })
-          : await analyzePlantPDF({ pageImages: await pdfToImages(doc), empresaId, onProgress });
+          ? await analyzePlantaVetorial({ pageTextItems: await extractAllPagesTextItems(doc, pageStart, pageEnd), empresaId, onProgress })
+          : await analyzePlantPDF({ pageImages: await pdfToImages(doc, pageStart, pageEnd), empresaId, onProgress });
+
+        // runExtractionPipeline numera `pagina` a partir de 1 dentro da FAIXA
+        // enviada (pageStart..pageEnd), não da página real do PDF — sem somar
+        // esse offset, clicar num item leva pra página errada sempre que a seção
+        // detectada não começa na página 1 (ex: item da página local 3 == PDF 36
+        // quando pageStart = 34, mas ficaria marcado como página 3).
+        extracted = extracted.map(item => ({ ...item, pagina: (Number(item.pagina) || 1) + (pageStart - 1) }));
 
         setAiCache(fileHash, extracted);
       }
@@ -797,7 +1038,8 @@ const [fileName,     setFileName]     = useState('');
 
       setItems(normalizedItems);
 
-      const summary = `${cacheHit ? '📦 [cache] ' : ''}Analisei "${file.name}" (${doc.numPages} pág., ${vetorial ? 'PDF vetorial' : 'imagem'}) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
+      const paginasInfo = secao ? `págs. ${secao.inicio}-${secao.fim}${secao.aproximado ? ' aprox.' : ''} de ${doc.numPages}` : `${doc.numPages} pág.`;
+      const summary = `${cacheHit ? '📦 [cache] ' : ''}Analisei "${file.name}" (${paginasInfo}, ${vetorial ? 'PDF vetorial' : 'imagem'}) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
       setChatMessages(prev => [
         ...prev.slice(0, -1), // remove a mensagem de "Renderizando.../Resultado em cache..."
         { role: 'assistant', text: summary },
@@ -843,6 +1085,7 @@ const [fileName,     setFileName]     = useState('');
     setItems([]);
     setPdfDoc(null);
     setDxfDoc(null);
+    setPaginaRange(null);
     setChatMessages(INITIAL_CHAT);
     chatHistoryRef.current = [];
 
@@ -905,13 +1148,14 @@ const [fileName,     setFileName]     = useState('');
   }
 
   // ── DXF loading ────────────────────────────────────────────────────────────
-  async function loadDXF(file) {
+  async function loadDXF(file, forceNovo = false) {
     setLoading(true);
     setFileName(file.name);
     setItems([]);
     setPdfDoc(null);
     setImageUrl(null);
     setDxfDoc(null);
+    setPaginaRange(null);
     setChatMessages(INITIAL_CHAT);
     chatHistoryRef.current = [];
 
@@ -947,7 +1191,7 @@ const [fileName,     setFileName]     = useState('');
       }
 
       const fileHash = await hashArrayBuffer(buffer);
-      const cacheHit = !forcarNovaAnalise ? getAiCache(fileHash) : null;
+      const cacheHit = !forceNovo ? getAiCache(fileHash) : null;
       setUsouCache(!!cacheHit);
 
       let extracted;
@@ -977,11 +1221,12 @@ const [fileName,     setFileName]     = useState('');
         extracted = await analyzePlantaVetorial({
           pageTextItems,
           empresaId,
-          onProgress: (parte, total) => {
+          onProgress: (parte, total, parteFim = parte) => {
             if (total <= 1) return;
+            const rotulo = parteFim > parte ? `partes ${parte}-${parteFim}` : `parte ${parte}`;
             setChatMessages(prev => [
               ...prev.slice(0, -1),
-              { role: 'assistant', text: `Analisando "${file.name}" (DXF, parte ${parte} de ${total})…` },
+              { role: 'assistant', text: `Analisando "${file.name}" (DXF, ${rotulo} de ${total})…` },
             ]);
           },
         });
@@ -1027,10 +1272,39 @@ const [fileName,     setFileName]     = useState('');
   }
 
   // ── Dispatcher: escolhe loader pela extensão/tipo do arquivo ─────────────────
-  function loadFile(file) {
+  function loadFile(file, forceNovo = false) {
+    lastFileRef.current = file; // guarda pra "forçar nova análise" poder reprocessar sem re-upload
     if (file.type.startsWith('image/')) return loadImage(file);
-    if (file.name?.toLowerCase().endsWith('.dxf')) return loadDXF(file);
-    return loadPDF(file);
+    if (file.name?.toLowerCase().endsWith('.dxf')) return loadDXF(file, forceNovo);
+    return loadPDF(file, forceNovo);
+  }
+
+  // Ação direta: reprocessa o arquivo já carregado ignorando o cache — sem
+  // depender de reload manual (F5), que resetava esse estado antes de ele
+  // fazer efeito (era um checkbox lido só na próxima carga, não uma ação).
+  function handleForcarNovaAnalise() {
+    if (!lastFileRef.current || loading) return;
+    loadFile(lastFileRef.current, true);
+  }
+
+  // ── DEBUG (só dev): testa a extração de UMA página isolada, sem reprocessar
+  // o intervalo inteiro — usa gemini-3.5-flash-lite (mais barato) e não mistura
+  // o resultado com a lista de itens do documento inteiro. Ferramenta de
+  // desenvolvimento pra validar ajuste de prompt gastando o mínimo possível.
+  async function handleDebugTestarPagina() {
+    const numero = parseInt(debugPagina, 10);
+    if (!pdfDoc || !numero || numero < 1 || numero > pdfDoc.numPages || debugLoading) return;
+    setDebugLoading(true);
+    setDebugResultado(null);
+    try {
+      const textItems = await extractPageTextItems(await pdfDoc.getPage(numero));
+      const itens = await analyzePlantaVetorial({ pageTextItems: [textItems], empresaId, usarModeloBarato: true });
+      setDebugResultado({ pagina: numero, itens });
+    } catch (err) {
+      setDebugResultado({ pagina: numero, erro: err.message });
+    } finally {
+      setDebugLoading(false);
+    }
   }
 
   function handleFileChange(e) {
@@ -1048,6 +1322,7 @@ const [fileName,     setFileName]     = useState('');
     setPdfDoc(null);
     setImageUrl(null);
     setDxfDoc(null);
+    setPaginaRange(null);
     setItems([]);
     setSelectedItem(null);
     loadFile(fileList[idx]);
@@ -1342,18 +1617,15 @@ const [fileName,     setFileName]     = useState('');
             <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 shrink-0">
               Verificações {items.length > 0 && `· ${items.length}`}
             </span>
-            <label
-              className="flex items-center gap-1 font-mono text-[9px] text-zinc-600 hover:text-zinc-400 cursor-pointer shrink-0"
-              title="Ignora o cache local e reprocessa com a IA de novo (ex: depois de mudar o prompt/schema)"
+            <button
+              type="button"
+              onClick={handleForcarNovaAnalise}
+              disabled={!lastFileRef.current || loading}
+              className="font-mono text-[9px] text-zinc-600 hover:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
+              title="Ignora o cache local e reprocessa com a IA agora mesmo (ex: depois de mudar o prompt/schema)"
             >
-              <input
-                type="checkbox"
-                checked={forcarNovaAnalise}
-                onChange={e => setForcarNovaAnalise(e.target.checked)}
-                className="accent-yellow-500"
-              />
-              forçar nova análise
-            </label>
+              🔄 forçar nova análise
+            </button>
             {usouCache && !loading && (
               <span className="font-mono text-[9px] text-blue-400 shrink-0" title="Resultado veio do cache local — nenhuma chamada à IA foi feita">📦 cache</span>
             )}
@@ -1361,6 +1633,47 @@ const [fileName,     setFileName]     = useState('');
               <span className="font-mono text-[9px] text-yellow-400 animate-pulse shrink-0">Analisando...</span>
             )}
           </div>
+
+          {import.meta.env.DEV && pdfDoc && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-950/20 border-t border-yellow-900/40">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-yellow-600 shrink-0">🧪 debug</span>
+              <input
+                type="number"
+                min={1}
+                max={pdfDoc.numPages}
+                value={debugPagina}
+                onChange={e => setDebugPagina(e.target.value)}
+                placeholder="pág."
+                className="w-14 bg-zinc-900 border border-zinc-700 rounded px-1 py-0.5 text-[10px] font-mono text-zinc-300"
+              />
+              <button
+                type="button"
+                onClick={handleDebugTestarPagina}
+                disabled={debugLoading || !debugPagina}
+                className="font-mono text-[9px] text-yellow-500 hover:text-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                title="Extrai só essa página com flash-lite (mais barato) — não mistura com o resultado principal"
+              >
+                {debugLoading ? 'testando…' : 'testar só essa página (flash-lite)'}
+              </button>
+            </div>
+          )}
+
+          {debugResultado && (
+            <div className="px-4 py-2 bg-yellow-950/10 border-t border-yellow-900/40 max-h-48 overflow-y-auto">
+              <div className="font-mono text-[9px] text-yellow-600 mb-1">
+                🧪 resultado isolado — pág. {debugResultado.pagina}{debugResultado.erro ? ' (erro)' : ` · ${debugResultado.itens.length} item(ns)`}
+              </div>
+              {debugResultado.erro ? (
+                <div className="font-mono text-[9px] text-red-400">{debugResultado.erro}</div>
+              ) : (
+                debugResultado.itens.map((it, i) => (
+                  <div key={i} className="font-mono text-[9px] text-zinc-400 py-0.5 border-b border-zinc-900 last:border-0">
+                    {it.descricao} — {it.dimensoes} ({it.confianca}%) — {it.trecho_origem}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
 
           {items.length === 0 && pdfDoc && !loading && (
             <p className="px-4 py-4 font-mono text-[10px] text-zinc-700 text-center">Analisando PDF...</p>
@@ -1707,6 +2020,7 @@ const [fileName,     setFileName]     = useState('');
             pdfDoc={pdfDoc}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
+            pageRange={paginaRange}
             scale={scale}
             setScale={setScale}
             fileName={fileName}
