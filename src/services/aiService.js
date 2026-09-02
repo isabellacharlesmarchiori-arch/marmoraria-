@@ -119,8 +119,6 @@ function toFunctionDeclarations(openAITools) {
 }
 
 function getModel(withTools, modelName = MODEL_PRIMARY, generationConfig = undefined) {
-  // DEBUG TEMPORÁRIO — remover depois de confirmar qual key/projeto está ativo.
-  console.log(`[AI][debug] model=${modelName} key=...${GEMINI_API_KEY?.slice(-4) ?? 'undefined'}`);
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   return genAI.getGenerativeModel({
     model: modelName,
@@ -371,7 +369,7 @@ async function callGeminiDirect({ systemPrompt, history, tools, fluxo, empresaId
   const tokensEntrada = response.usageMetadata?.promptTokenCount     ?? 0;
   const tokensSaida   = response.usageMetadata?.candidatesTokenCount ?? 0;
 
-  await logUsage({ fluxo, empresaId, tokensEntrada, tokensSaida, fromCache: false });
+  logUsage({ fluxo, empresaId, tokensEntrada, tokensSaida, fromCache: false }).catch(() => {}); // telemetria não crítica — nunca deve travar o fluxo principal
   return { text, functionCalls, tokensEntrada, tokensSaida, fromCache: false };
 }
 
@@ -389,7 +387,7 @@ async function callGeminiProxy({ systemPrompt, history, tools, fluxo, empresaId 
     throw new Error(error);
   }
   const data = await res.json();
-  await logUsage({ fluxo, empresaId, tokensEntrada: data.tokensEntrada ?? 0, tokensSaida: data.tokensSaida ?? 0, fromCache: false });
+  logUsage({ fluxo, empresaId, tokensEntrada: data.tokensEntrada ?? 0, tokensSaida: data.tokensSaida ?? 0, fromCache: false }).catch(() => {}); // telemetria não crítica — nunca deve travar o fluxo principal
   return { text: data.text, functionCalls: data.functionCalls, tokensEntrada: data.tokensEntrada, tokensSaida: data.tokensSaida, fromCache: false };
 }
 
@@ -409,7 +407,7 @@ export async function callGemini({
     const cached = responseCache.get(cacheKey);
     if (cached) {
       console.log('[AI] cache hit');
-      await logUsage({ fluxo, empresaId, tokensEntrada: 0, tokensSaida: 0, fromCache: true });
+      logUsage({ fluxo, empresaId, tokensEntrada: 0, tokensSaida: 0, fromCache: true }).catch(() => {}); // telemetria não crítica — nunca deve travar o fluxo principal
       return { text: cached.text, functionCalls: null, fromCache: true };
     }
   }
@@ -464,7 +462,7 @@ async function analyzePlantPDFBatchDirect({ pageImages, economyMode, empresaId, 
   const rawText  = result.response.text();
   const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
   const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
-  await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada, tokensSaida, fromCache: false });
+  logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada, tokensSaida, fromCache: false }).catch(() => {}); // telemetria não crítica — nunca deve travar o fluxo principal
   const jsonMatch = rawText.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
   return JSON.parse(jsonMatch[0]);
@@ -484,7 +482,7 @@ async function analyzePlantPDFBatchProxy({ pageImages, economyMode, empresaId, c
     throw new Error(error);
   }
   const { items, tokensEntrada, tokensSaida } = await res.json();
-  await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false });
+  logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false }).catch(() => {}); // telemetria não crítica — nunca deve travar o fluxo principal
   return items;
 }
 
@@ -516,7 +514,7 @@ async function analyzePlantaVetorialBatchDirect({ textItems, empresaId, contexto
   const rawText  = result.response.text();
   const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
   const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
-  await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada, tokensSaida, fromCache: false });
+  logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada, tokensSaida, fromCache: false }).catch(() => {}); // telemetria não crítica — nunca deve travar o fluxo principal
   const jsonMatch = rawText.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
   return JSON.parse(jsonMatch[0]);
@@ -536,7 +534,7 @@ async function analyzePlantaVetorialBatchProxy({ textItems, empresaId, contextoA
     throw new Error(error);
   }
   const { items, tokensEntrada, tokensSaida } = await res.json();
-  await logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false });
+  logUsage({ fluxo: 'analise_planta', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false }).catch(() => {}); // telemetria não crítica — nunca deve travar o fluxo principal
   return items;
 }
 

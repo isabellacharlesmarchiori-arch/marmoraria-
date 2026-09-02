@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { analyzePlantPDF, analyzePlantaVetorial, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
+import DxfCanvasPreview from './DxfCanvasPreview';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -222,6 +223,48 @@ function chunkArray(arr, size) {
   const chunks = [];
   for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
   return chunks.length ? chunks : [[]];
+}
+
+// ── Cache local de extração por IA (dev) ─────────────────────────────────────────
+// Evita pagar de novo pela mesma chamada ao reprocessar o mesmo arquivo durante
+// teste/debug. localStorage é suficiente pro caso de uso (só dev, não precisa
+// compartilhar entre usuários/dispositivos) — sem tabela nova no Supabase.
+const AI_CACHE_PREFIX     = 'aiExtractCache:';
+const AI_CACHE_MAX_ENTRIES = 20;                    // evita crescer sem limite
+const AI_CACHE_TTL_MS      = 7 * 24 * 60 * 60 * 1000; // 7 dias — cache é só de conveniência de dev
+
+async function hashArrayBuffer(buffer) {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getAiCache(hash) {
+  try {
+    const raw = localStorage.getItem(AI_CACHE_PREFIX + hash);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (Date.now() - entry.ts > AI_CACHE_TTL_MS) { localStorage.removeItem(AI_CACHE_PREFIX + hash); return null; }
+    return entry.extracted;
+  } catch {
+    return null;
+  }
+}
+
+function setAiCache(hash, extracted) {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(AI_CACHE_PREFIX));
+    if (keys.length >= AI_CACHE_MAX_ENTRIES) {
+      // remove a entrada mais antiga pra abrir espaço (LRU simplificado por timestamp de criação)
+      const comTs = keys.map(k => {
+        try { return { k, ts: JSON.parse(localStorage.getItem(k))?.ts ?? 0 }; } catch { return { k, ts: 0 }; }
+      });
+      comTs.sort((a, b) => a.ts - b.ts);
+      localStorage.removeItem(comTs[0].k);
+    }
+    localStorage.setItem(AI_CACHE_PREFIX + hash, JSON.stringify({ ts: Date.now(), extracted }));
+  } catch {
+    // localStorage cheio/indisponível — só não cacheia, não deve quebrar o fluxo principal
+  }
 }
 
 // Returns {comprimento, largura} where one is a "X,XX" string and the other is null,
@@ -585,6 +628,9 @@ const [fileName,     setFileName]     = useState('');
   const [msgArquiteto,     setMsgArquiteto]     = useState('');
   const [materiais,        setMateriais]        = useState([]);
   const [imageUrl,         setImageUrl]         = useState(null);
+  const [forcarNovaAnalise, setForcarNovaAnalise] = useState(false); // ignora cache local de extração
+  const [usouCache,         setUsouCache]         = useState(false); // resultado atual veio do cache, não de chamada nova
+  const [dxfDoc,           setDxfDoc]           = useState(null);
 
   // Gemini-format chat history (separate from display messages)
   const chatHistoryRef = useRef([]);
@@ -592,14 +638,23 @@ const [fileName,     setFileName]     = useState('');
 
   const fileInputRef  = useRef(null);
   const chatBottomRef = useRef(null);
+  const autoLoadedRef = useRef(false); // guarda contra o double-invoke do efeito abaixo em React StrictMode (dev)
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Auto-load first file from initialFiles on mount
+  // Auto-load first file from initialFiles on mount. StrictMode (dev) roda esse
+  // efeito 2x de propósito (mount→cleanup→remount) pra expor efeitos não-
+  // idempotentes — loadFile dispara chamadas reais à IA sem suporte a
+  // cancelamento, então sem essa guarda as duas invocações rodam em paralelo,
+  // competindo pelo mesmo rate limit (respostas truncadas/intercaladas). O ref
+  // sobrevive ao ciclo cleanup→remount do StrictMode, então só a 1ª chamada real
+  // passa.
   useEffect(() => {
+    if (autoLoadedRef.current) return;
     if (initialFiles?.length > 0) {
+      autoLoadedRef.current = true;
       loadFile(initialFiles[0]);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -685,11 +740,12 @@ const [fileName,     setFileName]     = useState('');
     setFileName(file.name);
     setItems([]);
     setImageUrl(null);
+    setDxfDoc(null);
     chatHistoryRef.current = [];
 
     try {
       const buffer = await file.arrayBuffer();
-      const doc    = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const doc    = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise; // slice: pdf.js "detacha" o buffer original
       setPdfDoc(doc);
       setCurrentPage(1);
 
@@ -702,36 +758,48 @@ const [fileName,     setFileName]     = useState('');
         return;
       }
 
+      const fileHash  = await hashArrayBuffer(buffer);
+      const cacheHit  = !forcarNovaAnalise ? getAiCache(fileHash) : null;
+      setUsouCache(!!cacheHit);
+
       // PDF vetorial (texto real extraível) é priorizado: parsing direto do texto,
       // sem depender de interpretação visual do modelo — mais confiável. Só cai pro
       // pipeline de visão (imagens renderizadas) quando o PDF é rasterizado/escaneado.
       const vetorial = await isPdfVetorial(doc);
 
-      setChatMessages(prev => [...prev, {
-        role: 'assistant',
-        text: vetorial ? `Lendo texto vetorial de "${file.name}"…` : `Renderizando "${file.name}"…`,
-      }]);
+      let extracted;
+      if (cacheHit) {
+        extracted = cacheHit;
+        setChatMessages(prev => [...prev, { role: 'assistant', text: `📦 Resultado em cache pra "${file.name}" (mesmo conteúdo já analisado antes).` }]);
+      } else {
+        setChatMessages(prev => [...prev, {
+          role: 'assistant',
+          text: vetorial ? `Lendo texto vetorial de "${file.name}"…` : `Renderizando "${file.name}"…`,
+        }]);
 
-      const onProgress = (pagina, total) => {
-        setChatMessages(prev => [
-          ...prev.slice(0, -1),
-          { role: 'assistant', text: total > 1
-            ? `Analisando página ${pagina} de ${total}${vetorial ? ' (texto)' : ''}…`
-            : `Analisando "${file.name}"…` },
-        ]);
-      };
+        const onProgress = (pagina, total) => {
+          setChatMessages(prev => [
+            ...prev.slice(0, -1),
+            { role: 'assistant', text: total > 1
+              ? `Analisando página ${pagina} de ${total}${vetorial ? ' (texto)' : ''}…`
+              : `Analisando "${file.name}"…` },
+          ]);
+        };
 
-      const extracted = vetorial
-        ? await analyzePlantaVetorial({ pageTextItems: await extractAllPagesTextItems(doc), empresaId, onProgress })
-        : await analyzePlantPDF({ pageImages: await pdfToImages(doc), empresaId, onProgress });
+        extracted = vetorial
+          ? await analyzePlantaVetorial({ pageTextItems: await extractAllPagesTextItems(doc), empresaId, onProgress })
+          : await analyzePlantPDF({ pageImages: await pdfToImages(doc), empresaId, onProgress });
+
+        setAiCache(fileHash, extracted);
+      }
 
       const normalizedItems = normalizeExtractedItems(extracted, materiaisRef.current);
 
       setItems(normalizedItems);
 
-      const summary = `Analisei "${file.name}" (${doc.numPages} pág., ${vetorial ? 'PDF vetorial' : 'imagem'}) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
+      const summary = `${cacheHit ? '📦 [cache] ' : ''}Analisei "${file.name}" (${doc.numPages} pág., ${vetorial ? 'PDF vetorial' : 'imagem'}) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
       setChatMessages(prev => [
-        ...prev.slice(0, -1), // remove a mensagem de "Renderizando..."
+        ...prev.slice(0, -1), // remove a mensagem de "Renderizando.../Resultado em cache..."
         { role: 'assistant', text: summary },
       ]);
 
@@ -774,6 +842,7 @@ const [fileName,     setFileName]     = useState('');
     setFileName(file.name);
     setItems([]);
     setPdfDoc(null);
+    setDxfDoc(null);
     setChatMessages(INITIAL_CHAT);
     chatHistoryRef.current = [];
 
@@ -842,6 +911,7 @@ const [fileName,     setFileName]     = useState('');
     setItems([]);
     setPdfDoc(null);
     setImageUrl(null);
+    setDxfDoc(null);
     setChatMessages(INITIAL_CHAT);
     chatHistoryRef.current = [];
 
@@ -869,36 +939,60 @@ const [fileName,     setFileName]     = useState('');
         throw new Error(`Não consegui ler o arquivo DXF: ${err.message}`);
       }
 
+      setDxfDoc(dxf); // habilita o chat da IA pro arquivo já aqui, antes da extração terminar (sem prévia visual por ora)
+
       const textItems = extractDxfTextItems(dxf);
       if (textItems.length === 0) {
         throw new Error('Nenhum texto, cota ou geometria reconhecida no DXF — verifique se o arquivo tem entidades TEXT/MTEXT/DIMENSION/LINE/LWPOLYLINE.');
       }
 
-      // DXF não tem conceito de página — quebra em blocos de ~150 itens (mesma
-      // ideia do PDF página-por-página: mantém cada chamada bem abaixo do limite
-      // de tempo/token, e reaproveita o mesmo contexto incremental entre blocos).
-      const pageTextItems = chunkArray(textItems, 150);
+      const fileHash = await hashArrayBuffer(buffer);
+      const cacheHit = !forcarNovaAnalise ? getAiCache(fileHash) : null;
+      setUsouCache(!!cacheHit);
 
-      setChatMessages(prev => [...prev, { role: 'assistant', text: pageTextItems.length > 1
-        ? `Analisando "${file.name}" (DXF, parte 1 de ${pageTextItems.length})…`
-        : `Analisando "${file.name}" (DXF)…` }]);
+      let extracted;
+      if (cacheHit) {
+        extracted = cacheHit;
+        setChatMessages(prev => [...prev, { role: 'assistant', text: `📦 Resultado em cache pra "${file.name}" (mesmo conteúdo já analisado antes).` }]);
+      } else {
+        // Ordena por posição espacial (y depois x) ANTES de fatiar em blocos — a
+        // ordem crua de `extractDxfTextItems` é ordem de leitura das entidades no
+        // arquivo, não posição no desenho, então uma cota e o texto/objeto que a
+        // identifica podiam cair em blocos diferentes mesmo estando fisicamente
+        // vizinhos (medido no arquivo de teste: 38% das cotas caíam num bloco
+        // diferente do seu vizinho mais próximo com a ordem crua; com esse sort
+        // cai pra ~4%) — a IA não tem como casar os dois nesse caso e
+        // corretamente marca "a medir" por falta de certeza.
+        const textItemsOrdenados = [...textItems].sort((a, b) => a.y - b.y || a.x - b.x);
 
-      const extracted = await analyzePlantaVetorial({
-        pageTextItems,
-        empresaId,
-        onProgress: (parte, total) => {
-          if (total <= 1) return;
-          setChatMessages(prev => [
-            ...prev.slice(0, -1),
-            { role: 'assistant', text: `Analisando "${file.name}" (DXF, parte ${parte} de ${total})…` },
-          ]);
-        },
-      });
+        // DXF não tem conceito de página — quebra em blocos de ~150 itens (mesma
+        // ideia do PDF página-por-página: mantém cada chamada bem abaixo do limite
+        // de tempo/token, e reaproveita o mesmo contexto incremental entre blocos).
+        const pageTextItems = chunkArray(textItemsOrdenados, 150);
+
+        setChatMessages(prev => [...prev, { role: 'assistant', text: pageTextItems.length > 1
+          ? `Analisando "${file.name}" (DXF, parte 1 de ${pageTextItems.length})…`
+          : `Analisando "${file.name}" (DXF)…` }]);
+
+        extracted = await analyzePlantaVetorial({
+          pageTextItems,
+          empresaId,
+          onProgress: (parte, total) => {
+            if (total <= 1) return;
+            setChatMessages(prev => [
+              ...prev.slice(0, -1),
+              { role: 'assistant', text: `Analisando "${file.name}" (DXF, parte ${parte} de ${total})…` },
+            ]);
+          },
+        });
+        setAiCache(fileHash, extracted);
+      }
+
       const normalizedItems = normalizeExtractedItems(extracted, materiaisRef.current);
 
       setItems(normalizedItems);
 
-      const summary = `Analisei "${file.name}" (DXF) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
+      const summary = `${cacheHit ? '📦 [cache] ' : ''}Analisei "${file.name}" (DXF) e encontrei ${normalizedItems.length} item(ns). Revise abaixo e me diga se algo precisa ser ajustado.`;
       setChatMessages(prev => [
         ...prev.slice(0, -1),
         { role: 'assistant', text: summary },
@@ -953,6 +1047,7 @@ const [fileName,     setFileName]     = useState('');
     setActiveFileIdx(idx);
     setPdfDoc(null);
     setImageUrl(null);
+    setDxfDoc(null);
     setItems([]);
     setSelectedItem(null);
     loadFile(fileList[idx]);
@@ -1216,7 +1311,7 @@ const [fileName,     setFileName]     = useState('');
 
   return (
     <>
-    <div className={`flex gap-0 border border-zinc-800 ${fullscreen ? 'h-full' : 'h-[calc(100vh-220px)] min-h-[500px]'}`}>
+    <div className={`flex gap-0 border border-zinc-800 ${fullscreen ? 'h-full' : 'h-[calc(100vh-140px)] min-h-[650px]'}`}>
 
       {/* ══ LADO ESQUERDO ════════════════════════════════════════════════════ */}
       <div className="flex flex-col w-1/2 border-r border-zinc-800 overflow-hidden">
@@ -1243,12 +1338,27 @@ const [fileName,     setFileName]     = useState('');
 
         {/* Itens extraídos */}
         <div className="shrink-0 border-b border-zinc-800">
-          <div className="flex items-center justify-between px-4 py-2 bg-zinc-950">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+          <div className="flex items-center justify-between px-4 py-2 bg-zinc-950 gap-2">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 shrink-0">
               Verificações {items.length > 0 && `· ${items.length}`}
             </span>
+            <label
+              className="flex items-center gap-1 font-mono text-[9px] text-zinc-600 hover:text-zinc-400 cursor-pointer shrink-0"
+              title="Ignora o cache local e reprocessa com a IA de novo (ex: depois de mudar o prompt/schema)"
+            >
+              <input
+                type="checkbox"
+                checked={forcarNovaAnalise}
+                onChange={e => setForcarNovaAnalise(e.target.checked)}
+                className="accent-yellow-500"
+              />
+              forçar nova análise
+            </label>
+            {usouCache && !loading && (
+              <span className="font-mono text-[9px] text-blue-400 shrink-0" title="Resultado veio do cache local — nenhuma chamada à IA foi feita">📦 cache</span>
+            )}
             {loading && (
-              <span className="font-mono text-[9px] text-yellow-400 animate-pulse">Analisando...</span>
+              <span className="font-mono text-[9px] text-yellow-400 animate-pulse shrink-0">Analisando...</span>
             )}
           </div>
 
@@ -1499,8 +1609,8 @@ const [fileName,     setFileName]     = useState('');
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleChatSend()}
-              disabled={(!pdfDoc && !imageUrl) || chatLoading}
-              placeholder={(pdfDoc || imageUrl) ? 'Ex: muda a medida da bancada da cozinha para 3,50 m' : 'Faça upload de um PDF ou imagem para começar'}
+              disabled={(!pdfDoc && !imageUrl && !dxfDoc) || chatLoading}
+              placeholder={(pdfDoc || imageUrl || dxfDoc) ? 'Ex: muda a medida da bancada da cozinha para 3,50 m' : 'Faça upload de um PDF ou imagem para começar'}
               className="flex-1 bg-zinc-950 border border-zinc-800 text-white text-[11px] font-mono px-3 py-2 outline-none focus:border-yellow-400 placeholder:text-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             />
             <button
@@ -1558,9 +1668,17 @@ const [fileName,     setFileName]     = useState('');
         className="hidden"
       />
 
-      {/* ══ LADO DIREITO — PDF Viewer ou Image Preview ════════════════════ */}
+      {/* ══ LADO DIREITO — PDF Viewer, Image ou Diagrama esquemático do DXF ═══════════ */}
       <div className="flex flex-col w-1/2 overflow-hidden">
-        {imageUrl ? (
+        {dxfDoc ? (
+          <DxfCanvasPreview
+            items={items}
+            extracting={loading}
+            fileName={fileName}
+            onSwap={() => fileInputRef.current?.click()}
+            onClose={() => { setDxfDoc(null); setItems([]); setFileName(''); setSelectedItem(null); }}
+          />
+        ) : imageUrl ? (
           <div className="flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-zinc-800 bg-zinc-950">
               <iconify-icon icon="solar:gallery-linear" width="11" class="text-yellow-400 shrink-0" />
