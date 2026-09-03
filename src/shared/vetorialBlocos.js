@@ -17,7 +17,11 @@
 //  4. Sem título e sem gap claro: um bloco único com tudo — o comportamento de
 //     antes dessa mudança.
 
-const TITULO_REGEX = /(VISTA\s+\S.*|PLANTA\s+BAIXA.*|ISOM[ÉE]TRICA.*|DETALHE.*|DET\..*|SE[ÇC][ÃA]O.*)/i;
+const TITULO_REGEX = /(VISTA\s+\S.*|PLANTA\s+BAIXA.*|ISOM[ÉE]TRICA.*|DETALHE.*|DET\..*|SE[ÇC][ÃA]O.*|SOLEIRA.*)/i;
+// Palavras-chave de título pro reparo de fragmento quebrado (ver
+// repararTituloQuebrado) — mesmas âncoras de TITULO_REGEX, só sem acento/sem
+// grupo de captura, pra comparação simples de prefixo em maiúsculas.
+const TITULO_PALAVRAS_CHAVE = ['VISTA', 'PLANTA', 'ISOMETRICA', 'ISOMÉTRICA', 'DETALHE', 'DET.', 'SECAO', 'SEÇÃO', 'SOLEIRA'];
 const ROW_TOL = 45;       // pt — títulos com diferença de y menor que isso formam a mesma "fileira" de desenhos
 const LINHA_TOL = 8;      // pt — tolerância pra juntar glifos soltos em "linha" só pra detectar título/legenda
 const LEGENDA_MIN_STACK = 5; // linhas empilhadas mínimas pra reconhecer uma coluna de legenda/índice
@@ -36,7 +40,7 @@ const X_GAP_MAX = 150; // pt — salto horizontal maior que isso é outra legend
 //    sem isso, duas legendas/títulos que calham de ter y parecido mas ficam
 //    em lados opostos da página (ex: coluna de legenda geral x~1000 vs. título
 //    de um desenho x~150) se colam numa linha só, e viram um bloco falso.
-function agruparEmLinhas(items, tolerancia = LINHA_TOL) {
+export function agruparEmLinhas(items, tolerancia = LINHA_TOL) {
   const ordenado = [...items].sort((a, b) => a.y - b.y || a.x - b.x);
   const linhas = [];
   for (const it of ordenado) {
@@ -90,6 +94,42 @@ function isolarLegenda(linhas) {
   return { legendaLinhas: maior.linhas, resto: linhas.filter(l => !set.has(l)) };
 }
 
+// Corrige título de bloco quebrado em duas "linhas" por um glifo/ícone
+// intruso no meio da palavra (ex: ícone numerado da legenda entre "S" e
+// "OLEIRA" faz o texto sair como "S" / "OLEIRA ÁREA GOURMET" em vez de uma só
+// "SOLEIRA ÁREA GOURMET") — sem isso, TITULO_REGEX nunca reconhece o título e
+// o bloco inteiro (com eventual amostra de material) cai em "sem bloco
+// identificado". Só funde quando a concatenação de um fragmento CURTO (≤4
+// caracteres, sinal de glifo isolado, não palavra normal) com a linha vizinha
+// bate o INÍCIO de uma palavra-chave de título conhecida — não mexe em mais
+// nada do agrupamento.
+function repararTituloQuebrado(linhasOrdenadas) {
+  const resultado = [];
+  for (let i = 0; i < linhasOrdenadas.length; i++) {
+    const atual = linhasOrdenadas[i];
+    const proxima = linhasOrdenadas[i + 1];
+    const fragmentoCurto = atual.texto.length <= 4 && !atual.texto.includes(' ');
+    const mesmaAltura = proxima && Math.abs(proxima.y - atual.yAncora) <= LINHA_TOL;
+    const xProximo = proxima && proxima.xMin >= atual.xMax && (proxima.xMin - atual.xMax) <= X_GAP_MAX;
+    if (fragmentoCurto && mesmaAltura && xProximo) {
+      const juntoUpper = (atual.texto + proxima.texto).toUpperCase();
+      const bateu = TITULO_PALAVRAS_CHAVE.some(k => juntoUpper.startsWith(k));
+      if (bateu) {
+        resultado.push({
+          y: atual.y, yAncora: atual.yAncora,
+          xMin: atual.xMin, xMax: proxima.xMax, xUltimo: proxima.xUltimo,
+          texto: atual.texto + proxima.texto,
+          itens: [...atual.itens, ...proxima.itens],
+        });
+        i++; // já consumiu a próxima linha na fusão
+        continue;
+      }
+    }
+    resultado.push(atual);
+  }
+  return resultado;
+}
+
 // Fallback quando não há título reconhecível: corta em grupos sempre que o
 // salto vertical entre linhas consecutivas passar de GAP_FALLBACK_FACTOR vezes
 // o salto "típico" da página — aproxima blocos por espaço em branco.
@@ -117,9 +157,10 @@ export function agruparEmBlocos(items) {
   if (!items?.length) return { blocos: [], legenda: [], semBloco: [] };
 
   const linhas = agruparEmLinhas(items);
-  const { legendaLinhas, resto } = isolarLegenda(linhas);
+  const { legendaLinhas, resto: restoBruto } = isolarLegenda(linhas);
   const legenda = legendaLinhas.flatMap(l => l.itens);
 
+  const resto = repararTituloQuebrado([...restoBruto].sort((a, b) => a.y - b.y || a.xMin - b.xMin));
   const tituloLinhas = resto.filter(l => TITULO_REGEX.test(l.texto));
 
   if (tituloLinhas.length === 0) {

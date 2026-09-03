@@ -4,8 +4,9 @@ import DxfParser from 'dxf-parser';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { analyzePlantPDF, analyzePlantaVetorial, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
+import { analyzePlantPDF, analyzePlantaVetorial, identificarAmbientesVetorial, identificarItensMateriaisPorAmbiente, mapearSubtopicosAmbientes, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
 import DxfCanvasPreview from './DxfCanvasPreview';
+import { agruparEmLinhas } from '../../shared/vetorialBlocos';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -733,6 +734,21 @@ const [fileName,     setFileName]     = useState('');
   const [debugPagina,      setDebugPagina]      = useState('');
   const [debugResultado,   setDebugResultado]   = useState(null);
   const [debugLoading,     setDebugLoading]     = useState(false);
+  // PASSO 1 (isolado, ver identificarAmbientesVetorial) — não conectado à
+  // extração de peças ainda, só pra validar a identificação de ambientes.
+  const [ambientesResultado, setAmbientesResultado] = useState(null);
+  const [ambientesLoading,   setAmbientesLoading]   = useState(false);
+  // PASSO 2 (isolado, ver identificarItensMateriaisPorAmbiente) — depende do
+  // resultado do Passo 1 (escolhe um ambiente da lista), mas ainda NÃO
+  // conectado ao fluxo de extração de peças.
+  const [ambienteSelecionado,   setAmbienteSelecionado]   = useState('');
+  const [itensMateriaisResultado, setItensMateriaisResultado] = useState(null);
+  const [itensMateriaisLoading,   setItensMateriaisLoading]   = useState(false);
+  // Mapa determinístico página→subtópico de rodapé + casamento subtópico→ambiente
+  // (mudança estrutural: ver localizarSubtopicosMarmoraria e
+  // mapearSubtopicosAmbientes). Calculado UMA VEZ por resultado do Passo 1,
+  // reusado por toda chamada do Passo 2 — nunca recalculado por ambiente.
+  const [mapaSubtopicos, setMapaSubtopicos] = useState(null); // { origemAmbientes, paginas: [{numero,subtopico}], mapeamento: {subtopico: ambiente|null} }
 
   // Gemini-format chat history (separate from display messages)
   const chatHistoryRef = useRef([]);
@@ -839,45 +855,111 @@ const [fileName,     setFileName]     = useState('');
     return pages;
   }
 
-  // Agrupa os itens de texto de uma página em "linhas" por proximidade vertical
-  // (tolerância de 3pt) — necessário pra reconhecer entradas de índice/sumário
-  // ("TÍTULO DA SEÇÃO ... 37"), que extractPageTextItems (item a item) não preserva.
+  // Agrupa os itens de texto de uma página em "linhas" — necessário pra
+  // reconhecer entradas de índice/sumário ("TÍTULO DA SEÇÃO ... 37"), que
+  // extractPageTextItems (item a item) não preserva. Reaproveita agruparEmLinhas
+  // (vetorialBlocos.js) em vez de duplicar a lógica — ela já checa continuidade
+  // em X além de proximidade em Y, o que extractPageLines não fazia antes
+  // (bug: colava texto de colunas diferentes num sumário em 2 colunas, ex.
+  // "PLANTA DE ARQUITETURA" virando "E ARQUITETURA" com o número de outra
+  // entrada colado).
   async function extractPageLines(page) {
     const content  = await page.getTextContent();
     const viewport = page.getViewport({ scale: 1 });
     const items = content.items
       .filter(it => it.str && it.str.trim())
-      .map(it => ({ texto: it.str.trim(), y: Math.round(viewport.height - it.transform[5]), x: it.transform[4] }))
-      .sort((a, b) => a.y - b.y || a.x - b.x);
-
-    const lines = [];
-    for (const it of items) {
-      const atual = lines[lines.length - 1];
-      if (atual && Math.abs(it.y - atual.y) <= 3) atual.texto += ' ' + it.texto;
-      else lines.push({ y: it.y, texto: it.texto });
-    }
-    return lines.map(l => l.texto);
+      .map(it => ({ texto: it.str.trim(), y: Math.round(viewport.height - it.transform[5]), x: it.transform[4] }));
+    return agruparEmLinhas(items).map(l => l.texto);
   }
 
-  const KEYWORDS_MARMORARIA = /bancada|marmoraria|granito|m[aá]rmore|pedra\s*(natural|ornamental)|quartzo/i;
+  const KEYWORDS_MARMORARIA  = /bancada|marmoraria|granito|m[aá]rmore|pedra\s*(natural|ornamental)|quartzo/i;
+  // Usada pela identificação de ambientes (PASSO 1) pra achar a planta de
+  // arquitetura no índice — fonte confiável de nome de cômodo, ao contrário da
+  // legenda de marmoraria (Mapa de Mármores), que lista PEÇAS, não ambientes.
+  const KEYWORDS_ARQUITETURA = /planta\s*de\s*arquitetura|planta\s*baixa/i;
+  // Cada folha do projeto tem um rodapé "CONTEÚDO: <nome da seção>" — fonte
+  // MAIS confiável que o índice (não depende de parsing de sumário em colunas,
+  // que continuou falhando mesmo após a correção de continuidade em X).
+  const REGEX_RODAPE_ARQUITETURA = /CONTEÚDO:\s*(PLANTA\s*DE\s*ARQUITETURA|PLANTA\s*BAIXA)/i;
+
+  // Varre o RODAPÉ de cada página ("CONTEÚDO: <seção>") em vez de depender do
+  // parsing do índice — mais direto e robusto a sumários em colunas. `maxPaginas`
+  // limita a varredura às primeiras folhas do documento (onde normalmente fica
+  // a planta de arquitetura, antes da seção técnica de marmoraria). Retorna o
+  // array de números de página física onde o rodapé bateu o regex, ou null se
+  // nenhuma bateu — quem chama cai pro fallback via índice (localizarSecaoPorIndice).
+  async function localizarPaginasPorRodape(doc, regexConteudo, maxPaginas = 20) {
+    const alvo = Math.min(doc.numPages, maxPaginas);
+    const paginas = [];
+    for (let i = 1; i <= alvo; i++) {
+      const linhas = await extractPageLines(await doc.getPage(i));
+      // Testa linha a linha e também o texto da página inteiro concatenado —
+      // cobre o caso do rodapé ficar partido em duas linhas (ex: "CONTEÚDO:"
+      // numa linha, título na linha logo abaixo, por variação de baseline).
+      const bateu = linhas.some(l => regexConteudo.test(l)) || regexConteudo.test(linhas.join(' '));
+      if (bateu) paginas.push(i);
+    }
+    return paginas.length > 0 ? paginas : null;
+  }
+
+  // Rodapé "CONTEÚDO: MARMORARIA <subtópico>" (ex: "MARMORARIA LAVANDERIA",
+  // "MARMORARIA PISCINA") — classificação OFICIAL de cada página, escrita
+  // pelo autor do projeto. Fonte de verdade determinística pra saber a quais
+  // páginas de marmoraria um ambiente pertence, em vez de pedir pra IA
+  // decidir isso a cada chamada (instável entre execuções — ver PASSO 2).
+  const REGEX_RODAPE_MARMORARIA = /CONTEÚDO:\s*MARMORARIA\s+([A-ZÀ-ÚÇ][A-ZÀ-ÚÇ0-9\s]*)/i;
+
+  // Varre código puro (sem IA) o rodapé de cada página da faixa [inicio,fim] e
+  // monta o mapa página → subtópico oficial. Páginas sem esse rodapé (ex:
+  // capas, plantas de arquitetura) simplesmente não entram no mapa.
+  async function localizarSubtopicosMarmoraria(doc, inicio, fim) {
+    const de  = Math.max(1, inicio);
+    const ate = Math.min(doc.numPages, fim);
+    const mapa = [];
+    for (let i = de; i <= ate; i++) {
+      const linhas = await extractPageLines(await doc.getPage(i));
+      let m = null;
+      for (const l of linhas) { m = l.match(REGEX_RODAPE_MARMORARIA); if (m) break; }
+      if (!m) m = linhas.join(' ').match(REGEX_RODAPE_MARMORARIA);
+      if (m) {
+        // corta lixo de rodapé depois do subtópico (ex: "FOLHA 42/60") num
+        // salto grande de espaço, e normaliza maiúsculas/trim.
+        const subtopico = m[1].replace(/\s{2,}.*$/, '').trim().toUpperCase();
+        if (subtopico) mapa.push({ numero: i, subtopico });
+      } else {
+        // TEMPORÁRIO — investigação do "0 itens" pós mudança pro rodapé
+        // determinístico. Se a página tem "MARMORARIA"/"CONTEÚDO" no texto
+        // mas o regex não bateu, mostra a linha exata pra achar o motivo
+        // (separador diferente de espaço, acento, formatação inesperada).
+        const suspeita = linhas.find(l => /marmoraria|conte[uú]do/i.test(l));
+        if (suspeita) console.log(`[debug itens] pág. ${i} — rodapé NÃO bateu REGEX_RODAPE_MARMORARIA, linha suspeita:`, JSON.stringify(suspeita));
+      }
+    }
+    return mapa;
+  }
 
   // Tenta localizar, no índice/sumário (geralmente nas primeiras páginas de um
-  // projeto executivo), a faixa de páginas da seção de marmoraria/bancadas — pra
-  // processar só essa faixa em vez do PDF inteiro (economiza chamadas de IA e
-  // reduz ruído em projetos grandes). Heurística, não garantida: só confia que
-  // achou um índice de verdade se pelo menos MIN_ENTRADAS linhas baterem o padrão
-  // "título ... número" (evita casar um número solto em texto comum com página).
-  // Sem confiança suficiente, retorna null — quem chama cai pro PDF inteiro.
+  // projeto executivo), a faixa de páginas de uma seção — pra processar só essa
+  // faixa em vez do PDF inteiro (economiza chamadas de IA e reduz ruído em
+  // projetos grandes). `keywordsRegex` decide qual seção (marmoraria, planta de
+  // arquitetura, etc.) — mesma lógica de busca, fonte diferente. Heurística, não
+  // garantida: só confia que achou um índice de verdade se pelo menos
+  // MIN_ENTRADAS linhas baterem o padrão "título ... número" (evita casar um
+  // número solto em texto comum com página). Sem confiança suficiente, retorna
+  // null — quem chama cai pro PDF inteiro.
   //
   // A varredura do índice é ESCALONADA (5 → 10 → 15 páginas): projetos grandes
-  // podem ter índice de mais de uma página, e a entrada que fecha a seção de
-  // marmoraria (a próxima seção do índice, ex: Marcenaria) pode estar além da
-  // primeira leva. Varredura de texto é barata — vale expandir antes de desistir.
-  // Sem achar a entrada de fechamento em NENHUM estágio, NÃO cai silenciosamente
-  // pro PDF inteiro (isso é o que deixava página de outra seção vazar pro
+  // podem ter índice de mais de uma página, e a entrada que fecha a seção
+  // buscada (a próxima seção do índice) pode estar além da primeira leva.
+  // Varredura de texto é barata — vale expandir antes de desistir. Sem achar a
+  // entrada de fechamento em NENHUM estágio, NÃO cai silenciosamente pro PDF
+  // inteiro (isso é o que deixava página de outra seção vazar pro
   // processamento sem aviso) — usa o teto técnico (MAX_PDF_PAGES a partir do
   // início) e marca `aproximado: true` pra quem chama avisar o usuário.
-  async function localizarSecaoMarmoraria(doc) {
+  // debugLabel: TEMPORÁRIO — investigação da busca da seção de arquitetura
+  // (ver handleDebugIdentificarAmbientes). Remover junto com os console.log
+  // marcados "[debug ambientes]" quando a investigação terminar.
+  async function localizarSecaoPorIndice(doc, keywordsRegex, debugLabel = null) {
     const MIN_ENTRADAS   = 5;
     const BUFFER_PAGINAS = 2; // margem de segurança: número de "folha" impresso no
                               // índice pode não bater 1:1 com a página física do PDF
@@ -889,31 +971,81 @@ const [fileName,     setFileName]     = useState('');
     for (let estagio = 0; estagio < ESTAGIOS.length; estagio++) {
       const alvo = Math.min(doc.numPages, ESTAGIOS[estagio]);
       for (let i = varridoAte + 1; i <= alvo; i++) {
-        const linhas = await extractPageLines(await doc.getPage(i));
+        const page   = await doc.getPage(i);
+        const linhas = await extractPageLines(page);
+
+        // TEMPORÁRIO — investigação da interleaving de colunas no sumário
+        // (ver handleDebugIdentificarAmbientes). extractPageLines só agrupa por
+        // proximidade de Y (sem checar continuidade em X, ao contrário de
+        // agruparEmLinhas em vetorialBlocos.js) — sumário em 2 colunas pode
+        // colar texto de colunas diferentes numa "linha" só, ou espalhar
+        // palavras de uma mesma entrada em linhas diferentes. Dump bruto (item
+        // a item, com x/y) SÓ quando a página tem algum indício de "planta"/
+        // "arquitetura" no texto — evita logar páginas irrelevantes.
+        if (debugLabel) {
+          const rawItems = await extractPageTextItems(page);
+          const suspeitosRaw = rawItems.filter(it => /planta|arquitetura/i.test(it.texto));
+          if (suspeitosRaw.length > 0) {
+            console.log(`[debug ambientes] (${debugLabel}) pág. ${i} — ${suspeitosRaw.length} item(ns) BRUTO(S) com "planta"/"arquitetura":`, suspeitosRaw);
+            console.log(`[debug ambientes] (${debugLabel}) pág. ${i} — TODOS os itens brutos da página, ordenados (y,x), pra checar colunas:`,
+              [...rawItems].sort((a, b) => a.y - b.y || a.x - b.x));
+          }
+          const linhasSuspeitas = linhas.filter(l => /planta|arquitetura/i.test(l));
+          if (linhasSuspeitas.length > 0) {
+            console.log(`[debug ambientes] (${debugLabel}) pág. ${i} — linha(s) JÁ AGRUPADA(S) com "planta"/"arquitetura" (texto exato via JSON.stringify):`,
+              linhasSuspeitas.map(l => JSON.stringify(l)));
+          }
+        }
+
         for (const linha of linhas) {
           if (linha.length < 4) continue;
           const nums = [...linha.matchAll(/\d+/g)];
-          if (nums.length === 0) continue;
+          if (nums.length === 0) {
+            if (debugLabel && /planta|arquitetura/i.test(linha)) {
+              console.log(`[debug ambientes] (${debugLabel}) pág. ${i} — DESCARTADA (sem número no fim): ${JSON.stringify(linha)}`);
+            }
+            continue;
+          }
           const pagina = parseInt(nums[nums.length - 1][0], 10);
-          if (!Number.isFinite(pagina) || pagina < 1 || pagina > doc.numPages + 20) continue;
+          if (!Number.isFinite(pagina) || pagina < 1 || pagina > doc.numPages + 20) {
+            if (debugLabel && /planta|arquitetura/i.test(linha)) {
+              console.log(`[debug ambientes] (${debugLabel}) pág. ${i} — DESCARTADA (número de página inválido: ${pagina}): ${JSON.stringify(linha)}`);
+            }
+            continue;
+          }
           entradas.push({ titulo: linha, pagina });
         }
       }
       varridoAte = alvo;
       const esgotouVarredura = alvo >= doc.numPages || estagio === ESTAGIOS.length - 1;
 
+      if (debugLabel) {
+        const suspeitasAcumuladas = entradas.filter(e => /planta|arquitetura/i.test(e.titulo));
+        console.log(`[debug ambientes] (${debugLabel}) estágio ${estagio}: ${suspeitasAcumuladas.length} entrada(s) ACEITA(S) contendo "planta"/"arquitetura" até agora:`,
+          suspeitasAcumuladas.map(e => ({ titulo: JSON.stringify(e.titulo), pagina: e.pagina, bateRegex: keywordsRegex.test(e.titulo) })));
+      }
+
       if (entradas.length < MIN_ENTRADAS) {
-        if (esgotouVarredura) return null; // nunca pareceu um índice de verdade
+        if (debugLabel) console.log(`[debug ambientes] (${debugLabel}) estágio ${estagio} (até pág. ${alvo}): só ${entradas.length}/${MIN_ENTRADAS} entradas de índice reconhecidas até agora`, entradas);
+        if (esgotouVarredura) {
+          if (debugLabel) console.log(`[debug ambientes] (${debugLabel}) varredura esgotada sem achar um índice de verdade (< ${MIN_ENTRADAS} entradas) — retornando null`);
+          return null; // nunca pareceu um índice de verdade
+        }
         continue; // índice pode continuar nas próximas páginas
       }
 
       const ordenadas = [...entradas].sort((a, b) => a.pagina - b.pagina);
       const casadas = ordenadas
         .map((e, idx) => ({ ...e, idx }))
-        .filter(e => KEYWORDS_MARMORARIA.test(e.titulo));
+        .filter(e => keywordsRegex.test(e.titulo));
+
+      if (debugLabel) console.log(`[debug ambientes] (${debugLabel}) estágio ${estagio}: ${entradas.length} entradas de índice, ${casadas.length} batem o regex`, { regex: keywordsRegex.source, casadas, todasEntradas: ordenadas.map(e => e.titulo) });
 
       if (casadas.length === 0) {
-        if (esgotouVarredura) return null; // índice completo, sem seção de marmoraria
+        if (esgotouVarredura) {
+          if (debugLabel) console.log(`[debug ambientes] (${debugLabel}) índice completo varrido, nenhuma entrada bateu o regex — retornando null`);
+          return null; // índice completo, sem seção de marmoraria
+        }
         continue; // a seção pode estar mais adiante no índice
       }
 
@@ -934,6 +1066,8 @@ const [fileName,     setFileName]     = useState('');
 
       inicio = Math.max(1, inicio - BUFFER_PAGINAS);
       fim    = Math.min(doc.numPages, Math.max(fim, inicio) + BUFFER_PAGINAS);
+
+      if (debugLabel) console.log(`[debug ambientes] (${debugLabel}) seção encontrada: págs. ${inicio}-${fim} (aproximado=${aproximado})`, { titulos: casadas.map(e => e.titulo), paginaBrutaNoIndice: casadas[0].pagina });
 
       return { inicio, fim, titulos: casadas.map(e => e.titulo), aproximado };
     }
@@ -976,7 +1110,7 @@ const [fileName,     setFileName]     = useState('');
       // disciplinas (arquitetura, elétrica, etc.). Sem índice reconhecível ou sem
       // bater nenhuma entrada, cai pro PDF inteiro (comportamento anterior).
       const secao = doc.numPages > MAX_PDF_PAGES
-        ? await localizarSecaoMarmoraria(doc).catch(() => null)
+        ? await localizarSecaoPorIndice(doc, KEYWORDS_MARMORARIA).catch(() => null)
         : null;
       const pageStart = secao?.inicio ?? 1;
       const pageEnd   = secao?.fim    ?? doc.numPages;
@@ -1304,6 +1438,191 @@ const [fileName,     setFileName]     = useState('');
       setDebugResultado({ pagina: numero, erro: err.message });
     } finally {
       setDebugLoading(false);
+    }
+  }
+
+  // ── DEBUG (só dev): PASSO 1 do pipeline sequencial — identifica só os
+  // ambientes do documento, sem extrair peça nenhuma. Isolado do fluxo de
+  // extração — não mistura resultado com `items`.
+  //
+  // Fonte confiável de nome de ambiente é a planta de ARQUITETURA (nome do
+  // cômodo escrito direto no desenho), não a legenda de marmoraria — essa
+  // lista PEÇAS ("Bancada Churrasqueira"), o que fazia o modelo inferir
+  // ambiente inexistente a partir de nome de peça. Acha a(s) página(s) da
+  // planta de arquitetura PRIMEIRO pelo rodapé "CONTEÚDO: ..." (mais direto,
+  // não depende de parsing de sumário em colunas) e só cai pro índice se o
+  // rodapé não bater em nenhuma página — combina o resultado com a faixa de
+  // marmoraria como fonte do prompt.
+  async function handleDebugIdentificarAmbientes() {
+    if (!pdfDoc || ambientesLoading) return;
+    setAmbientesLoading(true);
+    setAmbientesResultado(null);
+    try {
+      let paginasArquitetura = await localizarPaginasPorRodape(pdfDoc, REGEX_RODAPE_ARQUITETURA).catch(err => {
+        console.log('[debug ambientes] localizarPaginasPorRodape lançou erro:', err);
+        return null;
+      });
+      let origemArquitetura = paginasArquitetura ? 'rodape' : null;
+      console.log('[debug ambientes] localizarPaginasPorRodape resultado:', paginasArquitetura);
+
+      if (!paginasArquitetura) {
+        const secaoArquitetura = await localizarSecaoPorIndice(pdfDoc, KEYWORDS_ARQUITETURA, 'arquitetura').catch(err => {
+          console.log('[debug ambientes] localizarSecaoPorIndice (arquitetura) lançou erro:', err);
+          return null;
+        });
+        console.log('[debug ambientes] fallback via índice — secaoArquitetura:', secaoArquitetura);
+        if (secaoArquitetura) {
+          paginasArquitetura = [];
+          for (let n = secaoArquitetura.inicio; n <= secaoArquitetura.fim; n++) paginasArquitetura.push(n);
+          origemArquitetura = 'indice';
+        }
+      }
+      console.log('[debug ambientes] paginasArquitetura final:', { origem: origemArquitetura, paginas: paginasArquitetura });
+
+      const marmorariaInicio = paginaRange?.inicio ?? 1;
+      const marmorariaFim    = paginaRange?.fim ?? pdfDoc.numPages;
+      console.log('[debug ambientes] faixa marmoraria (paginaRange):', { paginaRange, marmorariaInicio, marmorariaFim });
+
+      const numerosPaginas = new Set();
+      for (const n of paginasArquitetura ?? []) numerosPaginas.add(n);
+      for (let n = marmorariaInicio; n <= marmorariaFim; n++) numerosPaginas.add(n);
+      console.log('[debug ambientes] numerosPaginas combinadas:', [...numerosPaginas].sort((a, b) => a - b), 'contém pág. 3?', numerosPaginas.has(3));
+
+      const paginas = [];
+      for (const numero of numerosPaginas) {
+        paginas.push({ numero, items: await extractPageTextItems(await pdfDoc.getPage(numero)) });
+      }
+      console.log('[debug ambientes] payload paginas (antes do filtro de items vazios, antes de enviar à IA):',
+        paginas.map(p => ({ numero: p.numero, qtdItens: p.items.length, amostra: p.items.slice(0, 8).map(it => it.texto) })));
+      const pag3 = paginas.find(p => p.numero === 3);
+      console.log('[debug ambientes] página 3 especificamente:', pag3 ? { qtdItens: pag3.items.length, textos: pag3.items.map(it => it.texto) } : 'AUSENTE do array paginas');
+
+      // TEMPORÁRIO — investigação do sumiço de "Cabine"/"Lavatório" na rodada
+      // mais recente. Confirma se esses rótulos aparecem de fato no texto das
+      // páginas de arquitetura recebidas (rodapé) ou só na legenda de marmoraria.
+      const termosAmbienteFaltando = /cabine|lavat[oó]rio/i;
+      for (const p of paginas) {
+        const achados = p.items.filter(it => termosAmbienteFaltando.test(it.texto));
+        if (achados.length > 0) {
+          console.log(`[debug ambientes] pág. ${p.numero} — item(ns) com "cabine"/"lavatório" (fonte: ${paginasArquitetura?.includes(p.numero) ? 'ARQUITETURA' : 'marmoraria'}):`, achados);
+        }
+      }
+      const nenhumAchado = !paginas.some(p => termosAmbienteFaltando.test(p.items.map(it => it.texto).join(' ')));
+      if (nenhumAchado) console.log('[debug ambientes] "cabine"/"lavatório" NÃO aparece em NENHUMA página do payload (nem arquitetura, nem marmoraria)');
+
+      const ambientes = await identificarAmbientesVetorial({ paginas, empresaId });
+      setAmbientesResultado({ ambientes, paginasArquitetura, origemArquitetura });
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        text: ambientes.length
+          ? `🧪 [debug isolado] ${paginasArquitetura ? `Planta de arquitetura encontrada nas págs. ${paginasArquitetura.join(', ')} (via ${origemArquitetura === 'rodape' ? 'rodapé' : 'índice'}). ` : 'Planta de arquitetura não encontrada (nem rodapé, nem índice) — usei só a seção de marmoraria. '}Encontrei os seguintes ambientes: ${ambientes.map(a => a.ambiente).join(', ')}.`
+          : '🧪 [debug isolado] Não identifiquei nenhum ambiente com confiança nesse documento.',
+      }]);
+    } catch (err) {
+      setAmbientesResultado({ erro: err.message });
+    } finally {
+      setAmbientesLoading(false);
+    }
+  }
+
+  // ── DEBUG (só dev): PASSO 2 do pipeline sequencial — dado UM ambiente já
+  // identificado no Passo 1, lista item+material desse ambiente (sem
+  // dimensão/medida ainda). Isolado do fluxo de extração — não mistura
+  // resultado com `items`.
+  //
+  // MUDANÇA ESTRUTURAL: a atribuição de PÁGINA DE MARMORARIA de um ambiente
+  // não vem mais da lista instável que o Passo 1 retornava — vem do rodapé
+  // "CONTEÚDO: MARMORARIA X" de cada página, lido por código puro
+  // (localizarSubtopicosMarmoraria, determinístico), casado com o ambiente
+  // real via UMA chamada de IA só pro documento inteiro (mapearSubtopicosAmbientes),
+  // calculada uma vez e reusada por toda chamada deste Passo 2 (cache em
+  // mapaSubtopicos). Páginas de PLANTA DE ARQUITETURA do ambiente (ex: 4, 9)
+  // continuam vindo do Passo 1 — só a parte de marmoraria virou determinística.
+  async function handleDebugItensMateriais() {
+    if (!pdfDoc || itensMateriaisLoading || !ambienteSelecionado) return;
+    const ambienteObj = ambientesResultado?.ambientes?.find(a => a.ambiente === ambienteSelecionado);
+    if (!ambienteObj) return;
+    setItensMateriaisLoading(true);
+    setItensMateriaisResultado(null);
+    try {
+      const marmorariaInicio = paginaRange?.inicio ?? 1;
+      const marmorariaFim    = paginaRange?.fim ?? pdfDoc.numPages;
+
+      let mapa = mapaSubtopicos;
+      if (!mapa || mapa.origemAmbientes !== ambientesResultado) {
+        const subtopicosPaginas = await localizarSubtopicosMarmoraria(pdfDoc, marmorariaInicio, marmorariaFim);
+        console.log('[debug itens] subtópicos de rodapé (determinístico, sem IA):', subtopicosPaginas);
+
+        const subtopicosUnicos = [...new Set(subtopicosPaginas.map(s => s.subtopico))];
+        let mapeamento = {};
+        if (subtopicosUnicos.length > 0) {
+          const nomesAmbientes = ambientesResultado?.ambientes?.map(a => a.ambiente) ?? [];
+          const resultado = await mapearSubtopicosAmbientes({ subtopicos: subtopicosUnicos, ambientes: nomesAmbientes, empresaId });
+          console.log('[debug itens] resultado bruto da IA (mapear_subtopicos_ambientes):', resultado);
+
+          // TEMPORÁRIO — investigação do "0 itens". A chave usada no mapa
+          // (mapeamento[r.subtopico]) exige que a IA devolva o subtópico
+          // EXATAMENTE como enviado — se ela normalizar/traduzir/mudar
+          // maiúsculas, a chave não bate com subtopicosPaginas e a página
+          // nunca é encontrada depois, mesmo o mapeamento existindo.
+          for (const r of resultado) {
+            const subtopicoBateuExato = subtopicosUnicos.includes(r.subtopico);
+            const ambienteBateuExato  = r.ambiente == null || nomesAmbientes.includes(r.ambiente);
+            if (!subtopicoBateuExato || !ambienteBateuExato) {
+              console.log('[debug itens] ENTRADA SUSPEITA — chave não bate exatamente com o que foi enviado:', {
+                subtopicoRecebido: JSON.stringify(r.subtopico), subtopicoBateuExato,
+                ambienteRecebido: JSON.stringify(r.ambiente), ambienteBateuExato,
+              });
+            }
+            mapeamento[r.subtopico] = r.ambiente;
+          }
+        }
+        console.log('[debug itens] mapeamento subtópico→ambiente (1 chamada só, cacheado):', mapeamento);
+
+        mapa = { origemAmbientes: ambientesResultado, paginas: subtopicosPaginas, mapeamento };
+        setMapaSubtopicos(mapa);
+      }
+
+      // Páginas de marmoraria = as que o RODAPÉ oficial classificou pra este
+      // ambiente (determinístico). Páginas de arquitetura = as do Passo 1 que
+      // ficam fora da faixa de marmoraria (não afetadas por esta mudança).
+      const paginasMarmoraria    = mapa.paginas.filter(s => mapa.mapeamento[s.subtopico] === ambienteSelecionado).map(s => s.numero);
+      const paginasArquitetura   = (ambienteObj.paginas ?? []).filter(n => n < marmorariaInicio || n > marmorariaFim);
+      const numerosFinais = [...new Set([...paginasArquitetura, ...paginasMarmoraria])];
+      console.log('[debug itens] ambiente:', ambienteSelecionado, '— páginas finais (arquitetura + marmoraria determinística):', numerosFinais);
+
+      // TEMPORÁRIO — se numerosFinais ficou vazio, mostra pra CADA entrada do
+      // mapa se bateria com ambienteSelecionado numa comparação normalizada
+      // (minúsculas, sem acento) — revela mismatch de maiúsculas/acento entre
+      // o rodapé e o nome do ambiente do Passo 1, mesmo sem bater na exata.
+      if (numerosFinais.length === 0) {
+        const norm = s => (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+        console.log('[debug itens] 0 páginas — comparação normalizada de cada entrada do mapa contra o ambiente selecionado:',
+          mapa.paginas.map(s => ({
+            subtopico: s.subtopico,
+            ambienteMapeado: mapa.mapeamento[s.subtopico],
+            bateriaNormalizado: norm(mapa.mapeamento[s.subtopico]) === norm(ambienteSelecionado),
+          })));
+      }
+
+      if (numerosFinais.length === 0) {
+        setItensMateriaisResultado({ ambiente: ambienteSelecionado, itens: [] });
+        return;
+      }
+
+      const paginas = [];
+      for (const numero of numerosFinais) {
+        paginas.push({ numero, items: await extractPageTextItems(await pdfDoc.getPage(numero)) });
+      }
+      console.log('[debug itens] payload paginas (antes de enviar à IA):',
+        paginas.map(p => ({ numero: p.numero, qtdItens: p.items.length, amostra: p.items.slice(0, 8).map(it => it.texto) })));
+
+      const itens = await identificarItensMateriaisPorAmbiente({ ambiente: ambienteSelecionado, paginas, empresaId });
+      setItensMateriaisResultado({ ambiente: ambienteSelecionado, itens });
+    } catch (err) {
+      setItensMateriaisResultado({ ambiente: ambienteSelecionado, erro: err.message });
+    } finally {
+      setItensMateriaisLoading(false);
     }
   }
 
@@ -1655,6 +1974,75 @@ const [fileName,     setFileName]     = useState('');
               >
                 {debugLoading ? 'testando…' : 'testar só essa página (flash-lite)'}
               </button>
+              <span className="text-zinc-800">|</span>
+              <button
+                type="button"
+                onClick={handleDebugIdentificarAmbientes}
+                disabled={ambientesLoading}
+                className="font-mono text-[9px] text-yellow-500 hover:text-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                title="PASSO 1 isolado: só identifica os ambientes do documento (flash-lite) — não extrai peça nenhuma, não mistura com o resultado principal"
+              >
+                {ambientesLoading ? 'identificando…' : 'identificar ambientes (isolado)'}
+              </button>
+            </div>
+          )}
+
+          {import.meta.env.DEV && pdfDoc && ambientesResultado?.ambientes?.length > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-950/20 border-t border-yellow-900/40">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-yellow-600 shrink-0">🧪 passo 2</span>
+              <select
+                value={ambienteSelecionado}
+                onChange={e => setAmbienteSelecionado(e.target.value)}
+                className="bg-zinc-900 border border-zinc-700 rounded px-1 py-0.5 text-[10px] font-mono text-zinc-300"
+              >
+                <option value="">escolha um ambiente…</option>
+                {ambientesResultado.ambientes.map((a, i) => (
+                  <option key={i} value={a.ambiente}>{a.ambiente}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleDebugItensMateriais}
+                disabled={itensMateriaisLoading || !ambienteSelecionado}
+                className="font-mono text-[9px] text-yellow-500 hover:text-yellow-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                title="PASSO 2 isolado: lista item+material do ambiente escolhido (flash-lite) — sem dimensão/medida, não mistura com o resultado principal"
+              >
+                {itensMateriaisLoading ? 'listando…' : 'listar itens/materiais do ambiente (isolado)'}
+              </button>
+            </div>
+          )}
+
+          {itensMateriaisResultado && (
+            <div className="px-4 py-2 bg-yellow-950/10 border-t border-yellow-900/40 max-h-48 overflow-y-auto">
+              <div className="font-mono text-[9px] text-yellow-600 mb-1">
+                🧪 itens/materiais — {itensMateriaisResultado.ambiente} (PASSO 2 — isolado){itensMateriaisResultado.erro ? ' (erro)' : ` · ${itensMateriaisResultado.itens.length}`}
+              </div>
+              {itensMateriaisResultado.erro ? (
+                <div className="font-mono text-[9px] text-red-400">{itensMateriaisResultado.erro}</div>
+              ) : (
+                itensMateriaisResultado.itens.map((it, i) => (
+                  <div key={i} className="font-mono text-[9px] text-zinc-400 py-0.5 border-b border-zinc-900 last:border-0">
+                    {it.item} — {it.material ?? 'material: null'}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {ambientesResultado && (
+            <div className="px-4 py-2 bg-yellow-950/10 border-t border-yellow-900/40 max-h-48 overflow-y-auto">
+              <div className="font-mono text-[9px] text-yellow-600 mb-1">
+                🧪 ambientes identificados (PASSO 1 — isolado){ambientesResultado.erro ? ' (erro)' : ` · ${ambientesResultado.ambientes.length}`}
+              </div>
+              {ambientesResultado.erro ? (
+                <div className="font-mono text-[9px] text-red-400">{ambientesResultado.erro}</div>
+              ) : (
+                ambientesResultado.ambientes.map((a, i) => (
+                  <div key={i} className="font-mono text-[9px] text-zinc-400 py-0.5 border-b border-zinc-900 last:border-0">
+                    {a.ambiente} — págs. {a.paginas?.join(', ')}
+                  </div>
+                ))
+              )}
             </div>
           )}
 

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '../lib/supabase';
-import { PLANTA_SYSTEM_FULL, PLANTA_SYSTEM_VETORIAL, PLANTA_SYSTEM_ECONOMY } from '../shared/plantaPrompts';
+import { PLANTA_SYSTEM_FULL, PLANTA_SYSTEM_VETORIAL, PLANTA_SYSTEM_ECONOMY, PLANTA_SYSTEM_AMBIENTES, PLANTA_SYSTEM_ITENS_MATERIAIS, PLANTA_SYSTEM_MAPEAR_SUBTOPICOS } from '../shared/plantaPrompts';
 import { agruparEmBlocos, formatarBlocosParaPrompt } from '../shared/vetorialBlocos';
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -409,6 +409,181 @@ async function analyzePlantaVetorialBatchProxy({ textItems, empresaId, contextoA
 
 async function analyzePlantaVetorialBatch(args) {
   return USE_PROXY ? analyzePlantaVetorialBatchProxy(args) : analyzePlantaVetorialBatchDirect(args);
+}
+
+// ── PASSO 1 do pipeline sequencial: identificação de ambientes (isolado) ─────
+// Roda ANTES da extração de peças, e por enquanto NÃO é chamada por ela — só
+// identifica quais ambientes existem no documento e em quais páginas, a partir
+// dos mesmos blocos/legenda do agrupamento (ver vetorialBlocos.js). UMA
+// chamada só pro documento inteiro (não por página, como a extração) — tarefa
+// leve, sempre no modelo mais barato (flash-lite).
+//
+// `paginas` recebe {numero, items} em vez de um array posicional: a fonte
+// confiável de nome de ambiente é a planta de ARQUITETURA (geralmente no
+// início do documento), não a legenda de marmoraria (lista PEÇAS, não
+// cômodos) — quem chama combina páginas de duas faixas não-contíguas do PDF
+// (ver handleDebugIdentificarAmbientes em AbaImportarPDF.jsx), então o número
+// real da página precisa vir explícito, não inferido pela posição no array.
+function formatarPaginasParaAmbientes(paginas) {
+  return paginas
+    .filter(p => p.items?.length)
+    .map(p => `=== PÁGINA ${p.numero} ===\n${formatarBlocosParaPrompt(agruparEmBlocos(p.items))}`)
+    .join('\n\n');
+}
+
+async function identificarAmbientesVetorialDirect({ paginas, empresaId }) {
+  const contents = [{
+    role:  'user',
+    parts: [{
+      text: `Textos extraídos de páginas do documento, já agrupados por bloco de desenho:\n\n${formatarPaginasParaAmbientes(paginas)}\n\nIdentifique os ambientes conforme instruído. Retorne o JSON array.`,
+    }],
+  }];
+  const model  = getModel(null, MODEL_FALLBACK, { temperature: 0 });
+  const result = await generateWithRetry(model, { contents, systemInstruction: PLANTA_SYSTEM_AMBIENTES });
+  const rawText = result.response.text();
+  const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+  const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+  logUsage({ fluxo: 'identifica_ambientes', empresaId, tokensEntrada, tokensSaida, fromCache: false }).catch(() => {}); // telemetria não crítica
+  const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+  return JSON.parse(jsonMatch[0]);
+}
+
+async function identificarAmbientesVetorialProxy({ paginas, empresaId }) {
+  const res = await fetch('/api/gemini', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ type: 'identificar_ambientes', paginas }),
+  });
+  if (!res.ok) {
+    if (res.status === 504) {
+      throw new Error('A IA demorou demais para responder (tempo esgotado). Tente novamente em instantes.');
+    }
+    const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error);
+  }
+  const { ambientes, tokensEntrada, tokensSaida } = await res.json();
+  logUsage({ fluxo: 'identifica_ambientes', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false }).catch(() => {});
+  return ambientes;
+}
+
+// paginas: [{numero, items: [{texto, x, y, camada?}]}] — numero é a página
+// REAL do PDF (não posição no array), pois as páginas vêm de faixas
+// não-contíguas (planta de arquitetura + seção de marmoraria). Retorna
+// [{ambiente, paginas: [n, ...]}] — só a lista, sem peça/medida/material.
+// Isolado do fluxo de extração por enquanto.
+export async function identificarAmbientesVetorial({ paginas, empresaId = null }) {
+  if (!paginas?.length) throw new Error('Nenhum texto de página fornecido.');
+  return USE_PROXY
+    ? identificarAmbientesVetorialProxy({ paginas, empresaId })
+    : identificarAmbientesVetorialDirect({ paginas, empresaId });
+}
+
+// ── PASSO 2 do pipeline sequencial: itens + material por ambiente (isolado) ──
+// Roda DEPOIS do Passo 1 (identificarAmbientesVetorial), mas ainda NÃO é
+// chamada pelo fluxo de extração completa — recebe um ambiente já identificado
+// e só as páginas onde ele aparece, lista item+material, nunca dimensão/medida
+// (isso é Passo 3). Sempre no modelo mais barato (flash-lite).
+async function identificarItensMateriaisPorAmbienteDirect({ ambiente, paginas, empresaId }) {
+  const contents = [{
+    role:  'user',
+    parts: [{
+      text: `Ambiente: ${ambiente}\n\nTextos extraídos das páginas onde esse ambiente aparece, já agrupados por bloco de desenho:\n\n${formatarPaginasParaAmbientes(paginas)}\n\nListe os itens e materiais desse ambiente conforme instruído. Retorne o JSON array.`,
+    }],
+  }];
+  const model  = getModel(null, MODEL_FALLBACK, { temperature: 0 });
+  const result = await generateWithRetry(model, { contents, systemInstruction: PLANTA_SYSTEM_ITENS_MATERIAIS });
+  const rawText = result.response.text();
+  const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+  const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+  logUsage({ fluxo: 'identifica_itens_materiais', empresaId, tokensEntrada, tokensSaida, fromCache: false }).catch(() => {}); // telemetria não crítica
+  const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+  return JSON.parse(jsonMatch[0]);
+}
+
+async function identificarItensMateriaisPorAmbienteProxy({ ambiente, paginas, empresaId }) {
+  const res = await fetch('/api/gemini', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ type: 'identificar_itens_materiais', ambiente, paginas }),
+  });
+  if (!res.ok) {
+    if (res.status === 504) {
+      throw new Error('A IA demorou demais para responder (tempo esgotado). Tente novamente em instantes.');
+    }
+    const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error);
+  }
+  const { itens, tokensEntrada, tokensSaida } = await res.json();
+  logUsage({ fluxo: 'identifica_itens_materiais', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false }).catch(() => {});
+  return itens;
+}
+
+// ambiente: nome de um ambiente já retornado por identificarAmbientesVetorial.
+// paginas: [{numero, items}] — só as páginas onde esse ambiente aparece.
+// Retorna [{item, material}] — sem dimensão/medida/recorte. Isolado do fluxo
+// de extração por enquanto.
+export async function identificarItensMateriaisPorAmbiente({ ambiente, paginas, empresaId = null }) {
+  if (!ambiente) throw new Error('Nenhum ambiente informado.');
+  if (!paginas?.length) throw new Error('Nenhum texto de página fornecido.');
+  return USE_PROXY
+    ? identificarItensMateriaisPorAmbienteProxy({ ambiente, paginas, empresaId })
+    : identificarItensMateriaisPorAmbienteDirect({ ambiente, paginas, empresaId });
+}
+
+// ── Casamento subtópico de rodapé → ambiente real (mudança estrutural) ──────
+// A ATRIBUIÇÃO DE PÁGINA em si é 100% determinística por código (ver
+// localizarSubtopicosMarmoraria em AbaImportarPDF.jsx, que lê literalmente o
+// rodapé "CONTEÚDO: MARMORARIA X"). Esta função só resolve o VOCABULÁRIO —
+// a qual ambiente real cada subtópico pertence — numa ÚNICA chamada pro
+// documento inteiro, nunca repetida por ambiente/página (era isso que
+// causava instabilidade entre execuções antes).
+async function mapearSubtopicosAmbientesDirect({ subtopicos, ambientes, empresaId }) {
+  const contents = [{
+    role:  'user',
+    parts: [{
+      text: `AMBIENTES REAIS:\n${ambientes.join('\n')}\n\nSUBTÓPICOS DE RODAPÉ:\n${subtopicos.join('\n')}\n\nAssocie cada subtópico ao ambiente real conforme instruído. Retorne o JSON array.`,
+    }],
+  }];
+  const model  = getModel(null, MODEL_FALLBACK, { temperature: 0 });
+  const result = await generateWithRetry(model, { contents, systemInstruction: PLANTA_SYSTEM_MAPEAR_SUBTOPICOS });
+  const rawText = result.response.text();
+  const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+  const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+  logUsage({ fluxo: 'mapeia_subtopicos_ambientes', empresaId, tokensEntrada, tokensSaida, fromCache: false }).catch(() => {}); // telemetria não crítica
+  const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+  return JSON.parse(jsonMatch[0]);
+}
+
+async function mapearSubtopicosAmbientesProxy({ subtopicos, ambientes, empresaId }) {
+  const res = await fetch('/api/gemini', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ type: 'mapear_subtopicos_ambientes', subtopicos, ambientes }),
+  });
+  if (!res.ok) {
+    if (res.status === 504) {
+      throw new Error('A IA demorou demais para responder (tempo esgotado). Tente novamente em instantes.');
+    }
+    const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error);
+  }
+  const { mapeamento, tokensEntrada, tokensSaida } = await res.json();
+  logUsage({ fluxo: 'mapeia_subtopicos_ambientes', empresaId, tokensEntrada: tokensEntrada ?? 0, tokensSaida: tokensSaida ?? 0, fromCache: false }).catch(() => {});
+  return mapeamento;
+}
+
+// subtopicos: array de strings (subtópicos únicos lidos do rodapé). ambientes:
+// array de nomes de ambiente (do resultado do Passo 1). Retorna
+// [{subtopico, ambiente}] — ambiente pode ser null se não houver associação clara.
+export async function mapearSubtopicosAmbientes({ subtopicos, ambientes, empresaId = null }) {
+  if (!subtopicos?.length) throw new Error('Nenhum subtópico informado.');
+  if (!ambientes?.length) throw new Error('Nenhum ambiente informado.');
+  return USE_PROXY
+    ? mapearSubtopicosAmbientesProxy({ subtopicos, ambientes, empresaId })
+    : mapearSubtopicosAmbientesDirect({ subtopicos, ambientes, empresaId });
 }
 
 // ── Deduplicação client-side (segunda camada, além do CONTEXTO enviado ao modelo) ──

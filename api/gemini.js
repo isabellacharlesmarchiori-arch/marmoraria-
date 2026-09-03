@@ -3,7 +3,7 @@
 // Configurar em Vercel Dashboard → Settings → Environment Variables → GEMINI_API_KEY.
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { PLANTA_SYSTEM_FULL, PLANTA_SYSTEM_VETORIAL, PLANTA_SYSTEM_ECONOMY } from '../src/shared/plantaPrompts.js';
+import { PLANTA_SYSTEM_FULL, PLANTA_SYSTEM_VETORIAL, PLANTA_SYSTEM_ECONOMY, PLANTA_SYSTEM_AMBIENTES, PLANTA_SYSTEM_ITENS_MATERIAIS, PLANTA_SYSTEM_MAPEAR_SUBTOPICOS } from '../src/shared/plantaPrompts.js';
 import { agruparEmBlocos, formatarBlocosParaPrompt } from '../src/shared/vetorialBlocos.js';
 
 export const config = {
@@ -198,6 +198,109 @@ export default async function handler(req, res) {
       if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
 
       return res.status(200).json({ items: JSON.parse(jsonMatch[0]), tokensEntrada, tokensSaida });
+    }
+
+    // ── Identificação de ambientes (PASSO 1, isolado) — identificarAmbientesVetorial ──
+    if (type === 'identificar_ambientes') {
+      const { paginas } = body;
+
+      if (!paginas?.length) {
+        return res.status(400).json({ error: 'paginas é obrigatório.' });
+      }
+
+      // numero é a página REAL do PDF (planta de arquitetura + seção de
+      // marmoraria vêm de faixas não-contíguas) — ver aiService.js.
+      const textoPorPagina = paginas
+        .filter(p => p.items?.length)
+        .map(p => `=== PÁGINA ${p.numero} ===\n${formatarBlocosParaPrompt(agruparEmBlocos(p.items))}`)
+        .join('\n\n');
+
+      const contents = [{
+        role:  'user',
+        parts: [{
+          text: `Textos extraídos de páginas do documento, já agrupados por bloco de desenho:\n\n${textoPorPagina}\n\nIdentifique os ambientes conforme instruído. Retorne o JSON array.`,
+        }],
+      }];
+
+      // Sempre o modelo mais barato — tarefa leve, sem fallback (já é o mais barato).
+      const model   = getModel(genAI, null, MODEL_FALLBACK, { temperature: 0 });
+      const result  = await generateWithRetry(model, { contents, systemInstruction: PLANTA_SYSTEM_AMBIENTES });
+      const rawText = result.response.text();
+      const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+      const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+
+      return res.status(200).json({ ambientes: JSON.parse(jsonMatch[0]), tokensEntrada, tokensSaida });
+    }
+
+    // ── Itens + material por ambiente (PASSO 2, isolado) — identificarItensMateriaisPorAmbiente ──
+    if (type === 'identificar_itens_materiais') {
+      const { ambiente, paginas } = body;
+
+      if (!ambiente) {
+        return res.status(400).json({ error: 'ambiente é obrigatório.' });
+      }
+      if (!paginas?.length) {
+        return res.status(400).json({ error: 'paginas é obrigatório.' });
+      }
+
+      const textoPorPagina = paginas
+        .filter(p => p.items?.length)
+        .map(p => `=== PÁGINA ${p.numero} ===\n${formatarBlocosParaPrompt(agruparEmBlocos(p.items))}`)
+        .join('\n\n');
+
+      const contents = [{
+        role:  'user',
+        parts: [{
+          text: `Ambiente: ${ambiente}\n\nTextos extraídos das páginas onde esse ambiente aparece, já agrupados por bloco de desenho:\n\n${textoPorPagina}\n\nListe os itens e materiais desse ambiente conforme instruído. Retorne o JSON array.`,
+        }],
+      }];
+
+      // Sempre o modelo mais barato — tarefa leve, sem fallback (já é o mais barato).
+      const model   = getModel(genAI, null, MODEL_FALLBACK, { temperature: 0 });
+      const result  = await generateWithRetry(model, { contents, systemInstruction: PLANTA_SYSTEM_ITENS_MATERIAIS });
+      const rawText = result.response.text();
+      const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+      const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+
+      return res.status(200).json({ itens: JSON.parse(jsonMatch[0]), tokensEntrada, tokensSaida });
+    }
+
+    // ── Casamento subtópico de rodapé → ambiente real (mudança estrutural) ──
+    // A atribuição de página é 100% determinística por código (client-side) —
+    // isto só resolve o vocabulário, uma chamada só pro documento inteiro.
+    if (type === 'mapear_subtopicos_ambientes') {
+      const { subtopicos, ambientes } = body;
+
+      if (!subtopicos?.length) {
+        return res.status(400).json({ error: 'subtopicos é obrigatório.' });
+      }
+      if (!ambientes?.length) {
+        return res.status(400).json({ error: 'ambientes é obrigatório.' });
+      }
+
+      const contents = [{
+        role:  'user',
+        parts: [{
+          text: `AMBIENTES REAIS:\n${ambientes.join('\n')}\n\nSUBTÓPICOS DE RODAPÉ:\n${subtopicos.join('\n')}\n\nAssocie cada subtópico ao ambiente real conforme instruído. Retorne o JSON array.`,
+        }],
+      }];
+
+      const model   = getModel(genAI, null, MODEL_FALLBACK, { temperature: 0 });
+      const result  = await generateWithRetry(model, { contents, systemInstruction: PLANTA_SYSTEM_MAPEAR_SUBTOPICOS });
+      const rawText = result.response.text();
+      const tokensEntrada = result.response.usageMetadata?.promptTokenCount     ?? 0;
+      const tokensSaida   = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+
+      return res.status(200).json({ mapeamento: JSON.parse(jsonMatch[0]), tokensEntrada, tokensSaida });
     }
 
     return res.status(400).json({ error: `Tipo desconhecido: ${type}` });
