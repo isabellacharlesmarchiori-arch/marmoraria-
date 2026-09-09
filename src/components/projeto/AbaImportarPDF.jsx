@@ -6,7 +6,8 @@ import { useAuth } from '../../lib/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { analyzePlantPDF, analyzePlantaVetorial, identificarAmbientesVetorial, identificarItensMateriaisPorAmbiente, mapearSubtopicosAmbientes, callGemini, PLANTA_CHAT_SYSTEM, isConfigured } from '../../services/aiService';
 import DxfCanvasPreview from './DxfCanvasPreview';
-import { agruparEmLinhas } from '../../shared/vetorialBlocos';
+import { agruparEmLinhas, agruparEmBlocos } from '../../shared/vetorialBlocos';
+import { extractPageImagePositions } from '../../shared/vetorialImagens';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -48,6 +49,43 @@ function parseDimensoes(str) {
   const matches = [...str.matchAll(/(\d+)[,.](\d+)/g)].map(m => parseFloat(`${m[1]}.${m[2]}`));
   if (matches.length < 2) return null;
   return { comprimento: matches[0], largura: matches[1] };
+}
+
+// Casa um item já extraído pela IA a um dos blocos com imagem associada da
+// própria página (ver agruparEmBlocos em vetorialBlocos.js) — usado só pra
+// escolher qual recorte mostrar no "ver desenho" (handleVerDesenho). NUNCA
+// afeta o que a IA recebe/retorna: schema de `item` não tem referência a
+// bloco/imagem, então esse casamento é refeito no cliente, sob demanda,
+// comparando os números de `item.dimensoes` (já em metros, via
+// parseDimensoes) contra o texto cru de cota dentro de cada bloco (em cm,
+// sem conversão — mesma convenção usada no resto do pipeline vetorial).
+//
+// Mesmo princípio de "nunca inventar silenciosamente" do resto do pipeline:
+// só retorna confiante=true quando AMBOS os números do item batem, dentro de
+// tolerância, num ÚNICO bloco — qualquer ambiguidade (0 bate, ou mais de um
+// bloco bate) volta confiante=false, e quem chama cai pro fallback de galeria
+// (mostrar todos os recortes da página, sem fingir uma escolha automática).
+const TOLERANCIA_CASAMENTO_CM = 2;
+
+function numerosCmDoBloco(bloco) {
+  const nums = [];
+  for (const it of bloco.itens) {
+    for (const m of it.texto.matchAll(/\d+(?:[.,]\d+)?/g)) nums.push(Math.round(parseFloat(m[0].replace(',', '.'))));
+  }
+  return nums;
+}
+
+function encontrarBlocoDoItem(dimensoesStr, blocosComImagem) {
+  const dim = parseDimensoes(dimensoesStr);
+  if (!dim) return { bloco: null, confiante: false };
+  const alvoCm = [Math.round(dim.comprimento * 100), Math.round(dim.largura * 100)];
+
+  const candidatos = blocosComImagem.filter(bloco => {
+    const nums = numerosCmDoBloco(bloco);
+    return alvoCm.every(a => nums.some(n => Math.abs(n - a) <= TOLERANCIA_CASAMENTO_CM));
+  });
+
+  return candidatos.length === 1 ? { bloco: candidatos[0], confiante: true } : { bloco: null, confiante: false };
 }
 
 // Normaliza recortes retornados pela IA (funcao_label, formato, diametro_cm/largura_cm/altura_cm,
@@ -734,6 +772,22 @@ const [fileName,     setFileName]     = useState('');
   const [debugPagina,      setDebugPagina]      = useState('');
   const [debugResultado,   setDebugResultado]   = useState(null);
   const [debugLoading,     setDebugLoading]     = useState(false);
+  // Preview de recorte por bloco via posição de imagem embutida (ver
+  // vetorialImagens.js) — agrupamento rodado CLIENT-SIDE só pra essa preview,
+  // em paralelo ao agrupamento server-side (sem imagem) que a IA de fato
+  // recebe em handleDebugTestarPagina; pode divergir do que foi enviado à IA
+  // (ver aviso na UI). Nunca gravado no banco, nunca entra no prompt.
+  const [debugBlocosImagem, setDebugBlocosImagem] = useState(null);
+  // "Ver desenho" — mesma extração de posição de imagem acima, mas voltada
+  // pro vendedor conferir uma peça específica da tabela principal (ver
+  // handleVerDesenho). null = modal fechado. modo: 'confiante' (1 recorte,
+  // casamento seguro por dimensão) | 'galeria' (vários recortes candidatos,
+  // ambíguo — escolha manual) | null (ainda carregando ou erro).
+  const [previewModal, setPreviewModal] = useState(null);
+  // Cache por número de página — evita rodar getOperatorList()/render de novo
+  // a cada item clicado da MESMA página. Ref (não state) porque é só cache de
+  // performance, não precisa re-renderizar nada quando muda.
+  const previewCacheRef = useRef({});
   // PASSO 1 (isolado, ver identificarAmbientesVetorial) — não conectado à
   // extração de peças ainda, só pra validar a identificação de ambientes.
   const [ambientesResultado, setAmbientesResultado] = useState(null);
@@ -796,6 +850,12 @@ const [fileName,     setFileName]     = useState('');
       });
   }, [empresaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Novo pdfDoc (troca de arquivo, ou reprocessamento forçado) invalida o
+  // cache de posição de imagem/canvas usado por "ver desenho" — sem isso, um
+  // reload do mesmo número de página em outro arquivo mostraria o recorte do
+  // arquivo ANTERIOR.
+  useEffect(() => { previewCacheRef.current = {}; }, [pdfDoc]);
+
   // ── PDF → images helper ────────────────────────────────────────────────────
   async function pdfToImages(doc, pageStart = 1, pageEnd = doc.numPages) {
     const last   = Math.min(pageEnd, pageStart + MAX_PDF_PAGES - 1);
@@ -810,6 +870,37 @@ const [fileName,     setFileName]     = useState('');
       images.push(canvas.toDataURL('image/jpeg', 0.85));
     }
     return images;
+  }
+
+  // Renderiza a página inteira UMA VEZ num canvas offscreen (mesmo padrão de
+  // pdfToImages) — fonte pra recortar previews de bloco (cropFromCanvas) sem
+  // re-renderizar a página a cada bloco.
+  async function renderPageToCanvas(page, scale = 2) {
+    const viewport = page.getViewport({ scale });
+    const canvas   = document.createElement('canvas');
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    return { canvas, scale };
+  }
+
+  // Recorta do canvas-fonte (já renderizado por renderPageToCanvas) a região
+  // de um bbox em pontos (mesma convenção de extractPageImagePositions:
+  // origem superior-esquerda, escala 1) — com margem, igual ao protótipo
+  // Python original (55pt). marginPt é convertido pra pixel pela MESMA escala
+  // do canvas-fonte, não uma escala própria do recorte.
+  function cropFromCanvas(sourceCanvas, bboxPoints, { scale, marginPt = 55 } = {}) {
+    const marginPx = marginPt * scale;
+    const x = Math.max(0, bboxPoints.xEsq * scale - marginPx);
+    const y = Math.max(0, bboxPoints.yTop * scale - marginPx);
+    const w = Math.min(sourceCanvas.width  - x, (bboxPoints.xDir - bboxPoints.xEsq) * scale + marginPx * 2);
+    const h = Math.min(sourceCanvas.height - y, (bboxPoints.yBottom - bboxPoints.yTop) * scale + marginPx * 2);
+    if (w <= 0 || h <= 0) return null;
+    const out = document.createElement('canvas');
+    out.width  = w;
+    out.height = h;
+    out.getContext('2d').drawImage(sourceCanvas, x, y, w, h, 0, 0, w, h);
+    return out.toDataURL('image/jpeg', 0.85);
   }
 
   // ── PDF vetorial x rasterizado ───────────────────────────────────────────────
@@ -844,6 +935,18 @@ const [fileName,     setFileName]     = useState('');
         x: Math.round(it.transform[4]),
         y: Math.round(viewport.height - it.transform[5]),
       }));
+  }
+
+  // Espelha extractAllPagesTextItems, mas pra posição de imagem embutida (ver
+  // vetorialImagens.js) — usado pra alimentar o agrupamento por bloco com
+  // consciência de imagem no fluxo real de extração (Fase 2).
+  async function extractAllPagesImagePositions(doc, pageStart = 1, pageEnd = doc.numPages) {
+    const last  = Math.min(pageEnd, pageStart + MAX_PDF_PAGES - 1);
+    const pages = [];
+    for (let i = pageStart; i <= last; i++) {
+      pages.push(await extractPageImagePositions(await doc.getPage(i)));
+    }
+    return pages;
   }
 
   async function extractAllPagesTextItems(doc, pageStart = 1, pageEnd = doc.numPages) {
@@ -1154,8 +1257,21 @@ const [fileName,     setFileName]     = useState('');
           ]);
         };
 
+        let pageSizeVetorial = null;
+        if (vetorial) {
+          // Todas as páginas de um mesmo PDF técnico têm o mesmo tamanho de
+          // folha na prática — usa a da primeira só pra clamp de bloco (ver
+          // clampRect em vetorialBlocos.js), não precisa por página.
+          const vp = (await doc.getPage(pageStart)).getViewport({ scale: 1 });
+          pageSizeVetorial = { width: vp.width, height: vp.height };
+        }
         extracted = vetorial
-          ? await analyzePlantaVetorial({ pageTextItems: await extractAllPagesTextItems(doc, pageStart, pageEnd), empresaId, onProgress })
+          ? await analyzePlantaVetorial({
+              pageTextItems:      await extractAllPagesTextItems(doc, pageStart, pageEnd),
+              pageImagePositions: await extractAllPagesImagePositions(doc, pageStart, pageEnd),
+              pageSize:           pageSizeVetorial,
+              empresaId, onProgress,
+            })
           : await analyzePlantPDF({ pageImages: await pdfToImages(doc, pageStart, pageEnd), empresaId, onProgress });
 
         // runExtractionPipeline numera `pagina` a partir de 1 dentro da FAIXA
@@ -1430,10 +1546,35 @@ const [fileName,     setFileName]     = useState('');
     if (!pdfDoc || !numero || numero < 1 || numero > pdfDoc.numPages || debugLoading) return;
     setDebugLoading(true);
     setDebugResultado(null);
+    setDebugBlocosImagem(null);
     try {
-      const textItems = await extractPageTextItems(await pdfDoc.getPage(numero));
+      const page      = await pdfDoc.getPage(numero);
+      const textItems = await extractPageTextItems(page);
       const itens = await analyzePlantaVetorial({ pageTextItems: [textItems], empresaId, usarModeloBarato: true });
       setDebugResultado({ pagina: numero, itens });
+
+      // Preview isolado de agrupamento por posição de imagem embutida (ver
+      // vetorialImagens.js) — roda À PARTE da chamada de IA acima, que usa
+      // agruparEmBlocos SEM imagePositions (server-side, dentro de
+      // aiService.js/api/gemini.js). Só valida visualmente se a associação
+      // bloco↔imagem separa os desenhos corretamente; não afeta o resultado
+      // da IA nem grava nada.
+      try {
+        const imagePositions = await extractPageImagePositions(page);
+        const viewport = page.getViewport({ scale: 1 });
+        const { blocos } = agruparEmBlocos(textItems, imagePositions, { width: viewport.width, height: viewport.height });
+        const blocosComImagem = blocos.filter(b => b.imagem);
+        const { canvas: sourceCanvas, scale } = await renderPageToCanvas(page, 2);
+        const previews = blocosComImagem.map(b => ({
+          titulo: b.titulo,
+          numeroLegenda: b.numeroLegenda,
+          qtdItens: b.itens.length,
+          previewUrl: cropFromCanvas(sourceCanvas, b.imagem, { scale, marginPt: 55 }),
+        }));
+        setDebugBlocosImagem({ pagina: numero, qtdImagens: imagePositions.length, qtdBlocos: blocos.length, previews });
+      } catch (err) {
+        setDebugBlocosImagem({ pagina: numero, erro: err.message });
+      }
     } catch (err) {
       setDebugResultado({ pagina: numero, erro: err.message });
     } finally {
@@ -1651,6 +1792,51 @@ const [fileName,     setFileName]     = useState('');
   function handleItemClick(item) {
     setSelectedItem(item.id);
     setCurrentPage(item.pagina);
+  }
+
+  // ── "Ver desenho" — recorte de imagem da peça, pro vendedor conferir ────────
+  // Casa o item já extraído (AI) a um bloco com imagem da própria página (ver
+  // encontrarBlocoDoItem) e mostra o recorte. Client-side, sob demanda, nunca
+  // grava nada nem muda o que a IA recebeu/retornou — mesma extração usada no
+  // botão de debug (extractPageImagePositions + agruparEmBlocos), cacheada por
+  // página em previewCacheRef pra não refazer render/getOperatorList a cada
+  // item clicado da mesma página.
+  async function handleVerDesenho(item) {
+    if (!pdfDoc) return;
+    setPreviewModal({ item, loading: true, erro: null, modo: null, crops: [] });
+    try {
+      const numero = item.pagina;
+      let cache = previewCacheRef.current[numero];
+      if (!cache) {
+        const page            = await pdfDoc.getPage(numero);
+        const textItems        = await extractPageTextItems(page);
+        const imagePositions   = await extractPageImagePositions(page);
+        const viewport          = page.getViewport({ scale: 1 });
+        const { blocos }        = agruparEmBlocos(textItems, imagePositions, { width: viewport.width, height: viewport.height });
+        const { canvas: sourceCanvas, scale } = await renderPageToCanvas(page, 2);
+        cache = { blocosComImagem: blocos.filter(b => b.imagem), sourceCanvas, scale };
+        previewCacheRef.current[numero] = cache;
+      }
+
+      if (cache.blocosComImagem.length === 0) {
+        setPreviewModal({ item, loading: false, erro: 'Nenhuma imagem embutida encontrada nessa página.', modo: null, crops: [] });
+        return;
+      }
+
+      const { bloco, confiante } = encontrarBlocoDoItem(item.dimensoes, cache.blocosComImagem);
+      if (confiante) {
+        const url = cropFromCanvas(cache.sourceCanvas, bloco.imagem, { scale: cache.scale, marginPt: 55 });
+        setPreviewModal({ item, loading: false, erro: null, modo: 'confiante', crops: [{ previewUrl: url, titulo: bloco.titulo }] });
+      } else {
+        const crops = cache.blocosComImagem.map(b => ({
+          previewUrl: cropFromCanvas(cache.sourceCanvas, b.imagem, { scale: cache.scale, marginPt: 55 }),
+          titulo: b.titulo,
+        }));
+        setPreviewModal({ item, loading: false, erro: null, modo: 'galeria', crops });
+      }
+    } catch (err) {
+      setPreviewModal({ item, loading: false, erro: err.message, modo: null, crops: [] });
+    }
   }
 
   // ── Chat ───────────────────────────────────────────────────────────────────
@@ -2063,6 +2249,37 @@ const [fileName,     setFileName]     = useState('');
             </div>
           )}
 
+          {debugBlocosImagem && (
+            <div className="px-4 py-2 bg-yellow-950/10 border-t border-yellow-900/40 max-h-64 overflow-y-auto">
+              <div className="font-mono text-[9px] text-yellow-600 mb-1">
+                🧪 preview por posição de imagem — pág. {debugBlocosImagem.pagina}
+                {debugBlocosImagem.erro
+                  ? ' (erro)'
+                  : ` · ${debugBlocosImagem.qtdImagens} imagem(ns), ${debugBlocosImagem.qtdBlocos} bloco(s), ${debugBlocosImagem.previews.length} com imagem associada`}
+              </div>
+              {debugBlocosImagem.erro ? (
+                <div className="font-mono text-[9px] text-red-400">{debugBlocosImagem.erro}</div>
+              ) : (
+                <>
+                  <div className="font-mono text-[8px] text-yellow-700/70 mb-2 italic">
+                    agrupamento rodado só pra esta preview (com posição de imagem) — pode diferir do agrupamento sem imagem que a IA realmente recebeu acima
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {debugBlocosImagem.previews.map((p, i) => (
+                      <div key={i} className="w-28 border border-zinc-800 rounded overflow-hidden bg-zinc-950">
+                        {p.previewUrl && <img src={p.previewUrl} alt={p.titulo ?? 'bloco sem título'} className="w-full h-20 object-cover" />}
+                        <div className="px-1 py-0.5 font-mono text-[8px] text-zinc-400 truncate" title={p.titulo ?? ''}>
+                          {p.titulo ?? '(sem título)'}{p.numeroLegenda != null ? ` #${p.numeroLegenda}` : ''}
+                        </div>
+                        <div className="px-1 pb-0.5 font-mono text-[8px] text-zinc-600">{p.qtdItens} item(ns)</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {items.length === 0 && pdfDoc && !loading && (
             <p className="px-4 py-4 font-mono text-[10px] text-zinc-700 text-center">Analisando PDF...</p>
           )}
@@ -2078,6 +2295,7 @@ const [fileName,     setFileName]     = useState('');
                     <th className="text-left px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Dimensões</th>
                     <th className="text-right px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Esp.</th>
                     <th className="text-right px-2 py-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-600">Conf.</th>
+                    {pdfDoc && <th className="px-1 py-1.5" />}
                   </tr>
                 </thead>
                 <tbody>
@@ -2233,10 +2451,21 @@ const [fileName,     setFileName]     = useState('');
                           <td className="px-2 py-1.5 font-mono text-[10px] text-right whitespace-nowrap">
                             <span style={{ color: confidenceColor(item.confianca) }}>{item.confianca}%</span>
                           </td>
+                          {pdfDoc && (
+                            <td className="px-1 py-1.5 text-center">
+                              <button
+                                onClick={e => { e.stopPropagation(); handleVerDesenho(item); }}
+                                className="text-zinc-600 hover:text-zinc-300 transition-colors leading-none"
+                                title="Ver desenho — recorte da página conferindo com o que a IA leu"
+                              >
+                                <iconify-icon icon="solar:gallery-linear" width="13" />
+                              </button>
+                            </td>
+                          )}
                         </tr>
                         {(needsReview || isPendente) && !cellEditing && (
                           <tr className={`border-b border-zinc-800/40 ${rowBg}`}>
-                            <td colSpan={6} className="px-2 pb-1.5 pt-0">
+                            <td colSpan={pdfDoc ? 7 : 6} className="px-2 pb-1.5 pt-0">
                               {isPendente ? (
                                 <div className="flex items-center gap-2">
                                   <iconify-icon icon="solar:clock-circle-linear" width="10" class="text-orange-400 shrink-0" />
@@ -2444,6 +2673,77 @@ const [fileName,     setFileName]     = useState('');
               </button>
               <button
                 onClick={() => setMsgArquiteto('')}
+                className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+
+    {/* Modal — Ver desenho (recorte de imagem da peça, pro vendedor conferir) */}
+    {previewModal && (
+      <>
+        <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setPreviewModal(null)} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
+          <div className="bg-zinc-900 border border-zinc-700 w-full max-w-2xl pointer-events-auto flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
+              <div className="min-w-0">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 block truncate">
+                  Ver desenho — {previewModal.item.descricao}
+                </span>
+                <span className="font-mono text-[9px] text-zinc-600">pág. {previewModal.item.pagina} · {previewModal.item.dimensoes}</span>
+              </div>
+              <button onClick={() => setPreviewModal(null)} className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+                <iconify-icon icon="solar:close-linear" width="14" />
+              </button>
+            </div>
+
+            <div className="px-4 py-3 overflow-y-auto">
+              {previewModal.loading && (
+                <p className="font-mono text-[10px] text-zinc-600 text-center py-8">Extraindo recorte da página…</p>
+              )}
+
+              {!previewModal.loading && previewModal.erro && (
+                <p className="font-mono text-[10px] text-red-400 text-center py-8">{previewModal.erro}</p>
+              )}
+
+              {!previewModal.loading && !previewModal.erro && previewModal.modo === 'confiante' && (
+                <div>
+                  <div className="font-mono text-[9px] text-emerald-500 uppercase tracking-widest mb-2">
+                    ✓ casamento automático por dimensão
+                  </div>
+                  <img src={previewModal.crops[0].previewUrl} alt={previewModal.crops[0].titulo ?? ''} className="w-full rounded border border-zinc-800" />
+                  {previewModal.crops[0].titulo && (
+                    <div className="font-mono text-[9px] text-zinc-500 mt-1">{previewModal.crops[0].titulo}</div>
+                  )}
+                </div>
+              )}
+
+              {!previewModal.loading && !previewModal.erro && previewModal.modo === 'galeria' && (
+                <div>
+                  <div className="font-mono text-[9px] text-amber-500 uppercase tracking-widest mb-2">
+                    ⚠ não deu pra identificar automaticamente — escolha visual entre {previewModal.crops.length} desenho(s) desta página (não é garantido pela IA)
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {previewModal.crops.map((c, i) => (
+                      <div key={i} className="border border-zinc-800 rounded overflow-hidden bg-zinc-950">
+                        <img src={c.previewUrl} alt={c.titulo ?? ''} className="w-full h-24 object-cover" />
+                        <div className="px-1 py-0.5 font-mono text-[8px] text-zinc-500 truncate" title={c.titulo ?? ''}>
+                          {c.titulo ?? '(sem título)'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 py-3 border-t border-zinc-800 flex justify-end shrink-0">
+              <button
+                onClick={() => setPreviewModal(null)}
                 className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 Fechar

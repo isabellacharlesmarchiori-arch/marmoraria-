@@ -365,9 +365,9 @@ async function analyzePlantPDFBatch(args) {
 // de desenho (agruparEmBlocos) ANTES de formatar — o modelo recebe as cotas já
 // separadas por vista/título, não uma lista plana pra ele inferir sozinho onde
 // um desenho termina e outro começa (ver src/shared/vetorialBlocos.js).
-async function analyzePlantaVetorialBatchDirect({ textItems, empresaId, contextoAnterior, paginaAtual, usarModeloBarato }) {
+async function analyzePlantaVetorialBatchDirect({ textItems, imagePositions = [], pageSize = null, empresaId, contextoAnterior, paginaAtual, usarModeloBarato }) {
   const paginaAtualText = paginaAtual != null ? `Página atual (dentro desta análise): ${paginaAtual}\n\n` : '';
-  const textoFormatado = formatarBlocosParaPrompt(agruparEmBlocos(textItems));
+  const textoFormatado = formatarBlocosParaPrompt(agruparEmBlocos(textItems, imagePositions, pageSize));
   const contents = [{
     role:  'user',
     parts: [{
@@ -389,11 +389,11 @@ async function analyzePlantaVetorialBatchDirect({ textItems, empresaId, contexto
   return JSON.parse(jsonMatch[0]);
 }
 
-async function analyzePlantaVetorialBatchProxy({ textItems, empresaId, contextoAnterior, paginaAtual, usarModeloBarato }) {
+async function analyzePlantaVetorialBatchProxy({ textItems, imagePositions = [], pageSize = null, empresaId, contextoAnterior, paginaAtual, usarModeloBarato }) {
   const res = await fetch('/api/gemini', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ type: 'analyze_vetorial', textItems, contextoAnterior, paginaAtual, usarModeloBarato }),
+    body:    JSON.stringify({ type: 'analyze_vetorial', textItems, imagePositions, pageSize, contextoAnterior, paginaAtual, usarModeloBarato }),
   });
   if (!res.ok) {
     if (res.status === 504) {
@@ -768,7 +768,14 @@ export async function analyzePlantPDF({ pageImages, economyMode = false, empresa
 // pageTextItems: array por página de [{texto, x, y, camada?}] — extraído de PDF
 // vetorial (getTextContent) ou de um DXF (entidades TEXT/MTEXT + geometria). DXF
 // não tem conceito de página: quem chama passa um array de 1 elemento.
-export async function analyzePlantaVetorial({ pageTextItems, empresaId = null, onProgress = null, usarModeloBarato = false }) {
+// pageImagePositions/pageSize: opcionais, ver extractAllPagesImagePositions em
+// AbaImportarPDF.jsx — quando fornecidos, o texto de cada página é agrupado em
+// blocos com CONSCIÊNCIA de onde as imagens embutidas estão (ver
+// agruparEmBlocos em vetorialBlocos.js), separando cota real de ruído
+// (pino de mapa, legenda) que hoje só o título não separa. Omitidos, o
+// comportamento é IDÊNTICO ao de antes (default [] / null já cobre isso em
+// agruparEmBlocos) — DXF e o pipeline de debug antigo não precisam mudar.
+export async function analyzePlantaVetorial({ pageTextItems, pageImagePositions = [], pageSize = null, empresaId = null, onProgress = null, usarModeloBarato = false }) {
   if (!pageTextItems?.length) throw new Error('Nenhum texto de página fornecido.');
 
   // isPdfVetorial (caller) decide pela MÉDIA de caracteres nas primeiras páginas —
@@ -778,6 +785,11 @@ export async function analyzePlantaVetorial({ pageTextItems, empresaId = null, o
   return runExtractionPipeline(pageTextItems.length, (i, contextoAnterior) =>
     pageTextItems[i].length === 0
       ? Promise.resolve([])
-      : analyzePlantaVetorialBatch({ textItems: pageTextItems[i], empresaId, contextoAnterior, paginaAtual: i + 1, usarModeloBarato }),
+      : analyzePlantaVetorialBatch({
+          textItems: pageTextItems[i],
+          imagePositions: pageImagePositions[i] ?? [],
+          pageSize,
+          empresaId, contextoAnterior, paginaAtual: i + 1, usarModeloBarato,
+        }),
   onProgress);
 }

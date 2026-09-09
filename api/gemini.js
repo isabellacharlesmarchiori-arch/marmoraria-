@@ -165,7 +165,7 @@ export default async function handler(req, res) {
 
     // ── Vetorial analysis (analyzePlantaVetorial) — PDF com texto real ou DXF ──
     if (type === 'analyze_vetorial') {
-      const { textItems, contextoAnterior, paginaAtual, usarModeloBarato } = body;
+      const { textItems, imagePositions = [], pageSize = null, contextoAnterior, paginaAtual, usarModeloBarato } = body;
 
       if (!textItems?.length) {
         return res.status(400).json({ error: 'textItems é obrigatório.' });
@@ -176,7 +176,10 @@ export default async function handler(req, res) {
         ? `CONTEXTO — peças já identificadas em páginas anteriores deste mesmo projeto (use pra não duplicar, ver REGRAS DE CONTEXTO):\n${JSON.stringify(contextoAnterior)}\n\n`
         : '';
 
-      const textoFormatado = formatarBlocosParaPrompt(agruparEmBlocos(textItems));
+      // imagePositions/pageSize: opcionais (ver analyzePlantaVetorial em
+      // aiService.js) — agrupamento com consciência de imagem embutida quando
+      // fornecidos, comportamento idêntico ao de antes quando omitidos.
+      const textoFormatado = formatarBlocosParaPrompt(agruparEmBlocos(textItems, imagePositions, pageSize));
 
       const contents = [{
         role:  'user',
