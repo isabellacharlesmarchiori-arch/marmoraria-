@@ -122,9 +122,19 @@ function extrairNumeroLegenda(texto) {
 // isolarLegenda (só vira legenda quem cai na MESMA coluna de x de ≥5 outras
 // linhas nesse formato — LEGENDA_X_TOL — um título real, impresso perto do
 // desenho, normalmente não coincide em x com a coluna fixa da legenda).
+// Tolera até 2 grupos extras de dígitos soltos antes do nome — achado real:
+// pág. 47, item #11 da legenda tinha um "2" órfão quase sobreposto ao "11"
+// (mesma altura, 3pt de diferença em x — distância de dígito do MESMO
+// número, não de outra legenda vizinha). Padrão de resquício de edição no
+// PDF (renumeração no CAD deixa o glifo antigo órfão na mesma posição,
+// comum em exports AutoCAD/Revit) — sem essa tolerância, a linha vira "11 2
+// SOLEIRA ÁREA GOURMET", falha o formato e é promovida a título de bloco
+// falso, sequestrando o conteúdo real da página (mesma classe de bug do
+// comentário acima, variante nova). `extrairNumeroLegenda` continua pegando
+// só o PRIMEIRO grupo de dígitos, então o número exibido não muda.
 function pareceLinhaDeLegenda(linha) {
   const t = linha.texto.trim();
-  if (!/^\d{1,2}\s+[A-ZÀ-Ú][A-ZÀ-Ú\s]{2,40}$/.test(t)) return false;
+  if (!/^\d{1,2}(?:\s+\d{1,2}){0,2}\s+[A-ZÀ-Ú][A-ZÀ-Ú\s]{2,40}$/.test(t)) return false;
   if (/ESCALA|CONTEÚDO|PROJETO|CLIENTE|AUTOR/i.test(t)) return false;
   return true;
 }

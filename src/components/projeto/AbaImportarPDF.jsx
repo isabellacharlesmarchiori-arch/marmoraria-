@@ -129,7 +129,7 @@ function normalizeExtractedItems(extracted, materiaisList) {
       tipo:         item.tipo ?? 'outro',
       recortes:     normalizeRecortes(item.recortes),
       trecho_origem:     item.trecho_origem ?? null,
-      material_id:       match?.id ?? null,
+      material_id:       match?.exato ? match.material.id : null,
       material_resolved: false,
     };
   });
@@ -353,6 +353,22 @@ function parsePartialDim(str) {
   return { comprimento: c, largura: l };
 }
 
+// Retorna { material, exato } ou null. `exato` indica confiança pra resolver
+// SOZINHO, sem confirmação manual — não é literalmente "só score 100".
+// O sinal real não é a distância pro segundo colocado (candidato truncado
+// não "compete" com nada — achado real: "Orobico" não tem concorrente
+// próximo em score, mesmo sendo ambíguo, porque a parte que faltou "Arabescato"
+// nunca chega a ser comparada), e sim a DIREÇÃO do substring:
+// - query CONTÉM o nome do candidato inteiro (ex: "Preto São Gabriel Escovado"
+//   ⊇ "Preto São Gabriel") — nome completo do catálogo está todo lá, sobra só
+//   acabamento/tipo que o catálogo não guarda (convenção já confirmada) →
+//   confiável, resolve sozinho.
+// - candidato CONTÉM a query (ex: "Orobico" ⊂ "Orobico Fiano") — a query é só
+//   um FRAGMENTO de um nome mais longo, sem garantia de que o resto é o que a
+//   peça realmente é (achado real: catálogo tinha "Arabescato" e "Orobico
+//   Fiano" como materiais DIFERENTES e reais — resolver por esse lado dava
+//   preço errado silenciosamente) → não confiável, pede confirmação.
+// - sobreposição de palavras (ordem trocada etc.) → sempre não confiável.
 function fuzzyMatchMaterial(query, candidates) {
   if (!query || !candidates.length) return null;
   const norm = s => (s ?? '').toLowerCase()
@@ -360,22 +376,120 @@ function fuzzyMatchMaterial(query, candidates) {
     .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
   const q = norm(query);
   if (!q) return null;
-  let best = null, bestScore = 0;
+  let best = null, bestScore = 0, bestConfiavel = false;
   for (const c of candidates) {
     const n = norm(c.nome);
-    let score = 0;
-    if (n === q) score = 100;
-    else if (n.includes(q) || q.includes(n)) score = 75;
-    else {
+    let score = 0, confiavel = false;
+    if (n === q) {
+      score = 100; confiavel = true;
+    } else if (q.includes(n)) {
+      score = 75; confiavel = true;
+    } else if (n.includes(q)) {
+      score = 75; confiavel = false;
+    } else {
       const qt = q.split(' ').filter(Boolean);
       const nt = new Set(n.split(' ').filter(Boolean));
       const shared = qt.filter(t => nt.has(t)).length;
       const total  = new Set([...qt, ...n.split(' ').filter(Boolean)]).size;
       if (total > 0) score = Math.round(shared / total * 60);
+      confiavel = false;
     }
-    if (score > bestScore) { bestScore = score; best = c; }
+    if (score > bestScore) { bestScore = score; best = c; bestConfiavel = confiavel; }
   }
-  return bestScore >= 50 ? best : null;
+  if (bestScore >= 50) return { material: best, exato: bestConfiavel };
+
+  // Fallback: candidato com 1 palavra faltando no texto lido (achado real:
+  // PDF diz "Granito São Gabriel Escovado", catálogo só tem "Preto São
+  // Gabriel" — falta "Preto"). Só resolve sozinho se for o ÚNICO candidato do
+  // catálogo nessa situação — a garantia não é "quão parecido o nome é", é
+  // UNICIDADE real no catálogo agora. Se outro candidato também tiver a
+  // mesma parte confirmada com outra palavra faltando (ex: catálogo ganhar
+  // um "Branco São Gabriel" no futuro), a palavra que falta passa a ser
+  // decisiva e os dois deixam de resolver sozinhos — auto-corrige contra
+  // mudança de catálogo, sem precisar mexer no código de novo.
+  const qWords = new Set(q.split(' ').filter(Boolean));
+  const parciais = candidates.filter(c => {
+    const nWords = norm(c.nome).split(' ').filter(Boolean);
+    const confirmadas = nWords.filter(w => qWords.has(w)).length;
+    const faltando = nWords.length - confirmadas;
+    return confirmadas >= 2 && faltando === 1;
+  });
+  return parciais.length === 1 ? { material: parciais[0], exato: true } : null;
+}
+
+// ── Rede de segurança: peça da legenda que nunca aparece no resultado final ──
+// Só pro pipeline VETORIAL — é o único com texto bruto pra reconstruir a
+// legenda; o pipeline de imagem manda a página como foto, sem esse dado.
+// Existe porque a IA às vezes, diante de um bloco muito ambíguo (muitos
+// números candidatos, sem cota totalizadora clara), retorna [] em vez de "a
+// medir" como a instrução do prompt pede (achado real: pág. 47, Borda
+// Piscina, 2 de 4 rodadas de teste vieram vazias) — confiança baixa pelo
+// menos avisa na tela; peça ausente não avisa nada. Reforçar o prompt de
+// novo não resolve (é falha de aderência, não regra ausente) — isso é uma
+// checagem determinística por fora.
+
+// Reconstrói {numero, nome} de cada linha da legenda — mesma tolerância a
+// dígito solto extra já usada em pareceLinhaDeLegenda (vetorialBlocos.js,
+// achado: resquício de renumeração no CAD), pra ficar consistente com o que
+// conta como entrada de legenda.
+function parseLegendaEmEntradas(legendaItems) {
+  const linhas = agruparEmLinhas(legendaItems);
+  return linhas
+    .map(l => {
+      const m = l.texto.match(/^(\d{1,2})(?:\s+\d{1,2}){0,2}\s+(.+)$/);
+      return m ? { numero: parseInt(m[1], 10), nome: m[2].trim() } : null;
+    })
+    .filter(Boolean);
+}
+
+const normLegenda = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+
+// Palavras de tipo de peça (mesmo vocabulário de TITULO_REGEX_PECA em
+// vetorialBlocos.js) — aparecem em VÁRIAS entradas da legenda (ex: "BANCADA
+// LAVANDERIA" e "BANCADA CHURRASQUEIRA" compartilham "bancada"), então
+// sozinhas não são sinal confiável de que é a MESMA peça. Removidas antes de
+// comparar, priorizando a parte distintiva do nome (local/ambiente) — achado
+// real ao validar: sem isso, "BANCADA CHURRASQUEIRA" batia 50% contra
+// "Bancada Lavanderia" só por compartilhar a palavra genérica.
+const PALAVRAS_TIPO_PECA_LEGENDA = new Set([
+  'soleira', 'bancada', 'tampo', 'borda', 'prateleira', 'mesa', 'faixa', 'saia',
+  'peitoril', 'frontao', 'espelho', 'peninsula', 'armario',
+]);
+
+// Uma peça da legenda conta como "coberta" se ≥metade das palavras DISTINTIVAS
+// do nome dela (sem a palavra de tipo genérico) aparecerem (descrição+ambiente)
+// em ALGUM item final — uma entrada de legenda pode virar mais de um item (ex:
+// "BANCADA LAVANDERIA" → "Bancada Lavanderia" E "Saia Bancada Lavanderia"),
+// não exige correspondência 1:1. Risco residual aceito: duas entradas de
+// legenda de tipo DIFERENTE mas mesmo ambiente (ex: uma "Soleira X" e uma
+// hipotética "Tampo X" no mesmo cômodo) podem se confundir via ambiente —
+// mesma categoria de risco aceito de outras heurísticas do pipeline (nunca
+// inventa dado, só pode deixar de avisar num caso raro específico; o caso
+// validado — peça sumindo por inteiro do resultado — continua coberto).
+function pecaCobertaPorItens(nomeLegenda, itens) {
+  const todasLegenda  = new Set(normLegenda(nomeLegenda).split(' ').filter(Boolean));
+  const distintivas   = [...todasLegenda].filter(p => !PALAVRAS_TIPO_PECA_LEGENDA.has(p));
+  const palavrasLegenda = distintivas.length > 0 ? new Set(distintivas) : todasLegenda;
+  if (palavrasLegenda.size === 0) return true;
+  return itens.some(it => {
+    const palavrasItem = new Set(normLegenda(`${it.descricao ?? ''} ${it.ambiente ?? ''}`).split(' ').filter(Boolean));
+    const compartilhadas = [...palavrasLegenda].filter(p => palavrasItem.has(p)).length;
+    return palavrasItem.size > 0 && compartilhadas / palavrasLegenda.size >= 0.5;
+  });
+}
+
+// Une a legenda (repetida em toda folha) das páginas processadas e retorna
+// as entradas sem nenhum item correspondente no resultado final.
+function checarPecasFaltantes(pageTextItemsArr, itensExtraidos) {
+  const porNumero = new Map();
+  for (const pageItems of pageTextItemsArr) {
+    const { legenda } = agruparEmBlocos(pageItems);
+    for (const e of parseLegendaEmEntradas(legenda)) if (!porNumero.has(e.numero)) porNumero.set(e.numero, e.nome);
+  }
+  return [...porNumero.entries()].map(([numero, nome]) => ({ numero, nome }))
+    .filter(e => !pecaCobertaPorItens(e.nome, itensExtraidos))
+    .sort((a, b) => a.numero - b.numero);
 }
 
 function getPrecoM2(materialObj, espessuraCm = 2) {
@@ -750,7 +864,8 @@ const [fileName,     setFileName]     = useState('');
         // Re-match items already loaded before materiais arrived (skip resolved ones)
         setItems(prev => prev.length === 0 ? prev : prev.map(item => {
           if (item.material_resolved) return item;
-          return { ...item, material_id: item.material ? (fuzzyMatchMaterial(item.material, data)?.id ?? null) : null };
+          const match = item.material ? fuzzyMatchMaterial(item.material, data) : null;
+          return { ...item, material_id: match?.exato ? match.material.id : null };
         }));
       });
   }, [empresaId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1122,6 +1237,17 @@ const [fileName,     setFileName]     = useState('');
         : null;
       const pageStart = secao?.inicio ?? 1;
       const pageEnd   = secao?.fim    ?? doc.numPages;
+      // Teto real de páginas enviadas à IA (mesmo cálculo usado em
+      // extractAllPagesTextItems/extractAllPagesImagePositions/pdfToImages) —
+      // pode ser menor que pageEnd mesmo quando o índice achou o fim da seção
+      // com confiança (aproximado: false, sem cap contra MAX_PDF_PAGES nesse
+      // caminho), ou quando o BUFFER_PAGINAS do caminho aproximado (somado
+      // DEPOIS do cap em localizarSecaoPorIndice) extrapola o teto de novo.
+      // Sem isso, a mensagem podia informar uma faixa maior do que a
+      // realmente processada, sem nenhum aviso — páginas do fim silenciosamente
+      // fora da extração.
+      const pageEndProcessado = Math.min(pageEnd, pageStart + MAX_PDF_PAGES - 1);
+      const truncadoPorTeto   = pageEndProcessado < pageEnd;
 
       // Restringe o visualizador à faixa detectada — o resto do documento
       // (fundações, elétrica etc.) não é relevante nesse fluxo.
@@ -1129,12 +1255,12 @@ const [fileName,     setFileName]     = useState('');
       setCurrentPage(pageStart);
 
       if (secao) {
-        setChatMessages(prev => [...prev, {
-          role: 'assistant',
-          text: secao.aproximado
-            ? `📑 Encontrei o início da seção de marmoraria na página ${secao.inicio}, mas não achei no índice onde ela termina — processando até a página ${secao.fim} (de ${doc.numPages}) como aproximação…`
-            : `📑 Encontrei a seção de marmoraria nas páginas ${secao.inicio}-${secao.fim} (de ${doc.numPages}), processando essa faixa…`,
-        }]);
+        const textoSecao = secao.aproximado
+          ? `📑 Encontrei o início da seção de marmoraria na página ${secao.inicio}, mas não achei no índice onde ela termina — processando até a página ${pageEndProcessado} (de ${doc.numPages}) como aproximação…`
+          : truncadoPorTeto
+          ? `📑 Encontrei a seção de marmoraria nas páginas ${secao.inicio}-${secao.fim} (de ${doc.numPages}), mas essa faixa passa do limite técnico de ${MAX_PDF_PAGES} páginas por análise — processando só até a página ${pageEndProcessado}. As páginas ${pageEndProcessado + 1}-${secao.fim} não serão extraídas nesta passada.`
+          : `📑 Encontrei a seção de marmoraria nas páginas ${secao.inicio}-${secao.fim} (de ${doc.numPages}), processando essa faixa…`;
+        setChatMessages(prev => [...prev, { role: 'assistant', text: textoSecao }]);
       }
 
       // PDF vetorial (texto real extraível) é priorizado: parsing direto do texto,
@@ -1170,9 +1296,10 @@ const [fileName,     setFileName]     = useState('');
           const vp = (await doc.getPage(pageStart)).getViewport({ scale: 1 });
           pageSizeVetorial = { width: vp.width, height: vp.height };
         }
+        const pageTextItemsVetorial = vetorial ? await extractAllPagesTextItems(doc, pageStart, pageEnd) : null;
         extracted = vetorial
           ? await analyzePlantaVetorial({
-              pageTextItems:      await extractAllPagesTextItems(doc, pageStart, pageEnd),
+              pageTextItems:      pageTextItemsVetorial,
               pageImagePositions: await extractAllPagesImagePositions(doc, pageStart, pageEnd),
               pageSize:           pageSizeVetorial,
               empresaId, onProgress,
@@ -1185,6 +1312,18 @@ const [fileName,     setFileName]     = useState('');
         // detectada não começa na página 1 (ex: item da página local 3 == PDF 36
         // quando pageStart = 34, mas ficaria marcado como página 3).
         extracted = extracted.map(item => ({ ...item, pagina: (Number(item.pagina) || 1) + (pageStart - 1) }));
+
+        // Rede de segurança: peça listada na legenda que não apareceu em
+        // nenhum item extraído (ver comentário de checarPecasFaltantes acima).
+        if (vetorial && pageTextItemsVetorial) {
+          const pecasFaltando = checarPecasFaltantes(pageTextItemsVetorial, extracted);
+          if (pecasFaltando.length > 0) {
+            setChatMessages(prev => [...prev, {
+              role: 'assistant',
+              text: `⚠️ A legenda da folha lista ${pecasFaltando.length} peça(s) que não aparecem em nenhum item extraído — a IA pode ter pulado uma peça ambígua em vez de marcar "a medir". Confira manualmente: ${pecasFaltando.map(p => `"${p.nome}" (item ${p.numero})`).join(', ')}.`,
+            }]);
+          }
+        }
 
         setAiCache(fileHash, extracted);
       }
@@ -1869,8 +2008,8 @@ const [fileName,     setFileName]     = useState('');
       if (campos.material_nome) {
         const match = fuzzyMatchMaterial(campos.material_nome, materiaisRef.current);
         update.material = campos.material_nome;
-        update.material_id = match?.id ?? null;
-        update.material_resolved = !!match;
+        update.material_id = match?.exato ? match.material.id : null;
+        update.material_resolved = !!match?.exato;
       }
       if (campos.espessura_cm != null) {
         const esp = Number(campos.espessura_cm);
@@ -2191,6 +2330,12 @@ const [fileName,     setFileName]     = useState('');
 
           {items.length > 0 && (
             <div className="overflow-x-auto max-h-64">
+              {/* Compartilhada por todos os campos de busca de material da
+                  tabela (B1) — datalist não precisa ser recriada por linha. */}
+              <datalist id="materiais-datalist">
+                {materiais.map(m => <option key={m.id} value={m.nome} />)}
+                <option value="— sem material —" />
+              </datalist>
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-zinc-950 border-b border-zinc-800 sticky top-0">
@@ -2204,18 +2349,42 @@ const [fileName,     setFileName]     = useState('');
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map(item => {
+                  {/* A1: agrupa visualmente por ambiente — só ordena a
+                      RENDERIZAÇÃO (cópia local), não mexe na ordem/estado de
+                      `items`, então nada que indexa por id quebra. Ambiente
+                      vazio ('') vai pro final do agrupamento, não pro início. */}
+                  {[...items]
+                    .sort((a, b) => (a.ambiente || '￿').localeCompare(b.ambiente || '￿'))
+                    .map((item, idx, arr) => {
                     const isPendente  = pendentes.has(item.id);
                     const partialDim  = parsePartialDim(item.dimensoes);
-                    const needsReview = !isPendente && (item.confianca < 50 || item.dimensoes === 'a medir' || partialDim !== null);
+                    // Incerteza de DIMENSÃO — controla a linha extra de botões
+                    // (Usar padrão/Digitar/Perguntar ao arquiteto), que são
+                    // todos sobre dimensão. Material tem sua própria ação já
+                    // visível na célula (campo de busca), não precisa duplicar.
+                    const dimensaoIncerta  = item.confianca < 50 || item.dimensoes === 'a medir' || partialDim !== null;
+                    // Material genuinamente sem resposta — nem resolvido
+                    // (material_id) nem confirmado como "sem material"
+                    // (material_resolved). Só entra no destaque visual da
+                    // linha (needsReview), não na linha de botões.
+                    const materialFaltando = item.material_id == null && !item.material_resolved;
+                    const needsReview = !isPendente && (dimensaoIncerta || materialFaltando);
                     const isEditing   = digitandoId === item.id;
                     const cellEditing = isEditing && !partialDim; // input fica na célula só quando não é parcial
                     const isSelected  = selectedItem === item.id;
                     const rowBg       = isPendente  ? 'bg-orange-400/5'
                                       : needsReview ? 'bg-yellow-400/5'
                                       : isSelected  ? 'bg-zinc-800/40' : '';
+                    const mudouAmbiente = idx === 0 || arr[idx - 1].ambiente !== item.ambiente;
                     return (
                       <Fragment key={item.id}>
+                        {mudouAmbiente && (
+                          <tr className="bg-zinc-950/80">
+                            <td colSpan={pdfDoc ? 7 : 6} className="px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-zinc-500 border-b border-zinc-800">
+                              {item.ambiente || 'Sem ambiente'}
+                            </td>
+                          </tr>
+                        )}
                         <tr
                           onClick={() => handleItemClick(item)}
                           className={`border-b border-zinc-800/40 cursor-pointer hover:bg-zinc-800/30 transition-colors ${rowBg}`}
@@ -2252,39 +2421,54 @@ const [fileName,     setFileName]     = useState('');
                                 <span className="text-yellow-500 text-[9px] truncate max-w-[130px]" title={`IA sugeriu: "${item.material}"`}>
                                   {item.material} ?
                                 </span>
-                                <select
-                                  value=""
+                                <input
+                                  type="text"
+                                  list="materiais-datalist"
+                                  defaultValue=""
+                                  placeholder="Buscar material..."
+                                  autoComplete="off"
+                                  onClick={e => e.stopPropagation()}
                                   onChange={e => {
                                     const val = e.target.value;
-                                    if (!val) return;
+                                    if (val === '— sem material —') {
+                                      setItems(prev => prev.map(it => it.id === item.id
+                                        ? { ...it, material_id: null, material_resolved: true, confianca: Math.max(it.confianca, 70) }
+                                        : it));
+                                      return;
+                                    }
+                                    const encontrado = materiais.find(m => m.nome === val);
+                                    if (!encontrado) return;
                                     setItems(prev => prev.map(it => it.id === item.id
-                                      ? { ...it, material_id: val === '__sem__' ? null : val, material_resolved: true }
+                                      ? { ...it, material_id: encontrado.id, material_resolved: true, confianca: Math.max(it.confianca, 70) }
                                       : it));
                                   }}
-                                  className="bg-zinc-900 border border-amber-700 text-zinc-400 text-[9px] py-0.5 px-1 outline-none focus:border-yellow-400 max-w-[130px] cursor-pointer"
-                                >
-                                  <option value="">Selecionar...</option>
-                                  {materiais.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                                  <option value="__sem__">— sem material —</option>
-                                </select>
+                                  className="bg-zinc-900 border border-amber-700 text-zinc-400 text-[9px] py-0.5 px-1 outline-none focus:border-yellow-400 max-w-[130px]"
+                                />
                               </div>
                             ) : (
-                              <select
-                                value=""
+                              <input
+                                type="text"
+                                list="materiais-datalist"
+                                defaultValue=""
+                                placeholder="Buscar material..."
+                                autoComplete="off"
+                                onClick={e => e.stopPropagation()}
                                 onChange={e => {
                                   const val = e.target.value;
-                                  if (!val) return;
+                                  if (val === '— sem material —') {
+                                    setItems(prev => prev.map(it => it.id === item.id
+                                      ? { ...it, material_id: null, material_resolved: true, confianca: Math.max(it.confianca, 70) }
+                                      : it));
+                                    return;
+                                  }
+                                  const encontrado = materiais.find(m => m.nome === val);
+                                  if (!encontrado) return;
                                   setItems(prev => prev.map(it => it.id === item.id
-                                    ? { ...it, material_id: val === '__sem__' ? null : val, material_resolved: true }
+                                    ? { ...it, material_id: encontrado.id, material_resolved: true, confianca: Math.max(it.confianca, 70) }
                                     : it));
                                 }}
-                                onClick={e => e.stopPropagation()}
-                                className="bg-zinc-900 border border-zinc-800 text-zinc-600 text-[9px] py-0.5 px-1 outline-none focus:border-zinc-600 max-w-[130px] cursor-pointer"
-                              >
-                                <option value="">Selecionar material</option>
-                                {materiais.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                                <option value="__sem__">— sem material —</option>
-                              </select>
+                                className="bg-zinc-900 border border-zinc-800 text-zinc-600 text-[9px] py-0.5 px-1 outline-none focus:border-zinc-600 max-w-[130px]"
+                              />
                             )}
                           </td>
                           <td className="px-2 py-1.5 font-mono text-[10px] whitespace-nowrap">
@@ -2368,7 +2552,7 @@ const [fileName,     setFileName]     = useState('');
                             </td>
                           )}
                         </tr>
-                        {(needsReview || isPendente) && !cellEditing && (
+                        {(dimensaoIncerta || isPendente) && !cellEditing && (
                           <tr className={`border-b border-zinc-800/40 ${rowBg}`}>
                             <td colSpan={pdfDoc ? 7 : 6} className="px-2 pb-1.5 pt-0">
                               {isPendente ? (
@@ -2389,10 +2573,12 @@ const [fileName,     setFileName]     = useState('');
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <button
-                                    onClick={e => { e.stopPropagation(); usarPadrao(item); }}
-                                    className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
-                                  >Usar padrão</button>
+                                  {item.dimensoes === 'a medir' && (
+                                    <button
+                                      onClick={e => { e.stopPropagation(); usarPadrao(item); }}
+                                      className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                                    >Usar padrão</button>
+                                  )}
                                   <button
                                     onClick={e => { e.stopPropagation(); setDigitandoId(item.id); setDigitandoValor(item.dimensoes === 'a medir' ? '' : item.dimensoes); }}
                                     className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
