@@ -37,6 +37,8 @@ REGRAS IMPORTANTES:
 - Se o tampo tiver trechos com FUNÇÕES DIFERENTES claramente identificáveis (ex: um lado tem o ícone/recorte de cooktop, outro lado tem o ícone/recorte de cuba), extraia cada trecho como item separado
 - Espessura da pedra (1, 2 ou 3 cm) é diferente da altura/largura da peça
 - Material: se houver amostra de material dentro de um bloco, aplique a TODOS os itens desse MESMO bloco. Itens do bloco especial "LEGENDA/ÍNDICE" (lista geral de peças da folha, sem vista própria) NUNCA recebem material herdado de outro bloco — ficam com material null (a definir), mesmo que outro bloco da mesma página tenha material definido
+- Material só é atribuído a partir de uma amostra/anotação REAL de material dentro do bloco da própria peça, ou do bloco de detalhe que está resolvendo a dimensão dela via atualiza_id (ver REGRAS DE CONTEXTO) — NUNCA de uma nota de construção genérica que vale pra várias peças ou pro projeto inteiro (ex: especificação de método construtivo, tabela de esquadrias, texto do tipo "usar granito nas soleiras externas"). Se o único texto disponível for desse tipo genérico, deixe material null em vez de usá-lo
+- NUNCA complemente o nome do material com cor, acabamento ou variação (ex: "Escuro", "Claro", "Polido") que não esteja escrita literalmente no texto da página — se o nome estiver incompleto, retorne só a parte confirmada, sem completar
 - NÃO duplique — cada peça física = um registro
 
 REGRAS PARA DIMENSIONAMENTO EM PARTES x PEÇAS SEPARADAS (fonte comum de contagem errada):

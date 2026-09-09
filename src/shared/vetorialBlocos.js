@@ -482,7 +482,17 @@ export function agruparEmBlocos(items, imagePositions = [], pageSize = null) {
     return { blocos, legenda, semBloco: [] };
   }
 
-  const tituloItens = new Set(tituloLinhas.flatMap(l => l.itens));
+  // Um item que "parece cota" (ver pareceCota/LIMIAR_PARECE_COTA acima) nunca é
+  // consumido pelo título, mesmo quando grudou numa linha de título por
+  // proximidade geométrica (achado real: pág. 43, "90" — provável largura da
+  // Bancada Churrasqueira — colou em "4 BANCADA CHURRASQUEIRA" e sumia do
+  // bloco, apagando um dado real que a IA nunca via). Índice de legenda (≤20,
+  // ex: o "4" de "4 BANCADA CHURRASQUEIRA") continua sendo consumido
+  // normalmente pelo título — só números com magnitude de cota escapam disso e
+  // seguem pro agrupamento normal em itens do bloco.
+  const tituloItens = new Set(
+    tituloLinhas.flatMap(l => l.itens.filter(it => !pareceCota(it.texto)))
+  );
 
   // Agrupa títulos em "fileiras" (mesma banda de y, desenhos lado a lado).
   const ordenadosPorY = [...tituloLinhas].sort((a, b) => a.y - b.y);

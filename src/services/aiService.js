@@ -685,6 +685,36 @@ function deduplicarItens(items) {
   return kept;
 }
 
+// ── Rede de segurança: fragmentação de cota corrida (3+ leituras da MESMA
+// página, ambiente e tipo) ──────────────────────────────────────────────────
+// Diferente do conflito par-a-par acima (2 leituras que não batem = pode ser
+// erro de leitura OU peças-irmãs legítimas — achado real: pág. 45 do PDF de
+// teste tem 2 soleiras reais, vãos diferentes, mesmo nome), 3+ leituras
+// vindas da MESMA página é sinal mais forte: raramente uma folha tem 3+
+// peças fisicamente distintas do mesmo tipo/ambiente/nome. Mais provável que
+// a IA tenha lido uma cadeia de segmentos de cota corrida (1 peça só) como
+// se fossem várias peças separadas (achado real: pág. 47, "Borda Piscina"
+// virou 5 leituras numa rodada; "Soleira Área Gourmet" ganhou 3 fantasmas
+// extras — todas da mesma página). Threshold em 3 (não 2) é deliberado: 2 na
+// mesma página é comum e legítimo, só o salto pra 3+ é o sinal confiável.
+// Itens com tipo "outro" são pulados — sem tipo do enum pra comparar com
+// segurança, não arrisca falso positivo.
+function marcarFragmentacaoSuspeita(items) {
+  const grupos = new Map();
+  for (const item of items) {
+    const tipo = item.tipo ?? 'outro';
+    if (tipo === 'outro') continue;
+    const chave = `${item.pagina}::${normTxt(item.ambiente)}::${tipo}`;
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(item);
+  }
+  for (const grupo of grupos.values()) {
+    if (grupo.length < 3) continue;
+    grupo.forEach(item => { item.confianca = Math.min(item.confianca ?? 100, 30); });
+  }
+  return items;
+}
+
 // Concorrência do lote de páginas processadas em paralelo. Tier 1 (billing
 // ativo) do Gemini aguenta ~1000 RPM em gemini-2.5-flash — 3 é bem conservador
 // (evita 429 mesmo com o fallback e o chat rodando ao mesmo tempo) mas já corta
@@ -703,6 +733,30 @@ const PAGE_BATCH_CONCURRENCY = 3;
 // veem entre si: o contextoAnterior enviado a todas elas é só o que já foi
 // CONFIRMADO pelos lotes anteriores. É uma limitação aceita em troca da
 // velocidade — dedup final (deduplicarItens) cobre o que esse contexto perder.
+// Uma atualização via atualiza_id (detalhe/zoom que refina uma peça já vista)
+// só enxerga o resumo compacto do CONTEXTO (id/descricao/ambiente/dimensoes/
+// pagina/pendente — ver runExtractionPipeline) — nunca o objeto completo
+// anterior (material, espessura_cm, recortes). Se a página que resolve a
+// pendência não traz um desses campos (ex: resolve só a dimensão, sem
+// repetir o material), a IA devolve esse campo vazio de forma legítima — não
+// está inventando "sem material", só não tinha como saber que já havia um.
+// Mescla campo a campo só nos campos com sentinela de "vazio" clara — mesmo
+// espírito do "mantém o mais completo" já usado em deduplicarItens. Os
+// demais campos (descrição, ambiente, tipo, confiança, trecho_origem) vêm
+// sempre do item novo, porque é ele quem está corrigindo/refinando a peça.
+function mesclarAtualizacao(alvo, item) {
+  const manterSeVazio = (atualVal, novoVal, vazio) => (novoVal == null || novoVal === vazio) ? atualVal : novoVal;
+  return {
+    ...alvo,
+    ...item,
+    material:     manterSeVazio(alvo.material, item.material, null),
+    dimensoes:    manterSeVazio(alvo.dimensoes, item.dimensoes, 'a medir'),
+    espessura_cm: manterSeVazio(alvo.espessura_cm, item.espessura_cm, null),
+    recortes:     item.recortes?.length ? item.recortes : (alvo.recortes ?? []),
+    id: alvo.id, pagina: alvo.pagina, atualiza_id: undefined,
+  };
+}
+
 async function runExtractionPipeline(totalPages, callBatchForPage, onProgress, concurrency = PAGE_BATCH_CONCURRENCY) {
   const allItems = [];
   let nextId = 1;
@@ -735,7 +789,7 @@ async function runExtractionPipeline(totalPages, callBatchForPage, onProgress, c
         const alvo = atualizaId ? allItems.find(it => it.id === atualizaId) : null;
         if (alvo) {
           // Detalhe/zoom de uma peça já vista: atualiza no lugar em vez de criar item novo.
-          Object.assign(alvo, item, { id: alvo.id, pagina: alvo.pagina, atualiza_id: undefined });
+          Object.assign(alvo, mesclarAtualizacao(alvo, item));
         } else {
           allItems.push({ ...item, id: String(nextId++), pagina: i + 1, atualiza_id: undefined });
         }
@@ -746,7 +800,7 @@ async function runExtractionPipeline(totalPages, callBatchForPage, onProgress, c
   // Segunda camada: pega duplicatas que o modelo não reconheceu via CONTEXTO
   // (ex: mesma peça descrita de forma um pouco diferente em páginas distintas,
   // ou nas mesmas do lote, que não trocaram contexto entre si).
-  return deduplicarItens(allItems);
+  return marcarFragmentacaoSuspeita(deduplicarItens(allItems));
 }
 
 export async function analyzePlantPDF({ pageImages, economyMode = false, empresaId = null, onProgress = null }) {
