@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, Fragment } from 'react';
+import { useState, useRef, useEffect, useMemo, Fragment } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import DxfParser from 'dxf-parser';
 import { useNavigate } from 'react-router-dom';
@@ -265,16 +265,17 @@ function chunkArray(arr, size) {
   return chunks.length ? chunks : [[]];
 }
 
-// ── Cache local de extração por IA (dev) ─────────────────────────────────────────
-// Evita pagar de novo pela mesma chamada ao reprocessar o mesmo arquivo durante
-// teste/debug. localStorage é suficiente pro caso de uso (só dev, não precisa
+// ── Cache local de extração por IA ───────────────────────────────────────────────
+// Evita pagar de novo pela mesma chamada ao Gemini ao reabrir ou reprocessar o
+// mesmo arquivo — feature real (economia de custo pro vendedor no dia a dia),
+// não só de dev. localStorage é suficiente pro caso de uso (não precisa
 // compartilhar entre usuários/dispositivos) — sem tabela nova no Supabase.
 // v2: `pagina` nos itens cacheados passou a ser a página REAL do PDF (antes era
 // o índice local dentro da faixa processada) — prefixo novo invalida cache
 // antigo em vez de servir números de página errados pra quem já tinha testado.
 const AI_CACHE_PREFIX     = 'aiExtractCacheV2:';
 const AI_CACHE_MAX_ENTRIES = 20;                    // evita crescer sem limite
-const AI_CACHE_TTL_MS      = 7 * 24 * 60 * 60 * 1000; // 7 dias — cache é só de conveniência de dev
+const AI_CACHE_TTL_MS      = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
 async function hashArrayBuffer(buffer) {
   const digest = await crypto.subtle.digest('SHA-256', buffer);
@@ -308,6 +309,32 @@ function setAiCache(hash, extracted) {
   } catch {
     // localStorage cheio/indisponível — só não cacheia, não deve quebrar o fluxo principal
   }
+}
+
+// ── Flag de debug da aba de importação de PDF ────────────────────────────────────
+// Os painéis 🧪 (testar página isolada, identificar ambientes/itens por ambiente
+// isolados, preview de blocos por posição de imagem) só aparecem quando esta flag
+// estiver ligada E for build de dev (import.meta.env.DEV) — nunca em produção, e
+// nem sempre que se roda `npm run dev` (senão a tela fica poluída de novo pra
+// quem está testando o fluxo normal). Ativa/desativa via query string na URL
+// (?debugPdf=1 liga, ?debugPdf=0 desliga); o valor fica salvo no localStorage
+// entre sessões até ser desligado de novo.
+const DEBUG_PDF_STORAGE_KEY = 'pdfImportDebug';
+
+function isDebugPdfEnabled() {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('debugPdf')) {
+    const ligar = params.get('debugPdf') !== '0';
+    try {
+      if (ligar) localStorage.setItem(DEBUG_PDF_STORAGE_KEY, '1');
+      else localStorage.removeItem(DEBUG_PDF_STORAGE_KEY);
+    } catch {
+      // localStorage indisponível — a flag ainda funciona só nesta navegação, via URL
+    }
+    return ligar;
+  }
+  try { return localStorage.getItem(DEBUG_PDF_STORAGE_KEY) === '1'; } catch { return false; }
 }
 
 // Returns {comprimento, largura} where one is a "X,XX" string and the other is null,
@@ -394,17 +421,13 @@ const TOOL_ATUALIZAR_ITEMS = {
 
 function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileName, onClose, onSwap, pageRange = null }) {
   const pdfCanvasRef  = useRef(null);
-  const annotCanvasRef = useRef(null);
+  const overlayRef    = useRef(null); // camada transparente por cima do canvas — só captura mouse pra pan
   const renderTaskRef = useRef(null);
   const containerRef  = useRef(null); // painel com scroll — usado pro pan e pra recentralizar no zoom
   const zoomFocusRef  = useRef(null); // ponto do cursor a preservar após o próximo render (zoom centrado)
   const panRef        = useRef(null); // {startX,startY,scrollLeft,scrollTop} enquanto arrasta pra pan
 
-  const [activeTool,  setActiveTool]  = useState(null);
-  const [annotations, setAnnotations] = useState({});
-  const [isDrawing,   setIsDrawing]   = useState(false);
   const [isPanning,   setIsPanning]   = useState(false);
-  const drawRef = useRef({ tool: null, startX: 0, startY: 0, points: [] });
 
   const totalPages = pdfDoc?.numPages ?? 0;
   // Restringe navegação à faixa detectada (seção de marmoraria) quando houver —
@@ -425,8 +448,7 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
       const page     = await pdfDoc.getPage(currentPage);
       const viewport = page.getViewport({ scale });
       const canvas   = pdfCanvasRef.current;
-      const annot    = annotCanvasRef.current;
-      if (!canvas || !annot || cancelled) return;
+      if (!canvas || cancelled) return;
 
       // Renderiza num buffer maior que o tamanho exibido (devicePixelRatio ×
       // supersample extra) e escala de volta via CSS — sem isso, o canvas fica
@@ -438,20 +460,12 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
       canvas.style.width  = `${Math.floor(viewport.width)}px`;
       canvas.style.height = `${Math.floor(viewport.height)}px`;
 
-      annot.width  = canvas.width;
-      annot.height = canvas.height;
-      // getPos() lê coordenadas em pixels CSS (getBoundingClientRect) — escala o
-      // contexto pra que os desenhos de anotação (em coordenadas CSS) caiam no
-      // lugar certo do buffer de maior resolução.
-      annot.getContext('2d').setTransform(outputScale, 0, 0, outputScale, 0, 0);
-
       const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
       const task = page.render({ canvasContext: canvas.getContext('2d'), viewport, transform });
       renderTaskRef.current = task;
       try {
         await task.promise;
         if (cancelled) return;
-        redrawAnnotations(currentPage, annotations, annot);
 
         // Zoom centrado no cursor: reaplica o offset de scroll calculado no
         // wheel handler agora que o canvas já tem o tamanho novo (antes disso
@@ -471,118 +485,29 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
     return () => { cancelled = true; };
   }, [pdfDoc, currentPage, scale]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Redraw annotations ─────────────────────────────────────────────────────
-  function redrawAnnotations(page, allAnnotations, canvas) {
-    const ctx = canvas.getContext('2d');
-    // canvas.width/height são pixels do buffer (já multiplicados pelo
-    // devicePixelRatio/supersample); o ctx está com setTransform aplicado pra
-    // desenhar em pixels CSS — usa o tamanho CSS (canvas.style) pra limpar tudo
-    // sem depender desse fator.
-    const cssWidth  = parseFloat(canvas.style.width)  || canvas.width;
-    const cssHeight = parseFloat(canvas.style.height) || canvas.height;
-    ctx.clearRect(0, 0, cssWidth, cssHeight);
-    (allAnnotations[page] ?? []).forEach(ann => {
-      if (ann.type === 'highlight') {
-        ctx.fillStyle = 'rgba(250,204,21,0.30)';
-        ctx.fillRect(ann.x, ann.y, ann.w, ann.h);
-      } else if (ann.type === 'pencil') {
-        ctx.strokeStyle = '#f87171';
-        ctx.lineWidth   = 2;
-        ctx.lineCap     = 'round';
-        ctx.lineJoin    = 'round';
-        ctx.beginPath();
-        ann.points.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
-        ctx.stroke();
-      }
-    });
-  }
-
-  // ── Annotation mouse events ────────────────────────────────────────────────
-  function getPos(e) {
-    const rect = annotCanvasRef.current.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
+  // ── Pan (arrastar pra rolar) ───────────────────────────────────────────────
   function onMouseDown(e) {
-    if (!activeTool) {
-      // Nenhuma ferramenta de anotação ativa: arrastar faz pan (mão fechada),
-      // em vez de não fazer nada como antes.
-      panRef.current = {
-        startX: e.clientX, startY: e.clientY,
-        scrollLeft: containerRef.current?.scrollLeft ?? 0,
-        scrollTop:  containerRef.current?.scrollTop  ?? 0,
-      };
-      setIsPanning(true);
-      return;
-    }
-    if (activeTool === 'eraser') {
-      setIsDrawing(true);
-      drawRef.current = { tool: activeTool, ...getPos(e), points: [getPos(e)] };
-      return;
-    }
-    setIsDrawing(true);
-    const pos = getPos(e);
-    drawRef.current = { tool: activeTool, startX: pos.x, startY: pos.y, points: [pos] };
+    panRef.current = {
+      startX: e.clientX, startY: e.clientY,
+      scrollLeft: containerRef.current?.scrollLeft ?? 0,
+      scrollTop:  containerRef.current?.scrollTop  ?? 0,
+    };
+    setIsPanning(true);
   }
 
   function onMouseMove(e) {
-    if (panRef.current) {
-      const dx = e.clientX - panRef.current.startX;
-      const dy = e.clientY - panRef.current.startY;
-      if (containerRef.current) {
-        containerRef.current.scrollLeft = panRef.current.scrollLeft - dx;
-        containerRef.current.scrollTop  = panRef.current.scrollTop  - dy;
-      }
-      return;
-    }
-    if (!isDrawing || !activeTool) return;
-    const pos = getPos(e);
-    const { tool } = drawRef.current;
-
-    if (tool === 'pencil') {
-      drawRef.current.points.push(pos);
-      const ctx = annotCanvasRef.current.getContext('2d');
-      const pts = drawRef.current.points;
-      ctx.strokeStyle = '#f87171';
-      ctx.lineWidth   = 2;
-      ctx.lineCap     = 'round';
-      ctx.beginPath();
-      ctx.moveTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-    } else if (tool === 'highlight') {
-      const { startX, startY } = drawRef.current;
-      const canvas = annotCanvasRef.current;
-      const ctx = canvas.getContext('2d');
-      redrawAnnotations(currentPage, annotations, canvas);
-      ctx.fillStyle = 'rgba(250,204,21,0.30)';
-      ctx.fillRect(startX, startY, pos.x - startX, pos.y - startY);
-    } else if (tool === 'eraser') {
-      const ctx = annotCanvasRef.current.getContext('2d');
-      ctx.clearRect(pos.x - 15, pos.y - 15, 30, 30);
+    if (!panRef.current) return;
+    const dx = e.clientX - panRef.current.startX;
+    const dy = e.clientY - panRef.current.startY;
+    if (containerRef.current) {
+      containerRef.current.scrollLeft = panRef.current.scrollLeft - dx;
+      containerRef.current.scrollTop  = panRef.current.scrollTop  - dy;
     }
   }
 
-  function onMouseUp(e) {
-    if (panRef.current) {
-      panRef.current = null;
-      setIsPanning(false);
-      return;
-    }
-    if (!isDrawing) return;
-    setIsDrawing(false);
-    const pos = getPos(e);
-    const { tool, startX, startY, points } = drawRef.current;
-
-    setAnnotations(prev => {
-      const pageAnns = [...(prev[currentPage] ?? [])];
-      if (tool === 'highlight') {
-        pageAnns.push({ type: 'highlight', x: startX, y: startY, w: pos.x - startX, h: pos.y - startY });
-      } else if (tool === 'pencil' && points.length > 1) {
-        pageAnns.push({ type: 'pencil', points });
-      }
-      return { ...prev, [currentPage]: pageAnns };
-    });
+  function onMouseUp() {
+    panRef.current = null;
+    setIsPanning(false);
   }
 
   // ── Zoom centrado no cursor (Ctrl/Cmd + roda do mouse, ou pinça de trackpad) ──
@@ -616,37 +541,13 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
   }, [setScale]);
 
   // ── Cursor ─────────────────────────────────────────────────────────────────
-  const cursor = activeTool === 'highlight' ? 'crosshair'
-               : activeTool === 'pencil'    ? 'cell'
-               : activeTool === 'eraser'    ? 'cell'
-               : (isPanning ? 'grabbing' : 'grab');
+  const cursor = isPanning ? 'grabbing' : 'grab';
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
 
       {/* Toolbar */}
       <div className="shrink-0 flex items-center gap-1 px-3 py-2 border-b border-zinc-800 bg-zinc-950">
-        {[
-          { id: 'highlight', icon: 'solar:pen-new-round-linear',  title: 'Marca-texto' },
-          { id: 'pencil',    icon: 'solar:pen-linear',            title: 'Lápis'       },
-          { id: 'eraser',    icon: 'solar:eraser-linear',         title: 'Borracha'    },
-        ].map(tool => (
-          <button
-            key={tool.id}
-            title={tool.title}
-            onClick={() => setActiveTool(prev => prev === tool.id ? null : tool.id)}
-            className={`w-7 h-7 flex items-center justify-center border transition-colors ${
-              activeTool === tool.id
-                ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
-                : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'
-            }`}
-          >
-            <iconify-icon icon={tool.icon} width="13" />
-          </button>
-        ))}
-
-        <div className="w-px h-4 bg-zinc-800 mx-1" />
-
         <button
           title="Diminuir zoom"
           onClick={() => setScale(s => Math.max(0.5, +(s - 0.2).toFixed(1)))}
@@ -722,8 +623,8 @@ function PDFViewer({ pdfDoc, currentPage, setCurrentPage, scale, setScale, fileN
         ) : (
           <div className="relative inline-block">
             <canvas ref={pdfCanvasRef} className="block shadow-xl" />
-            <canvas
-              ref={annotCanvasRef}
+            <div
+              ref={overlayRef}
               style={{ cursor }}
               onMouseDown={onMouseDown}
               onMouseMove={onMouseMove}
@@ -744,6 +645,10 @@ export default function AbaImportarPDF({ projetoId, initialFiles, fullscreen }) 
   const { profile, session } = useAuth();
   const empresaId   = profile?.empresa_id ?? null;
   const navigate    = useNavigate();
+  // Painéis de debug (ver isDebugPdfEnabled acima): nunca aparecem em produção,
+  // e em dev só quando a flag foi ligada explicitamente (?debugPdf=1) — calculado
+  // uma vez, não muda sem reload da página.
+  const debugEnabled = useMemo(() => import.meta.env.DEV && isDebugPdfEnabled(), []);
 
   const [pdfDoc,       setPdfDoc]       = useState(null);
   const [currentPage,  setCurrentPage]  = useState(1);
@@ -2127,19 +2032,19 @@ const [fileName,     setFileName]     = useState('');
               onClick={handleForcarNovaAnalise}
               disabled={!lastFileRef.current || loading}
               className="font-mono text-[9px] text-zinc-600 hover:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
-              title="Ignora o cache local e reprocessa com a IA agora mesmo (ex: depois de mudar o prompt/schema)"
+              title="Reprocessa esse arquivo do zero, ignorando o resultado salvo"
             >
-              🔄 forçar nova análise
+              ↻ analisar novamente
             </button>
             {usouCache && !loading && (
-              <span className="font-mono text-[9px] text-blue-400 shrink-0" title="Resultado veio do cache local — nenhuma chamada à IA foi feita">📦 cache</span>
+              <span className="font-mono text-[9px] text-blue-400 shrink-0" title="Esse arquivo já tinha sido analisado antes — usamos o resultado salvo, sem gastar uma nova análise">⚡ resultado salvo</span>
             )}
             {loading && (
               <span className="font-mono text-[9px] text-yellow-400 animate-pulse shrink-0">Analisando...</span>
             )}
           </div>
 
-          {import.meta.env.DEV && pdfDoc && (
+          {debugEnabled && pdfDoc && (
             <div className="flex items-center gap-2 px-4 py-2 bg-yellow-950/20 border-t border-yellow-900/40">
               <span className="font-mono text-[9px] uppercase tracking-widest text-yellow-600 shrink-0">🧪 debug</span>
               <input
@@ -2173,7 +2078,7 @@ const [fileName,     setFileName]     = useState('');
             </div>
           )}
 
-          {import.meta.env.DEV && pdfDoc && ambientesResultado?.ambientes?.length > 0 && (
+          {debugEnabled && pdfDoc && ambientesResultado?.ambientes?.length > 0 && (
             <div className="flex items-center gap-2 px-4 py-2 bg-yellow-950/20 border-t border-yellow-900/40">
               <span className="font-mono text-[9px] uppercase tracking-widest text-yellow-600 shrink-0">🧪 passo 2</span>
               <select
