@@ -195,6 +195,52 @@ function repararTituloQuebrado(linhasOrdenadas) {
   return resultado;
 }
 
+// Corrige título cuja primeira/alguma palavra perdeu EXATAMENTE 1 glifo no
+// MEIO (ícone sobreposto durante a extração de texto do PDF) — diferente de
+// repararTituloQuebrado (que junta duas LINHAS vizinhas, glifo isolado sai
+// como token próprio): aqui as duas partes já chegam juntas na MESMA linha
+// (mesma altura, x contínuo — agruparEmLinhas já colou "S" e "LEIRA" num só
+// texto "S LEIRA ÁREA GOURMET"), só que sem o "O" no meio nunca bate
+// TITULO_REGEX. Achado real: pág. 45 do PDF de teste — bloco "SOLEIRA
+// CIRCULAÇÃO" engolindo o "371" de um "SOLEIRA ÁREA GOURMET" vizinho cujo
+// título nunca foi reconhecido por causa disso (a única coluna reconhecida da
+// fileira ficava com xEsq=-Infinity, "engolindo" tudo à esquerda, título
+// quebrado incluído).
+//
+// Teste DELIBERADAMENTE estrito (igualdade estrutural exata, não distância de
+// edição/fuzzy, e SEM case-insensitive — mesma proteção já usada em
+// TITULO_REGEX_PECA contra nota de texto comum tipo "Borda em Itaúnas
+// escovado"): só reconstrói quando concatenar duas palavras ADJACENTES da
+// linha, com exatamente 1 caractere no meio, bate uma palavra-chave INTEIRA
+// (prefixo E sufixo exatos, comprimento batendo "falta exatamente 1 glifo").
+// Nunca aceita 0 ou 2+ caracteres faltando — caso raro de 2+ glifos perdidos
+// fica sem título, mesmo comportamento seguro de hoje (falso negativo aceito,
+// nunca falso positivo).
+function reconstroiPalavraComGlifoFaltando(primeira, segunda) {
+  return TITULO_PALAVRAS_CHAVE.find(k =>
+    k.length === primeira.length + segunda.length + 1 &&
+    k.startsWith(primeira) &&
+    k.endsWith(segunda)
+  ) ?? null;
+}
+
+// Varre cada linha já montada (ver agruparEmLinhas) procurando um par de
+// palavras adjacentes que reconstrua uma palavra-chave — geometria (itens,
+// xMin/xMax/y) NUNCA muda, só o texto usado pra reconhecer/exibir o título.
+function repararGlifoFaltando(linhasOrdenadas) {
+  return linhasOrdenadas.map(linha => {
+    const palavras = linha.texto.split(' ');
+    for (let i = 0; i < palavras.length - 1; i++) {
+      const reconstruida = reconstroiPalavraComGlifoFaltando(palavras[i], palavras[i + 1]);
+      if (reconstruida) {
+        const novasPalavras = [...palavras.slice(0, i), reconstruida, ...palavras.slice(i + 2)];
+        return { ...linha, texto: novasPalavras.join(' ') };
+      }
+    }
+    return linha;
+  });
+}
+
 // Fallback quando não há título reconhecível: corta em grupos sempre que o
 // salto vertical entre linhas consecutivas passar de GAP_FALLBACK_FACTOR vezes
 // o salto "típico" da página — aproxima blocos por espaço em branco.
@@ -560,7 +606,7 @@ export function agruparEmBlocos(items, imagePositions = [], pageSize = null) {
   const { legendaLinhas, resto: restoBruto } = isolarLegenda(linhas);
   const legenda = legendaLinhas.flatMap(l => l.itens);
 
-  const resto = repararTituloQuebrado([...restoBruto].sort((a, b) => a.y - b.y || a.xMin - b.xMin));
+  const resto = repararGlifoFaltando(repararTituloQuebrado([...restoBruto].sort((a, b) => a.y - b.y || a.xMin - b.xMin)));
   const tituloLinhas = resto.filter(l => TITULO_REGEX.test(l.texto));
 
   if (tituloLinhas.length === 0) {
