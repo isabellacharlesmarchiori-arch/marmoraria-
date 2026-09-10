@@ -624,11 +624,28 @@ function dimensoesSimilares(a, b) {
 // confiável que comparar texto livre de "descricao", que varia de wording entre
 // páginas (ex: "Tampo W.C. 02" vs "Tampo Banheiro 02 (detalhe)"). Usa tipo quando
 // disponível; cai para similaridade de texto só se o tipo não ajudar a decidir.
+// Ambiente vazio ("Sem ambiente" na UI) é compatível com qualquer ambiente —
+// mesmo espírito do "a medir" em dimensoesSimilares (uma leitura que perdeu o
+// ambiente, ex: peça re-derivada via CONTEXTO numa página sem rótulo de cômodo
+// por perto, não deve virar duplicata só por isso). MAS quando um dos dois
+// lados está vazio, "tipo" bater sozinho não é específico o bastante pra provar
+// que é a MESMA peça física (ex: "soleira" bate em toda soleira da casa) —
+// exige descrição similar também nesse caso, ao contrário do caminho normal
+// (ambiente confirmado + tipo batendo já basta). Ambiguidade de ambiente NUNCA
+// afrouxa a exigência de descrição, só a de ambiente em si.
+function ambienteAmbiguo(a, b) {
+  return !normTxt(a) || !normTxt(b);
+}
+
 function mesmaPeca(a, b) {
-  if (normTxt(a.ambiente) !== normTxt(b.ambiente)) return false;
+  const ambienteOk = ambienteAmbiguo(a.ambiente, b.ambiente) || normTxt(a.ambiente) === normTxt(b.ambiente);
+  if (!ambienteOk) return false;
   const tipoA = a.tipo ?? 'outro', tipoB = b.tipo ?? 'outro';
   const mesmoTipo = tipoA !== 'outro' && tipoA === tipoB;
-  if (!mesmoTipo && !descricaoSimilar(a.descricao, b.descricao)) return false;
+  const identificacaoOk = ambienteAmbiguo(a.ambiente, b.ambiente)
+    ? descricaoSimilar(a.descricao, b.descricao)
+    : (mesmoTipo || descricaoSimilar(a.descricao, b.descricao));
+  if (!identificacaoOk) return false;
   return dimensoesSimilares(a.dimensoes, b.dimensoes);
 }
 
@@ -666,9 +683,11 @@ function deduplicarItens(items) {
   for (const item of items) {
     const match = kept.find(k => mesmaPeca(k, item));
     if (match) {
-      // Mantém o mais completo: maior confiança, ou dimensão resolvida no lugar de "a medir"
+      // Mantém o mais completo: maior confiança, ou dimensão resolvida no lugar de "a medir",
+      // ou ambiente preenchido no lugar de vazio (mesmo espírito da dimensão — ver mesmaPeca)
       const matchMelhor = (match.confianca ?? 0) >= (item.confianca ?? 0)
-        && !(match.dimensoes === 'a medir' && item.dimensoes !== 'a medir');
+        && !(match.dimensoes === 'a medir' && item.dimensoes !== 'a medir')
+        && !(!match.ambiente && item.ambiente);
       if (!matchMelhor) Object.assign(match, item, { id: match.id });
       continue;
     }
