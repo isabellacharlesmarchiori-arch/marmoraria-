@@ -377,6 +377,100 @@ function pareceCota(texto) {
   return parseFloat(m[0].replace(',', '.')) > LIMIAR_PARECE_COTA;
 }
 
+// ── Agrupamento de cotas em "grupos colineares" (mesma aresta do contorno) ──
+//
+// Existe porque a regra de prompt "só some segmentos colineares e
+// consecutivos" (ver PLANTA_TIPOS_E_REGRAS) depende hoje inteiramente do
+// modelo adivinhar colinearidade a partir de texto solto com (x,y) — achado
+// real: bloco "BORDA PISCINA" (pág. 47, 15 números espalhados por toda a
+// página, y de 67 a 674) virou UMA soma de quase todos os números (~25m,
+// confiança 65% — o teto da regra de soma), fisicamente implausível pra uma
+// borda de piscina. Já temos os pontos; a colinearidade real (mesma aresta)
+// dá pra checar com geometria determinística em vez de confiar só na
+// instrução textual.
+//
+// pt — tolerância pra considerar dois itens na MESMA coordenada fixa (mesma
+// coluna X, prováveis rótulos de uma aresta VERTICAL, ou mesma linha Y,
+// aresta HORIZONTAL). Pequena de propósito, mesma ordem de grandeza de
+// LEGENDA_X_TOL (25pt) — calibrada contra o par real "334"@(391,674) /
+// "306"@(399,646) da Borda Piscina (ΔX=8pt), que PRECISA ser reconhecido.
+const EIXO_COTA_TOL = 15;
+
+// pt — teto de distância entre itens CONSECUTIVOS (ordenados pelo eixo que
+// varia) pra ainda contarem como a mesma cadeia de segmentos de uma aresta.
+// Calibrado contra dois casos reais opostos do mesmo bloco (Borda Piscina):
+// aceita o par 334/306 (ΔY=28pt, mesma aresta, deve virar grupo) e REJEITA o
+// trio "300"@y392 / "20"@y162 / "20"@y616 (mesmo X=132 por coincidência, mas
+// ΔY de ~224-230pt entre eles — claramente não é a mesma aresta, é só rótulo
+// de cota em posições bem diferentes da página que calham de alinhar em X).
+// Escolha deliberadamente conservadora: falso negativo (grupo real perdido)
+// só devolve esses números ao comportamento de hoje (isolados/"a medir") —
+// nunca cria um jeito NOVO de errar. Não valida ainda contra blocos com
+// aresta física longa de verdade (ex: um vão de sacada de vários metros) —
+// candidato a recalibrar se aparecer um falso negativo assim na prática.
+const CADEIA_COTA_MAX_GAP = 80;
+
+// Single-linkage sobre um valor ESCALAR (x ou y) — mesmo algoritmo de
+// clusterizarImagens (acima), só que sobre coordenada solta em vez de bbox:
+// agrupa itens cujo valor no eixo fica a ≤tol de ALGUM outro item já no
+// mesmo cluster (cadeia), não só do primeiro item do grupo.
+function clusterizarPorEixo(itens, eixo, tol) {
+  let clusters = itens.map(it => [it]);
+  let mudou = true;
+  while (mudou) {
+    mudou = false;
+    for (let i = 0; i < clusters.length && !mudou; i++) {
+      for (let j = i + 1; j < clusters.length; j++) {
+        const perto = clusters[i].some(a => clusters[j].some(b => Math.abs(a[eixo] - b[eixo]) <= tol));
+        if (perto) {
+          clusters[i] = clusters[i].concat(clusters[j]);
+          clusters.splice(j, 1);
+          mudou = true;
+          break;
+        }
+      }
+    }
+  }
+  return clusters;
+}
+
+// Um cluster só vira grupo colinear de verdade se, ALÉM de compartilhar a
+// coordenada fixa, os itens também formarem uma cadeia sem saltos grandes no
+// eixo que VARIA — sem isso, o trio "300/20/20" (mesmo X, ΔY enorme) da Borda
+// Piscina passaria despercebido só por coincidência de X.
+function formaCadeiaValida(itens, eixoVariavel, maxGap) {
+  const ordenados = [...itens].sort((a, b) => a[eixoVariavel] - b[eixoVariavel]);
+  for (let i = 1; i < ordenados.length; i++) {
+    if (ordenados[i][eixoVariavel] - ordenados[i - 1][eixoVariavel] > maxGap) return false;
+  }
+  return true;
+}
+
+// Agrupa os itens que "parecem cota" (ver pareceCota) de um bloco em grupos
+// colineares — candidatos a MESMA aresta/trecho do contorno. Testa colunas
+// (mesmo X, aresta vertical) primeiro; o que sobrar (não entrou em nenhuma
+// coluna) testa linhas (mesmo Y, aresta horizontal) — ordem arbitrária mas
+// determinística, evita um item aparecer em dois grupos ao mesmo tempo (o
+// que tornaria a soma ambígua). Retorna array de {eixo:'x'|'y', valor, itens}
+// — só grupos com 2+ itens que também formam cadeia válida; item que não
+// entra em nenhum grupo fica de fora (tratado como cota isolada por quem
+// chama, nunca resulta em "sem checagem nenhuma").
+export function agruparCotasColineares(itensComCota) {
+  const grupos = [];
+
+  const clustersX = clusterizarPorEixo(itensComCota, 'x', EIXO_COTA_TOL)
+    .filter(c => c.length >= 2 && formaCadeiaValida(c, 'y', CADEIA_COTA_MAX_GAP));
+  const usados = new Set(clustersX.flat());
+  clustersX.forEach(c => grupos.push({ eixo: 'x', valor: Math.round(c.reduce((s, it) => s + it.x, 0) / c.length), itens: c }));
+
+  const restantes = itensComCota.filter(it => !usados.has(it));
+  const clustersY = clusterizarPorEixo(restantes, 'y', EIXO_COTA_TOL)
+    .filter(c => c.length >= 2 && formaCadeiaValida(c, 'x', CADEIA_COTA_MAX_GAP));
+  clustersY.forEach(c => grupos.push({ eixo: 'y', valor: Math.round(c.reduce((s, it) => s + it.y, 0) / c.length), itens: c }));
+
+  return grupos;
+}
+
 function subparticionarPorImagem(bloco, imagensDentro) {
   if (imagensDentro.length < 2) return [bloco];
 
@@ -582,16 +676,50 @@ function formatarItem(it) {
   return `"${it.texto}" @ (${it.x},${it.y})${it.camada ? ` [camada:${it.camada}]` : ''}`;
 }
 
+// Mesmo critério já usado em subparticionarPorImagem (ver checagem de
+// segurança acima, "cada sub-bloco final precisa ter pelo menos 1 número que
+// pareça cota") — reaproveitado aqui pra dar ao modelo um sinal EXPLÍCITO e
+// determinístico de que um bloco não tem cota real, em vez de confiar só na
+// instrução do prompt pra ele mesmo perceber isso (achado real: pág. 40,
+// bloco "DETALHE - Soleira cadeirinha" P01 só tem "GRANITO"/"FRISO"/
+// "CONTRAPISO"/"SEM ESCALA" — zero número — e ainda assim virou peça com
+// dimensão inventada 2,70×0,90m, sem nenhum número da página batendo).
+// .some() (não every): um bloco real pode ter só a largura abaixo do limiar
+// (ex: pág. 42, "15" de largura ao lado de "165" de comprimento) — continua
+// "com cota" se PELO MENOS UM item passar.
+function blocoTemCotaReal(bloco) {
+  return bloco.itens.some(it => pareceCota(it.texto));
+}
+
 // Formata o resultado de agruparEmBlocos no texto enviado ao modelo — cada
 // bloco com seu título e, quando reconhecido, o número da legenda associado.
 export function formatarBlocosParaPrompt({ blocos, legenda, semBloco }) {
   const partes = [];
 
   blocos.forEach((b, i) => {
+    const semCota = !blocoTemCotaReal(b) ? ' — SEM NENHUM NÚMERO QUE PAREÇA COTA NESTE BLOCO (nada >20, nem cota DXF) — NÃO invente dimensão daqui, use "a medir"' : '';
     const cabecalho = b.titulo
-      ? `[BLOCO ${i + 1} — "${b.titulo}"${b.numeroLegenda != null ? ` — item da legenda: ${b.numeroLegenda}` : ''}]`
-      : `[BLOCO ${i + 1} — sem título identificado]`;
-    partes.push(`${cabecalho}\n${b.itens.map(formatarItem).join('\n')}`);
+      ? `[BLOCO ${i + 1} — "${b.titulo}"${b.numeroLegenda != null ? ` — item da legenda: ${b.numeroLegenda}` : ''}${semCota}]`
+      : `[BLOCO ${i + 1} — sem título identificado${semCota}]`;
+
+    // Grupos colineares (ver agruparCotasColineares acima): sinal geométrico
+    // determinístico de quais números PROVAVELMENTE pertencem à mesma aresta
+    // do contorno — substitui o modelo tendo que adivinhar colinearidade só
+    // olhando (x,y) em texto. Números fora de qualquer grupo continuam
+    // listados soltos, exatamente como antes (comportamento idêntico quando
+    // nenhum grupo é detectado).
+    const cotaItens = b.itens.filter(it => pareceCota(it.texto));
+    const grupos = agruparCotasColineares(cotaItens);
+    const itensAgrupados = new Set(grupos.flatMap(g => g.itens));
+    const corpo = [];
+    grupos.forEach((g, gi) => {
+      corpo.push(`[GRUPO COLINEAR ${gi + 1} — eixo ${g.eixo.toUpperCase()}≈${g.valor}, ${g.itens.length} números — provável MESMA aresta/trecho do contorno; só some cota DENTRO deste grupo, NUNCA com outro grupo nem com número solto fora dele]`);
+      corpo.push(g.itens.map(formatarItem).join('\n'));
+    });
+    const semGrupo = b.itens.filter(it => !itensAgrupados.has(it));
+    if (semGrupo.length > 0) corpo.push(semGrupo.map(formatarItem).join('\n'));
+
+    partes.push(`${cabecalho}\n${corpo.join('\n')}`);
   });
 
   if (legenda.length > 0) {
