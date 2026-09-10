@@ -118,21 +118,48 @@ function normalizeExtractedItems(extracted, materiaisList) {
   return extracted.map((item, i) => {
     const rawEsp = item.espessura_cm != null ? Number(item.espessura_cm) : null;
     const esp    = rawEsp != null && rawEsp >= 1 && rawEsp <= 3 ? rawEsp : null;
-    const match  = fuzzyMatchMaterial(item.material, materiaisList);
+    // Tira o acabamento do fim do texto ANTES de casar contra o catálogo —
+    // bônus da Fase 3: "Granito São Gabriel Escovado" vira "Granito São
+    // Gabriel" pro match, em vez de comparar a string inteira com sufixo.
+    const { material: materialLimpo, acabamento: acabamentoExtraido } = separarAcabamentoMaterial(item.material);
+    const match  = fuzzyMatchMaterial(materialLimpo, materiaisList);
     return {
       ...item,
       id:           String(item.id ?? i + 1),
       pagina:       Number(item.pagina ?? 1),
       confianca:    Number(item.confianca ?? 50),
-      material:     item.material ?? null,
+      material:     materialLimpo ?? null,
       espessura_cm: esp,
       tipo:         item.tipo ?? 'outro',
       recortes:     normalizeRecortes(item.recortes),
       trecho_origem:     item.trecho_origem ?? null,
       material_id:       match?.exato ? match.material.id : null,
       material_resolved: false,
+      // Acabamento cru extraído do texto — preservado mesmo sem material
+      // resolvido, pra reconciliar depois quando o material for confirmado
+      // manualmente (ponto ainda não coberto, ver plano de fases).
+      acabamento_extraido: acabamentoExtraido,
+      // Acabamento só entra "oficialmente" no item quando o material já foi
+      // resolvido com confiança E existe uma variação de preço real daquele
+      // material com esse acabamento (grafia do catálogo, não do PDF) — nunca
+      // inventa acabamento pra material sem essa variação cadastrada.
+      acabamento: match?.exato ? reconciliarAcabamento(acabamentoExtraido, match.material) : null,
     };
   });
+}
+
+// Confere o acabamento extraído do texto contra as variações de preço REAIS
+// do material já resolvido (mesma comparação sem case/acento de
+// separarAcabamentoMaterial) — se não bate com nenhuma variação cadastrada,
+// devolve null (nunca inventa). Preserva a grafia do CATÁLOGO no retorno
+// (não a do PDF), pra bater exatamente com variacoes_precos.acabamento em
+// getPrecoM2 (Fase 2).
+function reconciliarAcabamento(acabamentoExtraido, materialObj) {
+  if (!acabamentoExtraido || !materialObj?.variacoes_precos?.length) return null;
+  const norm = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const alvo = norm(acabamentoExtraido);
+  const encontrada = materialObj.variacoes_precos.find(v => norm(v.acabamento) === alvo);
+  return encontrada?.acabamento ?? null;
 }
 
 // $INSUNITS (código de grupo 70 do header DXF) → unidade real do desenho.
@@ -417,6 +444,41 @@ function fuzzyMatchMaterial(query, candidates) {
   return parciais.length === 1 ? { material: parciais[0], exato: true } : null;
 }
 
+// ── Acabamento embutido no texto do material (Fase 3 do plano de acabamento) ──
+// Vocabulário fechado e determinístico — reconhecido no CLIENTE, não pedido
+// como campo novo à IA. Mudar o schema/prompt é a categoria de risco que mais
+// deu regressão nas sessões anteriores (precisa reteste com IA real toda
+// vez); aqui só reaproveitamos o texto livre que a IA já devolve hoje em
+// item.material (ex: "Granito São Gabriel Escovado" — achado real citado no
+// comentário de fuzzyMatchMaterial acima) e separamos determinística e
+// localmente. Chamada em normalizeExtractedItems ANTES do fuzzyMatchMaterial
+// — tirar o acabamento do fim do texto melhora o match do nome também.
+const ACABAMENTOS_CONHECIDOS = [
+  'polido', 'escovado', 'levigado', 'flameado', 'apicoado', 'bruto', 'natural', 'amaciado',
+];
+
+// Reconhece acabamento só quando é a ÚLTIMA palavra do texto (nunca no meio
+// ou início) — mesma cautela das reconstruções de título em vetorialBlocos.js:
+// sem fuzzy match, sem match parcial, comparação normalizada (minúsculo, sem
+// acento) só pra COMPARAR — o valor devolvido preserva a grafia original.
+// Falso negativo é seguro (material some inteiro no texto, comportamento de
+// hoje); nunca corta uma palavra que faça parte do nome do material.
+function separarAcabamentoMaterial(materialStr) {
+  if (!materialStr) return { material: materialStr, acabamento: null };
+  const palavras = materialStr.trim().split(/\s+/);
+  if (palavras.length < 2) return { material: materialStr, acabamento: null };
+  const ultima = palavras[palavras.length - 1];
+  const norm   = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (!ACABAMENTOS_CONHECIDOS.includes(norm(ultima))) {
+    return { material: materialStr, acabamento: null };
+  }
+  // Achado real no PDF de teste (pág.44): acabamento separado por hífen
+  // ("Mármore Preto São Gabriel - escovado"), não só por espaço — remove o
+  // separador solto que sobra no final do nome do material.
+  const material = palavras.slice(0, -1).join(' ').replace(/[-–—:,;]+\s*$/, '').trim();
+  return { material, acabamento: ultima };
+}
+
 // ── Rede de segurança: peça da legenda que nunca aparece no resultado final ──
 // Só pro pipeline VETORIAL — é o único com texto bruto pra reconstruir a
 // legenda; o pipeline de imagem manda a página como foto, sem esse dado.
@@ -492,11 +554,74 @@ function checarPecasFaltantes(pageTextItemsArr, itensExtraidos) {
     .sort((a, b) => a.numero - b.numero);
 }
 
-function getPrecoM2(materialObj, espessuraCm = 2) {
+// ── Rede de segurança: peça "lateral/fundo" fabricada reaproveitando medidas
+// de OUTRAS peças ────────────────────────────────────────────────────────
+// Complementa checarPecasFaltantes na direção OPOSTA — não é peça sumindo,
+// é peça aparecendo sem existir no desenho. Achado real (Península/Área
+// Gourmet): a IA criou "Saia Península - lateral" 1,10×0,90 combinando a
+// largura do Tampo (1,10) com a altura da Saia frente (0,90) — dois números
+// REAIS, cada um já sendo a dimensão INTEIRA de OUTRA peça já extraída, sem
+// cota própria pra essa peça nova. Reforçar o prompt (ver regra sobre
+// múltiplas faces em plantaPrompts.js) reduziu a confiança nesse caso (90%→
+// 65%) mas NÃO impediu a criação — falha de aderência, mesma categoria que
+// motivou checarPecasFaltantes. A garantia real fica aqui, por fora.
+//
+// Só se aplica a peças cuja descrição sugere ser uma face "extra" de ilha/
+// bancada (lateral/fundo — vocabulário da própria regra do prompt sobre
+// múltiplas faces): medidas padrão (ex: altura de saia = 0,90m, ver regra de
+// PLANTA_TIPOS_E_REGRAS) são legitimamente compartilhadas por VÁRIAS peças
+// reais na mesma página — sem restringir ao vocabulário de face, o check
+// pegaria coincidência normal como se fosse fabricação.
+//
+// Exige que comprimento E largura batam cada um com uma peça IRMÃ DIFERENTE
+// (não a mesma) — uma única peça irmã que já tem os dois números é
+// coincidência normal de medida repetida, não reaproveitamento fabricado.
+//
+// Sem info de BLOCO no item final da IA (só `pagina`) — o escopo real
+// aplicado é "mesma página", mais largo que "mesmo bloco". Aceito como
+// aproximação seguindo a mesma direção de segurança dos outros fixes desta
+// sessão: só descarta a DIMENSÃO (nunca a peça inteira), volta pra "a medir"
+// — o mesmo destino que a peça teria se a IA tivesse seguido a regra do
+// prompt desde o início.
+function checarLateralFabricada(itensExtraidos) {
+  const bateValor = (peca, valor) => {
+    const d = parseDimensoes(peca.dimensoes);
+    return d != null && (Math.abs(d.comprimento - valor) < 0.005 || Math.abs(d.largura - valor) < 0.005);
+  };
+  return itensExtraidos.map(item => {
+    if (item.dimensoes === 'a medir' || !/lateral|fundo/i.test(item.descricao ?? '')) return item;
+    const dim = parseDimensoes(item.dimensoes);
+    if (!dim) return item;
+
+    const irmas = itensExtraidos.filter(o => o !== item && o.pagina === item.pagina);
+    const fonteComprimento = irmas.find(o => bateValor(o, dim.comprimento));
+    const fonteLargura     = irmas.find(o => bateValor(o, dim.largura));
+    if (!fonteComprimento || !fonteLargura || fonteComprimento === fonteLargura) return item;
+
+    return {
+      ...item,
+      dimensoes: 'a medir',
+      confianca: Math.min(item.confianca ?? 100, 30),
+      trecho_origem: `${item.trecho_origem ? item.trecho_origem + ' — ' : ''}[rede de segurança: dimensão ${dim.comprimento}×${dim.largura} descartada — reaproveitava por completo as medidas de "${fonteComprimento.descricao}" e "${fonteLargura.descricao}" (peças diferentes), sem cota própria]`,
+    };
+  });
+}
+
+function getPrecoM2(materialObj, espessuraCm = 2, acabamento = null) {
   if (!materialObj?.variacoes_precos?.length) return 0;
-  const esp = Number(espessuraCm) || 2;
-  const v = materialObj.variacoes_precos.find(x => (parseInt(x.espessura) || 0) === esp)
-         ?? materialObj.variacoes_precos[0];
+  const esp  = Number(espessuraCm) || 2;
+  const vars = materialObj.variacoes_precos;
+  // Prioriza variação com acabamento batendo; sem acabamento informado (ainda
+  // não extraído do PDF — ver AbaImportarPDF Fase 3/4) ou sem variação
+  // correspondente, cai no comportamento de sempre (só por espessura).
+  // (`acabamento != null && vars.find(...)` daria `false` quando acabamento é
+  // null, e `false ?? x` NÃO cai no fallback — só null/undefined ativam `??`.)
+  const porAcabamento = acabamento != null
+    ? vars.find(x => (parseInt(x.espessura) || 0) === esp && x.acabamento === acabamento)
+    : null;
+  const v = porAcabamento
+         ?? vars.find(x => (parseInt(x.espessura) || 0) === esp)
+         ?? vars[0];
   return Number(v?.preco_venda ?? 0);
 }
 
@@ -855,7 +980,7 @@ const [fileName,     setFileName]     = useState('');
   useEffect(() => {
     if (!empresaId) return;
     supabase
-      .from('materiais').select('id, nome, variacoes_precos(espessura, preco_venda)')
+      .from('materiais').select('id, nome, variacoes_precos(acabamento, espessura, preco_venda)')
       .eq('empresa_id', empresaId).eq('ativo', true).order('nome')
       .then(({ data }) => {
         if (!data) return;
@@ -1312,6 +1437,23 @@ const [fileName,     setFileName]     = useState('');
         // detectada não começa na página 1 (ex: item da página local 3 == PDF 36
         // quando pageStart = 34, mas ficaria marcado como página 3).
         extracted = extracted.map(item => ({ ...item, pagina: (Number(item.pagina) || 1) + (pageStart - 1) }));
+
+        // Rede de segurança: peça "lateral/fundo" com dimensão fabricada por
+        // reaproveitar medidas inteiras de OUTRAS peças (ver comentário de
+        // checarLateralFabricada acima) — roda nos dois pipelines (vetorial
+        // e visão), não só vetorial, porque a regra do prompt que motiva isso
+        // vale pros dois.
+        {
+          const dimensoesAntes = new Map(extracted.map(it => [it.id, it.dimensoes]));
+          extracted = checarLateralFabricada(extracted);
+          const corrigidos = extracted.filter(it => dimensoesAntes.get(it.id) !== 'a medir' && it.dimensoes === 'a medir');
+          if (corrigidos.length > 0) {
+            setChatMessages(prev => [...prev, {
+              role: 'assistant',
+              text: `⚠️ Rede de segurança: descartei a dimensão de ${corrigidos.length} peça(s) cuja medida reaproveitava por completo números já usados por OUTRAS peças (sem cota própria) — voltaram pra "a medir": ${corrigidos.map(p => `"${p.descricao}"`).join(', ')}.`,
+            }]);
+          }
+        }
 
         // Rede de segurança: peça listada na legenda que não apareceu em
         // nenhum item extraído (ver comentário de checarPecasFaltantes acima).
@@ -2072,7 +2214,7 @@ const [fileName,     setFileName]     = useState('');
       const opcRows = allPecasRows.map((p, idx) => {
         const item      = itemsParaOrcamento[idx];
         const mat       = item.material_id ? materiais.find(m => m.id === item.material_id) : null;
-        const precoM2   = getPrecoM2(mat, p.espessura_cm);
+        const precoM2   = getPrecoM2(mat, p.espessura_cm, item.acabamento);
         const valorArea = Math.round(p.area_liquida_m2 * precoM2 * 100) / 100;
         return {
           peca_id: p.id, material_id: item.material_id ?? null,
