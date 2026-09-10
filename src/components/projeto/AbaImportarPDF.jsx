@@ -38,7 +38,7 @@ function ConfidenceBar({ pct }) {
 }
 
 const MEDIDAS_PADRAO_CM = {
-  espelho: 10, saia: 10, frontao: 10,
+  espelho: 10, saia: 10, frontao: 10, faixa: 10,
   soleira: 15, peitoril: 15,
   prateleira: 30,
   tampo: 60, bancada: 60,
@@ -2358,11 +2358,18 @@ const [fileName,     setFileName]     = useState('');
                     .map((item, idx, arr) => {
                     const isPendente  = pendentes.has(item.id);
                     const partialDim  = parsePartialDim(item.dimensoes);
-                    // Incerteza de DIMENSÃO — controla a linha extra de botões
-                    // (Usar padrão/Digitar/Perguntar ao arquiteto), que são
-                    // todos sobre dimensão. Material tem sua própria ação já
-                    // visível na célula (campo de busca), não precisa duplicar.
+                    // Incerteza de DIMENSÃO — controla só o destaque amarelo da
+                    // linha (needsReview). A IA pode retornar confianca < 50
+                    // mesmo já tendo preenchido um valor real (sinaliza "confira
+                    // isso"), então esse sinal sozinho NÃO deve acionar a linha
+                    // de botões — ver dimensaoFaltando abaixo.
                     const dimensaoIncerta  = item.confianca < 50 || item.dimensoes === 'a medir' || partialDim !== null;
+                    // Dimensão genuinamente sem valor (linha de botões Usar
+                    // padrão/Digitar/Perguntar ao arquiteto). Diferente de
+                    // dimensaoIncerta: ignora confianca — um valor já
+                    // preenchido não precisa desses botões pra ser corrigido,
+                    // o vendedor edita clicando direto na célula.
+                    const dimensaoFaltando = item.dimensoes === 'a medir' || partialDim !== null;
                     // Material genuinamente sem resposta — nem resolvido
                     // (material_id) nem confirmado como "sem material"
                     // (material_resolved). Só entra no destaque visual da
@@ -2529,7 +2536,10 @@ const [fileName,     setFileName]     = useState('');
                                 )}
                               </div>
                             ) : (
-                              <span className={item.dimensoes === 'a medir' ? 'text-yellow-400' : 'text-zinc-300'}>
+                              <span
+                                onClick={e => { e.stopPropagation(); setDigitandoId(item.id); setDigitandoValor(item.dimensoes === 'a medir' ? '' : item.dimensoes); }}
+                                className={`cursor-pointer hover:underline ${item.dimensoes === 'a medir' ? 'text-yellow-400' : 'text-zinc-300'}`}
+                              >
                                 {item.dimensoes}
                               </span>
                             )}
@@ -2552,7 +2562,7 @@ const [fileName,     setFileName]     = useState('');
                             </td>
                           )}
                         </tr>
-                        {(dimensaoIncerta || isPendente) && !cellEditing && (
+                        {(dimensaoFaltando || isPendente) && !cellEditing && (
                           <tr className={`border-b border-zinc-800/40 ${rowBg}`}>
                             <td colSpan={pdfDoc ? 7 : 6} className="px-2 pb-1.5 pt-0">
                               {isPendente ? (
@@ -2573,7 +2583,7 @@ const [fileName,     setFileName]     = useState('');
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  {item.dimensoes === 'a medir' && (
+                                  {item.dimensoes === 'a medir' && item.tipo !== 'outro' && (
                                     <button
                                       onClick={e => { e.stopPropagation(); usarPadrao(item); }}
                                       className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
